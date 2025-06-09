@@ -1,0 +1,43 @@
+{
+  "name": "sow-generator",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/webfeathers/SOW-Generator.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/webfeathers/SOW-Generator/issues"
+  },
+  "homepage": "https://github.com/webfeathers/SOW-Generator#readme",
+  "description": "",
+  "dependencies": {
+    "@neondatabase/serverless": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vercel/postgres": "latest",
+    "autoprefixer": "latest",
+    "drizzle-orm": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "latest",
+    "next": "latest",
+    "postcss": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "tailwindcss": "latest",
+    "typescript": "latest"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss7-compat": "^2.2.17"
+  }
+}
