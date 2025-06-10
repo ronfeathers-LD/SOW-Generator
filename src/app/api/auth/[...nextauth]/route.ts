@@ -5,6 +5,10 @@ if (!process.env.GOOGLE_CLIENT_ID) throw new Error('GOOGLE_CLIENT_ID is required
 if (!process.env.GOOGLE_CLIENT_SECRET) throw new Error('GOOGLE_CLIENT_SECRET is required');
 if (!process.env.NEXTAUTH_SECRET) throw new Error('NEXTAUTH_SECRET is required');
 
+// Log the callback URL for debugging
+const callbackUrl = `${process.env.NEXTAUTH_URL}/api/auth/callback/google`;
+console.log('Callback URL:', callbackUrl);
+
 const handler = NextAuth({
   providers: [
     GoogleProvider({
@@ -20,9 +24,10 @@ const handler = NextAuth({
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === 'development',
+  debug: true, // Enable debug mode temporarily
   callbacks: {
     async redirect({ url, baseUrl }) {
+      console.log('Redirect called with:', { url, baseUrl });
       // Ensure we're using the correct callback URL
       if (url.startsWith('/')) {
         return `${baseUrl}${url}`;
