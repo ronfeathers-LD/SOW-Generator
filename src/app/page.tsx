@@ -5,7 +5,8 @@ import LoginButton from '../components/LoginButton';
 export default async function Home() {
   const session = await getServerSession();
 
-  if (session) {
+  // If user is authenticated, redirect to dashboard
+  if (session?.user) {
     redirect('/dashboard');
   }
 
