@@ -19,10 +19,16 @@ const handler = NextAuth({
   debug: true,
   callbacks: {
     async redirect({ url, baseUrl }) {
-      console.log('Redirect URL:', url);
-      console.log('Base URL:', baseUrl);
+      // Ensure we're using the correct callback URL
+      if (url.startsWith('/')) {
+        return `${baseUrl}${url}`;
+      }
       return url.startsWith(baseUrl) ? url : baseUrl;
     },
+  },
+  pages: {
+    signIn: '/',
+    error: '/',
   },
 });
 
