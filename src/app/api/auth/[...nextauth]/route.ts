@@ -26,6 +26,22 @@ const handler = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
   debug: true, // Enable debug mode temporarily
   callbacks: {
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.sub;
+        session.user.image = token.picture as string;
+        session.user.email = token.email as string;
+      }
+      return session;
+    },
+    async jwt({ token, user, account }) {
+      if (account && user) {
+        token.id = user.id;
+        token.picture = user.image;
+        token.email = user.email;
+      }
+      return token;
+    },
     async redirect({ url, baseUrl }) {
       console.log('Redirect called with:', { url, baseUrl });
       // Ensure we're using the correct callback URL
