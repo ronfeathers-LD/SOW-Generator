@@ -1,10 +1,10 @@
-import { handleCallback } from '@auth0/nextjs-auth0';
+import { handleAuth } from '@auth0/nextjs-auth0';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 export async function GET(req: Request) {
   try {
-    const res = await handleCallback(req);
+    const res = await handleAuth(req);
     const session = res.cookies.get('appSession')?.value;
     if (session) {
       const user = JSON.parse(Buffer.from(session, 'base64').toString());
