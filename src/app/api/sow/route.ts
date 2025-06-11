@@ -10,29 +10,40 @@ export async function POST(request: Request) {
     
     const sow = await prisma.sOW.create({
       data: {
+        // Required fields
+        title: data.header?.sowTitle || 'Untitled SOW',
+        content: data.scope?.projectDescription || '',
+        status: 'draft',
+        
+        // Header Information
         companyLogo: data.header?.companyLogo || '',
         clientName: data.header?.clientName || '',
         sowTitle: data.header?.sowTitle || '',
         effectiveDate: data.header?.effectiveDate ? new Date(data.header.effectiveDate) : new Date(),
         
+        // Client Signature Information
         clientTitle: data.clientSignature?.title || '',
         clientEmail: data.clientSignature?.email || '',
         signatureDate: data.clientSignature?.signatureDate ? new Date(data.clientSignature.signatureDate) : new Date(),
         
+        // Project Scope
         projectDescription: data.scope?.projectDescription || '',
         deliverables: data.scope?.deliverables || '',
         startDate: data.scope?.timeline?.startDate ? new Date(data.scope.timeline.startDate) : new Date(),
         duration: data.scope?.timeline?.duration || '',
         
+        // Roles and Responsibilities
         clientRoles: data.roles?.clientRoles || [],
         pricingRoles: data.pricing?.roles || [],
         billingInfo: data.pricing?.billing || {},
         
+        // Project Assumptions
         accessRequirements: data.assumptions?.accessRequirements || '',
         travelRequirements: data.assumptions?.travelRequirements || '',
         workingHours: data.assumptions?.workingHours || '',
         testingResponsibilities: data.assumptions?.testingResponsibilities || '',
         
+        // Addendums
         addendums: data.addendums || [],
       },
     });
