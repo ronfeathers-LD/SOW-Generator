@@ -40,7 +40,11 @@ export async function POST(
         isLatest: true,
         parentId: originalSOW.parentId || originalSOW.id,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        clientRoles: originalSOW.clientRoles ?? [],
+        pricingRoles: originalSOW.pricingRoles ?? [],
+        billingInfo: originalSOW.billingInfo ?? {},
+        addendums: originalSOW.addendums ?? [],
       }
     });
 
