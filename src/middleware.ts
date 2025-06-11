@@ -7,7 +7,9 @@ export async function middleware(request: NextRequest) {
   const isAdmin = token?.role === "admin";
   const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
   const isPublicRoute = request.nextUrl.pathname.startsWith("/public") || 
-                       request.nextUrl.pathname.startsWith("/api/public");
+                       request.nextUrl.pathname.startsWith("/api/public") ||
+                       request.nextUrl.pathname === "/" ||
+                       request.nextUrl.pathname.startsWith("/api/auth");
 
   // Allow access to public routes
   if (isPublicRoute) {
