@@ -21,6 +21,7 @@
   "homepage": "https://github.com/webfeathers/SOW-Generator#readme",
   "description": "",
   "dependencies": {
+    "@auth0/nextjs-auth0": "^4.6.1",
     "@neondatabase/serverless": "latest",
     "@prisma/client": "^6.9.0",
     "@types/node": "latest",

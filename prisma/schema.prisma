@@ -23,6 +23,10 @@ model SOW {
   parentId  String?  // Reference to the original SOW
   parent    SOW?     @relation("SOWVersions", fields: [parentId], references: [id])
   versions  SOW[]    @relation("SOWVersions")
+  title     String
+  content   String
+  status    String    @default("draft") // e.g., "draft", "pending", "approved", "rejected"
+  comments  Comment[]
 
   // Header Information
   companyLogo String
@@ -63,4 +67,26 @@ model SOW {
   leandataEmail String @default("agam.vasani@leandata.com")
 
   clientSignerName String @default("")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sowId     String
+  sow       SOW      @relation(fields: [sowId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  parentId  String?
+  parent    Comment? @relation("CommentToComment", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentToComment")
+}
+
+model User {
+  id       String    @id @default(cuid())
+  email    String    @unique
+  name     String?
+  role     String    @default("user") // e.g., "user", "approver", "admin"
+  comments Comment[]
 }

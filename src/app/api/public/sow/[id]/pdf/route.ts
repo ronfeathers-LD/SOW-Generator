@@ -5,7 +5,7 @@ import prisma from '@/lib/prisma';
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-  const pdfPageUrl = `${baseUrl}/sow/${id}/pdf`;
+  const sowUrl = `${baseUrl}/public/sow/${id}`;
 
   // Verify the SOW exists
   const sow = await prisma.sOW.findUnique({
@@ -20,34 +20,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   try {
     browser = await puppeteer.launch({
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      headless: true,
     });
     const page = await browser.newPage();
-    
-    // Set viewport to A4 size
-    await page.setViewport({
-      width: 794, // A4 width in pixels at 96 DPI
-      height: 1123, // A4 height in pixels at 96 DPI
-      deviceScaleFactor: 1,
-    });
-
-    // Navigate to the PDF page and wait for content to load
-    await page.goto(pdfPageUrl, {
-      waitUntil: 'networkidle0',
-      timeout: 30000, // 30 seconds timeout
-    });
-
-    // Wait for the content to be rendered
-    await page.waitForSelector('.min-h-screen', { timeout: 5000 });
-
-    // Generate PDF
+    await page.goto(sowUrl, { waitUntil: 'networkidle0' });
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
       margin: { top: '0.5in', right: '0.5in', bottom: '0.5in', left: '0.5in' },
-      preferCSSPageSize: true,
     });
-
     await browser.close();
     return new NextResponse(pdfBuffer, {
       status: 200,

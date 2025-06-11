@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
+import prisma from '@/lib/prisma';
 
 if (!process.env.GOOGLE_CLIENT_ID) throw new Error('GOOGLE_CLIENT_ID is required');
 if (!process.env.GOOGLE_CLIENT_SECRET) throw new Error('GOOGLE_CLIENT_SECRET is required');
@@ -26,11 +27,28 @@ const handler = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
   debug: true, // Enable debug mode temporarily
   callbacks: {
+    async signIn({ user }) {
+      // Create or update user in the database
+      if (user?.email) {
+        const dbUser = await prisma.user.upsert({
+          where: { email: user.email },
+          update: { name: user.name },
+          create: {
+            email: user.email,
+            name: user.name,
+            role: 'user',
+          },
+        });
+        user.role = dbUser.role;
+      }
+      return true;
+    },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub;
         session.user.image = token.picture as string;
         session.user.email = token.email as string;
+        session.user.role = token.role as string;
       }
       return session;
     },
@@ -39,11 +57,15 @@ const handler = NextAuth({
         token.id = user.id;
         token.picture = user.image;
         token.email = user.email;
+        token.role = user.role;
       }
       return token;
     },
     async redirect({ url, baseUrl }) {
-      console.log('Redirect called with:', { url, baseUrl });
+      // Redirect to /sow after login
+      if (url.startsWith('/api/auth/signin')) {
+        return `${baseUrl}/sow`;
+      }
       // Ensure we're using the correct callback URL
       if (url.startsWith('/')) {
         return `${baseUrl}${url}`;
