@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
 import prisma from '@/lib/prisma';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-  const pdfPageUrl = `${baseUrl}/sow/${id}/pdf`;
 
   // Verify the SOW exists
   const sow = await prisma.sOW.findUnique({
@@ -16,39 +15,50 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return new NextResponse('SOW not found', { status: 404 });
   }
 
-  let browser;
   try {
-    browser = await puppeteer.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      headless: true,
+    // Create a new PDF document
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
     });
-    const page = await browser.newPage();
+
+    // Add content to the PDF
+    doc.setFontSize(16);
+    doc.text('Statement of Work', 105, 20, { align: 'center' });
     
-    // Set viewport to A4 size
-    await page.setViewport({
-      width: 794, // A4 width in pixels at 96 DPI
-      height: 1123, // A4 height in pixels at 96 DPI
-      deviceScaleFactor: 1,
+    doc.setFontSize(12);
+    doc.text(`Client: ${sow.clientName}`, 20, 40);
+    doc.text(`Title: ${sow.sowTitle}`, 20, 50);
+    doc.text(`Effective Date: ${sow.effectiveDate.toLocaleDateString()}`, 20, 60);
+    
+    // Add project description
+    doc.setFontSize(14);
+    doc.text('Project Description', 20, 80);
+    doc.setFontSize(12);
+    const splitDescription = doc.splitTextToSize(sow.projectDescription, 170);
+    doc.text(splitDescription, 20, 90);
+
+    // Add deliverables
+    doc.setFontSize(14);
+    doc.text('Deliverables', 20, 120);
+    doc.setFontSize(12);
+    const deliverables = typeof sow.deliverables === 'string' 
+      ? sow.deliverables.split('\n').filter(Boolean)
+      : [];
+    deliverables.forEach((deliverable, index) => {
+      const y = 130 + (index * 10);
+      if (y < 280) { // Check if we need a new page
+        doc.text(`• ${deliverable}`, 25, y);
+      } else {
+        doc.addPage();
+        doc.text(`• ${deliverable}`, 25, 20);
+      }
     });
 
-    // Navigate to the PDF page and wait for content to load
-    await page.goto(pdfPageUrl, {
-      waitUntil: 'networkidle0',
-      timeout: 30000, // 30 seconds timeout
-    });
+    // Convert to buffer
+    const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
 
-    // Wait for the content to be rendered
-    await page.waitForSelector('.min-h-screen', { timeout: 5000 });
-
-    // Generate PDF
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '0.5in', right: '0.5in', bottom: '0.5in', left: '0.5in' },
-      preferCSSPageSize: true,
-    });
-
-    await browser.close();
     return new NextResponse(pdfBuffer, {
       status: 200,
       headers: {
@@ -57,7 +67,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       },
     });
   } catch (err) {
-    if (browser) await browser.close();
     console.error('PDF generation error:', err);
     return new NextResponse('Failed to generate PDF', { status: 500 });
   }
