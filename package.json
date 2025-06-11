@@ -22,6 +22,7 @@
   "description": "",
   "dependencies": {
     "@neondatabase/serverless": "latest",
+    "@prisma/client": "^6.9.0",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
@@ -30,15 +31,22 @@
     "drizzle-orm": "latest",
     "eslint": "latest",
     "eslint-config-next": "latest",
+    "html2canvas": "^1.4.1",
+    "html2pdf.js": "^0.10.3",
+    "jspdf": "^3.0.1",
     "next": "13.5.11",
     "next-auth": "^4.24.5",
     "postcss": "latest",
+    "prisma": "^6.9.0",
+    "puppeteer": "^24.10.0",
     "react": "latest",
     "react-dom": "latest",
-    "tailwindcss": "latest",
+    "react-quill": "^2.0.0",
+    "tailwindcss": "^4.1.8",
     "typescript": "latest"
   },
   "devDependencies": {
-    "@tailwindcss/postcss7-compat": "^2.2.17"
+    "@tailwindcss/postcss7-compat": "^2.2.17",
+    "@tailwindcss/typography": "^0.5.16"
   }
 }

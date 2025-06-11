@@ -1,0 +1,54 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SOW {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Header Information
+  companyLogo   String
+  clientName    String
+  sowTitle      String
+  effectiveDate DateTime
+
+  // Client Signature Information
+  clientTitle   String
+  clientEmail   String
+  signatureDate DateTime
+
+  // Project Scope
+  projectDescription String
+  deliverables       Json // Array of strings
+  startDate          DateTime
+  duration           String
+
+  // Roles and Responsibilities
+  clientRoles Json // Array of role objects
+
+  // Pricing Information
+  pricingRoles Json // Array of pricing role objects
+  billingInfo  Json // Billing information object
+
+  // Project Assumptions
+  accessRequirements      String
+  travelRequirements      String
+  workingHours            String
+  testingResponsibilities String
+
+  // Addendums
+  addendums Json // Array of addendum objects
+}

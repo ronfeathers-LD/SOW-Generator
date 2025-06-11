@@ -1,0 +1,416 @@
+Searching 62 files for "weeks"
+
+~/GitHub/SOW-Generator/src/components/SOWForm.tsx:
+  320            </div>
+  321            <div>
+  322:             <label className="block text-sm font-medium text-gray-700">Duration (weeks)</label>
+  323              <input
+  324                type="number"
+  ...
+  338                })}
+  339                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+  340:               placeholder="Enter number of weeks"
+  341              />
+  342            </div>
+
+2 matches in 1 file
+
+
+Searching 62 files for "duration"
+
+~/GitHub/SOW-Generator/prisma/schema.prisma:
+   40    deliverables      String  // HTML string
+   41    startDate         DateTime
+   42:   duration          String
+   43  
+   44    // Roles and Responsibilities
+
+~/GitHub/SOW-Generator/src/app/api/sow/route.ts:
+   23          deliverables: data.scope?.deliverables || '',
+   24          startDate: data.scope?.timeline?.startDate ? new Date(data.scope.timeline.startDate) : new Date(),
+   25:         duration: data.scope?.timeline?.duration || '',
+   26          
+   27          clientRoles: data.roles?.clientRoles || [],
+
+~/GitHub/SOW-Generator/src/app/api/sow/[id]/route.ts:
+   61          deliverables: data.scope.deliverables,
+   62          startDate: new Date(data.scope.timeline.startDate),
+   63:         duration: data.scope.timeline.duration,
+   64          clientRoles: data.roles.clientRoles,
+   65          pricingRoles: data.pricing.roles,
+
+~/GitHub/SOW-Generator/src/app/sow/[id]/page.tsx:
+   28    deliverables: string[];
+   29    startDate: string;
+   30:   duration: string;
+   31    clientRoles: ClientRole[];
+   32    pricing: {
+   ..
+  307              <h2 className="text-3xl font-bold text-center mb-6">PRICING</h2>
+  308              <p className="mb-4 text-center">
+  309:               The tasks above will be completed on a time and material basis, using the LeanData standard workday of 8 hours for a duration of {sow.duration || 'N/A'} weeks.
+  310              </p>
+  311              <div className="overflow-x-auto mb-4">
+  ...
+  351              <p className="mb-4">The following are the assumptions as part of the SOW:</p>
+  352              <ul className="list-disc pl-6 space-y-2 text-gray-700">
+  353:               <li>LeanData Professional Services will require access to the customer's SFDC's sandbox and production tenants for the configuration of LeanData; and, the customer will be responsible to ensure appropriate access is granted for the duration of the project. Customer will share all Salesforce details pertaining to configurations, including but not limited to: User IDs, fields/values, Queue IDs, Assignment rule IDs, etc.</li>
+  354                <li>For additional requests outside this SOW, LeanData shall work with Customer to determine if an additional SOW is required or determine alternate methods to remedy the request.</li>
+  355                <li>If the Customer requires LeanData to travel to Customer locations, then travel expenses shall be billed separately and not included in the estimate above. All expenses shall be pre-approved by Customer prior to LeanData booking travel itineraries.</li>
+
+~/GitHub/SOW-Generator/src/app/sow/[id]/edit/page.tsx:
+   44              timeline: {
+   45                startDate: new Date(data.startDate),
+   46:               duration: data.duration || '',
+   47              },
+   48            },
+
+~/GitHub/SOW-Generator/src/components/SOWForm.tsx:
+   42              timeline: {
+   43                startDate: new Date(),
+   44:               duration: '',
+   45              },
+   46            },
+   ..
+  320            </div>
+  321            <div>
+  322:             <label className="block text-sm font-medium text-gray-700">Duration (weeks)</label>
+  323              <input
+  324                type="number"
+  ...
+  326                step="1"
+  327                required
+  328:               value={formData.scope?.timeline?.duration || ''}
+  329                onChange={(e) => setFormData({
+  330                  ...formData,
+  ...
+  333                    timeline: {
+  334                      ...formData.scope?.timeline!,
+  335:                     duration: e.target.value.replace(/[^0-9]/g, '')
+  336                    }
+  337                  }
+
+~/GitHub/SOW-Generator/src/generated/prisma/edge.js:
+  107    deliverables: 'deliverables',
+  108    startDate: 'startDate',
+  109:   duration: 'duration',
+  110    clientRoles: 'clientRoles',
+  111    pricingRoles: 'pricingRoles',
+  ...
+  190      }
+  191    },
+  192: <skipped 678 characters> ...String\n  sowTitle      String\n  effectiveDate DateTime\n\n  // Client Signature Information\n  clientTitle   String\n  clientEmail   String\n  signatureDate DateTime\n\n  // Project Scope\n  projectDescription String\n  deliverables       Json // Array of strings\n  startDate          DateTime\n  duration           String\n\n  // Roles and Responsibilities\n  clientRoles Json // Array of role objects\n\n  // Pricing Information\n  pricingRoles Json // Array of pricing role objects\n  billingInfo  Json // Billing information object\n\n  // Project Assumptions\n  accessRequirements      String\n  trav... <skipped 166 characters> ...
+  193    "inlineSchemaHash": "bbf32be0f0f970027365fffefed1ddb33d98ace7199d1a7f1338ff9324880da1",
+  194    "copyEngine": true
+  ...
+  196  config.dirname = '/'
+  197  
+  198: <skipped 3138 characters> ...nerated\":false,\"isUpdatedAt\":false},{\"name\":\"startDate\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"DateTime\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"duration\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"clientRoles\",\"kind\":\"scalar\",\"isList\":false,\"isRequire... <skipped 2050 characters> ...
+  199  defineDmmfProperty(exports.Prisma, config.runtimeDataModel)
+  200  config.engineWasm = undefined
+
+~/GitHub/SOW-Generator/src/generated/prisma/index-browser.js:
+  135    deliverables: 'deliverables',
+  136    startDate: 'startDate',
+  137:   duration: 'duration',
+  138    clientRoles: 'clientRoles',
+  139    pricingRoles: 'pricingRoles',
+
+~/GitHub/SOW-Generator/src/generated/prisma/index.d.ts:
+  794      query: string
+  795      params: string
+  796:     duration: number
+  797      target: string
+  798    }
+  ...
+  893      projectDescription: string | null
+  894      startDate: Date | null
+  895:     duration: string | null
+  896      accessRequirements: string | null
+  897      travelRequirements: string | null
+  ...
+  913      projectDescription: string | null
+  914      startDate: Date | null
+  915:     duration: string | null
+  916      accessRequirements: string | null
+  917      travelRequirements: string | null
+  ...
+  934      deliverables: number
+  935      startDate: number
+  936:     duration: number
+  937      clientRoles: number
+  938      pricingRoles: number
+  ...
+  960      projectDescription?: true
+  961      startDate?: true
+  962:     duration?: true
+  963      accessRequirements?: true
+  964      travelRequirements?: true
+  ...
+  980      projectDescription?: true
+  981      startDate?: true
+  982:     duration?: true
+  983      accessRequirements?: true
+  984      travelRequirements?: true
+  ...
+ 1001      deliverables?: true
+ 1002      startDate?: true
+ 1003:     duration?: true
+ 1004      clientRoles?: true
+ 1005      pricingRoles?: true
+ ....
+ 1099      deliverables: JsonValue
+ 1100      startDate: Date
+ 1101:     duration: string
+ 1102      clientRoles: JsonValue
+ 1103      pricingRoles: JsonValue
+ ....
+ 1141      deliverables?: boolean
+ 1142      startDate?: boolean
+ 1143:     duration?: boolean
+ 1144      clientRoles?: boolean
+ 1145      pricingRoles?: boolean
+ ....
+ 1166      deliverables?: boolean
+ 1167      startDate?: boolean
+ 1168:     duration?: boolean
+ 1169      clientRoles?: boolean
+ 1170      pricingRoles?: boolean
+ ....
+ 1191      deliverables?: boolean
+ 1192      startDate?: boolean
+ 1193:     duration?: boolean
+ 1194      clientRoles?: boolean
+ 1195      pricingRoles?: boolean
+ ....
+ 1216      deliverables?: boolean
+ 1217      startDate?: boolean
+ 1218:     duration?: boolean
+ 1219      clientRoles?: boolean
+ 1220      pricingRoles?: boolean
+ ....
+ 1227    }
+ 1228  
+ 1229:   export type SOWOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "createdAt" | "updatedAt" | "companyLogo" | "clientName" | "sowTitle" | "effectiveDate" | "clientTitle" | "clientEmail" | "signatureDate" | "projectDescription" | "deliverables" | "startDate" | "duration" | "clientRoles" | "pricingRoles" | "billingInfo" | "accessRequirements" | "travelRequirements" | "workingHours" | "testingResponsibilities" | "addendums", ExtArgs["result"]["sOW"]>
+ 1230  
+ 1231    export type $SOWPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+ ....
+ 1246        deliverables: Prisma.JsonValue
+ 1247        startDate: Date
+ 1248:       duration: string
+ 1249        clientRoles: Prisma.JsonValue
+ 1250        pricingRoles: Prisma.JsonValue
+ ....
+ 1691      readonly deliverables: FieldRef<"SOW", 'Json'>
+ 1692      readonly startDate: FieldRef<"SOW", 'DateTime'>
+ 1693:     readonly duration: FieldRef<"SOW", 'String'>
+ 1694      readonly clientRoles: FieldRef<"SOW", 'Json'>
+ 1695      readonly pricingRoles: FieldRef<"SOW", 'Json'>
+ ....
+ 2094      deliverables: 'deliverables',
+ 2095      startDate: 'startDate',
+ 2096:     duration: 'duration',
+ 2097      clientRoles: 'clientRoles',
+ 2098      pricingRoles: 'pricingRoles',
+ ....
+ 2221      deliverables?: JsonFilter<"SOW">
+ 2222      startDate?: DateTimeFilter<"SOW"> | Date | string
+ 2223:     duration?: StringFilter<"SOW"> | string
+ 2224      clientRoles?: JsonFilter<"SOW">
+ 2225      pricingRoles?: JsonFilter<"SOW">
+ ....
+ 2246      deliverables?: SortOrder
+ 2247      startDate?: SortOrder
+ 2248:     duration?: SortOrder
+ 2249      clientRoles?: SortOrder
+ 2250      pricingRoles?: SortOrder
+ ....
+ 2274      deliverables?: JsonFilter<"SOW">
+ 2275      startDate?: DateTimeFilter<"SOW"> | Date | string
+ 2276:     duration?: StringFilter<"SOW"> | string
+ 2277      clientRoles?: JsonFilter<"SOW">
+ 2278      pricingRoles?: JsonFilter<"SOW">
+ ....
+ 2299      deliverables?: SortOrder
+ 2300      startDate?: SortOrder
+ 2301:     duration?: SortOrder
+ 2302      clientRoles?: SortOrder
+ 2303      pricingRoles?: SortOrder
+ ....
+ 2330      deliverables?: JsonWithAggregatesFilter<"SOW">
+ 2331      startDate?: DateTimeWithAggregatesFilter<"SOW"> | Date | string
+ 2332:     duration?: StringWithAggregatesFilter<"SOW"> | string
+ 2333      clientRoles?: JsonWithAggregatesFilter<"SOW">
+ 2334      pricingRoles?: JsonWithAggregatesFilter<"SOW">
+ ....
+ 2355      deliverables: JsonNullValueInput | InputJsonValue
+ 2356      startDate: Date | string
+ 2357:     duration: string
+ 2358      clientRoles: JsonNullValueInput | InputJsonValue
+ 2359      pricingRoles: JsonNullValueInput | InputJsonValue
+ ....
+ 2380      deliverables: JsonNullValueInput | InputJsonValue
+ 2381      startDate: Date | string
+ 2382:     duration: string
+ 2383      clientRoles: JsonNullValueInput | InputJsonValue
+ 2384      pricingRoles: JsonNullValueInput | InputJsonValue
+ ....
+ 2405      deliverables?: JsonNullValueInput | InputJsonValue
+ 2406      startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+ 2407:     duration?: StringFieldUpdateOperationsInput | string
+ 2408      clientRoles?: JsonNullValueInput | InputJsonValue
+ 2409      pricingRoles?: JsonNullValueInput | InputJsonValue
+ ....
+ 2430      deliverables?: JsonNullValueInput | InputJsonValue
+ 2431      startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+ 2432:     duration?: StringFieldUpdateOperationsInput | string
+ 2433      clientRoles?: JsonNullValueInput | InputJsonValue
+ 2434      pricingRoles?: JsonNullValueInput | InputJsonValue
+ ....
+ 2455      deliverables: JsonNullValueInput | InputJsonValue
+ 2456      startDate: Date | string
+ 2457:     duration: string
+ 2458      clientRoles: JsonNullValueInput | InputJsonValue
+ 2459      pricingRoles: JsonNullValueInput | InputJsonValue
+ ....
+ 2480      deliverables?: JsonNullValueInput | InputJsonValue
+ 2481      startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+ 2482:     duration?: StringFieldUpdateOperationsInput | string
+ 2483      clientRoles?: JsonNullValueInput | InputJsonValue
+ 2484      pricingRoles?: JsonNullValueInput | InputJsonValue
+ ....
+ 2505      deliverables?: JsonNullValueInput | InputJsonValue
+ 2506      startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+ 2507:     duration?: StringFieldUpdateOperationsInput | string
+ 2508      clientRoles?: JsonNullValueInput | InputJsonValue
+ 2509      pricingRoles?: JsonNullValueInput | InputJsonValue
+ ....
+ 2579      deliverables?: SortOrder
+ 2580      startDate?: SortOrder
+ 2581:     duration?: SortOrder
+ 2582      clientRoles?: SortOrder
+ 2583      pricingRoles?: SortOrder
+ ....
+ 2603      projectDescription?: SortOrder
+ 2604      startDate?: SortOrder
+ 2605:     duration?: SortOrder
+ 2606      accessRequirements?: SortOrder
+ 2607      travelRequirements?: SortOrder
+ ....
+ 2623      projectDescription?: SortOrder
+ 2624      startDate?: SortOrder
+ 2625:     duration?: SortOrder
+ 2626      accessRequirements?: SortOrder
+ 2627      travelRequirements?: SortOrder
+
+~/GitHub/SOW-Generator/src/generated/prisma/index.js:
+  108    deliverables: 'deliverables',
+  109    startDate: 'startDate',
+  110:   duration: 'duration',
+  111    clientRoles: 'clientRoles',
+  112    pricingRoles: 'pricingRoles',
+  ...
+  191      }
+  192    },
+  193: <skipped 678 characters> ...String\n  sowTitle      String\n  effectiveDate DateTime\n\n  // Client Signature Information\n  clientTitle   String\n  clientEmail   String\n  signatureDate DateTime\n\n  // Project Scope\n  projectDescription String\n  deliverables       Json // Array of strings\n  startDate          DateTime\n  duration           String\n\n  // Roles and Responsibilities\n  clientRoles Json // Array of role objects\n\n  // Pricing Information\n  pricingRoles Json // Array of pricing role objects\n  billingInfo  Json // Billing information object\n\n  // Project Assumptions\n  accessRequirements      String\n  trav... <skipped 166 characters> ...
+  194    "inlineSchemaHash": "bbf32be0f0f970027365fffefed1ddb33d98ace7199d1a7f1338ff9324880da1",
+  195    "copyEngine": true
+  ...
+  213  }
+  214  
+  215: <skipped 3138 characters> ...nerated\":false,\"isUpdatedAt\":false},{\"name\":\"startDate\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"DateTime\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"duration\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"nativeType\":null,\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"clientRoles\",\"kind\":\"scalar\",\"isList\":false,\"isRequire... <skipped 2050 characters> ...
+  216  defineDmmfProperty(exports.Prisma, config.runtimeDataModel)
+  217  config.engineWasm = undefined
+
+~/GitHub/SOW-Generator/src/generated/prisma/libquery_engine-darwin-arm64.dylib.node:
+    <binary>
+
+~/GitHub/SOW-Generator/src/generated/prisma/schema.prisma:
+   35    deliverables       Json // Array of strings
+   36    startDate          DateTime
+   37:   duration           String
+   38  
+   39    // Roles and Responsibilities
+
+~/GitHub/SOW-Generator/src/generated/prisma/wasm.js:
+  135    deliverables: 'deliverables',
+  136    startDate: 'startDate',
+  137:   duration: 'duration',
+  138    clientRoles: 'clientRoles',
+  139    pricingRoles: 'pricingRoles',
+
+~/GitHub/SOW-Generator/src/generated/prisma/runtime/edge-esm.js:
+   13  In Cloudflare module Workers, environment variables are available only in the Worker's \`env\` parameter of \`fetch\`.
+   14  To solve this, provide the connection string directly: https://pris.ly/d/cloudflare-datasource-url`,n):new Q(`error: Environment variable not found: ${s.fromEnvVar}.`,n);if(i===void 0)throw new Q("error: Missing URL environment variable, value, or override.",n);return i}d();u();c();p();m();d();u();c... <skipped 6941 characters> ...sma/engines-version":"6.9.0-10.81e4af48011447c3cc503a190e86995b66d2a28e","@prisma/fetch-engine":"workspace:*","@prisma/get-platform":"workspace:*"};d();u();c();p();m();d();u();c();p();m();var er=class extends ne{name="RequestError";code="P5010";constructor(t,r){super(`Cannot fetch data from service:
+   15: <skipped 3427 characters> ...>{switch(r.level){case"debug":case"trace":tr(r);break;case"error":case"warn":case"info":{this.logEmitter.emit(r.level,{timestamp:Wn(r.timestamp),message:r.attributes.message??"",target:r.target});break}case"query":{this.logEmitter.emit("query",{query:r.attributes.query??"",timestamp:Wn(r.timestamp),duration:r.attributes.duration_ms??0,params:r.attributes.params??"",target:r.target});break}default:r.level}}),t?.traces?.length&&this.tracingHelper.dispatchEngineSpans(t.traces)}onBeforeExit(){throw new Error('"beforeExit" hook is not applicable to the remote query engine')}async url(t){return await this.start(),`${this.protoco... <skipped 5393 characters> ...
+   16  `),{clientVersion:t.clientVersion})}return o?new ht(t):new ht(t)}d();u();c();p();m();function Wr({generator:e}){return e?.previewFeatures??[]}d();u();c();p();m();var _s=e=>({command:e});d();u();c();p();m();d();u();c();p();m();var Ns=e=>e.strings.reduce((t,r,n)=>`${t}@P${n}${r}`);d();u();c();p();m();... <skipped 1125 characters> ...r(let r of Object.keys(e))t[r]=Ls(e[r]);return t}function Ls(e){return typeof e=="bigint"?e.toString():Us(e)}var Xc=/^(\s*alter\s)/i,qs=Y("prisma:client");function Kn(e,t,r,n){if(!(e!=="postgresql"&&e!=="cockroachdb")&&r.length>0&&Xc.exec(t))throw new Error(`Running ALTER using ${n} is not supported
+   17  Using the example below you can still execute your query with Prisma, but please note that it is vulnerable to SQL injection attacks and requires you to take care of input sanitization.
+
+~/GitHub/SOW-Generator/src/generated/prisma/runtime/edge.js:
+   13  In Cloudflare module Workers, environment variables are available only in the Worker's \`env\` parameter of \`fetch\`.
+   14  To solve this, provide the connection string directly: https://pris.ly/d/cloudflare-datasource-url`,n):new Q(`error: Environment variable not found: ${s.fromEnvVar}.`,n);if(i===void 0)throw new Q("error: Missing URL environment variable, value, or override.",n);return i}d();u();c();p();m();d();u();c... <skipped 6941 characters> ...sma/engines-version":"6.9.0-10.81e4af48011447c3cc503a190e86995b66d2a28e","@prisma/fetch-engine":"workspace:*","@prisma/get-platform":"workspace:*"};d();u();c();p();m();d();u();c();p();m();var nr=class extends se{name="RequestError";code="P5010";constructor(t,r){super(`Cannot fetch data from service:
+   15: <skipped 3427 characters> ...>{switch(r.level){case"debug":case"trace":ir(r);break;case"error":case"warn":case"info":{this.logEmitter.emit(r.level,{timestamp:Zn(r.timestamp),message:r.attributes.message??"",target:r.target});break}case"query":{this.logEmitter.emit("query",{query:r.attributes.query??"",timestamp:Zn(r.timestamp),duration:r.attributes.duration_ms??0,params:r.attributes.params??"",target:r.target});break}default:r.level}}),t?.traces?.length&&this.tracingHelper.dispatchEngineSpans(t.traces)}onBeforeExit(){throw new Error('"beforeExit" hook is not applicable to the remote query engine')}async url(t){return await this.start(),`${this.protoco... <skipped 5393 characters> ...
+   16  `),{clientVersion:t.clientVersion})}return o?new wt(t):new wt(t)}d();u();c();p();m();function Zr({generator:e}){return e?.previewFeatures??[]}d();u();c();p();m();var $s=e=>({command:e});d();u();c();p();m();d();u();c();p();m();var js=e=>e.strings.reduce((t,r,n)=>`${t}@P${n}${r}`);d();u();c();p();m();... <skipped 1125 characters> ...r(let r of Object.keys(e))t[r]=Gs(e[r]);return t}function Gs(e){return typeof e=="bigint"?e.toString():Js(e)}var np=/^(\s*alter\s)/i,Ws=K("prisma:client");function ei(e,t,r,n){if(!(e!=="postgresql"&&e!=="cockroachdb")&&r.length>0&&np.exec(t))throw new Error(`Running ALTER using ${n} is not supported
+   17  Using the example below you can still execute your query with Prisma, but please note that it is vulnerable to SQL injection attacks and requires you to take care of input sanitization.
+
+~/GitHub/SOW-Generator/src/generated/prisma/runtime/library.d.ts:
+ 2772      query: string;
+ 2773      params: string;
+ 2774:     duration: number;
+ 2775      target: string;
+ 2776  };
+
+~/GitHub/SOW-Generator/src/generated/prisma/runtime/library.js:
+  112  how you used Prisma Client in the issue. 
+  113  `}function uo(e){return e.name==="DriverAdapterError"&&typeof e.cause=="object"}function Qn(e){return{ok:!0,value:e,map(r){return Qn(r(e))},flatMap(r){return r(e)}}}function lr(e){return{ok:!1,error:e,map(){return lr(e)},flatMap(){return lr(e)}}}var Tl=N("driver-adapter-utils"),co=class{registeredEr... <skipped 8050 characters> ... Il={"@prisma/debug":"workspace:*","@prisma/engines-version":"6.9.0-10.81e4af48011447c3cc503a190e86995b66d2a28e","@prisma/fetch-engine":"workspace:*","@prisma/get-platform":"workspace:*"};var Mt=class extends se{name="RequestError";code="P5010";constructor(r,t){super(`Cannot fetch data from service:
+  114: <skipped 3451 characters> ...>{switch(t.level){case"debug":case"trace":$t(t);break;case"error":case"warn":case"info":{this.logEmitter.emit(t.level,{timestamp:Eo(t.timestamp),message:t.attributes.message??"",target:t.target});break}case"query":{this.logEmitter.emit("query",{query:t.attributes.query??"",timestamp:Eo(t.timestamp),duration:t.attributes.duration_ms??0,params:t.attributes.params??"",target:t.target});break}default:t.level}}),r?.traces?.length&&this.tracingHelper.dispatchEngineSpans(r.traces)}onBeforeExit(){throw new Error('"beforeExit" hook is not applicable to the remote query engine')}async url(r){return await this.start(),`${this.protoco... <skipped 9531 characters> ...
+  115: <skipped 1099 characters> ...et t=r,n=this.parseInitError(t.message);throw typeof n=="string"?t:new T(n.message,this.config.clientVersion,n.error_code)}}}logger(r){let t=this.parseEngineResponse(r);t&&(t.level=t?.level.toLowerCase()??"unknown",yf(t)?this.logEmitter.emit("query",{timestamp:new Date,query:t.query,params:t.params,duration:Number(t.duration_ms),target:t.module_path}):bf(t)?this.loggerRustPanic=new le(So(this,`${t.message}: ${t.reason} in ${t.file}:${t.line}:${t.column}`),this.config.clientVersion):this.logEmitter.emit(t.level,{timestamp:new Date,message:t.message,target:t.module_path}))}parseInitError(r){try{return JSON.parse(r)}catch... <skipped 2739 characters> ...
+  116  ${a.backtrace}`,{clientVersion:this.config.clientVersion})}}async requestBatch(r,{transaction:t,traceparent:n}){Ce("requestBatch");let i=Mr(r,t);await this.start();let o=await this.adapterPromise;this.lastQuery=JSON.stringify(i),this.executingQueryPromise=this.engine.query(this.lastQuery,JSON.string... <skipped 2168 characters> ...figured to use both the `adapter` and Accelerate, please chose one."]:c=["Prisma Client was configured to use the `adapter` option but `prisma generate` was run with `--no-engine`.","Please run `prisma generate` without `--no-engine` to be able to use Prisma Client with the adapter."],new Z(c.join(`
+  117  `),{clientVersion:r.clientVersion})}return o?new qt(r):a?new Gr(r):new Gr(r)}function Jn({generator:e}){return e?.previewFeatures??[]}var ql=e=>({command:e});var jl=e=>e.strings.reduce((r,t,n)=>`${r}@P${n}${t}`);function Qr(e){try{return Vl(e,"fast")}catch{return Vl(e,"slow")}}function Vl(e,r){retur... <skipped 1031 characters> ...r(let t of Object.keys(e))r[t]=Bl(e[t]);return r}function Bl(e){return typeof e=="bigint"?e.toString():Gl(e)}var vf=/^(\s*alter\s)/i,Ql=N("prisma:client");function Ro(e,r,t,n){if(!(e!=="postgresql"&&e!=="cockroachdb")&&t.length>0&&vf.exec(r))throw new Error(`Running ALTER using ${n} is not supported
+
+~/GitHub/SOW-Generator/src/generated/prisma/runtime/react-native.js:
+   61  To increase the chance of success, please post your schema and a snippet of
+   62  how you used Prisma Client in the issue. 
+   63: <skipped 7488 characters> ...et r=t,n=this.parseInitError(r.message);throw typeof n=="string"?r:new V(n.message,this.config.clientVersion,n.error_code)}}}logger(t){let r=this.parseEngineResponse(t);r&&(r.level=r?.level.toLowerCase()??"unknown",Mp(r)?this.logEmitter.emit("query",{timestamp:new Date,query:r.query,params:r.params,duration:Number(r.duration_ms),target:r.module_path}):Fp(r)?this.loggerRustPanic=new ue(zn(this,`${r.message}: ${r.reason} in ${r.file}:${r.line}:${r.column}`),this.config.clientVersion):this.logEmitter.emit(r.level,{timestamp:new Date,message:r.message,target:r.module_path}))}parseInitError(t){try{return JSON.parse(t)}catch... <skipped 2739 characters> ...
+   64  ${a.backtrace}`,{clientVersion:this.config.clientVersion})}}async requestBatch(t,{transaction:r,traceparent:n}){Te("requestBatch");let i=$r(t,r);await this.start();let o=await this.adapterPromise;this.lastQuery=JSON.stringify(i),this.executingQueryPromise=this.engine.query(this.lastQuery,JSON.string... <skipped 2163 characters> ...igured to use both the `adapter` and Accelerate, please chose one."]:g=["Prisma Client was configured to use the `adapter` option but `prisma generate` was run with `--no-engine`.","Please run `prisma generate` without `--no-engine` to be able to use Prisma Client with the adapter."],new ee(g.join(`
+   65  `),{clientVersion:t.clientVersion})}return new Xt(t)}f();c();p();d();m();function Gr({generator:e}){return e?.previewFeatures??[]}f();c();p();d();m();var Us=e=>({command:e});f();c();p();d();m();f();c();p();d();m();var Vs=e=>e.strings.reduce((t,r,n)=>`${t}@P${n}${r}`);f();c();p();d();m();function xt(... <skipped 1113 characters> ...r(let r of Object.keys(e))t[r]=Gs(e[r]);return t}function Gs(e){return typeof e=="bigint"?e.toString():Ws(e)}var qp=/^(\s*alter\s)/i,Ks=K("prisma:client");function Yn(e,t,r,n){if(!(e!=="postgresql"&&e!=="cockroachdb")&&r.length>0&&qp.exec(t))throw new Error(`Running ALTER using ${n} is not supported
+
+~/GitHub/SOW-Generator/src/generated/prisma/runtime/wasm-compiler-edge.js:
+   56  To increase the chance of success, please post your schema and a snippet of
+   57  how you used Prisma Client in the issue. 
+   58: <skipped 5715 characters> ...er: ${e}`)}}async function Sn({query:e,queryable:t,tracingHelper:r,onQuery:n,execute:i}){return await r.runInChildSpan({name:"db_query",kind:fr.CLIENT,attributes:{"db.query.text":e.sql,"db.system.name":dm(t.provider)}},async()=>{let o=new Date,s=w.now(),d=await i(),f=w.now();return n?.({timestamp:o,duration:f-s,query:e.sql,params:e.args}),d})}l();u();c();p();m();a();l();u();c();p();m();a();l();u();c();p();m();a();function Ni(e){return e.name==="DriverAdapterError"&&typeof e.cause=="object"}l();u();c();p();m();a();var _={Int32:0,Int64:1,Float:2,Double:3,Numeric:4,Boolean:5,Character:6,Text:7,Date:8,Tim... <skipped 31018 characters> ...
+   59  ${r.backtrace}`,{clientVersion:this.config.clientVersion})}catch{return t}}#o(t){return t instanceof ae?t:typeof t.message=="string"&&typeof t.code=="string"?new X(t.message,{code:t.code,meta:t.meta,clientVersion:this.config.clientVersion}):t}#n(t){let r=su.PRISMA_WASM_PANIC_REGISTRY.set_message,n;g... <skipped 4183 characters> ...errideDatasources:t,env:r,clientVersion:n}){let i,o=Object.keys(e)[0],s=e[o]?.url,d=t[o]?.url;if(o===void 0?i=void 0:d?i=d:s?.value?i=s.value:s?.fromEnvVar&&(i=r[s.fromEnvVar]),s?.fromEnvVar!==void 0&&i===void 0)throw Be().id==="workerd"?new L(`error: Environment variable not found: ${s.fromEnvVar}.
+   60  
+   61  In Cloudflare module Workers, environment variables are available only in the Worker's \`env\` parameter of \`fetch\`.
+   62  To solve this, provide the connection string directly: https://pris.ly/d/cloudflare-datasource-url`,n):new L(`error: Environment variable not found: ${s.fromEnvVar}.`,n);if(i===void 0)throw new L("error: Missing URL environment variable, value, or override.",n);return i}l();u();c();p();m();a();l();u... <skipped 7048 characters> ...nes-version":"6.9.0-10.81e4af48011447c3cc503a190e86995b66d2a28e","@prisma/fetch-engine":"workspace:*","@prisma/get-platform":"workspace:*"};l();u();c();p();m();a();l();u();c();p();m();a();var $r=class extends de{name="RequestError";code="P5010";constructor(t,r){super(`Cannot fetch data from service:
+   63: <skipped 3427 characters> ...>{switch(r.level){case"debug":case"trace":Vr(r);break;case"error":case"warn":case"info":{this.logEmitter.emit(r.level,{timestamp:wo(r.timestamp),message:r.attributes.message??"",target:r.target});break}case"query":{this.logEmitter.emit("query",{query:r.attributes.query??"",timestamp:wo(r.timestamp),duration:r.attributes.duration_ms??0,params:r.attributes.params??"",target:r.target});break}default:r.level}}),t?.traces?.length&&this.tracingHelper.dispatchEngineSpans(t.traces)}onBeforeExit(){throw new Error('"beforeExit" hook is not applicable to the remote query engine')}async url(t){return await this.start(),`${this.protoco... <skipped 5723 characters> ...
+   64  `),{clientVersion:t.clientVersion})}if(o)return new qr(t);if(T)return new Rr(t);{let v=[`PrismaClient failed to initialize because it wasn't configured to run in this environment (${Be().prettyName}).`,"In order to run Prisma Client in an edge runtime, you will need to configure one of the following options:","- Enable Driver Adapters: https://pris.ly/d/driver-adapters","- Enable Accelerate: https://pris.ly/d/accelerate"];throw new ne(v.join(`
+   65  `),{clientVersion:t.clientVersion})}return"wasm-compiler-edge"}l();u();c();p();m();a();function Gn({generator:e}){return e?.previewFeatures??[]}l();u();c();p();m();a();var gu=e=>({command:e});l();u();c();p();m();a();l();u();c();p();m();a();var yu=e=>e.strings.reduce((t,r,n)=>`${t}@P${n}${r}`);l();u(... <skipped 1126 characters> ...r(let r of Object.keys(e))t[r]=wu(e[r]);return t}function wu(e){return typeof e=="bigint"?e.toString():Eu(e)}var Vd=/^(\s*alter\s)/i,xu=W("prisma:client");function Eo(e,t,r,n){if(!(e!=="postgresql"&&e!=="cockroachdb")&&r.length>0&&Vd.exec(t))throw new Error(`Running ALTER using ${n} is not supported
+
+~/GitHub/SOW-Generator/src/generated/prisma/runtime/wasm-engine-edge.js:
+   12  
+   13  In Cloudflare module Workers, environment variables are available only in the Worker's \`env\` parameter of \`fetch\`.
+   14: <skipped 5132 characters> ...et r=e,n=this.parseInitError(r.message);throw typeof n=="string"?r:new I(n.message,this.config.clientVersion,n.error_code)}}}logger(e){let r=this.parseEngineResponse(e);r&&(r.level=r?.level.toLowerCase()??"unknown",xl(r)?this.logEmitter.emit("query",{timestamp:new Date,query:r.query,params:r.params,duration:Number(r.duration_ms),target:r.module_path}):(Pl(r),this.logEmitter.emit(r.level,{timestamp:new Date,message:r.message,target:r.module_path})))}parseInitError(e){try{return JSON.parse(e)}catch{}return e}parseRequestError(e){try{return JSON.parse(e)}catch{}return e}onBeforeExit(){throw new Error('"beforeExit" hook is... <skipped 2552 characters> ...
+   15  ${a.backtrace}`,{clientVersion:this.config.clientVersion})}}async requestBatch(e,{transaction:r,traceparent:n}){ye("requestBatch");let i=sr(e,r);await this.start();let o=await this.adapterPromise;this.lastQuery=JSON.stringify(i),this.executingQueryPromise=this.engine.query(this.lastQuery,JSON.string... <skipped 3406 characters> ...figured to use both the `adapter` and Accelerate, please chose one."]:T=["Prisma Client was configured to use the `adapter` option but `prisma generate` was run with `--no-engine`.","Please run `prisma generate` without `--no-engine` to be able to use Prisma Client with the adapter."],new W(T.join(`
+   16  `),{clientVersion:e.clientVersion})}if(s)return new Rt(e);if(o)return new pr(e);{let T=[`PrismaClient failed to initialize because it wasn't configured to run in this environment (${Re().prettyName}).`,"In order to run Prisma Client in an edge runtime, you will need to configure one of the following options:","- Enable Driver Adapters: https://pris.ly/d/driver-adapters","- Enable Accelerate: https://pris.ly/d/accelerate"];throw new W(T.join(`
+
+~/GitHub/SOW-Generator/src/types/sow.ts:
+   43      timeline: {
+   44        startDate: Date;
+   45:       duration: string;
+   46      };
+   47    };
+
+93 matches across 21 files
+
+
+Searching 62 files for "hours for a duration of"
+
+~/GitHub/SOW-Generator/src/app/sow/[id]/page.tsx:
+  307              <h2 className="text-3xl font-bold text-center mb-6">PRICING</h2>
+  308              <p className="mb-4 text-center">
+  309:               The tasks above will be completed on a time and material basis, using the LeanData standard workday of 8 hours for a duration of {sow.duration || 'N/A'} weeks.
+  310              </p>
+  311              <div className="overflow-x-auto mb-4">
+
+1 match in 1 file
