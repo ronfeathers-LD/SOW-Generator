@@ -10,7 +10,7 @@ if (!process.env.NEXTAUTH_SECRET) throw new Error('NEXTAUTH_SECRET is required')
 const callbackUrl = `${process.env.NEXTAUTH_URL}/api/auth/callback/google`;
 console.log('Callback URL:', callbackUrl);
 
-const handler = NextAuth({
+const authOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -27,7 +27,7 @@ const handler = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
   debug: true, // Enable debug mode temporarily
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ user }: any) {
       // Create or update user in the database
       if (user?.email) {
         const dbUser = await prisma.user.upsert({
@@ -43,7 +43,7 @@ const handler = NextAuth({
       }
       return true;
     },
-    async session({ session, token }) {
+    async session({ session, token }: any) {
       if (session.user) {
         session.user.id = token.sub;
         session.user.image = token.picture as string;
@@ -52,7 +52,7 @@ const handler = NextAuth({
       }
       return session;
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account }: any) {
       if (account && user) {
         token.id = user.id;
         token.picture = user.image;
@@ -61,7 +61,7 @@ const handler = NextAuth({
       }
       return token;
     },
-    async redirect({ url, baseUrl }) {
+    async redirect({ url, baseUrl }: any) {
       // Redirect to /sow after login
       if (url.startsWith('/api/auth/signin')) {
         return `${baseUrl}/sow`;
@@ -77,6 +77,10 @@ const handler = NextAuth({
     signIn: '/',
     error: '/',
   },
-});
+};
+
+export { authOptions };
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST }; 
