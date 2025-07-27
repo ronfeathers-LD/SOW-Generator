@@ -3,8 +3,8 @@ import prisma from '@/lib/prisma';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
 
   // Verify the SOW exists
   const sow = await prisma.sOW.findUnique({
@@ -30,14 +30,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     doc.setFontSize(12);
     doc.text(`Client: ${sow.clientName}`, 20, 40);
     doc.text(`Title: ${sow.sowTitle}`, 20, 50);
-    doc.text(`Effective Date: ${sow.effectiveDate.toLocaleDateString()}`, 20, 60);
-    
-    // Add project description
-    doc.setFontSize(14);
-    doc.text('Project Description', 20, 80);
-    doc.setFontSize(12);
-    const splitDescription = doc.splitTextToSize(sow.projectDescription, 170);
-    doc.text(splitDescription, 20, 90);
 
     // Add deliverables
     doc.setFontSize(14);

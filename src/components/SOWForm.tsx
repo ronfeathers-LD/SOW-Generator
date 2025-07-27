@@ -3,9 +3,27 @@
 import { useState, useEffect, useRef } from 'react';
 import { SOWData } from '@/types/sow';
 import Image from 'next/image';
-import dynamic from 'next/dynamic';
-import 'react-quill/dist/quill.snow.css';
 import { useRouter } from 'next/navigation';
+import { GeminiBulletPoint } from '@/lib/gemini';
+import { SalesforceOpportunity, SalesforceContact } from '@/lib/salesforce';
+import AvomaIntegration from './AvomaIntegration';
+import RichTextEditor from './RichTextEditor';
+import SalesforceIntegration from './SalesforceIntegration';
+import OpportunityLookup from './OpportunityLookup';
+import ProjectOverviewTab from './sow/ProjectOverviewTab';
+import CustomerInformationTab from './sow/CustomerInformationTab';
+import ObjectivesTab from './sow/ObjectivesTab';
+import ScopeDeliverablesTab from './sow/ScopeDeliverablesTab';
+import TeamRolesTab from './sow/TeamRolesTab';
+import BillingPaymentTab from './sow/BillingPaymentTab';
+import AddendumsTab from './sow/AddendumsTab';
+
+interface LeanDataSignator {
+  id: string;
+  name: string;
+  email: string;
+  title: string;
+}
 
 declare global {
   interface Window {
@@ -17,8 +35,6 @@ interface SOWFormProps {
   initialData?: SOWData;
 }
 
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
-
 export default function SOWForm({ initialData }: SOWFormProps) {
   const [formData, setFormData] = useState<Partial<SOWData>>(
     initialData
@@ -26,21 +42,69 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           ...initialData,
           scope: {
             ...initialData.scope,
+            projectDescription: initialData.scope?.projectDescription || '',
             deliverables: initialData.deliverables || '',
           },
         }
       : {
+          // Template Variables
+          template: {
+            // Header Information
+            sowTitle: 'Statement of Work for LeanData Implementation',
+            companyLogo: '',
+            
+            // Customer Information
+            customerName: '',
+            customerSignatureName: '',
+            customerSignature: '',
+            customerEmail: '',
+            customerSignatureDate: null,
+            
+            // LeanData Information
+            leanDataName: 'Agam Vasani',
+            leanDataTitle: 'VP Customer Success',
+            leanDataEmail: 'agam.vasani@leandata.com',
+            leanDataSignatureName: 'Agam Vasani',
+            leanDataSignature: '',
+            leanDataSignatureDate: null,
+            
+            // Project Details
+            products: 'Matching/Routing',
+            numberOfUnits: '125',
+            regions: '1',
+            salesforceTenants: '2',
+            timelineWeeks: '8',
+            
+            // Billing Information
+            billingCompanyName: '',
+            billingContactName: '',
+            billingAddress: '',
+            billingEmail: '',
+            purchaseOrderNumber: '',
+            
+            // Salesforce Opportunity Information
+            opportunityId: '',
+            opportunityName: '',
+            opportunityAmount: undefined,
+            opportunityStage: '',
+            opportunityCloseDate: '',
+          },
+          
+          // Legacy fields (keeping for backward compatibility)
           header: {
             companyLogo: '',
             clientName: '',
             sowTitle: '',
-            effectiveDate: new Date(),
           },
           clientSignature: {
             name: '',
             title: '',
             email: '',
             signatureDate: new Date(),
+          },
+          objectives: {
+            description: '',
+            keyObjectives: [''],
           },
           scope: {
             projectDescription: '',
@@ -94,12 +158,93 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   );
 
   const [logoPreview, setLogoPreview] = useState<string | null>(initialData?.header?.companyLogo || null);
-  const [activeTab, setActiveTab] = useState('Header');
+  const [activeTab, setActiveTab] = useState('Project Overview');
   const router = useRouter();
-  const billingAddressRef = useRef<HTMLInputElement>(null);
-  const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const MAPBOX_TOKEN = 'pk.eyJ1Ijoid2ViZmVhdGhlcnMiLCJhIjoiY21icjc3ZWphMDg5ZTJscHVvcm9lbWZ6OCJ9.iLDG5SKZrOE4p7aHStGzrw'; // <-- User's actual token
+  const [leanDataSignators, setLeanDataSignators] = useState<LeanDataSignator[]>([]);
+  const [selectedLeanDataSignator, setSelectedLeanDataSignator] = useState<string>('');
+  const [selectedAccount, setSelectedAccount] = useState<{ id: string; name: string } | null>(null);
+  const [selectedContact, setSelectedContact] = useState<SalesforceContact | null>(null);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<SalesforceOpportunity | null>(null);
+  const [availableOpportunities, setAvailableOpportunities] = useState<SalesforceOpportunity[]>([]);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Fetch LeanData signators on component mount
+  useEffect(() => {
+    const fetchLeanDataSignators = async () => {
+      try {
+        const response = await fetch('/api/leandata-signators');
+        if (response.ok) {
+          const data = await response.json();
+          setLeanDataSignators(data);
+        }
+      } catch (error) {
+        console.error('Error fetching LeanData signators:', error);
+      }
+    };
+
+    fetchLeanDataSignators();
+  }, []);
+
+  // Load existing data when editing
+  useEffect(() => {
+    if (initialData) {
+      // Set selected account if customer name exists
+      if (initialData.template?.customerName || initialData.header?.clientName) {
+        setSelectedAccount({
+          id: '', // We don't have the Salesforce ID when loading from database
+          name: initialData.template?.customerName || initialData.header?.clientName || ''
+        });
+      }
+      
+      // Set selected contact if contact information exists
+      if (initialData.template?.customerSignatureName || initialData.clientSignerName) {
+        setSelectedContact({
+          Id: '', // We don't have the Salesforce ID when loading from database
+          FirstName: '',
+          LastName: initialData.template?.customerSignatureName || initialData.clientSignerName || '',
+          Email: initialData.template?.customerEmail || initialData.clientSignature?.email || '',
+          Title: initialData.template?.customerSignature || initialData.clientSignature?.title || '',
+          AccountId: '',
+          Account: { Name: '' }
+        });
+      }
+      
+      // Set selected opportunity if opportunity data exists
+      if (initialData.template?.opportunityId || initialData.template?.opportunityName || initialData.opportunityId || initialData.opportunityName) {
+        setSelectedOpportunity({
+          Id: initialData.template?.opportunityId || initialData.opportunityId || '',
+          Name: initialData.template?.opportunityName || initialData.opportunityName || '',
+          Amount: initialData.template?.opportunityAmount || initialData.opportunityAmount || undefined,
+          StageName: initialData.template?.opportunityStage || initialData.opportunityStage || '',
+          CloseDate: initialData.template?.opportunityCloseDate || initialData.opportunityCloseDate || undefined,
+          Description: '',
+          AccountId: '',
+          Account: { Name: '' }
+        });
+      }
+    }
+  }, [initialData]);
+
+  const handleLeanDataSignatorChange = (signatorId: string) => {
+    setSelectedLeanDataSignator(signatorId);
+    
+    if (signatorId) {
+      const selectedSignator = leanDataSignators.find(s => s.id === signatorId);
+      if (selectedSignator) {
+        setFormData({
+          ...formData,
+          template: {
+            ...formData.template!,
+            leanDataName: selectedSignator.name,
+            leanDataTitle: selectedSignator.title,
+            leanDataEmail: selectedSignator.email,
+            leanDataSignatureName: selectedSignator.name,
+            leanDataSignature: selectedSignator.title
+          }
+        });
+      }
+    }
+  };
 
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -114,6 +259,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         const base64String = reader.result as string;
         setFormData({
           ...formData,
+          template: { ...formData.template!, companyLogo: base64String },
           header: { ...formData.header!, companyLogo: base64String }
         });
       };
@@ -121,67 +267,188 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     }
   };
 
-  const handleAddressInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+
+
+
+
+  const handleCustomerSelectedFromSalesforce = (customerData: {
+    account: any;
+    contacts: any[];
+    opportunities: any[];
+  }) => {
+    const { account, contacts, opportunities } = customerData;
+    
+    // Set the selected account for opportunity lookup
+    setSelectedAccount({
+      id: account.Id,
+      name: account.Name
+    });
+    
+    // Store available opportunities
+    setAvailableOpportunities(opportunities || []);
+    
+    // Reset selected opportunity when account changes
+    setSelectedOpportunity(null);
+    
+    // Auto-populate customer information with account details
     setFormData({
       ...formData,
-      pricing: {
-        ...formData.pricing!,
-        billing: { ...formData.pricing?.billing!, billingAddress: value }
-      }
+      template: {
+        ...formData.template!,
+        customerName: account.Name,
+        // Don't auto-populate contact details until POC is selected
+        customerEmail: '',
+        customerSignatureName: '',
+        customerSignature: '',
+      },
     });
-    if (value.length < 3) {
-      setAddressSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-    try {
-      const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json?access_token=${MAPBOX_TOKEN}&autocomplete=true&country=US&limit=5`);
-      if (res.ok) {
-        const data = await res.json();
-        setAddressSuggestions(data.features.map((item: any) => item.place_name));
-        setShowSuggestions(true);
-      } else {
-        setAddressSuggestions([]);
-        setShowSuggestions(false);
-      }
-    } catch {
-      setAddressSuggestions([]);
-      setShowSuggestions(false);
+  };
+
+  const handleContactSelectedFromSalesforce = (contact: SalesforceContact | null) => {
+    setSelectedContact(contact);
+    
+    if (contact) {
+      // Auto-populate contact information when POC is selected
+      setFormData({
+        ...formData,
+        template: {
+          ...formData.template!,
+          customerEmail: contact.Email || '',
+          customerSignatureName: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
+          customerSignature: contact.Title || '',
+        },
+      });
+    } else {
+      // Clear contact information when POC is deselected
+      setFormData({
+        ...formData,
+        template: {
+          ...formData.template!,
+          customerEmail: '',
+          customerSignatureName: '',
+          customerSignature: '',
+        },
+      });
     }
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setFormData({
-      ...formData,
-      pricing: {
-        ...formData.pricing!,
-        billing: { ...formData.pricing?.billing!, billingAddress: suggestion }
-      }
-    });
-    setAddressSuggestions([]);
-    setShowSuggestions(false);
+  // Helper function to generate Salesforce record links
+  const getSalesforceLink = (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => {
+    // For now, we'll use a generic Salesforce URL pattern
+    // In a real implementation, you'd get the instance URL from the Salesforce connection
+    const baseUrl = process.env.NEXT_PUBLIC_SALESFORCE_INSTANCE_URL || 'https://na1.salesforce.com';
+    return `${baseUrl}/${recordId}`;
   };
+
+  const handleOpportunitySelectedFromSalesforce = (opportunity: SalesforceOpportunity | null) => {
+    setSelectedOpportunity(opportunity);
+    
+    if (opportunity) {
+      // Store opportunity information in form data
+      setFormData({
+        ...formData,
+        template: {
+          ...formData.template!,
+          // Auto-populate SOW title with opportunity name if it's not already set
+          sowTitle: (!formData.template?.sowTitle || formData.template.sowTitle === 'Statement of Work for LeanData Implementation') 
+            ? `Statement of Work for ${opportunity.Name}` 
+            : formData.template.sowTitle,
+          // Store opportunity details
+          opportunityId: opportunity.Id,
+          opportunityName: opportunity.Name,
+          opportunityAmount: opportunity.Amount,
+          opportunityStage: opportunity.StageName,
+          opportunityCloseDate: opportunity.CloseDate,
+        },
+      });
+    } else {
+      // Clear opportunity information when deselected
+      setFormData({
+        ...formData,
+        template: {
+          ...formData.template!,
+          opportunityId: '',
+          opportunityName: '',
+          opportunityAmount: undefined,
+          opportunityStage: '',
+          opportunityCloseDate: undefined,
+        },
+      });
+    }
+  };
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate required fields
-    if (!formData.clientSignerName?.trim()) {
-      alert('Please enter the signer\'s name');
+    // Only validate customer signature name if we're on the Customer Information tab or if it's an update
+    if (activeTab === 'Customer Information' && !formData.template?.customerSignatureName?.trim()) {
+      alert('Please enter the customer signature name');
       return;
+    }
+    
+    // For other tabs, allow saving without customer signature name (it can be filled later)
+    if (!formData.template?.customerSignatureName?.trim()) {
+      console.log('Saving SOW without customer signature name - can be filled later');
     }
 
     try {
       const url = initialData ? `/api/sow/${initialData.id}` : '/api/sow';
       const method = initialData ? 'PUT' : 'POST';
       
+      // Map template fields to legacy fields for backward compatibility
+      const submissionData = {
+        ...formData,
+        clientSignerName: formData.template?.customerSignatureName || '',
+        clientSignature: {
+          name: formData.template?.customerSignatureName || '',
+          title: formData.template?.customerSignature || '',
+          email: formData.template?.customerEmail || '',
+          signatureDate: formData.template?.customerSignatureDate || null,
+        },
+        header: {
+          companyLogo: formData.header?.companyLogo || '',
+          sowTitle: formData.header?.sowTitle || '',
+          clientName: formData.template?.customerName || formData.header?.clientName || '',
+        },
+        // Ensure opportunity data is included in submission
+        template: {
+          ...formData.template,
+          opportunityId: formData.template?.opportunityId || null,
+          opportunityName: formData.template?.opportunityName || null,
+          opportunityAmount: formData.template?.opportunityAmount || null,
+          opportunityStage: formData.template?.opportunityStage || null,
+          opportunityCloseDate: formData.template?.opportunityCloseDate || null,
+        }
+      };
+
+      // Debug logging
+      console.log('Saving SOW with customer data:', {
+        customerName: formData.template?.customerName,
+        customerSignatureName: formData.template?.customerSignatureName,
+        customerEmail: formData.template?.customerEmail,
+        opportunityData: {
+          opportunityId: formData.template?.opportunityId,
+          opportunityName: formData.template?.opportunityName,
+          opportunityAmount: formData.template?.opportunityAmount,
+          opportunityStage: formData.template?.opportunityStage,
+          opportunityCloseDate: formData.template?.opportunityCloseDate,
+        },
+        submissionData: {
+          clientName: submissionData.header.clientName,
+          clientSignerName: submissionData.clientSignerName,
+          clientSignature: submissionData.clientSignature,
+          template: submissionData.template
+        }
+      });
+      
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submissionData),
       });
       
       if (!response.ok) {
@@ -189,25 +456,88 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       }
       
       const data = await response.json();
-      // Redirect to the SOW view page
-      router.push(`/sow/${data.id || initialData?.id}`);
+      console.log('SOW save response:', data);
+      
+      // Show success notification
+      setNotification({
+        type: 'success',
+        message: activeTab === 'Customer Information' 
+          ? 'Customer information saved successfully!' 
+          : (initialData ? 'SOW updated successfully!' : 'SOW created successfully!')
+      });
+      
+      // Clear notification after 3 seconds
+      setTimeout(() => setNotification(null), 3000);
     } catch (error) {
       console.error('Error saving SOW:', error);
-      alert('Failed to save SOW. Please try again.');
+      
+      // Show error notification
+      setNotification({
+        type: 'error',
+        message: activeTab === 'Customer Information' 
+          ? 'Failed to save customer information. Please try again.' 
+          : 'Failed to save SOW. Please try again.'
+      });
+      
+      // Clear notification after 5 seconds
+      setTimeout(() => setNotification(null), 5000);
     }
   };
 
   const tabs = [
-    { key: 'Header', label: 'Header Information' },
-    { key: 'Signature', label: 'Client Signature' },
-    { key: 'Scope', label: 'Project Scope' },
-    { key: 'ClientRoles', label: 'Client Roles' },
-    { key: 'PricingRoles', label: 'Pricing Roles' },
-    { key: 'Billing', label: 'Billing Information' },
+    { key: 'Project Overview', label: 'Project Overview' },
+    { key: 'Customer Information', label: 'Customer Information' },
+    { key: 'Objectives', label: 'Objectives' },
+    { key: 'Scope & Deliverables', label: 'Scope & Deliverables' },
+    { key: 'Team & Roles', label: 'Team & Roles' },
+    { key: 'Billing & Payment', label: 'Billing & Payment' },
+    { key: 'Addendums', label: 'Addendums' },
   ];
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-4xl mx-auto p-6 space-y-8">
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
+      {/* Notification */}
+      {notification && (
+        <div className={`fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg max-w-sm transform transition-all duration-300 ease-in-out ${
+          notification.type === 'success' 
+            ? 'bg-green-50 border border-green-200 text-green-800' 
+            : 'bg-red-50 border border-red-200 text-red-800'
+        }`}>
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              {notification.type === 'success' ? (
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              )}
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium">{notification.message}</p>
+            </div>
+            <div className="ml-auto pl-3">
+              <button
+                type="button"
+                onClick={() => setNotification(null)}
+                className={`inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  notification.type === 'success'
+                    ? 'text-green-400 hover:text-green-500 focus:ring-green-500'
+                    : 'text-red-400 hover:text-red-500 focus:ring-red-500'
+                }`}
+              >
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-8">
       {/* Tab Navigation */}
       <div className="mb-8 border-b border-gray-200">
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
@@ -229,504 +559,73 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         </nav>
       </div>
 
-      {/* Header Section */}
-      {activeTab === 'Header' && (
-        <section className="space-y-4">
-          <h2 className="text-2xl font-bold">Header Information</h2>
-          
-          {/* Logo Upload */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">Client Logo</label>
-            <div className="flex items-center space-x-4">
-              <div className="flex-shrink-0">
-                {logoPreview ? (
-                  <div className="relative w-32 h-16">
-                    <Image
-                      src={logoPreview}
-                      alt="Client logo preview"
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-32 h-16 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                    <span className="text-gray-400 text-sm">No logo</span>
-                  </div>
-                )}
-              </div>
-              <div className="flex-grow">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoChange}
-                  className="block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-md file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-indigo-50 file:text-indigo-700
-                    hover:file:bg-indigo-100"
-                />
-                <p className="mt-1 text-sm text-gray-500">
-                  Upload a logo image (PNG, JPG, or GIF)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Client Name</label>
-              <input
-                type="text"
-                value={formData.header?.clientName}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  header: { ...formData.header!, clientName: e.target.value }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Project Name</label>
-              <input
-                type="text"
-                value={formData.header?.sowTitle}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  header: { ...formData.header!, sowTitle: e.target.value }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-        </section>
+      {/* Project Overview Section */}
+      {activeTab === 'Project Overview' && (
+        <ProjectOverviewTab
+          formData={formData}
+          setFormData={setFormData}
+          leanDataSignators={leanDataSignators}
+          selectedLeanDataSignator={selectedLeanDataSignator}
+          onLeanDataSignatorChange={handleLeanDataSignatorChange}
+        />
       )}
 
-      {/* Client Signature Section */}
-      {activeTab === 'Signature' && (
-        <section className="space-y-4">
-          <h2 className="text-2xl font-bold">Client Signature Information</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Signator Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.clientSignerName || ''}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  clientSignerName: e.target.value
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="Enter signer's full name"
-              />
-              <p className="mt-1 text-sm text-gray-500">This field is required</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Title</label>
-              <input
-                type="text"
-                value={formData.clientSignature?.title}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  clientSignature: { ...formData.clientSignature!, title: e.target.value }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <input
-                type="email"
-                value={formData.clientSignature?.email}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  clientSignature: { ...formData.clientSignature!, email: e.target.value }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-        </section>
+      {/* Customer Information Section */}
+      {activeTab === 'Customer Information' && (
+        <CustomerInformationTab
+          formData={formData}
+          setFormData={setFormData}
+          initialData={initialData}
+          selectedAccount={selectedAccount}
+          selectedContact={selectedContact}
+          selectedOpportunity={selectedOpportunity}
+          availableOpportunities={availableOpportunities}
+          onCustomerSelectedFromSalesforce={handleCustomerSelectedFromSalesforce}
+          onContactSelectedFromSalesforce={handleContactSelectedFromSalesforce}
+          onOpportunitySelectedFromSalesforce={handleOpportunitySelectedFromSalesforce}
+          getSalesforceLink={getSalesforceLink}
+          onLogoChange={handleLogoChange}
+        />
       )}
 
-      {/* Project Scope Section */}
-      {activeTab === 'Scope' && (
-        <section className="space-y-4">
-          <h2 className="text-2xl font-bold">Project Scope</h2>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Deliverables</label>
-            <div className="mt-2">
-              <ReactQuill
-                value={formData.scope && typeof formData.scope.deliverables === 'string' ? formData.scope.deliverables : ''}
-                onChange={(value) => setFormData({
-                  ...formData,
-                  scope: { ...formData.scope!, deliverables: value }
-                })}
-                theme="snow"
-                modules={{ toolbar: [['bold', 'italic', 'underline'], [{ 'list': 'bullet' }], ['link']] }}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Duration (weeks)</label>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              required
-              value={formData.scope?.timeline?.duration || ''}
-              onChange={(e) => setFormData({
-                ...formData,
-                scope: {
-                  ...formData.scope!,
-                  timeline: {
-                    ...formData.scope?.timeline!,
-                    duration: e.target.value.replace(/[^0-9]/g, '')
-                  }
-                }
-              })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="Enter number of weeks"
-            />
-          </div>
-        </section>
+      {/* Objectives Section */}
+      {activeTab === 'Objectives' && (
+        <ObjectivesTab
+          formData={formData}
+          setFormData={setFormData}
+        />
       )}
 
-      {/* Client Roles Section */}
-      {activeTab === 'ClientRoles' && (
-        <section className="space-y-4">
-          <h2 className="text-2xl font-bold">Client Roles</h2>
-          {formData.roles?.clientRoles.map((role, index) => (
-            <div key={index} className="p-4 border border-gray-200 rounded-lg space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Role</label>
-                  <input
-                    type="text"
-                    value={role.role}
-                    onChange={(e) => {
-                      const newRoles = [...(formData.roles?.clientRoles || [])];
-                      newRoles[index] = { ...newRoles[index], role: e.target.value };
-                      setFormData({
-                        ...formData,
-                        roles: { ...formData.roles!, clientRoles: newRoles }
-                      });
-                    }}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Name</label>
-                  <input
-                    type="text"
-                    value={role.name}
-                    onChange={(e) => {
-                      const newRoles = [...(formData.roles?.clientRoles || [])];
-                      newRoles[index] = { ...newRoles[index], name: e.target.value };
-                      setFormData({
-                        ...formData,
-                        roles: { ...formData.roles!, clientRoles: newRoles }
-                      });
-                    }}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Email</label>
-                  <input
-                    type="email"
-                    value={role.email}
-                    onChange={(e) => {
-                      const newRoles = [...(formData.roles?.clientRoles || [])];
-                      newRoles[index] = { ...newRoles[index], email: e.target.value };
-                      setFormData({
-                        ...formData,
-                        roles: { ...formData.roles!, clientRoles: newRoles }
-                      });
-                    }}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Responsibilities</label>
-                  <textarea
-                    value={role.responsibilities}
-                    onChange={(e) => {
-                      const newRoles = [...(formData.roles?.clientRoles || [])];
-                      newRoles[index] = { ...newRoles[index], responsibilities: e.target.value };
-                      setFormData({
-                        ...formData,
-                        roles: { ...formData.roles!, clientRoles: newRoles }
-                      });
-                    }}
-                    rows={3}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newRoles = formData.roles?.clientRoles.filter((_, i) => i !== index) || [];
-                    setFormData({
-                      ...formData,
-                      roles: { ...formData.roles!, clientRoles: newRoles }
-                    });
-                  }}
-                  className="text-sm text-red-600 hover:text-red-800"
-                >
-                  Remove Role
-                </button>
-              </div>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => {
-              const newRoles = [...(formData.roles?.clientRoles || []), {
-                role: '',
-                name: '',
-                email: '',
-                responsibilities: ''
-              }];
-              setFormData({
-                ...formData,
-                roles: { ...formData.roles!, clientRoles: newRoles }
-              });
-            }}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            Add Client Role
-          </button>
-        </section>
+      {/* Scope & Deliverables Section */}
+      {activeTab === 'Scope & Deliverables' && (
+        <ScopeDeliverablesTab
+          formData={formData}
+          setFormData={setFormData}
+        />
       )}
 
-      {/* Pricing Roles Section */}
-      {activeTab === 'PricingRoles' && (
-        <section className="space-y-4">
-          <h2 className="text-2xl font-bold">Pricing Roles</h2>
-          {formData.pricing?.roles?.map((role, index) => (
-            <div key={index} className="p-4 border border-gray-200 rounded-lg space-y-4">
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Role</label>
-                  <input
-                    type="text"
-                    value={role.role}
-                    onChange={(e) => {
-                      const newRoles = [...(formData.pricing?.roles || [])];
-                      newRoles[index] = { ...newRoles[index], role: e.target.value };
-                      setFormData({
-                        ...formData,
-                        pricing: { ...formData.pricing!, roles: newRoles }
-                      });
-                    }}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Rate per Hour</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={role.ratePerHour}
-                    onChange={(e) => {
-                      const newRoles = [...(formData.pricing?.roles || [])];
-                      newRoles[index] = { ...newRoles[index], ratePerHour: parseFloat(e.target.value) };
-                      setFormData({
-                        ...formData,
-                        pricing: { ...formData.pricing!, roles: newRoles }
-                      });
-                    }}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Total Hours</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={role.totalHours}
-                    onChange={(e) => {
-                      const newRoles = [...(formData.pricing?.roles || [])];
-                      newRoles[index] = { ...newRoles[index], totalHours: parseInt(e.target.value, 10) };
-                      setFormData({
-                        ...formData,
-                        pricing: { ...formData.pricing!, roles: newRoles }
-                      });
-                    }}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newRoles = formData.pricing?.roles.filter((_, i) => i !== index) || [];
-                    setFormData({
-                      ...formData,
-                      pricing: { ...formData.pricing!, roles: newRoles }
-                    });
-                  }}
-                  className="text-sm text-red-600 hover:text-red-800"
-                >
-                  Remove Role
-                </button>
-              </div>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => {
-              const newRoles = [...(formData.pricing?.roles || []), {
-                role: '',
-                ratePerHour: 0,
-                totalHours: 0,
-              }];
-              setFormData({
-                ...formData,
-                pricing: { ...formData.pricing!, roles: newRoles }
-              });
-            }}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            Add Pricing Role
-          </button>
-        </section>
+      {/* Team & Roles Section */}
+      {activeTab === 'Team & Roles' && (
+        <TeamRolesTab
+          formData={formData}
+          setFormData={setFormData}
+        />
       )}
 
-      {/* Billing Information Section */}
-      {activeTab === 'Billing' && (
-        <section className="space-y-4">
-          <h2 className="text-2xl font-bold">Billing Information</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Company Name</label>
-              <input
-                type="text"
-                value={formData.pricing?.billing?.companyName || ''}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  pricing: {
-                    ...formData.pricing!,
-                    billing: { ...formData.pricing?.billing!, companyName: e.target.value }
-                  }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Billing Contact Name</label>
-              <input
-                type="text"
-                value={formData.pricing?.billing?.billingContact || ''}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  pricing: {
-                    ...formData.pricing!,
-                    billing: { ...formData.pricing?.billing!, billingContact: e.target.value }
-                  }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div className="col-span-2 relative">
-              <label className="block text-sm font-medium text-gray-700">Billing Address</label>
-              <input
-                type="text"
-                ref={billingAddressRef}
-                value={formData.pricing?.billing?.billingAddress || ''}
-                onChange={handleAddressInput}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="Start typing address..."
-                autoComplete="off"
-                onFocus={() => setShowSuggestions(addressSuggestions.length > 0)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 100)}
-              />
-              <p className="mt-1 text-xs text-gray-500">Address autocomplete powered by Mapbox. <span className="text-red-500 font-semibold">You must provide your Mapbox public token in the code.</span></p>
-              {showSuggestions && addressSuggestions.length > 0 && (
-                <ul className="absolute z-10 bg-white border border-gray-300 w-full mt-1 rounded shadow max-h-48 overflow-auto">
-                  {addressSuggestions.map((suggestion, idx) => (
-                    <li
-                      key={idx}
-                      className="px-4 py-2 cursor-pointer hover:bg-indigo-100"
-                      onMouseDown={() => handleSuggestionClick(suggestion)}
-                    >
-                      {suggestion}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Billing Email</label>
-              <input
-                type="email"
-                value={formData.pricing?.billing?.billingEmail || ''}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  pricing: {
-                    ...formData.pricing!,
-                    billing: { ...formData.pricing?.billing!, billingEmail: e.target.value }
-                  }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Purchase Order Number</label>
-              <input
-                type="text"
-                value={formData.pricing?.billing?.poNumber || ''}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  pricing: {
-                    ...formData.pricing!,
-                    billing: { ...formData.pricing?.billing!, poNumber: e.target.value }
-                  }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Payment Terms</label>
-              <input
-                type="text"
-                value={formData.pricing?.billing?.paymentTerms || ''}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  pricing: {
-                    ...formData.pricing!,
-                    billing: { ...formData.pricing?.billing!, paymentTerms: e.target.value }
-                  }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Currency</label>
-              <input
-                type="text"
-                value={formData.pricing?.billing?.currency || ''}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  pricing: {
-                    ...formData.pricing!,
-                    billing: { ...formData.pricing?.billing!, currency: e.target.value }
-                  }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-        </section>
+      {/* Billing & Payment Section */}
+      {activeTab === 'Billing & Payment' && (
+        <BillingPaymentTab
+          formData={formData}
+          setFormData={setFormData}
+        />
+      )}
+
+      {/* Addendums Section */}
+      {activeTab === 'Addendums' && (
+        <AddendumsTab
+          formData={formData}
+          setFormData={setFormData}
+        />
       )}
 
       {/* Submit Button */}
@@ -735,9 +634,13 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           type="submit"
           className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-          {initialData ? 'Update SOW' : 'Save SOW'}
+          {activeTab === 'Customer Information' 
+            ? 'Save Customer Information' 
+            : (initialData ? 'Update SOW' : 'Save SOW')
+          }
         </button>
       </div>
     </form>
+    </div>
   );
 } 

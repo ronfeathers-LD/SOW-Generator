@@ -18,6 +18,7 @@ export default function SOWListPage() {
   const [sows, setSows] = useState<SOW[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchSOWs = async () => {
@@ -37,6 +38,30 @@ export default function SOWListPage() {
 
     fetchSOWs();
   }, []);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this SOW? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeletingId(id);
+    try {
+      const response = await fetch(`/api/sow/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete SOW');
+      }
+
+      // Remove the deleted SOW from the list
+      setSows(sows.filter(sow => sow.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete SOW');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -99,8 +124,11 @@ export default function SOWListPage() {
                       <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                         Status
                       </th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                        Created
+                      </th>
                       <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                        <span className="sr-only">View</span>
+                        <span className="sr-only">Actions</span>
                       </th>
                     </tr>
                   </thead>
@@ -122,13 +150,31 @@ export default function SOWListPage() {
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           {sow.status}
                         </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {new Date(sow.createdAt).toLocaleDateString()} {new Date(sow.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                          <Link
-                            href={`/sow/${sow.id}`}
-                            className="text-indigo-600 hover:text-indigo-900"
-                          >
-                            View<span className="sr-only">, {sow.clientName}</span>
-                          </Link>
+                          <div className="flex justify-end space-x-2">
+                            <Link
+                              href={`/sow/${sow.id}`}
+                              className="text-indigo-600 hover:text-indigo-900"
+                            >
+                              View
+                            </Link>
+                            <Link
+                              href={`/sow/${sow.id}/edit`}
+                              className="text-green-600 hover:text-green-900"
+                            >
+                              Edit
+                            </Link>
+                            <button
+                              onClick={() => handleDelete(sow.id)}
+                              disabled={deletingId === sow.id}
+                              className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {deletingId === sow.id ? 'Deleting...' : 'Delete'}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

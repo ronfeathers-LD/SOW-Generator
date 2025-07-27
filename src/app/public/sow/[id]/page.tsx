@@ -17,11 +17,9 @@ interface SOW {
   id: string;
   clientName: string;
   sowTitle: string;
-  effectiveDate: string;
   clientTitle: string;
   clientEmail: string;
   signatureDate: string;
-  projectDescription: string;
   deliverables: string[];
   startDate: string;
   duration: string;

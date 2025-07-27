@@ -26,11 +26,56 @@ export default function EditSOWPage() {
           id: data.id,
           createdAt: new Date(data.createdAt),
           updatedAt: new Date(data.updatedAt),
+          // Template structure mapping
+          template: {
+            // Header Information
+            sowTitle: data.sowTitle || 'Statement of Work for LeanData Implementation',
+            companyLogo: data.companyLogo || '',
+            
+            // Customer Information
+            customerName: data.clientName || '',
+            customerSignatureName: data.clientSignerName || '',
+            customerSignature: data.clientTitle || '',
+            customerEmail: data.clientEmail || '',
+            customerSignatureDate: data.signatureDate ? new Date(data.signatureDate) : null,
+            
+            // LeanData Information
+            leanDataName: data.leandataName || 'Agam Vasani',
+            leanDataTitle: data.leandataTitle || 'VP Customer Success',
+            leanDataEmail: data.leandataEmail || 'agam.vasani@leandata.com',
+            leanDataSignatureName: data.leandataName || 'Agam Vasani',
+            leanDataSignature: '',
+            leanDataSignatureDate: null,
+            
+            // Project Details
+            products: 'Matching/Routing',
+            numberOfUnits: '125',
+            regions: '1',
+            salesforceTenants: '2',
+            timelineWeeks: '8',
+            
+            // Billing Information
+            billingCompanyName: '',
+            billingContactName: '',
+            billingAddress: '',
+            billingEmail: '',
+            purchaseOrderNumber: '',
+            
+            // Salesforce Opportunity Information
+            opportunityId: data.opportunityId || '',
+            opportunityName: data.opportunityName || '',
+            opportunityAmount: data.opportunityAmount || undefined,
+            opportunityStage: data.opportunityStage || '',
+            opportunityCloseDate: data.opportunityCloseDate || undefined,
+          },
+          objectives: {
+            description: '',
+            keyObjectives: [''],
+          },
           header: {
             companyLogo: data.companyLogo || '',
             clientName: data.clientName || '',
             sowTitle: data.sowTitle || '',
-            effectiveDate: new Date(data.effectiveDate),
           },
           clientSignature: {
             name: data.clientName || '',

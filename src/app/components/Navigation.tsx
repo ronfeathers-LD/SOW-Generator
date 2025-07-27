@@ -84,24 +84,7 @@ export default function Navigation() {
           </div>
         </div>
       </div>
-      {isAdmin && pathname.startsWith('/admin') && (
-        <div className="bg-gray-50 border-b">
-          <div className="container mx-auto px-4">
-            <div className="flex space-x-8 py-3">
-              <Link 
-                href="/admin/users" 
-                className={`text-sm font-medium ${
-                  pathname === '/admin/users' 
-                    ? 'text-indigo-600' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Users
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
+
     </nav>
   );
 } 

@@ -1,0 +1,46 @@
+import { NextRequest, NextResponse } from 'next/server';
+import salesforceClient from '@/lib/salesforce';
+import prisma from '@/lib/prisma';
+
+export async function POST(request: NextRequest) {
+  try {
+    const { accountId } = await request.json();
+
+    if (!accountId) {
+      return NextResponse.json(
+        { error: 'Account ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Get stored Salesforce configuration
+    const config = await prisma.salesforceConfig.findFirst({
+      where: { isActive: true }
+    });
+
+    if (!config) {
+      return NextResponse.json(
+        { error: 'Salesforce integration is not configured' },
+        { status: 400 }
+      );
+    }
+
+    // Authenticate with Salesforce using stored credentials
+    await salesforceClient.authenticate(config.username, config.password, config.securityToken || undefined);
+
+    // Get full customer information
+    const customerInfo = await salesforceClient.getCustomerInfo(accountId);
+
+    return NextResponse.json({
+      success: true,
+      customerInfo
+    });
+
+  } catch (error) {
+    console.error('Error getting customer info from Salesforce:', error);
+    return NextResponse.json(
+      { error: 'Failed to get customer information from Salesforce' },
+      { status: 500 }
+    );
+  }
+} 

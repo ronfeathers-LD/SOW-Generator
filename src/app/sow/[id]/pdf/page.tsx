@@ -15,11 +15,9 @@ interface SOW {
   id: string;
   clientName: string;
   sowTitle: string;
-  effectiveDate: Date;
   clientTitle: string;
   clientEmail: string;
   signatureDate: Date;
-  projectDescription: string;
   deliverables: string[];
   startDate: Date;
   duration: string;
@@ -58,9 +56,10 @@ interface SOW {
   clientSignerName: string;
 }
 
-export default async function SOWPDFPage({ params }: { params: { id: string } }) {
+export default async function SOWPDFPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const sow = await prisma.sOW.findUnique({
-    where: { id: params.id },
+    where: { id },
   });
 
   if (!sow) {

@@ -3,12 +3,12 @@ import prisma from '@/lib/prisma';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Get the original SOW
     const originalSOW = await prisma.sOW.findUnique({
-      where: { id: params.id }
+      where: { id: (await params).id }
     });
 
     if (!originalSOW) {
@@ -22,8 +22,8 @@ export async function POST(
     const latestVersion = await prisma.sOW.findFirst({
       where: {
         OR: [
-          { id: params.id },
-          { parentId: params.id }
+          { id: (await params).id },
+          { parentId: (await params).id }
         ]
       },
       orderBy: {
@@ -52,8 +52,8 @@ export async function POST(
     await prisma.sOW.updateMany({
       where: {
         OR: [
-          { id: params.id },
-          { parentId: params.id }
+          { id: (await params).id },
+          { parentId: (await params).id }
         ],
         id: {
           not: newVersion.id

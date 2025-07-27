@@ -1,3 +1,37 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities; 
+@tailwind utilities;
+
+/* TipTap Editor styles */
+.prose-editor .ProseMirror {
+  outline: none;
+  min-height: 150px;
+}
+
+.prose-editor .ProseMirror p {
+  margin: 0.5em 0;
+}
+
+.prose-editor .ProseMirror ul,
+.prose-editor .ProseMirror ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.prose-editor .ProseMirror li {
+  margin: 0.25em 0;
+}
+
+.prose-editor .ProseMirror strong {
+  font-weight: bold;
+}
+
+.prose-editor .ProseMirror em {
+  font-style: italic;
+}
+
+.prose-editor .ProseMirror:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+} 

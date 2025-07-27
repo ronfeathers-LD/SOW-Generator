@@ -12,14 +12,13 @@ export async function POST(request: Request) {
       data: {
         // Required fields
         title: data.header?.sowTitle || 'Untitled SOW',
-        content: data.scope?.projectDescription || '',
+        content: '',
         status: 'draft',
         
         // Header Information
         companyLogo: data.header?.companyLogo || '',
         clientName: data.header?.clientName || '',
         sowTitle: data.header?.sowTitle || '',
-        effectiveDate: data.header?.effectiveDate ? new Date(data.header.effectiveDate) : new Date(),
         
         // Client Signature Information
         clientTitle: data.clientSignature?.title || '',
@@ -45,12 +44,20 @@ export async function POST(request: Request) {
         
         // Addendums
         addendums: data.addendums || [],
+        
+        // Salesforce Opportunity Information
+        opportunityId: data.template?.opportunityId || null,
+        opportunityName: data.template?.opportunityName || null,
+        opportunityAmount: data.template?.opportunityAmount || null,
+        opportunityStage: data.template?.opportunityStage || null,
+        opportunityCloseDate: data.template?.opportunityCloseDate ? new Date(data.template.opportunityCloseDate) : null,
       },
     });
     
     return NextResponse.json({ 
       success: true, 
       message: 'SOW saved successfully',
+      id: sow.id,
       data: sow 
     });
   } catch (error) {

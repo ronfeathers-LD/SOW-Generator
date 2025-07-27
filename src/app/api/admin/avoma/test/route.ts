@@ -1,0 +1,51 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session || session.user?.role !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { apiKey, apiUrl } = body;
+
+    if (!apiKey) {
+      return NextResponse.json({ error: 'API key is required' }, { status: 400 });
+    }
+
+    // Test the Avoma API connection
+    try {
+      const testResponse = await fetch(`${apiUrl || 'https://api.avoma.com'}/v1/me`, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!testResponse.ok) {
+        throw new Error(`API test failed with status: ${testResponse.status}`);
+      }
+
+      const testData = await testResponse.json();
+      
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Avoma connection test successful',
+        userInfo: testData 
+      });
+    } catch (apiError) {
+      console.error('Avoma API test error:', apiError);
+      return NextResponse.json({ 
+        error: 'Failed to connect to Avoma API',
+        details: apiError instanceof Error ? apiError.message : 'Unknown error'
+      }, { status: 400 });
+    }
+  } catch (error) {
+    console.error('Error testing Avoma connection:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+} 

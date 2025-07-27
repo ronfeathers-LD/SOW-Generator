@@ -2,9 +2,14 @@ import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import prisma from '@/lib/prisma';
 
-if (!process.env.GOOGLE_CLIENT_ID) throw new Error('GOOGLE_CLIENT_ID is required');
-if (!process.env.GOOGLE_CLIENT_SECRET) throw new Error('GOOGLE_CLIENT_SECRET is required');
-if (!process.env.NEXTAUTH_SECRET) throw new Error('NEXTAUTH_SECRET is required');
+// Only check for required environment variables in production runtime
+const validateEnvVars = () => {
+  if (process.env.NODE_ENV === 'production') {
+    if (!process.env.GOOGLE_CLIENT_ID) throw new Error('GOOGLE_CLIENT_ID is required');
+    if (!process.env.GOOGLE_CLIENT_SECRET) throw new Error('GOOGLE_CLIENT_SECRET is required');
+    if (!process.env.NEXTAUTH_SECRET) throw new Error('NEXTAUTH_SECRET is required');
+  }
+};
 
 // Log the callback URL for debugging
 const callbackUrl = `${process.env.NEXTAUTH_URL}/api/auth/callback/google`;
@@ -13,8 +18,8 @@ console.log('Callback URL:', callbackUrl);
 export const authOptions = {
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
       authorization: {
         params: {
           prompt: "consent",
@@ -24,10 +29,14 @@ export const authOptions = {
       }
     }),
   ],
-  secret: process.env.NEXTAUTH_SECRET,
-  debug: true, // Enable debug mode temporarily
+  secret: process.env.NEXTAUTH_SECRET || '',
+  debug: process.env.NODE_ENV === 'development', // Only debug in development
   callbacks: {
     async signIn({ user }: any) {
+      // Validate environment variables in production
+      if (process.env.NODE_ENV === 'production') {
+        validateEnvVars();
+      }
       // Create or update user in the database
       if (user?.email) {
         const dbUser = await prisma.user.upsert({

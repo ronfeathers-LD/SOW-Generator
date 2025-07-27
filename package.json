@@ -22,32 +22,35 @@
   "description": "",
   "dependencies": {
     "@auth0/nextjs-auth0": "^4.6.1",
+    "@google/generative-ai": "^0.2.1",
     "@neondatabase/serverless": "latest",
     "@prisma/client": "^6.9.0",
+    "@tiptap/pm": "^3.0.7",
+    "@tiptap/react": "^3.0.7",
+    "@tiptap/starter-kit": "^3.0.7",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "@vercel/postgres": "latest",
-    "autoprefixer": "latest",
     "drizzle-orm": "latest",
     "eslint": "latest",
     "eslint-config-next": "latest",
     "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.10.3",
+    "jsforce": "^3.9.4",
     "jspdf": "^3.0.1",
-    "next": "14.2.25",
+    "next": "^15.4.4",
     "next-auth": "^4.24.5",
-    "postcss": "latest",
     "prisma": "^6.9.0",
     "puppeteer": "^24.10.0",
     "react": "latest",
     "react-dom": "latest",
-    "react-quill": "^2.0.0",
-    "tailwindcss": "^4.1.8",
     "typescript": "latest"
   },
   "devDependencies": {
-    "@tailwindcss/postcss7-compat": "^2.2.17",
-    "@tailwindcss/typography": "^0.5.16"
+    "@tailwindcss/typography": "^0.5.16",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17"
   }
 }

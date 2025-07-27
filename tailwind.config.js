@@ -11,7 +11,4 @@ module.exports = {
   plugins: [
     require('@tailwindcss/typography'),
   ],
-  future: {
-    useOkLCH: false,
-  },
 } 
