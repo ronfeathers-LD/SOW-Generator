@@ -35,7 +35,7 @@ export default function SalesforceAdminPage() {
     loadConfig();
   }, []);
 
-  const loadConfig = async () => {
+  const loadConfig = async (preservePassword = false) => {
     try {
       const response = await fetch('/api/admin/salesforce/config');
       if (response.ok) {
@@ -43,8 +43,10 @@ export default function SalesforceAdminPage() {
         // Store original values for change detection
         const configWithOriginals = {
           ...data.config,
+          // Preserve current password if requested (for after successful tests)
+          password: preservePassword && config?.password ? config.password : '',
           originalUsername: data.config.username,
-          originalPassword: data.config.password,
+          originalPassword: preservePassword && config?.password ? config.password : '',
           originalSecurityToken: data.config.security_token,
           originalLoginUrl: data.config.login_url,
         };
@@ -93,7 +95,15 @@ export default function SalesforceAdminPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setConfig(data.config);
+        // Preserve the password when setting the config after save
+        setConfig({
+          ...data.config,
+          password: config?.password || '',
+          originalUsername: data.config.username,
+          originalPassword: config?.password || '',
+          originalSecurityToken: data.config.security_token,
+          originalLoginUrl: data.config.login_url,
+        });
         setMessage({ type: 'success', text: 'Salesforce configuration saved successfully!' });
       } else {
         const error = await response.json();
@@ -141,8 +151,8 @@ export default function SalesforceAdminPage() {
           type: 'success', 
           text: `Salesforce connection test successful! ${hasChanges ? '(using form data)' : '(using stored credentials)'}` 
         });
-        // Reload config to get updated last_tested timestamp
-        await loadConfig();
+        // Reload config to get updated last_tested timestamp, but preserve the password
+        await loadConfig(true);
       } else {
         throw new Error(data.details || 'Connection test failed');
       }
