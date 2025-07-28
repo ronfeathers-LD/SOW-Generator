@@ -333,6 +333,16 @@ export default function SalesforceAdminPage() {
             </div>
           )}
 
+          {/* Test Mode Info */}
+          {config?.id && !config?.password && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+              <h3 className="text-sm font-medium text-blue-800 mb-2">Test Mode</h3>
+              <p className="text-sm text-blue-700">
+                Test buttons will use stored credentials from the database. Enter a password to test with form data instead.
+              </p>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-4 pt-6 border-t border-gray-200">
             <button
@@ -346,7 +356,7 @@ export default function SalesforceAdminPage() {
             <button
               type="button"
               onClick={handleTestConnection}
-              disabled={isTesting || !config?.username || !config?.password}
+              disabled={isTesting || !config?.username || (!config?.password && !config?.id)}
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-400"
             >
               {isTesting ? 'Testing...' : 'Test Connection'}
@@ -355,7 +365,7 @@ export default function SalesforceAdminPage() {
             <button
               type="button"
               onClick={handleDebugConnection}
-              disabled={isTesting || !config?.username || !config?.password}
+              disabled={isTesting || !config?.username || (!config?.password && !config?.id)}
               className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:bg-gray-400"
             >
               {isTesting ? 'Debugging...' : 'Debug Connection'}
