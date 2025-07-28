@@ -19,13 +19,12 @@ export async function POST(request: NextRequest) {
 
     // Test the Avoma search functionality
     try {
-      const searchResponse = await fetch(`${apiUrl || 'https://api.avoma.com'}/v1/calls`, {
+      const baseUrl = apiUrl || 'https://api.avoma.com/v1';
+      const searchResponse = await fetch(`${baseUrl}/calls?limit=5`, {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
-        // Add query parameters for search
-        // Note: This is a basic test - actual search parameters may vary based on Avoma API
       });
 
       if (!searchResponse.ok) {
@@ -37,8 +36,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: true, 
         message: 'Avoma search test successful',
-        calls: searchData.calls || [],
-        totalCalls: searchData.total || 0
+        calls: searchData.calls || searchData || [],
+        totalCalls: searchData.total || searchData.length || 0
       });
     } catch (apiError) {
       console.error('Avoma search test error:', apiError);

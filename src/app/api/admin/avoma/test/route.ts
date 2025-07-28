@@ -17,10 +17,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });
     }
 
-    // Test the Avoma API connection using a valid endpoint
+    // Test the Avoma API connection using a basic endpoint
     try {
       const baseUrl = apiUrl || 'https://api.avoma.com/v1';
-      const testResponse = await fetch(`${baseUrl}/calls/search?limit=1`, {
+      const testResponse = await fetch(`${baseUrl}/calls`, {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: true, 
         message: 'Avoma connection test successful',
-        callCount: testData.total_count || 0
+        callCount: testData.total || testData.length || 0
       });
     } catch (apiError) {
       console.error('Avoma API test error:', apiError);
