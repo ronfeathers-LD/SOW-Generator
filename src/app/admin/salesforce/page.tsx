@@ -11,6 +11,10 @@ interface SalesforceConfig {
   isActive: boolean;
   lastTested?: string;
   lastError?: string;
+  originalUsername?: string;
+  originalPassword?: string;
+  originalSecurityToken?: string;
+  originalLoginUrl?: string;
 }
 
 export default function SalesforceAdminPage() {
@@ -30,7 +34,15 @@ export default function SalesforceAdminPage() {
       const response = await fetch('/api/admin/salesforce/config');
       if (response.ok) {
         const data = await response.json();
-        setConfig(data.config);
+        // Store original values for change detection
+        const configWithOriginals = {
+          ...data.config,
+          originalUsername: data.config.username,
+          originalPassword: data.config.password,
+          originalSecurityToken: data.config.securityToken,
+          originalLoginUrl: data.config.loginUrl,
+        };
+        setConfig(configWithOriginals);
       } else if (response.status === 404) {
         // No config exists yet, create empty form
         setConfig({
@@ -85,11 +97,26 @@ export default function SalesforceAdminPage() {
     setMessage(null);
 
     try {
+      // Check if form has unsaved changes
+      const hasChanges = config && (
+        config.username !== config.originalUsername ||
+        config.password !== config.originalPassword ||
+        config.securityToken !== config.originalSecurityToken ||
+        config.loginUrl !== config.originalLoginUrl
+      );
+
       const response = await fetch('/api/admin/salesforce/test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: hasChanges ? JSON.stringify({
+          username: config?.username,
+          password: config?.password,
+          securityToken: config?.securityToken,
+          loginUrl: config?.loginUrl,
+          useFormData: true
+        }) : undefined,
       });
 
       const data = await response.json();
@@ -97,7 +124,7 @@ export default function SalesforceAdminPage() {
       if (response.ok) {
         setMessage({ 
           type: 'success', 
-          text: 'Salesforce connection test successful!' 
+          text: `Salesforce connection test successful! ${hasChanges ? '(using form data)' : '(using stored credentials)'}` 
         });
         // Reload config to get updated lastTested timestamp
         await loadConfig();
@@ -117,11 +144,26 @@ export default function SalesforceAdminPage() {
     setMessage(null);
 
     try {
+      // Check if form has unsaved changes
+      const hasChanges = config && (
+        config.username !== config.originalUsername ||
+        config.password !== config.originalPassword ||
+        config.securityToken !== config.originalSecurityToken ||
+        config.loginUrl !== config.originalLoginUrl
+      );
+
       const response = await fetch('/api/admin/salesforce/debug', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: hasChanges ? JSON.stringify({
+          username: config?.username,
+          password: config?.password,
+          securityToken: config?.securityToken,
+          loginUrl: config?.loginUrl,
+          useFormData: true
+        }) : undefined,
       });
 
       const data = await response.json();
@@ -129,7 +171,7 @@ export default function SalesforceAdminPage() {
       if (response.ok) {
         setMessage({ 
           type: 'success', 
-          text: `Debug successful! ${JSON.stringify(data.debug, null, 2)}` 
+          text: `Debug successful! ${hasChanges ? '(using form data)' : '(using stored credentials)'}\n\n${JSON.stringify(data.debug, null, 2)}` 
         });
       } else {
         setMessage({ 

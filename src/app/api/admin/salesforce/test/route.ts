@@ -26,25 +26,44 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Get the stored configuration from the database
-    const { data: config, error: configError } = await supabase
-      .from('salesforce_configs')
-      .select('*')
-      .eq('is_active', true)
-      .single();
+    let username: string;
+    let password: string;
+    let security_token: string | undefined;
+    let login_url: string;
 
-    if (configError || !config) {
-      return NextResponse.json(
-        { error: 'No active Salesforce configuration found. Please save your configuration first.' },
-        { status: 400 }
-      );
+    // Check if form data was sent (for testing unsaved changes)
+    const body = await request.json().catch(() => null);
+    
+    if (body && body.useFormData) {
+      // Use form data for testing
+      username = body.username;
+      password = body.password;
+      security_token = body.securityToken;
+      login_url = body.loginUrl || 'https://login.salesforce.com';
+    } else {
+      // Get the stored configuration from the database
+      const { data: config, error: configError } = await supabase
+        .from('salesforce_configs')
+        .select('*')
+        .eq('is_active', true)
+        .single();
+
+      if (configError || !config) {
+        return NextResponse.json(
+          { error: 'No active Salesforce configuration found. Please save your configuration first.' },
+          { status: 400 }
+        );
+      }
+
+      username = config.username;
+      password = config.password;
+      security_token = config.security_token;
+      login_url = config.login_url;
     }
-
-    const { username, password, security_token, login_url } = config;
 
     if (!username || !password) {
       return NextResponse.json(
-        { error: 'Username and password are required in the stored configuration' },
+        { error: 'Username and password are required' },
         { status: 400 }
       );
     }
