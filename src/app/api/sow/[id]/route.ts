@@ -98,6 +98,13 @@ export async function PUT(
     
     if (data.addendums !== undefined) updateData.addendums = data.addendums;
     
+    // LeanData Information
+    if (data.template) {
+      if (data.template.leanDataName !== undefined) updateData.leandata_name = data.template.leanDataName;
+      if (data.template.leanDataTitle !== undefined) updateData.leandata_title = data.template.leanDataTitle;
+      if (data.template.leanDataEmail !== undefined) updateData.leandata_email = data.template.leanDataEmail;
+    }
+    
     // Salesforce Opportunity Information
     if (data.template) {
       if (data.template.opportunityId !== undefined) updateData.opportunity_id = data.template.opportunityId || null;

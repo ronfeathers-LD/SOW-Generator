@@ -47,6 +47,11 @@ export async function POST(request: Request) {
         // Addendums
         addendums: data.addendums || [],
         
+        // LeanData Information
+        leandata_name: data.template?.leanDataName || 'Agam Vasani',
+        leandata_title: data.template?.leanDataTitle || 'VP Customer Success',
+        leandata_email: data.template?.leanDataEmail || 'agam.vasani@leandata.com',
+        
         // Salesforce Opportunity Information
         opportunity_id: data.template?.opportunityId || null,
         opportunity_name: data.template?.opportunityName || null,
