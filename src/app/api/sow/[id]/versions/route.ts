@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 
 export async function GET(
   request: Request,
@@ -7,11 +7,13 @@ export async function GET(
 ) {
   try {
     // Get the original SOW
-    const originalSOW = await prisma.sOW.findUnique({
-      where: { id: (await params).id }
-    });
+    const { data: originalSOW, error } = await supabase
+      .from('sows')
+      .select('*')
+      .eq('id', (await params).id)
+      .single();
 
-    if (!originalSOW) {
+    if (error || !originalSOW) {
       return NextResponse.json(
         { error: 'SOW not found' },
         { status: 404 }
@@ -19,23 +21,11 @@ export async function GET(
     }
 
     // Get all versions of this SOW
-    const versions = await prisma.sOW.findMany({
-      where: {
-        OR: [
-          { id: (await params).id },
-          { parentId: (await params).id }
-        ]
-      },
-      orderBy: {
-        version: 'desc'
-      },
-      select: {
-        id: true,
-        version: true,
-        isLatest: true,
-        createdAt: true
-      }
-    });
+    const { data: versions } = await supabase
+      .from('sows')
+      .select('id, version, is_latest, created_at')
+      .or(`id.eq.${(await params).id},parent_id.eq.${(await params).id}`)
+      .order('version', { ascending: false });
 
     return NextResponse.json(versions);
   } catch (error) {

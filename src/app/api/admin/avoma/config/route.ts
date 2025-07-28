@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 
 export async function GET() {
   try {
@@ -11,14 +11,17 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const config = await prisma.avomaConfig.findFirst();
+    const { data: config, error } = await supabase
+      .from('avoma_configs')
+      .select('*')
+      .single();
     
-    if (!config) {
+    if (error || !config) {
       return NextResponse.json({ error: 'Configuration not found' }, { status: 404 });
     }
 
     // Don't return the actual API key in the response
-    const { apiKey, ...safeConfig } = config;
+    const { api_key, ...safeConfig } = config;
     
     return NextResponse.json({ config: safeConfig });
   } catch (error) {
@@ -43,23 +46,33 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if config already exists
-    const existingConfig = await prisma.avomaConfig.findFirst();
+    const { data: existingConfig } = await supabase
+      .from('avoma_configs')
+      .select('*')
+      .single();
     
     if (existingConfig) {
       return NextResponse.json({ error: 'Configuration already exists. Use PUT to update.' }, { status: 400 });
     }
 
-    const config = await prisma.avomaConfig.create({
-      data: {
-        apiKey,
-        apiUrl: apiUrl || 'https://api.avoma.com',
-        isActive: isActive !== undefined ? isActive : true,
-        customerId: customerId || null,
-      },
-    });
+    const { data: config, error } = await supabase
+      .from('avoma_configs')
+      .insert({
+        api_key: apiKey,
+        api_url: apiUrl || 'https://api.avoma.com',
+        is_active: isActive !== undefined ? isActive : true,
+        customer_id: customerId || null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
 
     // Don't return the actual API key in the response
-    const { apiKey: _, ...safeConfig } = config;
+    const { api_key, ...safeConfig } = config;
     
     return NextResponse.json({ config: safeConfig });
   } catch (error) {
@@ -85,18 +98,25 @@ export async function PUT(request: NextRequest) {
 
     const updateData: any = {};
     
-    if (apiKey !== undefined) updateData.apiKey = apiKey;
-    if (apiUrl !== undefined) updateData.apiUrl = apiUrl;
-    if (isActive !== undefined) updateData.isActive = isActive;
-    if (customerId !== undefined) updateData.customerId = customerId;
+    if (apiKey !== undefined) updateData.api_key = apiKey;
+    if (apiUrl !== undefined) updateData.api_url = apiUrl;
+    if (isActive !== undefined) updateData.is_active = isActive;
+    if (customerId !== undefined) updateData.customer_id = customerId;
 
-    const config = await prisma.avomaConfig.update({
-      where: { id },
-      data: updateData,
-    });
+    const { data: config, error } = await supabase
+      .from('avoma_configs')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
 
     // Don't return the actual API key in the response
-    const { apiKey: _, ...safeConfig } = config;
+    const { api_key, ...safeConfig } = config;
     
     return NextResponse.json({ config: safeConfig });
   } catch (error) {

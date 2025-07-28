@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import prisma from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 import SOWTitlePage from '@/components/sow/SOWTitlePage';
 import SOWIntroPage from '@/components/sow/SOWIntroPage';
 import SOWScopePage from '@/components/sow/SOWScopePage';
@@ -58,11 +58,13 @@ interface SOW {
 
 export default async function SOWPDFPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const sow = await prisma.sOW.findUnique({
-    where: { id },
-  });
+  const { data: sow, error } = await supabase
+    .from('sows')
+    .select('*')
+    .eq('id', id)
+    .single();
 
-  if (!sow) {
+  if (error || !sow) {
     notFound();
   }
 
@@ -70,13 +72,13 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
   const deliverables = typeof sow.deliverables === 'string'
     ? sow.deliverables.split('\n').filter(Boolean)
     : [];
-  const clientRoles = Array.isArray(sow.clientRoles)
-    ? sow.clientRoles
+  const clientRoles = Array.isArray(sow.client_roles)
+    ? sow.client_roles
     : [];
-  const pricingRoles = Array.isArray(sow.pricingRoles)
-    ? sow.pricingRoles
+  const pricingRoles = Array.isArray(sow.pricing_roles)
+    ? sow.pricing_roles
     : [];
-  const billing = (sow.billingInfo || {}) as any;
+  const billing = (sow.billing_info || {}) as any;
   const assumptions = [
     "LeanData Professional Services will require access to the customer's SFDC's sandbox and production tenants for the configuration of LeanData; and, the customer will be responsible to ensure appropriate access is granted for the duration of the project. Customer will share all Salesforce details pertaining to configurations, including but not limited to: User IDs, fields/values, Queue IDs, Assignment rule IDs, etc.",
     "For additional requests outside this SOW, LeanData shall work with Customer to determine if an additional SOW is required or determine alternate methods to remedy the request.",
@@ -90,25 +92,25 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Title Page */}
         <SOWTitlePage
-          clientName={sow.clientName}
-          clientLogo={sow.companyLogo}
+          clientName={sow.client_name}
+          clientLogo={sow.company_logo}
           clientSignature={{
-            name: sow.clientSignerName,
-            title: sow.clientTitle,
-            email: sow.clientEmail,
-            date: sow.signatureDate.toISOString(),
+            name: sow.client_signer_name,
+            title: sow.client_title,
+            email: sow.client_email,
+            date: sow.signature_date,
           }}
           leandataSignature={{
-            name: sow.leandataName,
-            title: sow.leandataTitle,
-            email: sow.leandataEmail,
+            name: sow.leandata_name,
+            title: sow.leandata_title,
+            email: sow.leandata_email,
           }}
         />
 
         {/* Introduction */}
         <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
           <h2 className="text-3xl font-bold text-center mb-6">INTRODUCTION</h2>
-          <SOWIntroPage clientName={sow.clientName} />
+          <SOWIntroPage clientName={sow.client_name} />
         </div>
 
         {/* Scope */}

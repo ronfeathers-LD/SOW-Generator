@@ -1,23 +1,14 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 
 // GET - Fetch all active LeanData signators (public endpoint)
 export async function GET() {
   try {
-    const signators = await prisma.leanDataSignator.findMany({
-      where: {
-        isActive: true
-      },
-      orderBy: {
-        name: 'asc'
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        title: true
-      }
-    });
+    const { data: signators, error } = await supabase
+      .from('lean_data_signators')
+      .select('id, name, email, title')
+      .eq('is_active', true)
+      .order('name', { ascending: true });
 
     return NextResponse.json(signators);
   } catch (error) {

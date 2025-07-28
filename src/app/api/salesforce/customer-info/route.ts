@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import salesforceClient from '@/lib/salesforce';
-import prisma from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,9 +14,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Get stored Salesforce configuration
-    const config = await prisma.salesforceConfig.findFirst({
-      where: { isActive: true }
-    });
+    const { data: config } = await supabase
+      .from('salesforce_configs')
+      .select('*')
+      .eq('is_active', true)
+      .single();
 
     if (!config) {
       return NextResponse.json(
@@ -26,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Authenticate with Salesforce using stored credentials
-    await salesforceClient.authenticate(config.username, config.password, config.securityToken || undefined);
+    await salesforceClient.authenticate(config.username, config.password, config.security_token || undefined);
 
     // Get full customer information
     const customerInfo = await salesforceClient.getCustomerInfo(accountId);

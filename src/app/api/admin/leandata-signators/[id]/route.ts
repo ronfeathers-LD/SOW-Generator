@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 
 // Helper function to check admin access
 async function checkAdminAccess() {
@@ -40,12 +40,12 @@ export async function PUT(
     }
 
     // Check if email already exists for a different signator
-    const existingSignator = await prisma.leanDataSignator.findFirst({
-      where: {
-        email,
-        id: { not: (await params).id }
-      }
-    });
+    const { data: existingSignator } = await supabase
+      .from('lean_data_signators')
+      .select('*')
+      .eq('email', email)
+      .neq('id', (await params).id)
+      .single();
 
     if (existingSignator) {
       return NextResponse.json(
@@ -54,15 +54,17 @@ export async function PUT(
       );
     }
 
-    const signator = await prisma.leanDataSignator.update({
-      where: { id: (await params).id },
-      data: {
+    const { data: signator, error } = await supabase
+      .from('lean_data_signators')
+      .update({
         name,
         email,
         title,
-        isActive: isActive !== undefined ? isActive : true
-      }
-    });
+        is_active: isActive !== undefined ? isActive : true
+      })
+      .eq('id', (await params).id)
+      .select()
+      .single();
 
     return NextResponse.json(signator);
   } catch (error) {
@@ -85,9 +87,10 @@ export async function DELETE(
   }
 
   try {
-    await prisma.leanDataSignator.delete({
-      where: { id: (await params).id }
-    });
+    const { error } = await supabase
+      .from('lean_data_signators')
+      .delete()
+      .eq('id', (await params).id);
 
     return NextResponse.json({ message: 'LeanData signator deleted successfully' });
   } catch (error) {

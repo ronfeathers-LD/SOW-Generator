@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 
 // Helper function to check admin access
 async function checkAdminAccess() {
@@ -26,11 +26,10 @@ export async function GET() {
   }
 
   try {
-    const signators = await prisma.leanDataSignator.findMany({
-      orderBy: {
-        name: 'asc'
-      }
-    });
+    const { data: signators, error } = await supabase
+      .from('lean_data_signators')
+      .select('*')
+      .order('name', { ascending: true });
 
     return NextResponse.json(signators);
   } catch (error) {
@@ -61,9 +60,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if email already exists
-    const existingSignator = await prisma.leanDataSignator.findUnique({
-      where: { email }
-    });
+    const { data: existingSignator } = await supabase
+      .from('lean_data_signators')
+      .select('*')
+      .eq('email', email)
+      .single();
 
     if (existingSignator) {
       return NextResponse.json(
@@ -72,13 +73,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const signator = await prisma.leanDataSignator.create({
-      data: {
+    const { data: signator, error } = await supabase
+      .from('lean_data_signators')
+      .insert({
         name,
         email,
         title
-      }
-    });
+      })
+      .select()
+      .single();
 
     return NextResponse.json(signator, { status: 201 });
   } catch (error) {

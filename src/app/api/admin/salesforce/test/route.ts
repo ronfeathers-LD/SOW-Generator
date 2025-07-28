@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 import * as jsforce from 'jsforce';
 
 // Helper function to check admin access
@@ -54,18 +54,20 @@ export async function POST(request: NextRequest) {
       }
 
       // Update the configuration with success status
-      const config = await prisma.salesforceConfig.findFirst({
-        where: { isActive: true }
-      });
+      const { data: config } = await supabase
+        .from('salesforce_configs')
+        .select('*')
+        .eq('is_active', true)
+        .single();
 
       if (config) {
-        await prisma.salesforceConfig.update({
-          where: { id: config.id },
-          data: {
-            lastTested: new Date(),
-            lastError: null,
-          }
-        });
+        await supabase
+          .from('salesforce_configs')
+          .update({
+            last_tested: new Date().toISOString(),
+            last_error: null,
+          })
+          .eq('id', config.id);
       }
 
       return NextResponse.json({ 
@@ -75,18 +77,20 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
       // Update the configuration with error status
-      const config = await prisma.salesforceConfig.findFirst({
-        where: { isActive: true }
-      });
+      const { data: config } = await supabase
+        .from('salesforce_configs')
+        .select('*')
+        .eq('is_active', true)
+        .single();
 
       if (config) {
-        await prisma.salesforceConfig.update({
-          where: { id: config.id },
-          data: {
-            lastTested: new Date(),
-            lastError: error instanceof Error ? error.message : 'Unknown error',
-          }
-        });
+        await supabase
+          .from('salesforce_configs')
+          .update({
+            last_tested: new Date().toISOString(),
+            last_error: error instanceof Error ? error.message : 'Unknown error',
+          })
+          .eq('id', config.id);
       }
 
       throw error;

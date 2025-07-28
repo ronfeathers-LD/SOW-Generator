@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -7,11 +7,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
 
   // Verify the SOW exists
-  const sow = await prisma.sOW.findUnique({
-    where: { id },
-  });
+  const { data: sow, error } = await supabase
+    .from('sows')
+    .select('*')
+    .eq('id', id)
+    .single();
 
-  if (!sow) {
+  if (error || !sow) {
     return new NextResponse('SOW not found', { status: 404 });
   }
 
@@ -38,7 +40,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const deliverables = typeof sow.deliverables === 'string' 
       ? sow.deliverables.split('\n').filter(Boolean)
       : [];
-    deliverables.forEach((deliverable, index) => {
+    deliverables.forEach((deliverable: string, index: number) => {
       const y = 130 + (index * 10);
       if (y < 280) { // Check if we need a new page
         doc.text(`• ${deliverable}`, 25, y);

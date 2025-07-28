@@ -128,10 +128,13 @@ class AvomaClient {
  */
 async function getAvomaConfig(): Promise<AvomaConfig | null> {
   try {
-    // Import prisma dynamically to avoid issues during build
-    const { default: prisma } = await import('@/lib/prisma');
+    // Import supabase dynamically to avoid issues during build
+const { supabase } = await import('@/lib/supabase');
     
-    const config = await prisma.avomaConfig.findFirst();
+          const { data: config } = await supabase
+        .from('avoma_configs')
+        .select('*')
+        .single();
     return config;
   } catch (error) {
     console.error('Error getting Avoma config:', error);

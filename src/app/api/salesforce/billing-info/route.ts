@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import salesforceClient from '@/lib/salesforce';
-import prisma from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Get Salesforce configuration
-    const config = await prisma.salesforceConfig.findFirst();
+    const { data: config } = await supabase
+      .from('salesforce_configs')
+      .select('*')
+      .single();
     if (!config) {
       return NextResponse.json({ error: 'Salesforce not configured' }, { status: 503 });
     }
@@ -28,7 +31,7 @@ export async function GET(request: NextRequest) {
     await salesforceClient.authenticate(
       config.username,
       config.password,
-      config.securityToken || undefined
+      config.security_token || undefined
     );
 
     // Get billing information

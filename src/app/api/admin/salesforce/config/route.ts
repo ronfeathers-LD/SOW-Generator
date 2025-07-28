@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 
 // Helper function to check admin access
 async function checkAdminAccess() {
@@ -26,10 +26,12 @@ export async function GET() {
   }
 
   try {
-    const config = await prisma.salesforceConfig.findFirst({
-      where: { isActive: true },
-      orderBy: { updatedAt: 'desc' }
-    });
+    const { data: config } = await supabase
+      .from('salesforce_configs')
+      .select('*')
+      .eq('is_active', true)
+      .order('updated_at', { ascending: false })
+      .single();
 
     if (!config) {
       return NextResponse.json({ error: 'No Salesforce configuration found' }, { status: 404 });
@@ -67,21 +69,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Deactivate any existing configurations
-    await prisma.salesforceConfig.updateMany({
-      where: { isActive: true },
-      data: { isActive: false }
-    });
+    await supabase
+      .from('salesforce_configs')
+      .update({ is_active: false })
+      .eq('is_active', true);
 
     // Create new configuration
-    const config = await prisma.salesforceConfig.create({
-      data: {
+    const { data: config, error } = await supabase
+      .from('salesforce_configs')
+      .insert({
         username,
         password,
-        securityToken: securityToken || null,
-        loginUrl: loginUrl || 'https://login.salesforce.com',
-        isActive: isActive !== false, // Default to true
-      }
-    });
+        security_token: securityToken || null,
+        login_url: loginUrl || 'https://login.salesforce.com',
+        is_active: isActive !== false, // Default to true
+      })
+      .select()
+      .single();
 
     // Don't return the password in the response
     const { password: _, ...safeConfig } = config;
@@ -123,27 +127,26 @@ export async function PUT(request: NextRequest) {
 
     // Deactivate other configurations if this one is being activated
     if (isActive !== false) {
-      await prisma.salesforceConfig.updateMany({
-        where: { 
-          isActive: true,
-          id: { not: id }
-        },
-        data: { isActive: false }
-      });
+      await supabase
+        .from('salesforce_configs')
+        .update({ is_active: false })
+        .eq('is_active', true)
+        .neq('id', id);
     }
 
     // Update the configuration
-    const config = await prisma.salesforceConfig.update({
-      where: { id },
-      data: {
+    const { data: config, error } = await supabase
+      .from('salesforce_configs')
+      .update({
         username,
         password,
-        securityToken: securityToken || null,
-        loginUrl: loginUrl || 'https://login.salesforce.com',
-        isActive: isActive !== false,
-        updatedAt: new Date(),
-      }
-    });
+        security_token: securityToken || null,
+        login_url: loginUrl || 'https://login.salesforce.com',
+        is_active: isActive !== false,
+      })
+      .eq('id', id)
+      .select()
+      .single();
 
     // Don't return the password in the response
     const { password: _, ...safeConfig } = config;

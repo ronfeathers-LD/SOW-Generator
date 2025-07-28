@@ -1,16 +1,18 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const sow = await prisma.sOW.findUnique({
-      where: { id: (await params).id },
-    });
+    const { data: sow, error } = await supabase
+      .from('sows')
+      .select('*')
+      .eq('id', (await params).id)
+      .single();
 
-    if (!sow) {
+    if (error || !sow) {
       return new NextResponse('SOW not found', { status: 404 });
     }
 

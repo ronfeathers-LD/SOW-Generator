@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import puppeteer from 'puppeteer';
-import prisma from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -8,11 +8,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const sowUrl = `${baseUrl}/public/sow/${id}`;
 
   // Verify the SOW exists
-  const sow = await prisma.sOW.findUnique({
-    where: { id },
-  });
+  const { data: sow, error } = await supabase
+    .from('sows')
+    .select('*')
+    .eq('id', id)
+    .single();
 
-  if (!sow) {
+  if (error || !sow) {
     return new NextResponse('SOW not found', { status: 404 });
   }
 

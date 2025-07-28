@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import prisma from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 
 export async function PATCH(
   request: Request,
@@ -13,9 +13,11 @@ export async function PATCH(
     }
 
     // Check if user is admin
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email! },
-    });
+    const { data: user } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', session.user.email!)
+      .single();
 
     if (!user || user.role !== 'admin') {
       return new NextResponse('Forbidden', { status: 403 });
@@ -30,11 +32,13 @@ export async function PATCH(
     }
 
     // Get the current SOW
-    const currentSOW = await prisma.sOW.findUnique({
-      where: { id: (await params).id },
-    });
+    const { data: currentSOW, error } = await supabase
+      .from('sows')
+      .select('*')
+      .eq('id', (await params).id)
+      .single();
 
-    if (!currentSOW) {
+    if (error || !currentSOW) {
       return new NextResponse('SOW not found', { status: 404 });
     }
 
@@ -44,10 +48,12 @@ export async function PATCH(
     }
 
     // Update SOW status
-    const updatedSOW = await prisma.sOW.update({
-      where: { id: (await params).id },
-      data: { status },
-    });
+    const { data: updatedSOW } = await supabase
+      .from('sows')
+      .update({ status })
+      .eq('id', (await params).id)
+      .select()
+      .single();
 
     return NextResponse.json(updatedSOW);
   } catch (error) {

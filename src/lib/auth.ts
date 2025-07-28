@@ -1,6 +1,6 @@
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
-import prisma from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 
 // Only check for required environment variables in production runtime
 const validateEnvVars = () => {
@@ -47,16 +47,40 @@ export const authOptions = {
       }
       // Create or update user in the database
       if (user?.email) {
-        const dbUser = await prisma.user.upsert({
-          where: { email: user.email },
-          update: { name: user.name },
-          create: {
-            email: user.email,
-            name: user.name,
-            role: 'user',
-          },
-        });
-        user.role = dbUser.role;
+        // Check if user exists
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', user.email)
+          .single();
+
+        let dbUser;
+        if (existingUser) {
+          // Update existing user
+          const { data: updatedUser } = await supabase
+            .from('users')
+            .update({ name: user.name })
+            .eq('email', user.email)
+            .select()
+            .single();
+          dbUser = updatedUser;
+        } else {
+          // Create new user
+          const { data: newUser } = await supabase
+            .from('users')
+            .insert({
+              email: user.email,
+              name: user.name,
+              role: 'user',
+            })
+            .select()
+            .single();
+          dbUser = newUser;
+        }
+        
+        if (dbUser) {
+          user.role = dbUser.role;
+        }
       }
       return true;
     },
