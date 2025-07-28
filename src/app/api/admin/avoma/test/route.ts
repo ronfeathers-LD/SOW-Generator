@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     // Test the Avoma API connection using a valid endpoint
     try {
-      const baseUrl = apiUrl || 'https://dev694.avoma.com/api/v1';
+      const baseUrl = apiUrl || 'https://api.avoma.com/v1';
       const testResponse = await fetch(`${baseUrl}/calls/search?limit=1`, {
         headers: {
           'Authorization': `Bearer ${apiKey}`,

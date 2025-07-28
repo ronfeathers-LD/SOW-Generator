@@ -52,7 +52,7 @@ class AvomaClient {
 
   constructor(apiKey: string, baseUrl?: string) {
     this.apiKey = apiKey;
-    this.baseUrl = baseUrl || 'https://dev694.avoma.com/api/v1';
+    this.baseUrl = baseUrl || 'https://api.avoma.com/v1';
   }
 
   private async makeRequest(endpoint: string, options: RequestInit = {}) {
