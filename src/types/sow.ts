@@ -6,6 +6,9 @@ export interface BillingInfo {
   poNumber: string;
   paymentTerms: string;
   currency: string;
+  taxExempt?: boolean;
+  taxExemptionNumber?: string;
+  creditRating?: string;
 }
 
 export interface ClientRole {

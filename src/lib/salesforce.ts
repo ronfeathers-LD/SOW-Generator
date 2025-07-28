@@ -13,6 +13,26 @@ export interface SalesforceAccount {
   Industry?: string;
   Type?: string;
   Description?: string;
+  // Additional billing fields
+  BillingAddress?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  };
+  Payment_Terms__c?: string;
+  Tax_Exempt__c?: boolean;
+  Tax_Exemption_Number__c?: string;
+  Credit_Limit__c?: number;
+  Credit_Rating__c?: string;
+  Billing_Contact__c?: string;
+  Billing_Email__c?: string;
+  Purchase_Order_Required__c?: boolean;
+  Invoice_Delivery_Preference__c?: string;
+  CurrencyIsoCode?: string;
+  AnnualRevenue?: number;
+  NumberOfEmployees?: number;
 }
 
 export interface SalesforceContact {
@@ -116,7 +136,12 @@ class SalesforceClient {
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
                BillingPostalCode, BillingCountry, Phone, Website, 
-               Industry, Type, Description
+               Industry, Type, Description,
+               Payment_Terms__c, Tax_Exempt__c, Tax_Exemption_Number__c,
+               Credit_Limit__c, Credit_Rating__c, Billing_Contact__c,
+               Billing_Email__c, Purchase_Order_Required__c,
+               Invoice_Delivery_Preference__c, CurrencyIsoCode,
+               AnnualRevenue, NumberOfEmployees
         FROM Account 
         WHERE Name LIKE '%${searchTerm}%' 
         ORDER BY Name 
@@ -139,7 +164,12 @@ class SalesforceClient {
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
                BillingPostalCode, BillingCountry, Phone, Website, 
-               Industry, Type, Description
+               Industry, Type, Description,
+               Payment_Terms__c, Tax_Exempt__c, Tax_Exemption_Number__c,
+               Credit_Limit__c, Credit_Rating__c, Billing_Contact__c,
+               Billing_Email__c, Purchase_Order_Required__c,
+               Invoice_Delivery_Preference__c, CurrencyIsoCode,
+               AnnualRevenue, NumberOfEmployees
         FROM Account 
         WHERE Id = '${accountId}'
       `;
@@ -245,6 +275,57 @@ class SalesforceClient {
     } catch (error) {
       console.error('Error getting customer info:', error);
       throw new Error('Failed to get customer information from Salesforce');
+    }
+  }
+
+  /**
+   * Get billing information for an account
+   */
+  async getAccountBillingInfo(accountId: string): Promise<{
+    billingAddress: string;
+    paymentTerms: string;
+    taxExempt: boolean;
+    taxExemptionNumber: string;
+    creditLimit: number;
+    creditRating: string;
+    billingContact: string;
+    billingEmail: string;
+    purchaseOrderRequired: boolean;
+    invoiceDeliveryPreference: string;
+    currency: string;
+    annualRevenue: number;
+  }> {
+    try {
+      const account = await this.getAccount(accountId);
+      
+      // Build billing address
+      const addressParts = [
+        account.BillingStreet,
+        account.BillingCity,
+        account.BillingState,
+        account.BillingPostalCode,
+        account.BillingCountry
+      ].filter(Boolean);
+      
+      const billingAddress = addressParts.join(', ');
+      
+      return {
+        billingAddress,
+        paymentTerms: account.Payment_Terms__c || '',
+        taxExempt: account.Tax_Exempt__c || false,
+        taxExemptionNumber: account.Tax_Exemption_Number__c || '',
+        creditLimit: account.Credit_Limit__c || 0,
+        creditRating: account.Credit_Rating__c || '',
+        billingContact: account.Billing_Contact__c || '',
+        billingEmail: account.Billing_Email__c || '',
+        purchaseOrderRequired: account.Purchase_Order_Required__c || false,
+        invoiceDeliveryPreference: account.Invoice_Delivery_Preference__c || '',
+        currency: account.CurrencyIsoCode || 'USD',
+        annualRevenue: account.AnnualRevenue || 0
+      };
+    } catch (error) {
+      console.error('Error getting account billing info:', error);
+      throw new Error('Failed to get account billing information');
     }
   }
 
