@@ -38,6 +38,12 @@ export const authOptions = {
     }),
   ] : [],
   secret: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'production' ? undefined : 'dev-secret'),
+  session: {
+    strategy: 'jwt',
+  },
+  jwt: {
+    secret: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'production' ? undefined : 'dev-secret'),
+  },
   debug: process.env.NODE_ENV === 'development', // Only debug in development
   callbacks: {
     async signIn({ user }: any) {
@@ -103,15 +109,8 @@ export const authOptions = {
       return token;
     },
     async redirect({ url, baseUrl }: any) {
-      // Redirect to /sow after login
-      if (url.startsWith('/api/auth/signin')) {
-        return `${baseUrl}/sow`;
-      }
-      // Ensure we're using the correct callback URL
-      if (url.startsWith('/')) {
-        return `${baseUrl}${url}`;
-      }
-      return url.startsWith(baseUrl) ? url : baseUrl;
+      // Default redirect to dashboard after login
+      return `${baseUrl}/dashboard`;
     },
   },
   pages: {
