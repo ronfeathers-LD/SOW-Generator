@@ -38,8 +38,8 @@ export default function SalesforceIntegration({ onCustomerSelected, onContactSel
         const data = await response.json();
         setConfigStatus({
           isConfigured: true,
-          isActive: data.config.isActive,
-          lastError: data.config.lastError
+          isActive: data.config.is_active, // Use snake_case field name
+          lastError: data.config.last_error // Use snake_case field name
         });
       } else if (response.status === 404) {
         setConfigStatus({
