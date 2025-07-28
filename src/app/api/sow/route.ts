@@ -108,7 +108,19 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(sows);
+    // Transform snake_case to camelCase for frontend compatibility
+    const transformedSows = sows.map(sow => ({
+      id: sow.id,
+      clientName: sow.client_name || '',
+      sowTitle: sow.sow_title || '',
+      startDate: sow.start_date ? new Date(sow.start_date) : new Date(),
+      endDate: sow.start_date ? new Date(sow.start_date) : new Date(), // Use start_date as fallback since no end_date field
+      status: sow.status || 'draft',
+      createdAt: sow.created_at ? new Date(sow.created_at) : new Date(),
+      updatedAt: sow.updated_at ? new Date(sow.updated_at) : new Date(),
+    }));
+
+    return NextResponse.json(transformedSows);
   } catch (error) {
     console.error('Error fetching SOWs:', error);
     return NextResponse.json(

@@ -48,13 +48,13 @@ export const authOptions = {
   callbacks: {
     async signIn({ user }: any) {
       try {
-        // Validate environment variables in production
-        if (process.env.NODE_ENV === 'production') {
-          validateEnvVars();
-        }
+      // Validate environment variables in production
+      if (process.env.NODE_ENV === 'production') {
+        validateEnvVars();
+      }
         
-        // Create or update user in the database
-        if (user?.email) {
+      // Create or update user in the database
+      if (user?.email) {
           console.log('Processing sign in for user:', user.email);
           
           // Check if user exists
@@ -90,9 +90,9 @@ export const authOptions = {
             const { data: newUser, error: insertError } = await supabase
               .from('users')
               .insert({
-                email: user.email,
-                name: user.name,
-                role: 'user',
+            email: user.email,
+            name: user.name,
+            role: 'user',
               })
               .select()
               .single();
@@ -105,11 +105,11 @@ export const authOptions = {
           }
           
           if (dbUser) {
-            user.role = dbUser.role;
+        user.role = dbUser.role;
             console.log('User processed successfully:', dbUser.email, 'Role:', dbUser.role);
           }
-        }
-        return true;
+      }
+      return true;
       } catch (error) {
         console.error('Error in signIn callback:', error);
         return true; // Still allow sign in even if database operation fails
