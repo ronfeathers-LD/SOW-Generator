@@ -24,6 +24,7 @@ export async function POST(request: Request) {
         // Client Signature Information
         client_title: data.clientSignature?.title || '',
         client_email: data.clientSignature?.email || '',
+        client_signer_name: data.clientSignerName || '',
         signature_date: data.clientSignature?.signatureDate ? new Date(data.clientSignature.signatureDate).toISOString() : new Date().toISOString(),
         
         // Project Scope
