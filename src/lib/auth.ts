@@ -47,48 +47,73 @@ export const authOptions = {
   debug: process.env.NODE_ENV === 'development', // Only debug in development
   callbacks: {
     async signIn({ user }: any) {
-      // Validate environment variables in production
-      if (process.env.NODE_ENV === 'production') {
-        validateEnvVars();
-      }
-      // Create or update user in the database
-      if (user?.email) {
-        // Check if user exists
-        const { data: existingUser } = await supabase
-          .from('users')
-          .select('*')
-          .eq('email', user.email)
-          .single();
-
-        let dbUser;
-        if (existingUser) {
-          // Update existing user
-          const { data: updatedUser } = await supabase
-            .from('users')
-            .update({ name: user.name })
-            .eq('email', user.email)
-            .select()
-            .single();
-          dbUser = updatedUser;
-        } else {
-          // Create new user
-          const { data: newUser } = await supabase
-            .from('users')
-            .insert({
-              email: user.email,
-              name: user.name,
-              role: 'user',
-            })
-            .select()
-            .single();
-          dbUser = newUser;
+      try {
+        // Validate environment variables in production
+        if (process.env.NODE_ENV === 'production') {
+          validateEnvVars();
         }
         
-        if (dbUser) {
-          user.role = dbUser.role;
+        // Create or update user in the database
+        if (user?.email) {
+          console.log('Processing sign in for user:', user.email);
+          
+          // Check if user exists
+          const { data: existingUser, error: fetchError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', user.email)
+            .single();
+
+          if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found"
+            console.error('Error fetching user:', fetchError);
+          }
+
+          let dbUser;
+          if (existingUser) {
+            console.log('Updating existing user:', existingUser.email);
+            // Update existing user
+            const { data: updatedUser, error: updateError } = await supabase
+              .from('users')
+              .update({ name: user.name })
+              .eq('email', user.email)
+              .select()
+              .single();
+              
+            if (updateError) {
+              console.error('Error updating user:', updateError);
+            } else {
+              dbUser = updatedUser;
+            }
+          } else {
+            console.log('Creating new user:', user.email);
+            // Create new user
+            const { data: newUser, error: insertError } = await supabase
+              .from('users')
+              .insert({
+                email: user.email,
+                name: user.name,
+                role: 'user',
+              })
+              .select()
+              .single();
+              
+            if (insertError) {
+              console.error('Error creating user:', insertError);
+            } else {
+              dbUser = newUser;
+            }
+          }
+          
+          if (dbUser) {
+            user.role = dbUser.role;
+            console.log('User processed successfully:', dbUser.email, 'Role:', dbUser.role);
+          }
         }
+        return true;
+      } catch (error) {
+        console.error('Error in signIn callback:', error);
+        return true; // Still allow sign in even if database operation fails
       }
-      return true;
     },
     async session({ session, token }: any) {
       if (session.user) {
