@@ -39,7 +39,7 @@ export const authOptions = {
   ] : [],
   secret: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'production' ? undefined : 'dev-secret'),
   session: {
-    strategy: 'jwt',
+    strategy: 'jwt' as const,
   },
   jwt: {
     secret: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'production' ? undefined : 'dev-secret'),
