@@ -11,12 +11,20 @@ const validateEnvVars = () => {
   }
 };
 
+// Check if we have valid Google OAuth credentials
+const hasValidGoogleCredentials = () => {
+  return process.env.GOOGLE_CLIENT_ID && 
+         process.env.GOOGLE_CLIENT_ID !== 'your-google-client-id-here' &&
+         process.env.GOOGLE_CLIENT_SECRET && 
+         process.env.GOOGLE_CLIENT_SECRET !== 'your-google-client-secret-here';
+};
+
 // Log the callback URL for debugging
 const callbackUrl = `${process.env.NEXTAUTH_URL}/api/auth/callback/google`;
 console.log('Callback URL:', callbackUrl);
 
 export const authOptions = {
-  providers: [
+  providers: hasValidGoogleCredentials() ? [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
@@ -28,7 +36,7 @@ export const authOptions = {
         }
       }
     }),
-  ],
+  ] : [],
   secret: process.env.NEXTAUTH_SECRET || '',
   debug: process.env.NODE_ENV === 'development', // Only debug in development
   callbacks: {

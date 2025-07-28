@@ -21,9 +21,7 @@
   "homepage": "https://github.com/webfeathers/SOW-Generator#readme",
   "description": "",
   "dependencies": {
-    "@auth0/nextjs-auth0": "^4.6.1",
     "@google/generative-ai": "^0.2.1",
-    "@neondatabase/serverless": "latest",
     "@prisma/client": "^6.9.0",
     "@tiptap/pm": "^3.0.7",
     "@tiptap/react": "^3.0.7",
@@ -31,8 +29,6 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "@vercel/postgres": "latest",
-    "drizzle-orm": "latest",
     "eslint": "latest",
     "eslint-config-next": "latest",
     "html2canvas": "^1.4.1",
