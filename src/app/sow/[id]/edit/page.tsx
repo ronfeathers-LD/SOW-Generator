@@ -29,21 +29,21 @@ export default function EditSOWPage() {
           // Template structure mapping
           template: {
             // Header Information
-            sowTitle: data.sowTitle || 'Statement of Work for LeanData Implementation',
-            companyLogo: data.companyLogo || '',
+            sowTitle: data.sow_title || 'Statement of Work for LeanData Implementation',
+            companyLogo: data.company_logo || '',
             
             // Customer Information
-            customerName: data.clientName || '',
-            customerSignatureName: data.clientSignerName || '',
-            customerSignature: data.clientTitle || '',
-            customerEmail: data.clientEmail || '',
-            customerSignatureDate: data.signatureDate ? new Date(data.signatureDate) : null,
+            customerName: data.client_name || '',
+            customerSignatureName: data.client_signer_name || '',
+            customerSignature: data.client_title || '',
+            customerEmail: data.client_email || '',
+            customerSignatureDate: data.signature_date ? new Date(data.signature_date) : null,
             
             // LeanData Information
-            leanDataName: data.leandataName || 'Agam Vasani',
-            leanDataTitle: data.leandataTitle || 'VP Customer Success',
-            leanDataEmail: data.leandataEmail || 'agam.vasani@leandata.com',
-            leanDataSignatureName: data.leandataName || 'Agam Vasani',
+            leanDataName: data.leandata_name || 'Agam Vasani',
+            leanDataTitle: data.leandata_title || 'VP Customer Success',
+            leanDataEmail: data.leandata_email || 'agam.vasani@leandata.com',
+            leanDataSignatureName: data.leandata_name || 'Agam Vasani',
             leanDataSignature: '',
             leanDataSignatureDate: null,
             
@@ -62,37 +62,37 @@ export default function EditSOWPage() {
             purchaseOrderNumber: '',
             
             // Salesforce Opportunity Information
-            opportunityId: data.opportunityId || '',
-            opportunityName: data.opportunityName || '',
-            opportunityAmount: data.opportunityAmount || undefined,
-            opportunityStage: data.opportunityStage || '',
-            opportunityCloseDate: data.opportunityCloseDate || undefined,
+            opportunityId: data.opportunity_id || '',
+            opportunityName: data.opportunity_name || '',
+            opportunityAmount: data.opportunity_amount || undefined,
+            opportunityStage: data.opportunity_stage || '',
+            opportunityCloseDate: data.opportunity_close_date || undefined,
           },
           objectives: {
             description: '',
             keyObjectives: [''],
           },
           header: {
-            companyLogo: data.companyLogo || '',
-            clientName: data.clientName || '',
-            sowTitle: data.sowTitle || '',
+            companyLogo: data.company_logo || '',
+            clientName: data.client_name || '',
+            sowTitle: data.sow_title || '',
           },
           clientSignature: {
-            name: data.clientName || '',
-            title: data.clientTitle || '',
-            email: data.clientEmail || '',
-            signatureDate: new Date(data.signatureDate),
+            name: data.client_name || '',
+            title: data.client_title || '',
+            email: data.client_email || '',
+            signatureDate: new Date(data.signature_date),
           },
           scope: {
-            projectDescription: data.projectDescription || '',
+            projectDescription: data.project_description || '',
             deliverables: data.deliverables || '',
             timeline: {
-              startDate: new Date(data.startDate),
+              startDate: new Date(data.start_date),
               duration: data.duration || '',
             },
           },
           roles: {
-            clientRoles: data.clientRoles || [{
+            clientRoles: data.client_roles || [{
               role: '',
               name: '',
               contact: '',
@@ -100,12 +100,12 @@ export default function EditSOWPage() {
             }],
           },
           pricing: {
-            roles: data.pricingRoles || [{
+            roles: data.pricing_roles || [{
               role: '',
               ratePerHour: 0,
               totalHours: 0,
             }],
-            billing: data.billingInfo || {
+            billing: data.billing_info || {
               companyName: '',
               billingContact: '',
               billingAddress: '',
@@ -116,10 +116,10 @@ export default function EditSOWPage() {
             },
           },
           assumptions: {
-            accessRequirements: data.accessRequirements || '',
-            travelRequirements: data.travelRequirements || '',
-            workingHours: data.workingHours || '',
-            testingResponsibilities: data.testingResponsibilities || '',
+            accessRequirements: data.access_requirements || '',
+            travelRequirements: data.travel_requirements || '',
+            workingHours: data.working_hours || '',
+            testingResponsibilities: data.testing_responsibilities || '',
           },
           addendums: data.addendums || [{
             title: '',
@@ -132,7 +132,7 @@ export default function EditSOWPage() {
             },
           }],
           deliverables: data.deliverables || '',
-          clientSignerName: data.clientSignerName || '',
+          clientSignerName: data.client_signer_name || '',
         };
         
         setSOW(transformedData);
