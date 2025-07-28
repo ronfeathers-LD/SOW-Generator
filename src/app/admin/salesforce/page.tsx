@@ -85,12 +85,11 @@ export default function SalesforceAdminPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/admin/salesforce/debug', {
+      const response = await fetch('/api/admin/salesforce/test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(config),
       });
 
       const data = await response.json();
@@ -123,7 +122,6 @@ export default function SalesforceAdminPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(config),
       });
 
       const data = await response.json();

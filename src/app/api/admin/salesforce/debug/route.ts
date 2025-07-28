@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import * as jsforce from 'jsforce';
 
 // Helper function to check admin access
@@ -25,26 +26,39 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
-    const { username, password, securityToken, loginUrl } = body;
+    // Get the stored configuration from the database
+    const { data: config, error: configError } = await supabase
+      .from('salesforce_configs')
+      .select('*')
+      .eq('is_active', true)
+      .single();
+
+    if (configError || !config) {
+      return NextResponse.json(
+        { error: 'No active Salesforce configuration found. Please save your configuration first.' },
+        { status: 400 }
+      );
+    }
+
+    const { username, password, security_token, login_url } = config;
 
     if (!username || !password) {
       return NextResponse.json(
-        { error: 'Username and password are required' },
+        { error: 'Username and password are required in the stored configuration' },
         { status: 400 }
       );
     }
 
     // Clean the login URL (remove trailing spaces and slashes)
-    const cleanLoginUrl = (loginUrl || 'https://login.salesforce.com').trim().replace(/\/$/, '');
+    const cleanLoginUrl = (login_url || 'https://login.salesforce.com').trim().replace(/\/$/, '');
     
     console.log('Debug: Testing Salesforce connection with:');
-    console.log('Original Login URL:', loginUrl);
+    console.log('Original Login URL:', login_url);
     console.log('Clean Login URL:', cleanLoginUrl);
     console.log('Username:', username);
-    console.log('Has security token:', !!securityToken);
-    console.log('Security token length:', securityToken ? securityToken.length : 0);
-    console.log('Security token preview:', securityToken ? `${securityToken.substring(0, 4)}...${securityToken.substring(securityToken.length - 4)}` : 'None');
+    console.log('Has security token:', !!security_token);
+    console.log('Security token length:', security_token ? security_token.length : 0);
+    console.log('Security token preview:', security_token ? `${security_token.substring(0, 4)}...${security_token.substring(security_token.length - 4)}` : 'None');
 
     // Create a new connection with the cleaned login URL
     const conn = new jsforce.Connection({
@@ -55,11 +69,11 @@ export async function POST(request: NextRequest) {
       // Attempt authentication with different methods
       console.log('Debug: Attempting authentication...');
       console.log('Debug: Password length:', password ? password.length : 0);
-      console.log('Debug: Combined password+token length:', (password + (securityToken || '')).length);
+      console.log('Debug: Combined password+token length:', (password + (security_token || '')).length);
       
       // Method 1: Standard login with password + security token
       try {
-        await conn.login(username, password + (securityToken || ''));
+        await conn.login(username, password + (security_token || ''));
         console.log('Debug: Authentication successful with password + token');
       } catch (error) {
         console.log('Debug: Method 1 failed, trying password only...');
@@ -121,7 +135,7 @@ export async function POST(request: NextRequest) {
           debug: {
             loginUrl: cleanLoginUrl,
             username: username,
-            hasSecurityToken: !!securityToken
+            hasSecurityToken: !!security_token
           }
         },
         { status: 500 }

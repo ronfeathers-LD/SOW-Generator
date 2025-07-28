@@ -26,12 +26,25 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
-    const { username, password, securityToken, loginUrl } = body;
+    // Get the stored configuration from the database
+    const { data: config, error: configError } = await supabase
+      .from('salesforce_configs')
+      .select('*')
+      .eq('is_active', true)
+      .single();
+
+    if (configError || !config) {
+      return NextResponse.json(
+        { error: 'No active Salesforce configuration found. Please save your configuration first.' },
+        { status: 400 }
+      );
+    }
+
+    const { username, password, security_token, login_url } = config;
 
     if (!username || !password) {
       return NextResponse.json(
-        { error: 'Username and password are required' },
+        { error: 'Username and password are required in the stored configuration' },
         { status: 400 }
       );
     }
@@ -40,11 +53,11 @@ export async function POST(request: NextRequest) {
     try {
       // Create a new connection with the specified login URL
       const conn = new jsforce.Connection({
-        loginUrl: loginUrl || 'https://login.salesforce.com'
+        loginUrl: login_url || 'https://login.salesforce.com'
       });
 
       // Attempt authentication
-      await conn.login(username, password + (securityToken || ''));
+      await conn.login(username, password + (security_token || ''));
       
       // Test a simple query
       const result = await conn.query('SELECT Id FROM User LIMIT 1');
