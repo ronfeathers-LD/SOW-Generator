@@ -21,6 +21,7 @@ export interface SalesforceAccount {
     postalCode?: string;
     country?: string;
   };
+  // Custom fields (may not exist in all orgs)
   Payment_Terms__c?: string;
   Tax_Exempt__c?: boolean;
   Tax_Exemption_Number__c?: string;
@@ -136,11 +137,7 @@ class SalesforceClient {
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
                BillingPostalCode, BillingCountry, Phone, Website, 
-               Industry, Type, Description,
-               Payment_Terms__c, Tax_Exempt__c, Tax_Exemption_Number__c,
-               Credit_Limit__c, Credit_Rating__c, Billing_Contact__c,
-               Billing_Email__c, Purchase_Order_Required__c,
-               Invoice_Delivery_Preference__c, CurrencyIsoCode,
+               Industry, Type, Description, CurrencyIsoCode,
                AnnualRevenue, NumberOfEmployees
         FROM Account 
         WHERE Name LIKE '%${searchTerm}%' 
@@ -164,11 +161,7 @@ class SalesforceClient {
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
                BillingPostalCode, BillingCountry, Phone, Website, 
-               Industry, Type, Description,
-               Payment_Terms__c, Tax_Exempt__c, Tax_Exemption_Number__c,
-               Credit_Limit__c, Credit_Rating__c, Billing_Contact__c,
-               Billing_Email__c, Purchase_Order_Required__c,
-               Invoice_Delivery_Preference__c, CurrencyIsoCode,
+               Industry, Type, Description, CurrencyIsoCode,
                AnnualRevenue, NumberOfEmployees
         FROM Account 
         WHERE Id = '${accountId}'
@@ -311,15 +304,15 @@ class SalesforceClient {
       
       return {
         billingAddress,
-        paymentTerms: account.Payment_Terms__c || '',
-        taxExempt: account.Tax_Exempt__c || false,
-        taxExemptionNumber: account.Tax_Exemption_Number__c || '',
-        creditLimit: account.Credit_Limit__c || 0,
-        creditRating: account.Credit_Rating__c || '',
-        billingContact: account.Billing_Contact__c || '',
-        billingEmail: account.Billing_Email__c || '',
-        purchaseOrderRequired: account.Purchase_Order_Required__c || false,
-        invoiceDeliveryPreference: account.Invoice_Delivery_Preference__c || '',
+        paymentTerms: '', // Custom field not available
+        taxExempt: false, // Custom field not available
+        taxExemptionNumber: '', // Custom field not available
+        creditLimit: 0, // Custom field not available
+        creditRating: '', // Custom field not available
+        billingContact: '', // Custom field not available
+        billingEmail: '', // Custom field not available
+        purchaseOrderRequired: false, // Custom field not available
+        invoiceDeliveryPreference: '', // Custom field not available
         currency: account.CurrencyIsoCode || 'USD',
         annualRevenue: account.AnnualRevenue || 0
       };
