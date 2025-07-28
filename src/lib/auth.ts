@@ -37,7 +37,7 @@ export const authOptions = {
       }
     }),
   ] : [],
-  secret: process.env.NEXTAUTH_SECRET || '',
+  secret: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'production' ? undefined : 'dev-secret'),
   debug: process.env.NODE_ENV === 'development', // Only debug in development
   callbacks: {
     async signIn({ user }: any) {
