@@ -42,11 +42,11 @@ export default function AvomaAdminPage() {
         setConfig({
           id: '',
           apiKey: '',
-          apiUrl: 'https://api.avoma.com',
+          apiUrl: 'https://dev694.avoma.com/api/v1',
           isActive: true,
           customerId: '',
           api_key: '',
-          api_url: 'https://api.avoma.com',
+          api_url: 'https://dev694.avoma.com/api/v1',
           is_active: true,
           customer_id: '',
         });
@@ -72,7 +72,7 @@ export default function AvomaAdminPage() {
         },
         body: JSON.stringify({
           apiKey: config?.api_key || '',
-          apiUrl: config?.api_url || 'https://api.avoma.com',
+          apiUrl: config?.api_url || 'https://dev694.avoma.com/api/v1',
           isActive: config?.is_active || true,
           customerId: config?.customer_id || '',
         }),
@@ -142,7 +142,7 @@ export default function AvomaAdminPage() {
         },
         body: JSON.stringify({
           apiKey: config?.api_key || '',
-          apiUrl: config?.api_url || 'https://api.avoma.com',
+          apiUrl: config?.api_url || 'https://dev694.avoma.com/api/v1',
           testCustomerName: 'Test Customer'
         }),
       });
@@ -205,10 +205,10 @@ export default function AvomaAdminPage() {
             </label>
             <input
               type="text"
-              value={config?.api_url || 'https://api.avoma.com'}
+              value={config?.api_url || 'https://dev694.avoma.com/api/v1'}
               onChange={(e) => setConfig(prev => prev ? { ...prev, api_url: e.target.value } : null)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="https://api.avoma.com"
+              placeholder="https://dev694.avoma.com/api/v1"
             />
             <p className="mt-1 text-sm text-gray-500">
               The base URL for the Avoma API
