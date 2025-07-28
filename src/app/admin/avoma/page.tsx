@@ -71,13 +71,10 @@ export default function AvomaAdminPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...config,
-          apiKey: config?.api_key,
-          apiUrl: config?.api_url,
-          isActive: config?.is_active,
-          lastTested: config?.last_tested,
-          lastError: config?.last_error,
-          customerId: config?.customer_id,
+          apiKey: config?.api_key || '',
+          apiUrl: config?.api_url || 'https://api.avoma.com',
+          isActive: config?.is_active || true,
+          customerId: config?.customer_id || '',
         }),
       });
 
@@ -108,13 +105,8 @@ export default function AvomaAdminPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...config,
-          apiKey: config?.api_key,
-          apiUrl: config?.api_url,
-          isActive: config?.is_active,
-          lastTested: config?.last_tested,
-          lastError: config?.last_error,
-          customerId: config?.customer_id,
+          apiKey: config?.api_key || '',
+          apiUrl: config?.api_url || 'https://api.avoma.com',
         }),
       });
 
@@ -149,7 +141,8 @@ export default function AvomaAdminPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...config,
+          apiKey: config?.api_key || '',
+          apiUrl: config?.api_url || 'https://api.avoma.com',
           testCustomerName: 'Test Customer'
         }),
       });
