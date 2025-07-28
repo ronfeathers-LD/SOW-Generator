@@ -10,6 +10,13 @@ interface AvomaConfig {
   lastTested?: string;
   lastError?: string;
   customerId?: string;
+  // Database field names (snake_case)
+  api_key: string;
+  api_url: string;
+  is_active: boolean;
+  last_tested?: string;
+  last_error?: string;
+  customer_id?: string;
 }
 
 export default function AvomaAdminPage() {
@@ -38,6 +45,10 @@ export default function AvomaAdminPage() {
           apiUrl: 'https://api.avoma.com',
           isActive: true,
           customerId: '',
+          api_key: '',
+          api_url: 'https://api.avoma.com',
+          is_active: true,
+          customer_id: '',
         });
       }
     } catch (error) {
@@ -59,7 +70,15 @@ export default function AvomaAdminPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(config),
+        body: JSON.stringify({
+          ...config,
+          apiKey: config?.api_key,
+          apiUrl: config?.api_url,
+          isActive: config?.is_active,
+          lastTested: config?.last_tested,
+          lastError: config?.last_error,
+          customerId: config?.customer_id,
+        }),
       });
 
       if (response.ok) {
@@ -88,7 +107,15 @@ export default function AvomaAdminPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(config),
+        body: JSON.stringify({
+          ...config,
+          apiKey: config?.api_key,
+          apiUrl: config?.api_url,
+          isActive: config?.is_active,
+          lastTested: config?.last_tested,
+          lastError: config?.last_error,
+          customerId: config?.customer_id,
+        }),
       });
 
       const data = await response.json();
@@ -98,7 +125,7 @@ export default function AvomaAdminPage() {
           type: 'success', 
           text: 'Avoma connection test successful!' 
         });
-        // Reload config to get updated lastTested timestamp
+        // Reload config to get updated last_tested timestamp
         await loadConfig();
       } else {
         throw new Error(data.error || 'Connection test failed');
@@ -185,8 +212,8 @@ export default function AvomaAdminPage() {
             </label>
             <input
               type="text"
-              value={config?.apiUrl || 'https://api.avoma.com'}
-              onChange={(e) => setConfig(prev => prev ? { ...prev, apiUrl: e.target.value } : null)}
+              value={config?.api_url || 'https://api.avoma.com'}
+              onChange={(e) => setConfig(prev => prev ? { ...prev, api_url: e.target.value } : null)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="https://api.avoma.com"
             />
@@ -202,8 +229,8 @@ export default function AvomaAdminPage() {
             </label>
             <input
               type="password"
-              value={config?.apiKey || ''}
-              onChange={(e) => setConfig(prev => prev ? { ...prev, apiKey: e.target.value } : null)}
+              value={config?.api_key || ''}
+              onChange={(e) => setConfig(prev => prev ? { ...prev, api_key: e.target.value } : null)}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="Your Avoma API key"
@@ -220,8 +247,8 @@ export default function AvomaAdminPage() {
             </label>
             <input
               type="text"
-              value={config?.customerId || ''}
-              onChange={(e) => setConfig(prev => prev ? { ...prev, customerId: e.target.value } : null)}
+              value={config?.customer_id || ''}
+              onChange={(e) => setConfig(prev => prev ? { ...prev, customer_id: e.target.value } : null)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="Your Avoma customer ID"
             />
@@ -235,8 +262,8 @@ export default function AvomaAdminPage() {
             <input
               type="checkbox"
               id="isActive"
-              checked={config?.isActive || false}
-              onChange={(e) => setConfig(prev => prev ? { ...prev, isActive: e.target.checked } : null)}
+              checked={config?.is_active || false}
+              onChange={(e) => setConfig(prev => prev ? { ...prev, is_active: e.target.checked } : null)}
               className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
             />
             <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
@@ -245,13 +272,13 @@ export default function AvomaAdminPage() {
           </div>
 
           {/* Last Tested Info */}
-          {config?.lastTested && (
+          {config?.last_tested && (
             <div className="bg-gray-50 p-4 rounded-md">
               <h3 className="text-sm font-medium text-gray-700 mb-2">Connection Status</h3>
               <div className="text-sm text-gray-600">
-                <p>Last tested: {new Date(config.lastTested).toLocaleString()}</p>
-                {config.lastError && (
-                  <p className="text-red-600 mt-1">Last error: {config.lastError}</p>
+                <p>Last tested: {new Date(config.last_tested).toLocaleString()}</p>
+                {config.last_error && (
+                  <p className="text-red-600 mt-1">Last error: {config.last_error}</p>
                 )}
               </div>
             </div>
@@ -270,7 +297,7 @@ export default function AvomaAdminPage() {
             <button
               type="button"
               onClick={handleTestConnection}
-              disabled={isTesting || !config?.apiKey}
+              disabled={isTesting || !config?.api_key}
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-400"
             >
               {isTesting ? 'Testing...' : 'Test Connection'}
@@ -279,7 +306,7 @@ export default function AvomaAdminPage() {
             <button
               type="button"
               onClick={handleSearchTest}
-              disabled={isTesting || !config?.apiKey}
+              disabled={isTesting || !config?.api_key}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-400"
             >
               {isTesting ? 'Testing...' : 'Test Search'}

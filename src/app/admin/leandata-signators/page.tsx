@@ -12,6 +12,10 @@ interface LeanDataSignator {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  // Database field names (snake_case)
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function LeanDataSignatorsPage() {
@@ -120,7 +124,7 @@ export default function LeanDataSignatorsPage() {
       name: signator.name,
       email: signator.email,
       title: signator.title,
-      isActive: signator.isActive
+              isActive: signator.is_active
     });
     setEditingId(signator.id);
     setIsCreating(true);
@@ -156,7 +160,7 @@ export default function LeanDataSignatorsPage() {
         },
         body: JSON.stringify({
           ...signator,
-          isActive: !signator.isActive
+          isActive: !signator.is_active
         }),
       });
 
@@ -309,11 +313,11 @@ export default function LeanDataSignatorsPage() {
                             </div>
                             <div className="flex items-center space-x-2">
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                signator.isActive 
+                                signator.is_active 
                                   ? 'bg-green-100 text-green-800' 
                                   : 'bg-red-100 text-red-800'
                               }`}>
-                                {signator.isActive ? 'Active' : 'Inactive'}
+                                {signator.is_active ? 'Active' : 'Inactive'}
                               </span>
                             </div>
                           </div>
@@ -323,12 +327,12 @@ export default function LeanDataSignatorsPage() {
                           <button
                             onClick={() => toggleActive(signator)}
                             className={`px-3 py-1 text-xs rounded-md ${
-                              signator.isActive
+                              signator.is_active
                                 ? 'bg-red-100 text-red-700 hover:bg-red-200'
                                 : 'bg-green-100 text-green-700 hover:bg-green-200'
                             }`}
                           >
-                            {signator.isActive ? 'Deactivate' : 'Activate'}
+                            {signator.is_active ? 'Deactivate' : 'Activate'}
                           </button>
                           
                           <button

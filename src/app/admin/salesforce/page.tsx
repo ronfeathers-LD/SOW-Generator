@@ -15,6 +15,12 @@ interface SalesforceConfig {
   originalPassword?: string;
   originalSecurityToken?: string;
   originalLoginUrl?: string;
+  // Database field names (snake_case)
+  security_token?: string;
+  login_url: string;
+  is_active: boolean;
+  last_tested?: string;
+  last_error?: string;
 }
 
 export default function SalesforceAdminPage() {
@@ -39,8 +45,8 @@ export default function SalesforceAdminPage() {
           ...data.config,
           originalUsername: data.config.username,
           originalPassword: data.config.password,
-          originalSecurityToken: data.config.securityToken,
-          originalLoginUrl: data.config.loginUrl,
+          originalSecurityToken: data.config.security_token,
+          originalLoginUrl: data.config.login_url,
         };
         setConfig(configWithOriginals);
       } else if (response.status === 404) {
@@ -52,6 +58,8 @@ export default function SalesforceAdminPage() {
           securityToken: '',
           loginUrl: 'https://login.salesforce.com',
           isActive: true,
+          login_url: 'https://login.salesforce.com',
+          is_active: true,
         });
       }
     } catch (error) {
@@ -73,7 +81,14 @@ export default function SalesforceAdminPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(config),
+        body: JSON.stringify({
+          ...config,
+          securityToken: config?.security_token,
+          loginUrl: config?.login_url,
+          isActive: config?.is_active,
+          lastTested: config?.last_tested,
+          lastError: config?.last_error,
+        }),
       });
 
       if (response.ok) {
@@ -101,8 +116,8 @@ export default function SalesforceAdminPage() {
       const hasChanges = config && (
         config.username !== config.originalUsername ||
         config.password !== config.originalPassword ||
-        config.securityToken !== config.originalSecurityToken ||
-        config.loginUrl !== config.originalLoginUrl
+        config.security_token !== config.originalSecurityToken ||
+        config.login_url !== config.originalLoginUrl
       );
 
       const response = await fetch('/api/admin/salesforce/test', {
@@ -113,8 +128,8 @@ export default function SalesforceAdminPage() {
         body: hasChanges ? JSON.stringify({
           username: config?.username,
           password: config?.password,
-          securityToken: config?.securityToken,
-          loginUrl: config?.loginUrl,
+          securityToken: config?.security_token,
+          loginUrl: config?.login_url,
           useFormData: true
         }) : undefined,
       });
@@ -126,7 +141,7 @@ export default function SalesforceAdminPage() {
           type: 'success', 
           text: `Salesforce connection test successful! ${hasChanges ? '(using form data)' : '(using stored credentials)'}` 
         });
-        // Reload config to get updated lastTested timestamp
+        // Reload config to get updated last_tested timestamp
         await loadConfig();
       } else {
         throw new Error(data.details || 'Connection test failed');
@@ -148,8 +163,8 @@ export default function SalesforceAdminPage() {
       const hasChanges = config && (
         config.username !== config.originalUsername ||
         config.password !== config.originalPassword ||
-        config.securityToken !== config.originalSecurityToken ||
-        config.loginUrl !== config.originalLoginUrl
+        config.security_token !== config.originalSecurityToken ||
+        config.login_url !== config.originalLoginUrl
       );
 
       const response = await fetch('/api/admin/salesforce/debug', {
@@ -160,8 +175,8 @@ export default function SalesforceAdminPage() {
         body: hasChanges ? JSON.stringify({
           username: config?.username,
           password: config?.password,
-          securityToken: config?.securityToken,
-          loginUrl: config?.loginUrl,
+          securityToken: config?.security_token,
+          loginUrl: config?.login_url,
           useFormData: true
         }) : undefined,
       });
@@ -224,8 +239,8 @@ export default function SalesforceAdminPage() {
             </label>
             <input
               type="text"
-              value={config?.loginUrl || 'https://login.salesforce.com'}
-              onChange={(e) => setConfig(prev => prev ? { ...prev, loginUrl: e.target.value } : null)}
+              value={config?.login_url || 'https://login.salesforce.com'}
+              onChange={(e) => setConfig(prev => prev ? { ...prev, login_url: e.target.value } : null)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="https://your-org.my.salesforce.com"
             />
@@ -271,8 +286,8 @@ export default function SalesforceAdminPage() {
             </label>
             <input
               type="password"
-              value={config?.securityToken || ''}
-              onChange={(e) => setConfig(prev => prev ? { ...prev, securityToken: e.target.value } : null)}
+              value={config?.security_token || ''}
+              onChange={(e) => setConfig(prev => prev ? { ...prev, security_token: e.target.value } : null)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="Your security token (optional)"
             />
@@ -286,8 +301,8 @@ export default function SalesforceAdminPage() {
             <input
               type="checkbox"
               id="isActive"
-              checked={config?.isActive || false}
-              onChange={(e) => setConfig(prev => prev ? { ...prev, isActive: e.target.checked } : null)}
+              checked={config?.is_active || false}
+              onChange={(e) => setConfig(prev => prev ? { ...prev, is_active: e.target.checked } : null)}
               className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
             />
             <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
@@ -296,13 +311,13 @@ export default function SalesforceAdminPage() {
           </div>
 
           {/* Last Tested Info */}
-          {config?.lastTested && (
+          {config?.last_tested && (
             <div className="bg-gray-50 p-4 rounded-md">
               <h3 className="text-sm font-medium text-gray-700 mb-2">Connection Status</h3>
               <div className="text-sm text-gray-600">
-                <p>Last tested: {new Date(config.lastTested).toLocaleString()}</p>
-                {config.lastError && (
-                  <p className="text-red-600 mt-1">Last error: {config.lastError}</p>
+                <p>Last tested: {new Date(config.last_tested).toLocaleString()}</p>
+                {config.last_error && (
+                  <p className="text-red-600 mt-1">Last error: {config.last_error}</p>
                 )}
               </div>
             </div>

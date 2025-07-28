@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!avomaConfig.isActive) {
+    if (!avomaConfig.is_active) {
       return NextResponse.json(
         { error: 'Avoma integration is currently disabled. Please contact your administrator.' },
         { status: 503 }

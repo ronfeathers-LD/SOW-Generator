@@ -37,6 +37,13 @@ interface AvomaConfig {
   lastTested: Date | null;
   lastError: string | null;
   customerId: string | null;
+  // Database field names (snake_case)
+  api_key: string;
+  api_url: string;
+  is_active: boolean;
+  last_tested: string | null;
+  last_error: string | null;
+  customer_id: string | null;
 }
 
 class AvomaClient {
@@ -129,13 +136,28 @@ class AvomaClient {
 async function getAvomaConfig(): Promise<AvomaConfig | null> {
   try {
     // Import supabase dynamically to avoid issues during build
-const { supabase } = await import('@/lib/supabase');
+    const { supabase } = await import('@/lib/supabase');
     
-          const { data: config } = await supabase
-        .from('avoma_configs')
-        .select('*')
-        .single();
-    return config;
+    const { data: config } = await supabase
+      .from('avoma_configs')
+      .select('*')
+      .eq('is_active', true)
+      .single();
+
+    if (!config) {
+      return null;
+    }
+
+    // Map snake_case database fields to camelCase for backward compatibility
+    return {
+      ...config,
+      apiKey: config.api_key,
+      apiUrl: config.api_url,
+      isActive: config.is_active,
+      lastTested: config.last_tested ? new Date(config.last_tested) : null,
+      lastError: config.last_error,
+      customerId: config.customer_id,
+    };
   } catch (error) {
     console.error('Error getting Avoma config:', error);
     return null;
