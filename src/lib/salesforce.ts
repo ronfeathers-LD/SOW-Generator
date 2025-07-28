@@ -136,9 +136,7 @@ class SalesforceClient {
     try {
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
-               BillingPostalCode, BillingCountry, Phone, Website, 
-               Industry, Type, Description, CurrencyIsoCode,
-               AnnualRevenue, NumberOfEmployees
+               BillingPostalCode, BillingCountry, Industry
         FROM Account 
         WHERE Name LIKE '%${searchTerm}%' 
         ORDER BY Name 
@@ -160,9 +158,7 @@ class SalesforceClient {
     try {
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
-               BillingPostalCode, BillingCountry, Phone, Website, 
-               Industry, Type, Description, CurrencyIsoCode,
-               AnnualRevenue, NumberOfEmployees
+               BillingPostalCode, BillingCountry, Industry
         FROM Account 
         WHERE Id = '${accountId}'
       `;
@@ -313,8 +309,8 @@ class SalesforceClient {
         billingEmail: '', // Custom field not available
         purchaseOrderRequired: false, // Custom field not available
         invoiceDeliveryPreference: '', // Custom field not available
-        currency: account.CurrencyIsoCode || 'USD',
-        annualRevenue: account.AnnualRevenue || 0
+        currency: 'USD', // Default currency
+        annualRevenue: 0 // Default revenue
       };
     } catch (error) {
       console.error('Error getting account billing info:', error);
