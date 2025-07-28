@@ -17,10 +17,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });
     }
 
-    // Test the Avoma search functionality
+    // Test the Avoma search functionality with required date parameters
     try {
       const baseUrl = apiUrl || 'https://api.avoma.com/v1';
-      const searchResponse = await fetch(`${baseUrl}/calls?limit=5`, {
+      
+      // Get dates for the last 30 days
+      const toDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const fromDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 30 days ago
+      
+      const searchResponse = await fetch(`${baseUrl}/calls?from_date=${fromDate}&to_date=${toDate}&limit=5`, {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
@@ -36,8 +41,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: true, 
         message: 'Avoma search test successful',
-        calls: searchData.calls || searchData || [],
-        totalCalls: searchData.total || searchData.length || 0
+        calls: searchData.results || [],
+        totalCalls: searchData.count || 0
       });
     } catch (apiError) {
       console.error('Avoma search test error:', apiError);

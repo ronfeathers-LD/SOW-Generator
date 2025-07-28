@@ -17,10 +17,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });
     }
 
-    // Test the Avoma API connection using a basic endpoint
+    // Test the Avoma API connection using the correct endpoint with date parameters
     try {
       const baseUrl = apiUrl || 'https://api.avoma.com/v1';
-      const testResponse = await fetch(`${baseUrl}/calls`, {
+      
+      // Get dates for the last 30 days
+      const toDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const fromDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 30 days ago
+      
+      const testResponse = await fetch(`${baseUrl}/calls?from_date=${fromDate}&to_date=${toDate}`, {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
@@ -36,7 +41,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: true, 
         message: 'Avoma connection test successful',
-        callCount: testData.total || testData.length || 0
+        callCount: testData.count || 0,
+        totalResults: testData.results?.length || 0
       });
     } catch (apiError) {
       console.error('Avoma API test error:', apiError);
