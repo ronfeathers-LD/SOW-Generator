@@ -60,6 +60,8 @@ export async function GET(
         signature_date: sow.signature_date ? new Date(sow.signature_date) : new Date(),
       },
       client_signer_name: sow.client_signer_name || '',
+      // Explicitly include salesforce_account_id
+      salesforce_account_id: sow.salesforce_account_id || null,
     };
 
     return NextResponse.json(transformedSow);

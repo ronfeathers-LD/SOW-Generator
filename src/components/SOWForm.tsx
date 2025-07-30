@@ -197,8 +197,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     if (initialData) {
       // Set selected account if customer name exists
       if (initialData.template?.customer_name || initialData.header?.client_name) {
+        const accountId = initialData.salesforce_account_id || '';
         setSelectedAccount({
-          id: '', // We don't have the Salesforce ID when loading from database
+          id: accountId, // Use the Salesforce account ID if available
           name: initialData.template?.customer_name || initialData.header?.client_name || ''
         });
       }
@@ -504,38 +505,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         }
       };
 
-      // Debug logging
-      console.log('Saving SOW with data:', {
-        customer_name: formData.template?.customer_name,
-        customer_signature_name: formData.template?.customer_signature_name,
-        customer_email: formData.template?.customer_email,
-        objectives: {
-          description: formData.objectives?.description,
-          key_objectives: formData.objectives?.key_objectives,
-          avoma_transcription: formData.objectives?.avoma_transcription,
-        },
-        lean_data_signator: {
-          lean_data_name: formData.template?.lean_data_name,
-          lean_data_title: formData.template?.lean_data_title,
-          lean_data_email: formData.template?.lean_data_email,
-          selected_lean_data_signator: selectedLeanDataSignator
-        },
-        opportunity_data: {
-          opportunity_id: formData.template?.opportunity_id,
-          opportunity_name: formData.template?.opportunity_name,
-          opportunity_amount: formData.template?.opportunity_amount,
-          opportunity_stage: formData.template?.opportunity_stage,
-          opportunity_close_date: formData.template?.opportunity_close_date,
-        },
-        submission_data: {
-          client_name: submissionData.header.client_name,
-          client_signer_name: submissionData.client_signer_name,
-          client_signature: submissionData.client_signature,
-          template: submissionData.template,
-          objectives: submissionData.objectives
-        }
-      });
-      
       const response = await fetch(url, {
         method,
         headers: {

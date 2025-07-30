@@ -139,6 +139,9 @@ export interface SOWData {
   client_signer_name?: string;
   deliverables?: string;
   
+  // Salesforce Information
+  salesforce_account_id?: string;
+  
   // Salesforce Opportunity Information
   opportunity_id?: string;
   opportunity_name?: string;

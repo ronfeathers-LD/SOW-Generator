@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
 import { SalesforceContact, SalesforceOpportunity } from '@/lib/salesforce';
 import SalesforceIntegration from '../SalesforceIntegration';
@@ -39,6 +39,13 @@ export default function CustomerInformationTab({
   const [availableContacts, setAvailableContacts] = useState<SalesforceContact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
 
+  // Load contacts when contact step is accessed and we have a selected account
+  useEffect(() => {
+    if (currentStep === 'contact' && selectedAccount?.id && availableContacts.length === 0) {
+      handleStepButtonClick('contact');
+    }
+  }, [currentStep, selectedAccount?.id, availableContacts.length]);
+
   // Determine which step to show based on current selections
   const getNextStep = (): SelectionStep => {
     if (!selectedAccount) return 'account';
@@ -55,7 +62,6 @@ export default function CustomerInformationTab({
     if (step === 'contact' && selectedAccount && selectedAccount.id && availableContacts.length === 0) {
       setIsLoadingContacts(true);
       try {
-        console.log('Loading contacts for account:', selectedAccount.id);
         const response = await fetch('/api/salesforce/account-contacts', {
           method: 'POST',
           headers: {
@@ -67,12 +73,8 @@ export default function CustomerInformationTab({
           }),
         });
 
-        console.log('Response status:', response.status);
-        console.log('Response ok:', response.ok);
-
         if (response.ok) {
           const data = await response.json();
-          console.log('Contacts data:', data);
           setAvailableContacts(data.contacts || []);
         } else {
           const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
@@ -90,17 +92,18 @@ export default function CustomerInformationTab({
     } else if (step === 'contact' && selectedAccount && !selectedAccount.id) {
       // If we have an account but no ID (loaded from existing data), show a message
       console.log('Account selected but no Salesforce ID available (loaded from existing data)');
-      // We could potentially show a message to the user here
     }
   };
 
   // Function to refresh contacts data
   const refreshContacts = async () => {
-    if (!selectedAccount?.id) return;
+    if (!selectedAccount?.id) {
+      console.log('No selected account ID, cannot refresh contacts');
+      return;
+    }
     
     setIsLoadingContacts(true);
     try {
-      console.log('Refreshing contacts for account:', selectedAccount.id);
       const response = await fetch('/api/salesforce/account-contacts', {
         method: 'POST',
         headers: {
@@ -114,10 +117,23 @@ export default function CustomerInformationTab({
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Refreshed contacts data:', data);
         setAvailableContacts(data.contacts || []);
+        
+        // If we have a selected contact, make sure it's still in the refreshed list
+        if (selectedContact && data.contacts) {
+          const contactStillExists = data.contacts.some((contact: any) => contact.Id === selectedContact.Id);
+          if (!contactStillExists) {
+            console.log('Selected contact no longer exists in refreshed data, clearing selection');
+            onContactSelectedFromSalesforce(null);
+          }
+        }
       } else {
-        console.error('Failed to refresh contacts');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Failed to refresh contacts:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
       }
     } catch (error) {
       console.error('Error refreshing contacts:', error);
