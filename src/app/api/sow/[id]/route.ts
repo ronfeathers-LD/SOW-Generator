@@ -19,7 +19,50 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(sow);
+    // Transform the data to match the frontend structure
+    const transformedSow = {
+      ...sow,
+      objectives: {
+        description: sow.objectives_description || '',
+        keyObjectives: sow.objectives_key_objectives || [],
+        avomaTranscription: sow.avoma_transcription || '',
+      },
+      scope: {
+        projectDescription: sow.project_description || '',
+        deliverables: sow.deliverables || '',
+        timeline: {
+          startDate: sow.start_date ? new Date(sow.start_date) : new Date(),
+          duration: sow.duration || '',
+        },
+      },
+      template: {
+        customerName: sow.client_name || '',
+        customerSignatureName: sow.client_signer_name || '',
+        customerEmail: sow.client_email || '',
+        leanDataName: sow.leandata_name || '',
+        leanDataTitle: sow.leandata_title || '',
+        leanDataEmail: sow.leandata_email || '',
+        opportunityId: sow.opportunity_id || '',
+        opportunityName: sow.opportunity_name || '',
+        opportunityAmount: sow.opportunity_amount || undefined,
+        opportunityStage: sow.opportunity_stage || '',
+        opportunityCloseDate: sow.opportunity_close_date || undefined,
+      },
+      header: {
+        companyLogo: sow.company_logo || '',
+        clientName: sow.client_name || '',
+        sowTitle: sow.sow_title || '',
+      },
+      clientSignature: {
+        name: sow.client_signer_name || '',
+        title: sow.client_title || '',
+        email: sow.client_email || '',
+        signatureDate: sow.signature_date ? new Date(sow.signature_date) : new Date(),
+      },
+      clientSignerName: sow.client_signer_name || '',
+    };
+
+    return NextResponse.json(transformedSow);
   } catch (error) {
     console.error('Error fetching SOW:', error);
     return NextResponse.json(
@@ -37,11 +80,92 @@ export async function PUT(
   try {
     data = await request.json();
     
-    // Debug logging
-    console.log('API received data:', {
+    // Detect data structure and log it
+    const isNestedStructure = data.header && data.template && data.objectives;
+    const isFlatStructure = data.client_name && data.sow_title;
+    
+    console.log('🔍 Data structure detection:', {
+      isNestedStructure,
+      isFlatStructure,
+      hasHeader: !!data.header,
+      hasTemplate: !!data.template,
+      hasClientName: !!data.client_name,
+      hasSowTitle: !!data.sow_title,
+      sampleData: {
+        nested: { header: data.header?.clientName, template: data.template?.customerName },
+        flat: { client_name: data.client_name, sow_title: data.sow_title }
+      }
+    });
+    
+    // Transform flat structure to nested if needed
+    if (isFlatStructure && !isNestedStructure) {
+      console.log('⚠️  Converting flat structure to nested structure');
+      data = {
+        header: {
+          companyLogo: data.company_logo || '',
+          clientName: data.client_name || '',
+          sowTitle: data.sow_title || '',
+        },
+        clientSignature: {
+          name: data.client_signer_name || '',
+          title: data.client_title || '',
+          email: data.client_email || '',
+          signatureDate: data.signature_date || new Date().toISOString(),
+        },
+        clientSignerName: data.client_signer_name || '',
+        scope: {
+          projectDescription: data.project_description || '',
+          deliverables: data.deliverables || '',
+          timeline: {
+            startDate: data.start_date || new Date().toISOString(),
+            duration: data.duration || '',
+          },
+        },
+        objectives: {
+          description: data.objectives_description || '',
+          keyObjectives: data.objectives_key_objectives || [],
+          avomaTranscription: data.avoma_transcription || '',
+        },
+        roles: {
+          clientRoles: data.client_roles || [],
+        },
+        pricing: {
+          roles: data.pricing_roles || [],
+          billing: data.billing_info || {},
+        },
+        assumptions: {
+          accessRequirements: data.access_requirements || '',
+          travelRequirements: data.travel_requirements || '',
+          workingHours: data.working_hours || '',
+          testingResponsibilities: data.testing_responsibilities || '',
+        },
+        addendums: data.addendums || [],
+        template: {
+          customerName: data.client_name || '',
+          customerSignatureName: data.client_signer_name || '',
+          customerEmail: data.client_email || '',
+          leanDataName: data.leandata_name || 'Agam Vasani',
+          leanDataTitle: data.leandata_title || 'VP Customer Success',
+          leanDataEmail: data.leandata_email || 'agam.vasani@leandata.com',
+          opportunityId: data.opportunity_id || null,
+          opportunityName: data.opportunity_name || null,
+          opportunityAmount: data.opportunity_amount || null,
+          opportunityStage: data.opportunity_stage || null,
+          opportunityCloseDate: data.opportunity_close_date || null,
+        }
+      };
+    }
+    
+    // Debug logging for final structure
+    console.log('API received data (after transformation):', {
       clientName: data.header?.clientName,
       clientSignerName: data.clientSignerName,
       clientSignature: data.clientSignature,
+      leanDataSignator: {
+        leanDataName: data.template?.leanDataName,
+        leanDataTitle: data.template?.leanDataTitle,
+        leanDataEmail: data.template?.leanDataEmail,
+      },
       template: data.template
     });
     
@@ -83,6 +207,13 @@ export async function PUT(
       if (data.scope.timeline?.duration !== undefined) updateData.duration = data.scope.timeline.duration;
     }
     
+    // Objectives fields
+    if (data.objectives) {
+      if (data.objectives.description !== undefined) updateData.objectives_description = data.objectives.description;
+      if (data.objectives.keyObjectives !== undefined) updateData.objectives_key_objectives = data.objectives.keyObjectives;
+      if (data.objectives.avomaTranscription !== undefined) updateData.avoma_transcription = data.objectives.avomaTranscription;
+    }
+    
     // Roles fields
     if (data.roles?.clientRoles !== undefined) updateData.client_roles = data.roles.clientRoles;
     if (data.pricing?.roles !== undefined) updateData.pricing_roles = data.pricing.roles;
@@ -105,6 +236,13 @@ export async function PUT(
       if (data.template.leanDataEmail !== undefined) updateData.leandata_email = data.template.leanDataEmail;
     }
     
+    // Debug logging for LeanData signator update
+    console.log('LeanData signator update data:', {
+      leanDataName: updateData.leandata_name,
+      leanDataTitle: updateData.leandata_title,
+      leanDataEmail: updateData.leandata_email,
+    });
+    
     // Salesforce Opportunity Information
     if (data.template) {
       if (data.template.opportunityId !== undefined) updateData.opportunity_id = data.template.opportunityId || null;
@@ -114,6 +252,9 @@ export async function PUT(
       if (data.template.opportunityCloseDate !== undefined) updateData.opportunity_close_date = data.template.opportunityCloseDate ? new Date(data.template.opportunityCloseDate).toISOString() : null;
     }
 
+    // Debug logging for update data
+    console.log('Updating SOW with data:', updateData);
+    
     // Update the SOW
     const { data: updatedSOW, error: updateError } = await supabase
       .from('sows')
@@ -124,8 +265,9 @@ export async function PUT(
 
     if (updateError) {
       console.error('Supabase update error:', updateError);
+      console.error('Update data that failed:', updateData);
       return NextResponse.json(
-        { error: 'Failed to update SOW' },
+        { error: 'Failed to update SOW', details: updateError.message },
         { status: 500 }
       );
     }
