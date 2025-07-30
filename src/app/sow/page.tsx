@@ -5,13 +5,12 @@ import Link from 'next/link';
 
 interface SOW {
   id: string;
-  clientName: string;
-  sowTitle: string;
-  startDate: Date;
-  endDate: Date;
+  client_name: string;
+  sow_title: string;
+  start_date: Date;
   status: string;
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export default function SOWListPage() {
@@ -119,9 +118,6 @@ export default function SOWListPage() {
                         Start Date
                       </th>
                       <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        End Date
-                      </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                         Status
                       </th>
                       <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
@@ -136,22 +132,19 @@ export default function SOWListPage() {
                     {sows.map((sow) => (
                       <tr key={sow.id}>
                         <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                          {sow.clientName}
+                          {sow.client_name || 'N/A'}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {sow.sowTitle}
+                          {sow.sow_title || 'N/A'}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {new Date(sow.startDate).toLocaleDateString()}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {new Date(sow.endDate).toLocaleDateString()}
+                          {sow.start_date ? new Date(sow.start_date).toLocaleDateString() : 'N/A'}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           {sow.status}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {new Date(sow.createdAt).toLocaleDateString()} {new Date(sow.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          {sow.created_at ? new Date(sow.created_at).toLocaleDateString() : 'N/A'} {sow.created_at ? new Date(sow.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                           <div className="flex justify-end space-x-2">
