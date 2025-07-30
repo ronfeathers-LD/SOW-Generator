@@ -87,6 +87,34 @@ class SalesforceClient {
       cleanUrl = cleanUrl.replace('lightning.force.com', 'login.salesforce.com');
     }
     
+    // Handle developer org URLs (dev-ed.my.salesforce.com)
+    if (cleanUrl.includes('dev-ed.my.salesforce.com')) {
+      // Convert dev-ed.my.salesforce.com to test.salesforce.com
+      cleanUrl = cleanUrl.replace('dev-ed.my.salesforce.com', 'test.salesforce.com');
+    }
+    
+    // Handle sandbox URLs (sandbox.my.salesforce.com)
+    if (cleanUrl.includes('sandbox.my.salesforce.com')) {
+      // Convert sandbox.my.salesforce.com to test.salesforce.com
+      cleanUrl = cleanUrl.replace('sandbox.my.salesforce.com', 'test.salesforce.com');
+    }
+    
+    // Handle custom domain URLs that end with .my.salesforce.com
+    if (cleanUrl.includes('.my.salesforce.com') && !cleanUrl.includes('test.salesforce.com')) {
+      // Extract the subdomain and convert to test.salesforce.com for dev/sandbox orgs
+      const urlParts = cleanUrl.split('.');
+      if (urlParts.length >= 3) {
+        const subdomain = urlParts[0];
+        // If it's a dev org (contains 'dev-ed') or sandbox, use test.salesforce.com
+        if (subdomain.includes('dev-ed') || subdomain.includes('sandbox')) {
+          cleanUrl = cleanUrl.replace(/^https?:\/\/[^\/]+\.my\.salesforce\.com/, 'https://test.salesforce.com');
+        } else {
+          // For production orgs with custom domains, use login.salesforce.com
+          cleanUrl = cleanUrl.replace(/^https?:\/\/[^\/]+\.my\.salesforce\.com/, 'https://login.salesforce.com');
+        }
+      }
+    }
+    
     // Ensure it's a valid Salesforce login URL
     if (!cleanUrl.includes('login.salesforce.com') && !cleanUrl.includes('test.salesforce.com')) {
       console.warn(`Warning: Unusual login URL format: ${cleanUrl}`);
