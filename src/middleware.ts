@@ -10,13 +10,20 @@ export async function middleware(request: NextRequest) {
   
   const isAdmin = token?.role === "admin";
   const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
+  const isGeminiAdminRoute = request.nextUrl.pathname.startsWith("/api/admin/gemini");
   const isPublicRoute = request.nextUrl.pathname.startsWith("/public") || 
                        request.nextUrl.pathname.startsWith("/api/public") ||
                        request.nextUrl.pathname === "/" ||
                        request.nextUrl.pathname.startsWith("/api/auth") ||
                        request.nextUrl.pathname.startsWith("/api/debug") ||
                        request.nextUrl.pathname === "/sow/new" ||
-                       request.nextUrl.pathname === "/dashboard";
+                       request.nextUrl.pathname === "/dashboard" ||
+                       request.nextUrl.pathname.startsWith("/api/avoma/search") ||
+                       request.nextUrl.pathname.startsWith("/api/avoma/transcription") ||
+                       request.nextUrl.pathname.startsWith("/api/gemini/analyze-transcription") ||
+                       request.nextUrl.pathname.startsWith("/api/salesforce") ||
+                       request.nextUrl.pathname.startsWith("/api/admin/salesforce") ||
+                       request.nextUrl.pathname.startsWith("/api/sow");
 
   // Allow access to public routes
   if (isPublicRoute) {
@@ -24,7 +31,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect non-admin users trying to access admin routes
-  if (isAdminRoute && !isAdmin) {
+  if ((isAdminRoute || isGeminiAdminRoute) && !isAdmin) {
     return NextResponse.redirect(new URL("/sow", request.url));
   }
 

@@ -12,18 +12,25 @@ export async function GET() {
     }
 
     const { data: config, error } = await supabase
-      .from('avoma_configs')
+      .from('gemini_configs')
       .select('*')
+      .eq('is_active', true)
       .single();
     
     if (error || !config) {
-      return NextResponse.json({ error: 'Configuration not found' }, { status: 404 });
+      return NextResponse.json({ 
+        apiKey: '',
+        isConfigured: false 
+      });
     }
 
-    // Return the full config including API key for admin use
-    return NextResponse.json({ config });
+    // Return the config with masked API key for security
+    return NextResponse.json({ 
+      apiKey: config.api_key ? '••••••••••••••••' : '',
+      isConfigured: true 
+    });
   } catch (error) {
-    console.error('Error fetching Avoma config:', error);
+    console.error('Error fetching Gemini config:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -37,29 +44,25 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { apiKey, apiUrl, isActive, customerId } = body;
+    const { apiKey, modelName, isActive } = body;
 
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });
     }
 
-    // Check if config already exists
-    const { data: existingConfig } = await supabase
-      .from('avoma_configs')
-      .select('*')
-      .single();
-    
-    if (existingConfig) {
-      return NextResponse.json({ error: 'Configuration already exists. Use PUT to update.' }, { status: 400 });
-    }
+    // Deactivate any existing configurations
+    await supabase
+      .from('gemini_configs')
+      .update({ is_active: false })
+      .eq('is_active', true);
 
+    // Create new configuration
     const { data: config, error } = await supabase
-      .from('avoma_configs')
+      .from('gemini_configs')
       .insert({
         api_key: apiKey,
-        api_url: apiUrl || 'https://api.avoma.com/v1',
+        model_name: modelName || 'gemini-1.5-flash',
         is_active: isActive !== undefined ? isActive : true,
-        customer_id: customerId || null,
       })
       .select()
       .single();
@@ -72,9 +75,12 @@ export async function POST(request: NextRequest) {
     // Don't return the actual API key in the response
     const { api_key, ...safeConfig } = config;
     
-    return NextResponse.json({ config: safeConfig });
+    return NextResponse.json({ 
+      apiKey: '••••••••••••••••',
+      isConfigured: true 
+    });
   } catch (error) {
-    console.error('Error creating Avoma config:', error);
+    console.error('Error creating Gemini config:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -88,7 +94,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, apiKey, apiUrl, isActive, customerId } = body;
+    const { id, apiKey, modelName, isActive } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Configuration ID is required' }, { status: 400 });
@@ -97,12 +103,11 @@ export async function PUT(request: NextRequest) {
     const updateData: any = {};
     
     if (apiKey !== undefined) updateData.api_key = apiKey;
-    if (apiUrl !== undefined) updateData.api_url = apiUrl;
+    if (modelName !== undefined) updateData.model_name = modelName;
     if (isActive !== undefined) updateData.is_active = isActive;
-    if (customerId !== undefined) updateData.customer_id = customerId;
 
     const { data: config, error } = await supabase
-      .from('avoma_configs')
+      .from('gemini_configs')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -116,9 +121,12 @@ export async function PUT(request: NextRequest) {
     // Don't return the actual API key in the response
     const { api_key, ...safeConfig } = config;
     
-    return NextResponse.json({ config: safeConfig });
+    return NextResponse.json({ 
+      apiKey: '••••••••••••••••',
+      isConfigured: true 
+    });
   } catch (error) {
-    console.error('Error updating Avoma config:', error);
+    console.error('Error updating Gemini config:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

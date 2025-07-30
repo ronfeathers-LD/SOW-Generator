@@ -24,75 +24,75 @@ export default function EditSOWPage() {
         // Transform the data to match the form structure
         const transformedData: SOWData = {
           id: data.id,
-          createdAt: new Date(data.createdAt),
-          updatedAt: new Date(data.updatedAt),
+          created_at: new Date(data.created_at),
+          updated_at: new Date(data.updated_at),
           // Template structure mapping
           template: {
             // Header Information
-            sowTitle: data.sow_title || 'Statement of Work for LeanData Implementation',
-            companyLogo: data.company_logo || '',
+            sow_title: data.sow_title || 'Statement of Work for LeanData Implementation',
+            company_logo: data.company_logo || '',
             
             // Customer Information
-            customerName: data.client_name || '',
-            customerSignatureName: data.client_signer_name || '',
-            customerSignature: data.client_title || '',
-            customerEmail: data.client_email || '',
-            customerSignatureDate: data.signature_date ? new Date(data.signature_date) : null,
+            customer_name: data.client_name || '',
+            customer_signature_name: data.client_signer_name || '',
+            customer_signature: data.client_title || '',
+            customer_email: data.client_email || '',
+            customer_signature_date: data.signature_date ? new Date(data.signature_date) : null,
             
             // LeanData Information
-            leanDataName: data.leandata_name || 'Agam Vasani',
-            leanDataTitle: data.leandata_title || 'VP Customer Success',
-            leanDataEmail: data.leandata_email || 'agam.vasani@leandata.com',
-            leanDataSignatureName: data.leandata_name || 'Agam Vasani',
-            leanDataSignature: '',
-            leanDataSignatureDate: null,
+            lean_data_name: data.leandata_name || 'Agam Vasani',
+            lean_data_title: data.leandata_title || 'VP Customer Success',
+            lean_data_email: data.leandata_email || 'agam.vasani@leandata.com',
+            lean_data_signature_name: data.leandata_name || 'Agam Vasani',
+            lean_data_signature: '',
+            lean_data_signature_date: null,
             
             // Project Details
             products: 'Matching/Routing',
-            numberOfUnits: '125',
+            number_of_units: '125',
             regions: '1',
-            salesforceTenants: '2',
-            timelineWeeks: '8',
+            salesforce_tenants: '2',
+            timeline_weeks: '8',
             
             // Billing Information
-            billingCompanyName: '',
-            billingContactName: '',
-            billingAddress: '',
-            billingEmail: '',
-            purchaseOrderNumber: '',
+            billing_company_name: '',
+            billing_contact_name: '',
+            billing_address: '',
+            billing_email: '',
+            purchase_order_number: '',
             
             // Salesforce Opportunity Information
-            opportunityId: data.opportunity_id || '',
-            opportunityName: data.opportunity_name || '',
-            opportunityAmount: data.opportunity_amount || undefined,
-            opportunityStage: data.opportunity_stage || '',
-            opportunityCloseDate: data.opportunity_close_date || undefined,
+            opportunity_id: data.opportunity_id || '',
+            opportunity_name: data.opportunity_name || '',
+            opportunity_amount: data.opportunity_amount || undefined,
+            opportunity_stage: data.opportunity_stage || '',
+            opportunity_close_date: data.opportunity_close_date || undefined,
           },
           objectives: {
             description: '',
-            keyObjectives: [''],
+            key_objectives: [''],
           },
           header: {
-            companyLogo: data.company_logo || '',
-            clientName: data.client_name || '',
-            sowTitle: data.sow_title || '',
+            company_logo: data.company_logo || '',
+            client_name: data.client_name || '',
+            sow_title: data.sow_title || '',
           },
-          clientSignature: {
+          client_signature: {
             name: data.client_name || '',
             title: data.client_title || '',
             email: data.client_email || '',
-            signatureDate: new Date(data.signature_date),
+            signature_date: new Date(data.signature_date),
           },
           scope: {
-            projectDescription: data.project_description || '',
+            project_description: data.project_description || '',
             deliverables: data.deliverables || '',
             timeline: {
-              startDate: new Date(data.start_date),
+              start_date: new Date(data.start_date),
               duration: data.duration || '',
             },
           },
           roles: {
-            clientRoles: data.client_roles || [{
+            client_roles: data.client_roles || [{
               role: '',
               name: '',
               contact: '',

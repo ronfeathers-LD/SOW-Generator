@@ -6,21 +6,15 @@ interface SalesforceConfig {
   id: string;
   username: string;
   password: string;
-  securityToken?: string;
-  loginUrl: string;
-  isActive: boolean;
-  lastTested?: string;
-  lastError?: string;
-  originalUsername?: string;
-  originalPassword?: string;
-  originalSecurityToken?: string;
-  originalLoginUrl?: string;
-  // Database field names (snake_case)
   security_token?: string;
   login_url: string;
   is_active: boolean;
   last_tested?: string;
   last_error?: string;
+  original_username?: string;
+  original_password?: string;
+  original_security_token?: string;
+  original_login_url?: string;
 }
 
 export default function SalesforceAdminPage() {
@@ -57,9 +51,7 @@ export default function SalesforceAdminPage() {
           id: '',
           username: '',
           password: '',
-          securityToken: '',
-          loginUrl: 'https://login.salesforce.com',
-          isActive: true,
+          security_token: '',
           login_url: 'https://login.salesforce.com',
           is_active: true,
         });
@@ -84,12 +76,12 @@ export default function SalesforceAdminPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...config,
+          id: config?.id,
+          username: config?.username,
+          password: config?.password,
           securityToken: config?.security_token,
           loginUrl: config?.login_url,
           isActive: config?.is_active,
-          lastTested: config?.last_tested,
-          lastError: config?.last_error,
         }),
       });
 
@@ -99,10 +91,10 @@ export default function SalesforceAdminPage() {
         setConfig({
           ...data.config,
           password: config?.password || '',
-          originalUsername: data.config.username,
-          originalPassword: config?.password || '',
-          originalSecurityToken: data.config.security_token,
-          originalLoginUrl: data.config.login_url,
+          original_username: data.config.username,
+          original_password: config?.password || '',
+          original_security_token: data.config.security_token,
+          original_login_url: data.config.login_url,
         });
         setMessage({ type: 'success', text: 'Salesforce configuration saved successfully!' });
       } else {
@@ -124,10 +116,10 @@ export default function SalesforceAdminPage() {
     try {
       // Check if form has unsaved changes
       const hasChanges = config && (
-        config.username !== config.originalUsername ||
-        config.password !== config.originalPassword ||
-        config.security_token !== config.originalSecurityToken ||
-        config.login_url !== config.originalLoginUrl
+        config.username !== config.original_username ||
+        config.password !== config.original_password ||
+        config.security_token !== config.original_security_token ||
+        config.login_url !== config.original_login_url
       );
 
       const response = await fetch('/api/admin/salesforce/test', {
@@ -171,10 +163,10 @@ export default function SalesforceAdminPage() {
     try {
       // Check if form has unsaved changes
       const hasChanges = config && (
-        config.username !== config.originalUsername ||
-        config.password !== config.originalPassword ||
-        config.security_token !== config.originalSecurityToken ||
-        config.login_url !== config.originalLoginUrl
+        config.username !== config.original_username ||
+        config.password !== config.original_password ||
+        config.security_token !== config.original_security_token ||
+        config.login_url !== config.original_login_url
       );
 
       const response = await fetch('/api/admin/salesforce/debug', {

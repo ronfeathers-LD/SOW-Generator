@@ -19,47 +19,47 @@ export async function GET(
       );
     }
 
-    // Transform the data to match the frontend structure
+    // Return snake_case data directly with nested structure
     const transformedSow = {
       ...sow,
       objectives: {
         description: sow.objectives_description || '',
-        keyObjectives: sow.objectives_key_objectives || [],
-        avomaTranscription: sow.avoma_transcription || '',
+        key_objectives: sow.objectives_key_objectives || [],
+        avoma_transcription: sow.avoma_transcription || '',
       },
       scope: {
-        projectDescription: sow.project_description || '',
+        project_description: sow.project_description || '',
         deliverables: sow.deliverables || '',
         timeline: {
-          startDate: sow.start_date ? new Date(sow.start_date) : new Date(),
+          start_date: sow.start_date ? new Date(sow.start_date) : new Date(),
           duration: sow.duration || '',
         },
       },
       template: {
-        customerName: sow.client_name || '',
-        customerSignatureName: sow.client_signer_name || '',
-        customerEmail: sow.client_email || '',
-        leanDataName: sow.leandata_name || '',
-        leanDataTitle: sow.leandata_title || '',
-        leanDataEmail: sow.leandata_email || '',
-        opportunityId: sow.opportunity_id || '',
-        opportunityName: sow.opportunity_name || '',
-        opportunityAmount: sow.opportunity_amount || undefined,
-        opportunityStage: sow.opportunity_stage || '',
-        opportunityCloseDate: sow.opportunity_close_date || undefined,
+        customer_name: sow.client_name || '',
+        customer_signature_name: sow.client_signer_name || '',
+        customer_email: sow.client_email || '',
+        lean_data_name: sow.leandata_name || '',
+        lean_data_title: sow.leandata_title || '',
+        lean_data_email: sow.leandata_email || '',
+        opportunity_id: sow.opportunity_id || '',
+        opportunity_name: sow.opportunity_name || '',
+        opportunity_amount: sow.opportunity_amount || undefined,
+        opportunity_stage: sow.opportunity_stage || '',
+        opportunity_close_date: sow.opportunity_close_date || undefined,
       },
       header: {
-        companyLogo: sow.company_logo || '',
-        clientName: sow.client_name || '',
-        sowTitle: sow.sow_title || '',
+        company_logo: sow.company_logo || '',
+        client_name: sow.client_name || '',
+        sow_title: sow.sow_title || '',
       },
-      clientSignature: {
+      client_signature: {
         name: sow.client_signer_name || '',
         title: sow.client_title || '',
         email: sow.client_email || '',
-        signatureDate: sow.signature_date ? new Date(sow.signature_date) : new Date(),
+        signature_date: sow.signature_date ? new Date(sow.signature_date) : new Date(),
       },
-      clientSignerName: sow.client_signer_name || '',
+      client_signer_name: sow.client_signer_name || '',
     };
 
     return NextResponse.json(transformedSow);
@@ -102,69 +102,69 @@ export async function PUT(
       console.log('⚠️  Converting flat structure to nested structure');
       data = {
         header: {
-          companyLogo: data.company_logo || '',
-          clientName: data.client_name || '',
-          sowTitle: data.sow_title || '',
+          company_logo: data.company_logo || '',
+          client_name: data.client_name || '',
+          sow_title: data.sow_title || '',
         },
-        clientSignature: {
+        client_signature: {
           name: data.client_signer_name || '',
           title: data.client_title || '',
           email: data.client_email || '',
-          signatureDate: data.signature_date || new Date().toISOString(),
+          signature_date: data.signature_date || new Date().toISOString(),
         },
-        clientSignerName: data.client_signer_name || '',
+        client_signer_name: data.client_signer_name || '',
         scope: {
-          projectDescription: data.project_description || '',
+          project_description: data.project_description || '',
           deliverables: data.deliverables || '',
           timeline: {
-            startDate: data.start_date || new Date().toISOString(),
+            start_date: data.start_date || new Date().toISOString(),
             duration: data.duration || '',
           },
         },
         objectives: {
           description: data.objectives_description || '',
-          keyObjectives: data.objectives_key_objectives || [],
-          avomaTranscription: data.avoma_transcription || '',
+          key_objectives: data.objectives_key_objectives || [],
+          avoma_transcription: data.avoma_transcription || '',
         },
         roles: {
-          clientRoles: data.client_roles || [],
+          client_roles: data.client_roles || [],
         },
         pricing: {
           roles: data.pricing_roles || [],
           billing: data.billing_info || {},
         },
         assumptions: {
-          accessRequirements: data.access_requirements || '',
-          travelRequirements: data.travel_requirements || '',
-          workingHours: data.working_hours || '',
-          testingResponsibilities: data.testing_responsibilities || '',
+          access_requirements: data.access_requirements || '',
+          travel_requirements: data.travel_requirements || '',
+          working_hours: data.working_hours || '',
+          testing_responsibilities: data.testing_responsibilities || '',
         },
         addendums: data.addendums || [],
         template: {
-          customerName: data.client_name || '',
-          customerSignatureName: data.client_signer_name || '',
-          customerEmail: data.client_email || '',
-          leanDataName: data.leandata_name || 'Agam Vasani',
-          leanDataTitle: data.leandata_title || 'VP Customer Success',
-          leanDataEmail: data.leandata_email || 'agam.vasani@leandata.com',
-          opportunityId: data.opportunity_id || null,
-          opportunityName: data.opportunity_name || null,
-          opportunityAmount: data.opportunity_amount || null,
-          opportunityStage: data.opportunity_stage || null,
-          opportunityCloseDate: data.opportunity_close_date || null,
+          customer_name: data.client_name || '',
+          customer_signature_name: data.client_signer_name || '',
+          customer_email: data.client_email || '',
+          lean_data_name: data.leandata_name || 'Agam Vasani',
+          lean_data_title: data.leandata_title || 'VP Customer Success',
+          lean_data_email: data.leandata_email || 'agam.vasani@leandata.com',
+          opportunity_id: data.opportunity_id || null,
+          opportunity_name: data.opportunity_name || null,
+          opportunity_amount: data.opportunity_amount || null,
+          opportunity_stage: data.opportunity_stage || null,
+          opportunity_close_date: data.opportunity_close_date || null,
         }
       };
     }
     
     // Debug logging for final structure
     console.log('API received data (after transformation):', {
-      clientName: data.header?.clientName,
-      clientSignerName: data.clientSignerName,
-      clientSignature: data.clientSignature,
-      leanDataSignator: {
-        leanDataName: data.template?.leanDataName,
-        leanDataTitle: data.template?.leanDataTitle,
-        leanDataEmail: data.template?.leanDataEmail,
+      client_name: data.header?.client_name,
+      client_signer_name: data.client_signer_name,
+      client_signature: data.client_signature,
+      lean_data_signator: {
+        lean_data_name: data.template?.lean_data_name,
+        lean_data_title: data.template?.lean_data_title,
+        lean_data_email: data.template?.lean_data_email,
       },
       template: data.template
     });
@@ -185,71 +185,71 @@ export async function PUT(
     
     // Header fields
     if (data.header) {
-      if (data.header.companyLogo !== undefined) updateData.company_logo = data.header.companyLogo;
-      if (data.header.clientName !== undefined) updateData.client_name = data.header.clientName;
-      if (data.header.sowTitle !== undefined) updateData.sow_title = data.header.sowTitle;
+      if (data.header.company_logo !== undefined) updateData.company_logo = data.header.company_logo;
+      if (data.header.client_name !== undefined) updateData.client_name = data.header.client_name;
+      if (data.header.sow_title !== undefined) updateData.sow_title = data.header.sow_title;
     }
     
     // Client signature fields
-    if (data.clientSignature) {
-      if (data.clientSignature.title !== undefined) updateData.client_title = data.clientSignature.title;
-      if (data.clientSignature.email !== undefined) updateData.client_email = data.clientSignature.email;
-      if (data.clientSignature.signatureDate !== undefined) updateData.signature_date = new Date(data.clientSignature.signatureDate).toISOString();
+    if (data.client_signature) {
+      if (data.client_signature.title !== undefined) updateData.client_title = data.client_signature.title;
+      if (data.client_signature.email !== undefined) updateData.client_email = data.client_signature.email;
+      if (data.client_signature.signature_date !== undefined) updateData.signature_date = new Date(data.client_signature.signature_date).toISOString();
     }
     
-    if (data.clientSignerName !== undefined) updateData.client_signer_name = data.clientSignerName || '';
+    if (data.client_signer_name !== undefined) updateData.client_signer_name = data.client_signer_name || '';
     
     // Scope fields
     if (data.scope) {
-      if (data.scope.projectDescription !== undefined) updateData.project_description = data.scope.projectDescription;
+      if (data.scope.project_description !== undefined) updateData.project_description = data.scope.project_description;
       if (data.scope.deliverables !== undefined) updateData.deliverables = data.scope.deliverables;
-      if (data.scope.timeline?.startDate !== undefined) updateData.start_date = new Date(data.scope.timeline.startDate).toISOString();
+      if (data.scope.timeline?.start_date !== undefined) updateData.start_date = new Date(data.scope.timeline.start_date).toISOString();
       if (data.scope.timeline?.duration !== undefined) updateData.duration = data.scope.timeline.duration;
     }
     
     // Objectives fields
     if (data.objectives) {
       if (data.objectives.description !== undefined) updateData.objectives_description = data.objectives.description;
-      if (data.objectives.keyObjectives !== undefined) updateData.objectives_key_objectives = data.objectives.keyObjectives;
-      if (data.objectives.avomaTranscription !== undefined) updateData.avoma_transcription = data.objectives.avomaTranscription;
+      if (data.objectives.key_objectives !== undefined) updateData.objectives_key_objectives = data.objectives.key_objectives;
+      if (data.objectives.avoma_transcription !== undefined) updateData.avoma_transcription = data.objectives.avoma_transcription;
     }
     
     // Roles fields
-    if (data.roles?.clientRoles !== undefined) updateData.client_roles = data.roles.clientRoles;
+    if (data.roles?.client_roles !== undefined) updateData.client_roles = data.roles.client_roles;
     if (data.pricing?.roles !== undefined) updateData.pricing_roles = data.pricing.roles;
     if (data.pricing?.billing !== undefined) updateData.billing_info = data.pricing.billing;
     
     // Assumptions fields
     if (data.assumptions) {
-      if (data.assumptions.accessRequirements !== undefined) updateData.access_requirements = data.assumptions.accessRequirements;
-      if (data.assumptions.travelRequirements !== undefined) updateData.travel_requirements = data.assumptions.travelRequirements;
-      if (data.assumptions.workingHours !== undefined) updateData.working_hours = data.assumptions.workingHours;
-      if (data.assumptions.testingResponsibilities !== undefined) updateData.testing_responsibilities = data.assumptions.testingResponsibilities;
+      if (data.assumptions.access_requirements !== undefined) updateData.access_requirements = data.assumptions.access_requirements;
+      if (data.assumptions.travel_requirements !== undefined) updateData.travel_requirements = data.assumptions.travel_requirements;
+      if (data.assumptions.working_hours !== undefined) updateData.working_hours = data.assumptions.working_hours;
+      if (data.assumptions.testing_responsibilities !== undefined) updateData.testing_responsibilities = data.assumptions.testing_responsibilities;
     }
     
     if (data.addendums !== undefined) updateData.addendums = data.addendums;
     
     // LeanData Information
     if (data.template) {
-      if (data.template.leanDataName !== undefined) updateData.leandata_name = data.template.leanDataName;
-      if (data.template.leanDataTitle !== undefined) updateData.leandata_title = data.template.leanDataTitle;
-      if (data.template.leanDataEmail !== undefined) updateData.leandata_email = data.template.leanDataEmail;
+      if (data.template.lean_data_name !== undefined) updateData.leandata_name = data.template.lean_data_name;
+      if (data.template.lean_data_title !== undefined) updateData.leandata_title = data.template.lean_data_title;
+      if (data.template.lean_data_email !== undefined) updateData.leandata_email = data.template.lean_data_email;
     }
     
     // Debug logging for LeanData signator update
     console.log('LeanData signator update data:', {
-      leanDataName: updateData.leandata_name,
-      leanDataTitle: updateData.leandata_title,
-      leanDataEmail: updateData.leandata_email,
+      lean_data_name: updateData.leandata_name,
+      lean_data_title: updateData.leandata_title,
+      lean_data_email: updateData.leandata_email,
     });
     
     // Salesforce Opportunity Information
     if (data.template) {
-      if (data.template.opportunityId !== undefined) updateData.opportunity_id = data.template.opportunityId || null;
-      if (data.template.opportunityName !== undefined) updateData.opportunity_name = data.template.opportunityName || null;
-      if (data.template.opportunityAmount !== undefined) updateData.opportunity_amount = data.template.opportunityAmount || null;
-      if (data.template.opportunityStage !== undefined) updateData.opportunity_stage = data.template.opportunityStage || null;
-      if (data.template.opportunityCloseDate !== undefined) updateData.opportunity_close_date = data.template.opportunityCloseDate ? new Date(data.template.opportunityCloseDate).toISOString() : null;
+      if (data.template.opportunity_id !== undefined) updateData.opportunity_id = data.template.opportunity_id || null;
+      if (data.template.opportunity_name !== undefined) updateData.opportunity_name = data.template.opportunity_name || null;
+      if (data.template.opportunity_amount !== undefined) updateData.opportunity_amount = data.template.opportunity_amount || null;
+      if (data.template.opportunity_stage !== undefined) updateData.opportunity_stage = data.template.opportunity_stage || null;
+      if (data.template.opportunity_close_date !== undefined) updateData.opportunity_close_date = data.template.opportunity_close_date ? new Date(data.template.opportunity_close_date).toISOString() : null;
     }
 
     // Debug logging for update data

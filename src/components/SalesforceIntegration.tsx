@@ -33,15 +33,15 @@ export default function SalesforceIntegration({ onCustomerSelected, onContactSel
 
   const checkConfigStatus = async () => {
     try {
-      const response = await fetch('/api/admin/salesforce/config');
+      const response = await fetch('/api/salesforce/status');
       if (response.ok) {
         const data = await response.json();
         setConfigStatus({
-          isConfigured: true,
-          isActive: data.config.is_active, // Use snake_case field name
-          lastError: data.config.last_error // Use snake_case field name
+          isConfigured: data.isConfigured,
+          isActive: data.isActive,
+          lastError: data.lastError
         });
-      } else if (response.status === 404) {
+      } else {
         setConfigStatus({
           isConfigured: false,
           isActive: false

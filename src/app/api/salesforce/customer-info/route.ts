@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Authenticate with Salesforce using stored credentials
-    await salesforceClient.authenticate(config.username, config.password, config.security_token || undefined);
+    await salesforceClient.authenticate(config.username, config.password, config.security_token || undefined, config.login_url);
 
     // Get full customer information
     const customerInfo = await salesforceClient.getCustomerInfo(accountId);

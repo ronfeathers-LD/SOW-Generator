@@ -27,9 +27,10 @@ export default function ProjectOverviewTab({
           <h3 className="text-lg font-semibold mb-4">SOW Title</h3>
           <input
             type="text"
-            value={formData.header?.sowTitle || ''}
+            value={formData.template?.sowTitle || formData.header?.sowTitle || ''}
             onChange={(e) => setFormData({
               ...formData,
+              template: { ...formData.template!, sowTitle: e.target.value },
               header: { ...formData.header!, sowTitle: e.target.value }
             })}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"

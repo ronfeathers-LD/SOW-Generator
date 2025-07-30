@@ -87,7 +87,7 @@ export default function CustomerInformationTab({
           {/* Signer (Contact) Check */}
           <div className="flex items-start p-4 rounded-md border">
             <div className="flex-shrink-0 mr-3 mt-1">
-              {selectedContact || formData.template?.customerSignatureName ? (
+              {selectedContact || formData.template?.customer_signature_name ? (
                 <svg className="h-6 w-6 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
@@ -102,12 +102,12 @@ export default function CustomerInformationTab({
               <p className="text-xs text-gray-500 mb-2">
                 {selectedContact 
                   ? `${selectedContact.FirstName || ''} ${selectedContact.LastName}`.trim()
-                  : formData.template?.customerSignatureName 
-                    ? `${formData.template.customerSignatureName} (manual entry)`
+                                  : formData.template?.customer_signature_name
+                ? `${formData.template.customer_signature_name} (manual entry)`
                     : 'No signer selected'
                 }
               </p>
-              {(selectedContact || formData.template?.customerSignatureName) && (
+              {(selectedContact || formData.template?.customer_signature_name) && (
                 <div className="text-xs text-gray-600 space-y-1">
                   {selectedContact && (
                     <div className="flex items-center">
@@ -117,20 +117,20 @@ export default function CustomerInformationTab({
                       <span>Contact verified in Salesforce</span>
                     </div>
                   )}
-                  {formData.template?.customerEmail && (
+                                      {formData.template?.customer_email && (
                     <div className="flex items-center">
                       <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      <span>Email: {formData.template.customerEmail}</span>
+                                              <span>Email: {formData.template.customer_email}</span>
                     </div>
                   )}
-                  {formData.template?.customerSignature && (
+                                      {formData.template?.customer_signature && (
                     <div className="flex items-center">
                       <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      <span>Title: {formData.template.customerSignature}</span>
+                                              <span>Title: {formData.template.customer_signature}</span>
                     </div>
                   )}
                   {selectedContact && (
@@ -155,7 +155,7 @@ export default function CustomerInformationTab({
           {/* Opportunity Check */}
           <div className="flex items-start p-4 rounded-md border">
             <div className="flex-shrink-0 mr-3 mt-1">
-              {(selectedOpportunity || (initialData && (initialData.opportunityId || initialData.template?.opportunityId))) ? (
+              {(selectedOpportunity || (initialData && (initialData.opportunity_id || initialData.template?.opportunity_id))) ? (
                 <svg className="h-6 w-6 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
@@ -170,12 +170,12 @@ export default function CustomerInformationTab({
               <p className="text-xs text-gray-500 mb-2">
                 {selectedOpportunity 
                   ? selectedOpportunity.Name
-                  : (initialData?.opportunityName || initialData?.template?.opportunityName)
-                    ? `${initialData.opportunityName || initialData.template?.opportunityName} (stored)`
+                                    : (initialData?.opportunity_name || initialData?.template?.opportunity_name)
+                  ? `${initialData.opportunity_name || initialData.template?.opportunity_name} (stored)`
                     : 'No opportunity selected'
                 }
               </p>
-              {(selectedOpportunity || (initialData && (initialData.opportunityId || initialData.template?.opportunityId))) && (
+              {(selectedOpportunity || (initialData && (initialData.opportunity_id || initialData.template?.opportunity_id))) && (
                 <div className="text-xs text-gray-600 space-y-1">
                   {selectedOpportunity && (
                     <div className="flex items-center">
@@ -185,15 +185,15 @@ export default function CustomerInformationTab({
                       <span>Opportunity verified in Salesforce</span>
                     </div>
                   )}
-                  {(selectedOpportunity?.StageName || initialData?.opportunityStage || initialData?.template?.opportunityStage) && (
+                                      {(selectedOpportunity?.StageName || initialData?.opportunity_stage || initialData?.template?.opportunity_stage) && (
                     <div className="flex items-center">
                       <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      <span>Stage: {selectedOpportunity?.StageName || initialData?.opportunityStage || initialData?.template?.opportunityStage}</span>
+                                              <span>Stage: {selectedOpportunity?.StageName || initialData?.opportunity_stage || initialData?.template?.opportunity_stage}</span>
                     </div>
                   )}
-                  {(selectedOpportunity?.Amount || initialData?.opportunityAmount || initialData?.template?.opportunityAmount) && (
+                                      {(selectedOpportunity?.Amount || initialData?.opportunity_amount || initialData?.template?.opportunity_amount) && (
                     <div className="flex items-center">
                       <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -201,20 +201,20 @@ export default function CustomerInformationTab({
                       <span>Amount: {new Intl.NumberFormat('en-US', {
                         style: 'currency',
                         currency: 'USD',
-                      }).format(selectedOpportunity?.Amount || initialData?.opportunityAmount || initialData?.template?.opportunityAmount || 0)}</span>
+                                              }).format(selectedOpportunity?.Amount || initialData?.opportunity_amount || initialData?.template?.opportunity_amount || 0)}</span>
                     </div>
                   )}
-                  {(selectedOpportunity?.CloseDate || initialData?.opportunityCloseDate || initialData?.template?.opportunityCloseDate) && (
+                                      {(selectedOpportunity?.CloseDate || initialData?.opportunity_close_date || initialData?.template?.opportunity_close_date) && (
                     <div className="flex items-center">
                       <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      <span>Close Date: {new Date(selectedOpportunity?.CloseDate || initialData?.opportunityCloseDate || initialData?.template?.opportunityCloseDate || '').toLocaleDateString()}</span>
+                                              <span>Close Date: {new Date(selectedOpportunity?.CloseDate || initialData?.opportunity_close_date || initialData?.template?.opportunity_close_date || '').toLocaleDateString()}</span>
                     </div>
                   )}
-                  {(selectedOpportunity || initialData?.opportunityId || initialData?.template?.opportunityId) && (
+                                      {(selectedOpportunity || initialData?.opportunity_id || initialData?.template?.opportunity_id) && (
                     <a
-                      href={getSalesforceLink(selectedOpportunity?.Id || initialData?.opportunityId || initialData?.template?.opportunityId || '', 'Opportunity')}
+                                              href={getSalesforceLink(selectedOpportunity?.Id || initialData?.opportunity_id || initialData?.template?.opportunity_id || '', 'Opportunity')}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 underline flex items-center"
@@ -245,10 +245,10 @@ export default function CustomerInformationTab({
             className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
           />
           {/* Logo Preview */}
-          {(formData.template?.companyLogo || formData.header?.companyLogo) && (
+          {(formData.template?.company_logo || formData.header?.company_logo) && (
             <div className="mt-3">
               <img
-                src={formData.template?.companyLogo || formData.header?.companyLogo}
+                src={formData.template?.company_logo || formData.header?.company_logo}
                 alt="Company Logo"
                 className="max-h-20 max-w-full object-contain border border-gray-200 rounded"
               />

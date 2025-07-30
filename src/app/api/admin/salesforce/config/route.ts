@@ -40,6 +40,7 @@ export async function GET() {
     // Don't return the password in the response
     const { password, ...safeConfig } = config;
     
+    // Return snake_case data directly
     return NextResponse.json({ config: safeConfig });
   } catch (error) {
     console.error('Error retrieving Salesforce config:', error);
@@ -90,6 +91,7 @@ export async function POST(request: NextRequest) {
     // Don't return the password in the response
     const { password: _, ...safeConfig } = config;
     
+    // Return snake_case data directly
     return NextResponse.json({ config: safeConfig }, { status: 201 });
   } catch (error) {
     console.error('Error creating Salesforce config:', error);
@@ -151,6 +153,7 @@ export async function PUT(request: NextRequest) {
     // Don't return the password in the response
     const { password: _, ...safeConfig } = config;
     
+    // Return snake_case data directly
     return NextResponse.json({ config: safeConfig });
   } catch (error) {
     console.error('Error updating Salesforce config:', error);

@@ -17,37 +17,37 @@ export async function POST(request: Request) {
         status: 'draft',
         
         // Header Information
-        company_logo: data.header?.companyLogo || '',
-        client_name: data.header?.clientName || '',
-        sow_title: data.header?.sowTitle || '',
+        company_logo: data.header?.company_logo || '',
+        client_name: data.header?.client_name || '',
+        sow_title: data.header?.sow_title || '',
         
         // Client Signature Information
-        client_title: data.clientSignature?.title || '',
-        client_email: data.clientSignature?.email || '',
-        client_signer_name: data.clientSignerName || '',
-        signature_date: data.clientSignature?.signatureDate ? new Date(data.clientSignature.signatureDate).toISOString() : new Date().toISOString(),
+        client_title: data.client_signature?.title || '',
+        client_email: data.client_signature?.email || '',
+        client_signer_name: data.client_signer_name || '',
+        signature_date: data.client_signature?.signature_date ? new Date(data.client_signature.signature_date).toISOString() : new Date().toISOString(),
         
         // Project Scope
-        project_description: data.scope?.projectDescription || '',
+        project_description: data.scope?.project_description || '',
         deliverables: data.scope?.deliverables || '',
-        start_date: data.scope?.timeline?.startDate ? new Date(data.scope.timeline.startDate).toISOString() : new Date().toISOString(),
+        start_date: data.scope?.timeline?.start_date ? new Date(data.scope.timeline.start_date).toISOString() : new Date().toISOString(),
         duration: data.scope?.timeline?.duration || '',
         
         // Project Objectives
         objectives_description: data.objectives?.description || '',
-        objectives_key_objectives: data.objectives?.keyObjectives || [],
-        avoma_transcription: data.objectives?.avomaTranscription || '',
+        objectives_key_objectives: data.objectives?.key_objectives || [],
+        avoma_transcription: data.objectives?.avoma_transcription || '',
         
         // Roles and Responsibilities
-        client_roles: data.roles?.clientRoles || [],
+        client_roles: data.roles?.client_roles || [],
         pricing_roles: data.pricing?.roles || [],
         billing_info: data.pricing?.billing || {},
         
         // Project Assumptions
-        access_requirements: data.assumptions?.accessRequirements || '',
-        travel_requirements: data.assumptions?.travelRequirements || '',
-        working_hours: data.assumptions?.workingHours || '',
-        testing_responsibilities: data.assumptions?.testingResponsibilities || '',
+        access_requirements: data.assumptions?.access_requirements || '',
+        travel_requirements: data.assumptions?.travel_requirements || '',
+        working_hours: data.assumptions?.working_hours || '',
+        testing_responsibilities: data.assumptions?.testing_responsibilities || '',
         
         // Addendums
         addendums: data.addendums || [],
@@ -113,16 +113,11 @@ export async function GET() {
       );
     }
 
-    // Transform snake_case to camelCase for frontend compatibility
+    // Return snake_case data directly
     const transformedSows = sows.map(sow => ({
-      id: sow.id,
-      clientName: sow.client_name || '',
-      sowTitle: sow.sow_title || '',
-      startDate: sow.start_date ? new Date(sow.start_date) : new Date(),
-      endDate: sow.start_date ? new Date(sow.start_date) : new Date(), // Use start_date as fallback since no end_date field
-      status: sow.status || 'draft',
-      createdAt: sow.created_at ? new Date(sow.created_at) : new Date(),
-      updatedAt: sow.updated_at ? new Date(sow.updated_at) : new Date(),
+      ...sow,
+      created_at: sow.created_at ? new Date(sow.created_at) : new Date(),
+      updated_at: sow.updated_at ? new Date(sow.updated_at) : new Date(),
     }));
 
     return NextResponse.json(transformedSows);

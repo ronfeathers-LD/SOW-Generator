@@ -25,7 +25,11 @@ export async function POST(request: NextRequest) {
       const toDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
       const fromDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 30 days ago
       
-      const testResponse = await fetch(`${baseUrl}/calls?from_date=${fromDate}&to_date=${toDate}`, {
+      const testUrl = `${baseUrl}/calls?from_date=${fromDate}&to_date=${toDate}`;
+      console.log('🔍 Testing Avoma API URL:', testUrl);
+      console.log('🔍 API Key:', apiKey);
+      
+      const testResponse = await fetch(testUrl, {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',

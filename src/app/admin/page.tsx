@@ -8,6 +8,7 @@ interface DashboardStats {
   activeSOWs: number;
   salesforceConfigured: boolean;
   avomaConfigured: boolean;
+  geminiConfigured: boolean;
   leanDataSignators: number;
 }
 
@@ -21,17 +22,33 @@ export default function AdminDashboard() {
 
   const loadDashboardStats = async () => {
     try {
-      // In a real implementation, you'd fetch these from API endpoints
-      // For now, we'll simulate the data
-      setStats({
-        totalSOWs: 24,
-        activeSOWs: 8,
-        salesforceConfigured: true,
-        avomaConfigured: false,
-        leanDataSignators: 3,
-      });
+      // Fetch system status from the dedicated endpoint
+      const response = await fetch('/api/admin/status');
+      
+      if (response.ok) {
+        const status = await response.json();
+        setStats({
+          totalSOWs: status.totalSOWs || 0,
+          activeSOWs: status.activeSOWs || 0,
+          salesforceConfigured: status.salesforceConfigured || false,
+          avomaConfigured: status.avomaConfigured || false,
+          geminiConfigured: status.geminiConfigured || false,
+          leanDataSignators: status.leanDataSignators || 0,
+        });
+      } else {
+        throw new Error('Failed to fetch system status');
+      }
     } catch (error) {
       console.error('Error loading dashboard stats:', error);
+      // Fallback to default values if API calls fail
+      setStats({
+        totalSOWs: 0,
+        activeSOWs: 0,
+        salesforceConfigured: false,
+        avomaConfigured: false,
+        geminiConfigured: false,
+        leanDataSignators: 0,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +73,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {/* Total SOWs */}
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="p-5">
@@ -153,7 +170,7 @@ export default function AdminDashboard() {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <svg className={`h-6 w-6 ${stats?.avomaConfigured ? 'text-green-400' : 'text-red-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </div>
               <div className="ml-5 w-0 flex-1">
@@ -172,6 +189,36 @@ export default function AdminDashboard() {
             <div className="text-sm">
               <Link href="/admin/avoma" className="font-medium text-indigo-700 hover:text-indigo-900">
                 {stats?.avomaConfigured ? 'Manage' : 'Configure'}
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Gemini AI Status */}
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className={`h-6 w-6 ${stats?.geminiConfigured ? 'text-green-400' : 'text-red-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">
+                    Gemini AI
+                  </dt>
+                  <dd className="text-lg font-medium text-gray-900">
+                    {stats?.geminiConfigured ? 'Connected' : 'Not Configured'}
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+          <div className="bg-gray-50 px-5 py-3">
+            <div className="text-sm">
+              <Link href="/admin/gemini" className="font-medium text-indigo-700 hover:text-indigo-900">
+                {stats?.geminiConfigured ? 'Manage' : 'Configure'}
               </Link>
             </div>
           </div>
@@ -199,54 +246,29 @@ export default function AdminDashboard() {
             </Link>
 
             <Link
-              href="/admin/salesforce"
-              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <svg className="h-8 w-8 text-blue-600 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              <div>
-                <h4 className="text-sm font-medium text-gray-900">Salesforce Config</h4>
-                <p className="text-sm text-gray-500">Manage Salesforce integration</p>
-              </div>
-            </Link>
-
-            <Link
-              href="/admin/avoma"
-              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <svg className="h-8 w-8 text-purple-600 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-              </svg>
-              <div>
-                <h4 className="text-sm font-medium text-gray-900">Avoma Config</h4>
-                <p className="text-sm text-gray-500">Manage Avoma integration</p>
-              </div>
-            </Link>
-
-            <Link
-              href="/admin/leandata-signators"
+              href="/sow"
               className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <svg className="h-8 w-8 text-green-600 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <div>
-                <h4 className="text-sm font-medium text-gray-900">LeanData Signators</h4>
-                <p className="text-sm text-gray-500">Manage signatory information</p>
+                <h4 className="text-sm font-medium text-gray-900">View All SOWs</h4>
+                <p className="text-sm text-gray-500">Browse and manage existing SOWs</p>
               </div>
             </Link>
 
             <Link
-              href="/admin/users"
+              href="/dashboard"
               className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              <svg className="h-8 w-8 text-yellow-600 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+              <svg className="h-8 w-8 text-blue-600 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" />
               </svg>
               <div>
-                <h4 className="text-sm font-medium text-gray-900">User Management</h4>
-                <p className="text-sm text-gray-500">Manage user roles and permissions</p>
+                <h4 className="text-sm font-medium text-gray-900">Main Dashboard</h4>
+                <p className="text-sm text-gray-500">Return to main application dashboard</p>
               </div>
             </Link>
           </div>

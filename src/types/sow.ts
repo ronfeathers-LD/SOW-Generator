@@ -1,14 +1,14 @@
 export interface BillingInfo {
-  companyName: string;
-  billingContact: string;
-  billingAddress: string;
-  billingEmail: string;
-  poNumber: string;
-  paymentTerms: string;
+  company_name: string;
+  billing_contact: string;
+  billing_address: string;
+  billing_email: string;
+  po_number: string;
+  payment_terms: string;
   currency: string;
-  taxExempt?: boolean;
-  taxExemptionNumber?: string;
-  creditRating?: string;
+  tax_exempt?: boolean;
+  tax_exemption_number?: string;
+  credit_rating?: string;
 }
 
 export interface ClientRole {
@@ -20,108 +20,108 @@ export interface ClientRole {
 
 export interface SOWTemplate {
   // Header Information
-  sowTitle: string;
-  companyLogo: string;
+  sow_title: string;
+  company_logo: string;
   
   // Customer Information
-  customerName: string;
-  customerSignatureName: string;
-  customerSignature: string;
-  customerEmail: string;
-  customerSignatureDate: Date | null;
+  customer_name: string;
+  customer_signature_name: string;
+  customer_signature: string;
+  customer_email: string;
+  customer_signature_date: Date | null;
   
   // LeanData Information
-  leanDataName: string;
-  leanDataTitle: string;
-  leanDataEmail: string;
-  leanDataSignatureName: string;
-  leanDataSignature: string;
-  leanDataSignatureDate: Date | null;
+  lean_data_name: string;
+  lean_data_title: string;
+  lean_data_email: string;
+  lean_data_signature_name: string;
+  lean_data_signature: string;
+  lean_data_signature_date: Date | null;
   
   // Project Details
   products: string;
-  numberOfUnits: string;
+  number_of_units: string;
   regions: string;
-  salesforceTenants: string;
-  timelineWeeks: string;
+  salesforce_tenants: string;
+  timeline_weeks: string;
   
   // Billing Information
-  billingCompanyName: string;
-  billingContactName: string;
-  billingAddress: string;
-  billingEmail: string;
-  purchaseOrderNumber: string;
+  billing_company_name: string;
+  billing_contact_name: string;
+  billing_address: string;
+  billing_email: string;
+  purchase_order_number: string;
   
   // Salesforce Opportunity Information
-  opportunityId?: string;
-  opportunityName?: string;
-  opportunityAmount?: number;
-  opportunityStage?: string;
-  opportunityCloseDate?: string;
+  opportunity_id?: string;
+  opportunity_name?: string;
+  opportunity_amount?: number;
+  opportunity_stage?: string;
+  opportunity_close_date?: string;
 }
 
 export interface SOWData {
   id?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  created_at?: Date;
+  updated_at?: Date;
   
   // Template Variables
   template?: SOWTemplate;
   
   // Header Information
   header: {
-    companyLogo: string;
-    clientName: string;
-    sowTitle: string;
+    company_logo: string;
+    client_name: string;
+    sow_title: string;
   };
 
   // Client Signature Information
-  clientSignature: {
+  client_signature: {
     name: string;
     title: string;
     email: string;
-    signatureDate: Date;
+    signature_date: Date;
   };
 
   // Project Objectives
   objectives: {
     description: string;
-    keyObjectives: string[];
-    avomaMeetingUrl?: string;
-    avomaTranscription?: string;
+    key_objectives: string[];
+    avoma_meeting_url?: string;
+    avoma_transcription?: string;
   };
 
   // Project Scope
   scope: {
-    projectDescription: string;
+    project_description: string;
     deliverables: string;
     timeline: {
-      startDate: Date;
+      start_date: Date;
       duration: string;
     };
   };
 
   // Roles and Responsibilities
   roles: {
-    clientRoles: ClientRole[];
+    client_roles: ClientRole[];
   };
 
   // Pricing Information
   pricing: {
     roles: Array<{
       role: string;
-      ratePerHour: number;
-      totalHours: number;
+      rate_per_hour: number;
+      total_hours: number;
     }>;
     billing: BillingInfo;
   };
 
   // Project Assumptions
   assumptions: {
-    accessRequirements: string;
-    travelRequirements: string;
-    workingHours: string;
-    testingResponsibilities: string;
+    access_requirements: string;
+    travel_requirements: string;
+    working_hours: string;
+    testing_responsibilities: string;
   };
 
   // Addendums
@@ -130,20 +130,19 @@ export interface SOWData {
     content: string;
     risks: string[];
     mitigations: string[];
-    supportScope: {
+    support_scope: {
       supported: string[];
-      notSupported: string[];
+      not_supported: string[];
     };
   }>;
 
-  clientSignerName?: string;
-
+  client_signer_name?: string;
   deliverables?: string;
   
   // Salesforce Opportunity Information
-  opportunityId?: string;
-  opportunityName?: string;
-  opportunityAmount?: number;
-  opportunityStage?: string;
-  opportunityCloseDate?: string;
+  opportunity_id?: string;
+  opportunity_name?: string;
+  opportunity_amount?: number;
+  opportunity_stage?: string;
+  opportunity_close_date?: string;
 } 

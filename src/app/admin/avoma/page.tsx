@@ -4,13 +4,6 @@ import { useState, useEffect } from 'react';
 
 interface AvomaConfig {
   id: string;
-  apiKey: string;
-  apiUrl: string;
-  isActive: boolean;
-  lastTested?: string;
-  lastError?: string;
-  customerId?: string;
-  // Database field names (snake_case)
   api_key: string;
   api_url: string;
   is_active: boolean;
@@ -41,10 +34,6 @@ export default function AvomaAdminPage() {
         // No config exists yet, create empty form
         setConfig({
           id: '',
-          apiKey: '',
-          apiUrl: 'https://api.avoma.com/v1',
-          isActive: true,
-          customerId: '',
           api_key: '',
           api_url: 'https://api.avoma.com/v1',
           is_active: true,
@@ -106,7 +95,7 @@ export default function AvomaAdminPage() {
         },
         body: JSON.stringify({
           apiKey: config?.api_key || '',
-          apiUrl: config?.api_url || 'https://api.avoma.com',
+          apiUrl: config?.api_url || 'https://api.avoma.com/v1',
         }),
       });
 
@@ -221,7 +210,7 @@ export default function AvomaAdminPage() {
               API Key *
             </label>
             <input
-              type="password"
+              type="text"
               value={config?.api_key || ''}
               onChange={(e) => setConfig(prev => prev ? { ...prev, api_key: e.target.value } : null)}
               required

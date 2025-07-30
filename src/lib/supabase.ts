@@ -47,6 +47,9 @@ export interface SOW {
   opportunity_name?: string;
   opportunity_stage?: string;
   project_description: string;
+  objectives_description: string;
+  objectives_key_objectives: any;
+  avoma_transcription: string;
 }
 
 export interface User {
@@ -99,4 +102,15 @@ export interface AvomaConfig {
   last_tested?: string;
   last_error?: string;
   customer_id?: string;
+}
+
+export interface GeminiConfig {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  api_key: string;
+  model_name: string;
+  is_active: boolean;
+  last_tested?: string;
+  last_error?: string;
 } 

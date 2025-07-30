@@ -50,9 +50,9 @@ interface SOW {
   }>;
   version: number;
   companyLogo: string;
-  leandataName: string;
-  leandataTitle: string;
-  leandataEmail: string;
+  leandata_name: string;
+  leandata_title: string;
+  leandata_email: string;
   clientSignerName: string;
 }
 

@@ -42,13 +42,13 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           ...initialData,
           objectives: {
             ...initialData.objectives,
-            description: initialData.objectives?.description || initialData.scope?.projectDescription || '',
-            keyObjectives: initialData.objectives?.keyObjectives || [''],
-            avomaTranscription: initialData.objectives?.avomaTranscription || '',
+            description: initialData.objectives?.description || initialData.scope?.project_description || '',
+            key_objectives: initialData.objectives?.key_objectives || [''],
+            avoma_transcription: initialData.objectives?.avoma_transcription || '',
           },
           scope: {
             ...initialData.scope,
-            projectDescription: initialData.scope?.projectDescription || '',
+            project_description: initialData.scope?.project_description || '',
             deliverables: initialData.deliverables || '',
           },
         }
@@ -56,72 +56,72 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           // Template Variables
           template: {
             // Header Information
-            sowTitle: 'Statement of Work for LeanData Implementation',
-            companyLogo: '',
+            sow_title: 'Statement of Work for LeanData Implementation',
+            company_logo: '',
             
             // Customer Information
-            customerName: '',
-            customerSignatureName: '',
-            customerSignature: '',
-            customerEmail: '',
-            customerSignatureDate: null,
+            customer_name: '',
+            customer_signature_name: '',
+            customer_signature: '',
+            customer_email: '',
+            customer_signature_date: null,
             
             // LeanData Information
-            leanDataName: 'Agam Vasani',
-            leanDataTitle: 'VP Customer Success',
-            leanDataEmail: 'agam.vasani@leandata.com',
-            leanDataSignatureName: 'Agam Vasani',
-            leanDataSignature: '',
-            leanDataSignatureDate: null,
+            lean_data_name: 'Agam Vasani',
+            lean_data_title: 'VP Customer Success',
+            lean_data_email: 'agam.vasani@leandata.com',
+            lean_data_signature_name: 'Agam Vasani',
+            lean_data_signature: '',
+            lean_data_signature_date: null,
             
             // Project Details
             products: 'Matching/Routing',
-            numberOfUnits: '125',
+            number_of_units: '125',
             regions: '1',
-            salesforceTenants: '2',
-            timelineWeeks: '8',
+            salesforce_tenants: '2',
+            timeline_weeks: '8',
             
             // Billing Information
-            billingCompanyName: '',
-            billingContactName: '',
-            billingAddress: '',
-            billingEmail: '',
-            purchaseOrderNumber: '',
+            billing_company_name: '',
+            billing_contact_name: '',
+            billing_address: '',
+            billing_email: '',
+            purchase_order_number: '',
             
             // Salesforce Opportunity Information
-            opportunityId: '',
-            opportunityName: '',
-            opportunityAmount: undefined,
-            opportunityStage: '',
-            opportunityCloseDate: '',
+            opportunity_id: '',
+            opportunity_name: '',
+            opportunity_amount: undefined,
+            opportunity_stage: '',
+            opportunity_close_date: '',
           },
           
           // Legacy fields (keeping for backward compatibility)
           header: {
-            companyLogo: '',
-            clientName: '',
-            sowTitle: '',
+            company_logo: '',
+            client_name: '',
+            sow_title: '',
           },
-          clientSignature: {
+          client_signature: {
             name: '',
             title: '',
             email: '',
-            signatureDate: new Date(),
+            signature_date: new Date(),
           },
           objectives: {
             description: '',
-            keyObjectives: [''],
+            key_objectives: [''],
           },
           scope: {
-            projectDescription: '',
+            project_description: '',
             deliverables: '',
             timeline: {
-              startDate: new Date(),
+              start_date: new Date(),
               duration: '',
             },
           },
           roles: {
-            clientRoles: [{
+            client_roles: [{
               role: '',
               name: '',
               email: '',
@@ -131,39 +131,39 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           pricing: {
             roles: [{
               role: '',
-              ratePerHour: 0,
-              totalHours: 0,
+              rate_per_hour: 0,
+              total_hours: 0,
             }],
             billing: {
-              companyName: '',
-              billingContact: '',
-              billingAddress: '',
-              billingEmail: '',
-              poNumber: '',
-              paymentTerms: '',
+              company_name: '',
+              billing_contact: '',
+              billing_address: '',
+              billing_email: '',
+              po_number: '',
+              payment_terms: '',
               currency: '',
             },
           },
           assumptions: {
-            accessRequirements: '',
-            travelRequirements: '',
-            workingHours: '',
-            testingResponsibilities: '',
+            access_requirements: '',
+            travel_requirements: '',
+            working_hours: '',
+            testing_responsibilities: '',
           },
           addendums: [{
             title: '',
             content: '',
             risks: [''],
             mitigations: [''],
-            supportScope: {
+            support_scope: {
               supported: [''],
-              notSupported: [''],
+              not_supported: [''],
             },
           }],
         }
   );
 
-  const [logoPreview, setLogoPreview] = useState<string | null>(initialData?.header?.companyLogo || null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(initialData?.header?.company_logo || null);
   const [activeTab, setActiveTab] = useState('Project Overview');
   const router = useRouter();
   const [leanDataSignators, setLeanDataSignators] = useState<LeanDataSignator[]>([]);
@@ -195,34 +195,34 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   useEffect(() => {
     if (initialData) {
       // Set selected account if customer name exists
-      if (initialData.template?.customerName || initialData.header?.clientName) {
+      if (initialData.template?.customer_name || initialData.header?.client_name) {
         setSelectedAccount({
           id: '', // We don't have the Salesforce ID when loading from database
-          name: initialData.template?.customerName || initialData.header?.clientName || ''
+          name: initialData.template?.customer_name || initialData.header?.client_name || ''
         });
       }
       
       // Set selected contact if contact information exists
-      if (initialData.template?.customerSignatureName || initialData.clientSignerName) {
+      if (initialData.template?.customer_signature_name || initialData.client_signer_name) {
         setSelectedContact({
           Id: '', // We don't have the Salesforce ID when loading from database
           FirstName: '',
-          LastName: initialData.template?.customerSignatureName || initialData.clientSignerName || '',
-          Email: initialData.template?.customerEmail || initialData.clientSignature?.email || '',
-          Title: initialData.template?.customerSignature || initialData.clientSignature?.title || '',
+          LastName: initialData.template?.customer_signature_name || initialData.client_signer_name || '',
+          Email: initialData.template?.customer_email || initialData.client_signature?.email || '',
+          Title: initialData.template?.customer_signature || initialData.client_signature?.title || '',
           AccountId: '',
           Account: { Name: '' }
         });
       }
       
       // Set selected opportunity if opportunity data exists
-      if (initialData.template?.opportunityId || initialData.template?.opportunityName || initialData.opportunityId || initialData.opportunityName) {
+      if (initialData.template?.opportunity_id || initialData.template?.opportunity_name || initialData.opportunity_id || initialData.opportunity_name) {
         setSelectedOpportunity({
-          Id: initialData.template?.opportunityId || initialData.opportunityId || '',
-          Name: initialData.template?.opportunityName || initialData.opportunityName || '',
-          Amount: initialData.template?.opportunityAmount || initialData.opportunityAmount || undefined,
-          StageName: initialData.template?.opportunityStage || initialData.opportunityStage || '',
-          CloseDate: initialData.template?.opportunityCloseDate || initialData.opportunityCloseDate || undefined,
+          Id: initialData.template?.opportunity_id || initialData.opportunity_id || '',
+          Name: initialData.template?.opportunity_name || initialData.opportunity_name || '',
+          Amount: initialData.template?.opportunity_amount || initialData.opportunity_amount || undefined,
+          StageName: initialData.template?.opportunity_stage || initialData.opportunity_stage || '',
+          CloseDate: initialData.template?.opportunity_close_date || initialData.opportunity_close_date || undefined,
           Description: '',
           AccountId: '',
           Account: { Name: '' }
@@ -236,8 +236,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     if (leanDataSignators.length > 0 && initialData) {
       // Find the signator that matches the existing data
       const matchingSignator = leanDataSignators.find(signator => 
-        signator.name === initialData.template?.leanDataName ||
-        signator.email === initialData.template?.leanDataEmail
+        signator.name === initialData.template?.lean_data_name ||
+        signator.email === initialData.template?.lean_data_email
       );
       
       if (matchingSignator) {
@@ -256,11 +256,11 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           ...formData,
           template: {
             ...formData.template!,
-            leanDataName: selectedSignator.name,
-            leanDataTitle: selectedSignator.title,
-            leanDataEmail: selectedSignator.email,
-            leanDataSignatureName: selectedSignator.name,
-            leanDataSignature: selectedSignator.title
+            lean_data_name: selectedSignator.name,
+            lean_data_title: selectedSignator.title,
+            lean_data_email: selectedSignator.email,
+            lean_data_signature_name: selectedSignator.name,
+            lean_data_signature: selectedSignator.title
           }
         });
       }
@@ -280,8 +280,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         const base64String = reader.result as string;
         setFormData({
           ...formData,
-          template: { ...formData.template!, companyLogo: base64String },
-          header: { ...formData.header!, companyLogo: base64String }
+          template: { ...formData.template!, company_logo: base64String },
+          header: { ...formData.header!, company_logo: base64String }
         });
       };
       reader.readAsDataURL(file);
@@ -316,11 +316,11 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       ...formData,
       template: {
         ...formData.template!,
-        customerName: account.Name,
+        customer_name: account.Name,
         // Don't auto-populate contact details until POC is selected
-        customerEmail: '',
-        customerSignatureName: '',
-        customerSignature: '',
+        customer_email: '',
+        customer_signature_name: '',
+        customer_signature: '',
       },
     });
   };
@@ -334,9 +334,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         ...formData,
         template: {
           ...formData.template!,
-          customerEmail: contact.Email || '',
-          customerSignatureName: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
-          customerSignature: contact.Title || '',
+          customer_email: contact.Email || '',
+          customer_signature_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
+          customer_signature: contact.Title || '',
         },
       });
     } else {
@@ -345,9 +345,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         ...formData,
         template: {
           ...formData.template!,
-          customerEmail: '',
-          customerSignatureName: '',
-          customerSignature: '',
+          customer_email: '',
+          customer_signature_name: '',
+          customer_signature: '',
         },
       });
     }
@@ -366,33 +366,33 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     
     if (opportunity) {
       // Store opportunity information in form data
-      setFormData({
-        ...formData,
-        template: {
-          ...formData.template!,
-          // Auto-populate SOW title with opportunity name if it's not already set
-          sowTitle: (!formData.template?.sowTitle || formData.template.sowTitle === 'Statement of Work for LeanData Implementation') 
-            ? `Statement of Work for ${opportunity.Name}` 
-            : formData.template.sowTitle,
-          // Store opportunity details
-          opportunityId: opportunity.Id,
-          opportunityName: opportunity.Name,
-          opportunityAmount: opportunity.Amount,
-          opportunityStage: opportunity.StageName,
-          opportunityCloseDate: opportunity.CloseDate,
-        },
-      });
+              setFormData({
+          ...formData,
+          template: {
+            ...formData.template!,
+            // Auto-populate SOW title with opportunity name if it's not already set
+            sow_title: (!formData.template?.sow_title || formData.template.sow_title === 'Statement of Work for LeanData Implementation') 
+              ? `Statement of Work for ${opportunity.Name}` 
+              : formData.template.sow_title,
+            // Store opportunity details
+            opportunity_id: opportunity.Id,
+            opportunity_name: opportunity.Name,
+            opportunity_amount: opportunity.Amount,
+            opportunity_stage: opportunity.StageName,
+            opportunity_close_date: opportunity.CloseDate,
+          },
+        });
     } else {
       // Clear opportunity information when deselected
       setFormData({
         ...formData,
         template: {
           ...formData.template!,
-          opportunityId: '',
-          opportunityName: '',
-          opportunityAmount: undefined,
-          opportunityStage: '',
-          opportunityCloseDate: undefined,
+          opportunity_id: '',
+          opportunity_name: '',
+          opportunity_amount: undefined,
+          opportunity_stage: '',
+          opportunity_close_date: undefined,
         },
       });
     }
@@ -404,13 +404,13 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     e.preventDefault();
     
     // Only validate customer signature name if we're on the Customer Information tab or if it's an update
-    if (activeTab === 'Customer Information' && !formData.template?.customerSignatureName?.trim()) {
+    if (activeTab === 'Customer Information' && !formData.template?.customer_signature_name?.trim()) {
       alert('Please enter the customer signature name');
       return;
     }
     
     // For other tabs, allow saving without customer signature name (it can be filled later)
-    if (!formData.template?.customerSignatureName?.trim()) {
+    if (!formData.template?.customer_signature_name?.trim()) {
       console.log('Saving SOW without customer signature name - can be filled later');
     }
 
@@ -418,59 +418,59 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       const url = initialData ? `/api/sow/${initialData.id}` : '/api/sow';
       const method = initialData ? 'PUT' : 'POST';
       
-      // Map template fields to legacy fields for backward compatibility
+      // Map template fields to snake_case for API submission
       const submissionData = {
         ...formData,
-        clientSignerName: formData.template?.customerSignatureName || '',
-        clientSignature: {
-          name: formData.template?.customerSignatureName || '',
-          title: formData.template?.customerSignature || '',
-          email: formData.template?.customerEmail || '',
-          signatureDate: formData.template?.customerSignatureDate || null,
+        client_signer_name: formData.template?.customer_signature_name || '',
+        client_signature: {
+          name: formData.template?.customer_signature_name || '',
+          title: formData.template?.customer_signature || '',
+          email: formData.template?.customer_email || '',
+          signature_date: formData.template?.customer_signature_date || null,
         },
         header: {
-          companyLogo: formData.header?.companyLogo || '',
-          sowTitle: formData.header?.sowTitle || '',
-          clientName: formData.template?.customerName || formData.header?.clientName || '',
+          company_logo: formData.header?.company_logo || '',
+          sow_title: formData.header?.sow_title || '',
+          client_name: formData.template?.customer_name || formData.header?.client_name || '',
         },
         // Ensure opportunity data is included in submission
         template: {
           ...formData.template,
-          opportunityId: formData.template?.opportunityId || null,
-          opportunityName: formData.template?.opportunityName || null,
-          opportunityAmount: formData.template?.opportunityAmount || null,
-          opportunityStage: formData.template?.opportunityStage || null,
-          opportunityCloseDate: formData.template?.opportunityCloseDate || null,
+          opportunity_id: formData.template?.opportunity_id || null,
+          opportunity_name: formData.template?.opportunity_name || null,
+          opportunity_amount: formData.template?.opportunity_amount || null,
+          opportunity_stage: formData.template?.opportunity_stage || null,
+          opportunity_close_date: formData.template?.opportunity_close_date || null,
         }
       };
 
       // Debug logging
       console.log('Saving SOW with data:', {
-        customerName: formData.template?.customerName,
-        customerSignatureName: formData.template?.customerSignatureName,
-        customerEmail: formData.template?.customerEmail,
+        customer_name: formData.template?.customer_name,
+        customer_signature_name: formData.template?.customer_signature_name,
+        customer_email: formData.template?.customer_email,
         objectives: {
           description: formData.objectives?.description,
-          keyObjectives: formData.objectives?.keyObjectives,
-          avomaTranscription: formData.objectives?.avomaTranscription,
+          key_objectives: formData.objectives?.key_objectives,
+          avoma_transcription: formData.objectives?.avoma_transcription,
         },
-        leanDataSignator: {
-          leanDataName: formData.template?.leanDataName,
-          leanDataTitle: formData.template?.leanDataTitle,
-          leanDataEmail: formData.template?.leanDataEmail,
-          selectedLeanDataSignator: selectedLeanDataSignator
+        lean_data_signator: {
+          lean_data_name: formData.template?.lean_data_name,
+          lean_data_title: formData.template?.lean_data_title,
+          lean_data_email: formData.template?.lean_data_email,
+          selected_lean_data_signator: selectedLeanDataSignator
         },
-        opportunityData: {
-          opportunityId: formData.template?.opportunityId,
-          opportunityName: formData.template?.opportunityName,
-          opportunityAmount: formData.template?.opportunityAmount,
-          opportunityStage: formData.template?.opportunityStage,
-          opportunityCloseDate: formData.template?.opportunityCloseDate,
+        opportunity_data: {
+          opportunity_id: formData.template?.opportunity_id,
+          opportunity_name: formData.template?.opportunity_name,
+          opportunity_amount: formData.template?.opportunity_amount,
+          opportunity_stage: formData.template?.opportunity_stage,
+          opportunity_close_date: formData.template?.opportunity_close_date,
         },
-        submissionData: {
-          clientName: submissionData.header.clientName,
-          clientSignerName: submissionData.clientSignerName,
-          clientSignature: submissionData.clientSignature,
+        submission_data: {
+          client_name: submissionData.header.client_name,
+          client_signer_name: submissionData.client_signer_name,
+          client_signature: submissionData.client_signature,
           template: submissionData.template,
           objectives: submissionData.objectives
         }

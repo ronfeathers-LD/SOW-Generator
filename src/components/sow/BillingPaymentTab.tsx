@@ -38,7 +38,7 @@ export default function BillingPaymentTab({
         ...formData,
         template: {
           ...formData.template!,
-          billingCompanyName: formData.template?.customerName || '',
+          billingCompanyName: formData.template?.customer_name || '',
           billingContactName: billingInfo.billingContact || '',
           billingAddress: billingInfo.billingAddress || '',
           billingEmail: billingInfo.billingEmail || '',
@@ -47,7 +47,7 @@ export default function BillingPaymentTab({
           ...formData.pricing!,
           billing: {
             ...formData.pricing?.billing!,
-            companyName: formData.template?.customerName || '',
+            companyName: formData.template?.customer_name || '',
             billingContact: billingInfo.billingContact || '',
             billingAddress: billingInfo.billingAddress || '',
             billingEmail: billingInfo.billingEmail || '',

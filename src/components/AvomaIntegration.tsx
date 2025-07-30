@@ -6,7 +6,7 @@ import { GeminiBulletPoint } from '@/lib/gemini';
 interface AvomaIntegrationProps {
   onBulletPointsGenerated: (bulletPoints: GeminiBulletPoint[]) => void;
   onProjectDescriptionGenerated: (description: string) => void;
-  customerName: string;
+  customer_name: string;
 }
 
 interface AvomaCall {
@@ -35,7 +35,7 @@ interface ConfigStatus {
 export default function AvomaIntegration({
   onBulletPointsGenerated,
   onProjectDescriptionGenerated,
-  customerName
+  customer_name
 }: AvomaIntegrationProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResponse | null>(null);
@@ -74,7 +74,7 @@ export default function AvomaIntegration({
   };
 
   const handleSearch = async () => {
-    if (!customerName.trim()) {
+    if (!customer_name.trim()) {
       setError('Please enter a customer name first');
       return;
     }
@@ -94,7 +94,7 @@ export default function AvomaIntegration({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          customerName: customerName.trim(),
+          customerName: customer_name.trim(),
           projectContext: projectContext.trim() || undefined,
         }),
       });
@@ -193,7 +193,7 @@ export default function AvomaIntegration({
 
         <button
           onClick={handleSearch}
-          disabled={isSearching || !customerName.trim()}
+          disabled={isSearching || !customer_name.trim()}
           className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
           {isSearching ? 'Searching Avoma...' : 'Search for Scoping Calls'}

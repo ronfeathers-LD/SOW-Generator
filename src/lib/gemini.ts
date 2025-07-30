@@ -22,6 +22,11 @@ interface ObjectivesGenerationResponse {
   objectives: string[];
 }
 
+interface TranscriptionAnalysisResponse {
+  objective: string;
+  scope: string[];
+}
+
 class GeminiClient {
   private genAI: GoogleGenerativeAI;
   private model: any;
@@ -131,6 +136,215 @@ Please provide a professional, 2-3 sentence project description that captures th
   }
 
   /**
+   * Analyze transcription and generate objective and scope
+   */
+  async analyzeTranscription(
+    transcript: string,
+    customerName: string
+  ): Promise<TranscriptionAnalysisResponse> {
+    const prompt = `
+You are an expert at analyzing sales call transcripts and extracting key information for Statement of Work (SOW) documents.
+
+Please analyze the following call transcript between LeanData and ${customerName} and provide:
+
+1. **Objective** - A clear, concise overall objective for the project (2-3 sentences)
+2. **Scope** - 5-7 specific scope items that detail what will be implemented
+
+Call Transcript:
+${transcript}
+
+CRITICAL: You must respond with ONLY valid JSON. Do not include any explanatory text, markdown formatting, or code blocks.
+
+Required JSON format:
+{
+  "objective": "A clear, professional objective statement that captures the main goal of the project",
+  "scope": [
+    "Specific scope item 1",
+    "Specific scope item 2",
+    "Specific scope item 3",
+    "Specific scope item 4",
+    "Specific scope item 5"
+  ]
+}
+
+Guidelines:
+- The objective should be business-focused and capture the main goal
+- Scope items should be specific, actionable, and implementation-focused
+- Focus on LeanData products and services mentioned in the call
+- Be professional and suitable for a formal SOW document
+- Avoid generic statements - be specific to what was discussed
+- Use double quotes for all strings
+- Do not include any text before or after the JSON
+- Do not use markdown code blocks
+- Ensure the JSON is valid and parseable
+`;
+
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const content = response.text();
+
+      if (!content) {
+        throw new Error('No content received from Gemini');
+      }
+
+      console.log('Raw Gemini response:', content);
+
+      // Try to parse the JSON response
+      try {
+        // Clean the content - remove any markdown formatting or extra text
+        let cleanedContent = content.trim();
+        
+        // Remove markdown code blocks if present
+        if (cleanedContent.startsWith('```json')) {
+          cleanedContent = cleanedContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanedContent.startsWith('```')) {
+          cleanedContent = cleanedContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        
+        // Try to extract JSON if there's extra text
+        const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          cleanedContent = jsonMatch[0];
+        }
+        
+        console.log('Cleaned content for parsing:', cleanedContent);
+        
+        const parsed = JSON.parse(cleanedContent);
+        
+        if (!parsed.objective || !parsed.scope) {
+          throw new Error('Missing required fields in parsed response');
+        }
+        
+        return {
+          objective: parsed.objective,
+          scope: Array.isArray(parsed.scope) ? parsed.scope : ['Scope could not be generated']
+        };
+            } catch (parseError) {
+        console.error('JSON parsing error:', parseError);
+        console.error('Content that failed to parse:', content);
+        
+        // Try a second attempt with a simpler prompt
+        try {
+          console.log('Attempting second request with simplified prompt...');
+          const simplePrompt = `
+Analyze this call transcript and return ONLY valid JSON:
+{
+  "objective": "brief project objective",
+  "scope": ["item1", "item2", "item3", "item4", "item5"]
+}
+
+Transcript: ${transcript}
+Customer: ${customerName}
+`;
+
+          const secondResult = await this.model.generateContent(simplePrompt);
+          const secondResponse = await secondResult.response;
+          const secondContent = secondResponse.text();
+
+          if (secondContent) {
+            const cleanedContent = secondContent.trim().replace(/^```json\s*/, '').replace(/\s*```$/, '');
+            const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+            const finalContent = jsonMatch ? jsonMatch[0] : cleanedContent;
+            
+            const parsed = JSON.parse(finalContent);
+            if (parsed.objective && parsed.scope) {
+              console.log('Second attempt successful');
+              return {
+                objective: parsed.objective,
+                scope: Array.isArray(parsed.scope) ? parsed.scope : ['Scope could not be generated']
+              };
+            }
+          }
+        } catch (secondError) {
+          console.error('Second attempt also failed:', secondError);
+        }
+        
+        // Fallback to text extraction
+        const lines: string[] = content.split('\n').filter((line: string) => line.trim().length > 0);
+        
+        // Look for objective in various formats
+        let objective: string | undefined = lines.find((line: string) => 
+          line.toLowerCase().includes('objective') || 
+          line.toLowerCase().includes('goal') ||
+          line.toLowerCase().includes('aim') ||
+          line.toLowerCase().includes('purpose')
+        );
+        
+        // If no objective found, try to extract from the first meaningful paragraph
+        if (!objective) {
+          objective = lines.find((line: string) => 
+            line.length > 20 && 
+            !line.startsWith('-') && 
+            !line.startsWith('•') && 
+            !line.startsWith('*') &&
+            !/^\d+\./.test(line.trim())
+          );
+        }
+        
+        objective = objective || 'Project objective could not be generated due to formatting issues';
+        
+        // Extract scope items from various list formats
+        const scopeItems: string[] = lines
+          .filter((line: string) => 
+            line.trim().startsWith('-') || 
+            line.trim().startsWith('•') || 
+            line.trim().startsWith('*') ||
+            /^\d+\./.test(line.trim()) ||
+            line.trim().startsWith('1.') ||
+            line.trim().startsWith('2.') ||
+            line.trim().startsWith('3.') ||
+            line.trim().startsWith('4.') ||
+            line.trim().startsWith('5.')
+          )
+          .map((line: string) => line.replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, '').trim())
+          .filter((item: string) => item.length > 0);
+        
+        return {
+          objective: objective.replace(/^.*?:\s*/, '').trim(),
+          scope: scopeItems.length > 0 ? scopeItems : [
+            'Implement lead routing and automation',
+            'Set up account matching and deduplication',
+            'Configure territory-based lead assignment',
+            'Integrate with existing Salesforce workflows',
+            'Provide training and documentation'
+          ]
+        };
+      }
+    } catch (error) {
+      console.error('Error analyzing transcription:', error);
+      
+      // Provide more specific error information
+      let errorMessage = 'Project objective could not be generated due to an error';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('API key')) {
+          errorMessage = 'Project objective could not be generated: API key not configured';
+        } else if (error.message.includes('quota')) {
+          errorMessage = 'Project objective could not be generated: API quota exceeded';
+        } else if (error.message.includes('rate limit')) {
+          errorMessage = 'Project objective could not be generated: Rate limit exceeded';
+        } else if (error.message.includes('network')) {
+          errorMessage = 'Project objective could not be generated: Network error';
+        } else {
+          errorMessage = `Project objective could not be generated: ${error.message}`;
+        }
+      }
+      
+      return {
+        objective: errorMessage,
+        scope: [
+          'Implement lead routing and automation',
+          'Set up account matching and deduplication',
+          'Configure territory-based lead assignment',
+          'Integrate with existing Salesforce workflows',
+          'Provide training and documentation'
+        ]
+      };
+    }
+  }
+
+  /**
    * Generate project objectives based on customer and project information
    */
   async generateObjectives(
@@ -216,7 +430,7 @@ Use these example objectives as a reference but adapt them to the specific custo
   }
 }
 
-export { GeminiClient, type GeminiBulletPoint, type GeminiGenerationResponse, type ObjectivesGenerationResponse };
+export { GeminiClient, type GeminiBulletPoint, type GeminiGenerationResponse, type ObjectivesGenerationResponse, type TranscriptionAnalysisResponse };
 
 // Helper function to generate objectives
 export async function generateObjectives(request: ObjectivesGenerationRequest): Promise<ObjectivesGenerationResponse> {
@@ -227,4 +441,23 @@ export async function generateObjectives(request: ObjectivesGenerationRequest): 
 
   const client = new GeminiClient(apiKey);
   return await client.generateObjectives(request);
+}
+
+// Helper function to analyze transcription
+export async function analyzeTranscription(transcript: string, customerName: string): Promise<TranscriptionAnalysisResponse> {
+  // Get API key from database
+  const { supabase } = await import('@/lib/supabase');
+  
+  const { data: config, error } = await supabase
+    .from('gemini_configs')
+    .select('api_key')
+    .eq('is_active', true)
+    .single();
+
+  if (error || !config?.api_key) {
+    throw new Error('Gemini API key not configured. Please configure it in the admin panel.');
+  }
+
+  const client = new GeminiClient(config.api_key);
+  return await client.analyzeTranscription(transcript, customerName);
 } 

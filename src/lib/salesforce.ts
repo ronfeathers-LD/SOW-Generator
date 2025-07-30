@@ -66,36 +66,86 @@ class SalesforceClient {
   private conn: jsforce.Connection;
 
   constructor(loginUrl?: string) {
+    // Clean and validate the login URL
+    const cleanLoginUrl = this.cleanLoginUrl(loginUrl || process.env.SALESFORCE_LOGIN_URL || 'https://login.salesforce.com');
+    
     this.conn = new jsforce.Connection({
-      loginUrl: loginUrl || process.env.SALESFORCE_LOGIN_URL || 'https://login.salesforce.com'
+      loginUrl: cleanLoginUrl
     });
+  }
+
+  /**
+   * Clean and validate the Salesforce login URL
+   */
+  private cleanLoginUrl(loginUrl: string): string {
+    // Remove trailing slashes and spaces
+    let cleanUrl = loginUrl.trim().replace(/\/$/, '');
+    
+    // Handle common URL formats
+    if (cleanUrl.includes('lightning.force.com')) {
+      // Convert lightning.force.com to login.salesforce.com
+      cleanUrl = cleanUrl.replace('lightning.force.com', 'login.salesforce.com');
+    }
+    
+    // Ensure it's a valid Salesforce login URL
+    if (!cleanUrl.includes('login.salesforce.com') && !cleanUrl.includes('test.salesforce.com')) {
+      console.warn(`Warning: Unusual login URL format: ${cleanUrl}`);
+    }
+    
+    return cleanUrl;
   }
 
   /**
    * Authenticate with Salesforce using username/password
    */
-  async authenticate(username: string, password: string, securityToken?: string): Promise<void> {
+  async authenticate(username: string, password: string, securityToken?: string, loginUrl?: string): Promise<void> {
+    // Create a new connection with the provided login URL if specified
+    if (loginUrl) {
+      const cleanLoginUrl = this.cleanLoginUrl(loginUrl);
+      this.conn = new jsforce.Connection({
+        loginUrl: cleanLoginUrl
+      });
+    }
     try {
       console.log('Attempting Salesforce authentication...');
       console.log('Login URL:', this.conn.loginUrl);
       console.log('Username:', username);
       console.log('Has security token:', !!securityToken);
+      console.log('Security token length:', securityToken ? securityToken.length : 0);
       
-      await this.conn.login(username, password + (securityToken || ''));
+      // Try authentication with password + security token first
+      try {
+        await this.conn.login(username, password + (securityToken || ''));
+        console.log('Salesforce authentication successful with password + token');
+      } catch (error) {
+        // If that fails, try with password only (in case token is already appended)
+        if (error instanceof Error && error.message.includes('INVALID_LOGIN')) {
+          console.log('First attempt failed, trying with password only...');
+          await this.conn.login(username, password);
+          console.log('Salesforce authentication successful with password only');
+        } else {
+          throw error;
+        }
+      }
+      
       console.log('Salesforce authentication successful');
+      console.log('Instance URL:', this.conn.instanceUrl);
+      console.log('User Info:', this.conn.userInfo);
     } catch (error) {
       console.error('Salesforce authentication failed:', error);
       
       // Provide more specific error information
       if (error instanceof Error) {
         if (error.message.includes('INVALID_LOGIN')) {
-          throw new Error('Invalid username or password. Please check your credentials.');
+          throw new Error('Invalid username or password. Please check your credentials for this specific org.');
         } else if (error.message.includes('INVALID_CLIENT_ID')) {
-          throw new Error('Invalid client ID or security token.');
+          throw new Error('Invalid client ID or security token. Try resetting your security token.');
         } else if (error.message.includes('LOGIN_MUST_USE_SECURITY_TOKEN')) {
           throw new Error('Security token required. Please add your security token.');
         } else if (error.message.includes('INVALID_GRANT')) {
           throw new Error('Invalid grant. Please check your username, password, and security token.');
+        } else if (error.message.includes('INSUFFICIENT_ACCESS')) {
+          throw new Error('Insufficient access. Check your user permissions in Salesforce.');
         } else {
           throw new Error(`Authentication failed: ${error.message}`);
         }
@@ -134,19 +184,46 @@ class SalesforceClient {
    */
   async searchAccounts(searchTerm: string): Promise<SalesforceAccount[]> {
     try {
+      console.log('🔍 Salesforce Account Search:');
+      console.log('  Search Term:', searchTerm);
+      console.log('  Instance URL:', this.conn.instanceUrl);
+      
+      // Escape single quotes in search term to prevent SOQL injection
+      const escapedSearchTerm = searchTerm.replace(/'/g, "\\'");
+      
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
                BillingPostalCode, BillingCountry, Industry
         FROM Account 
-        WHERE Name LIKE '%${searchTerm}%' 
+        WHERE Name LIKE '%${escapedSearchTerm}%' 
+           OR BillingCity LIKE '%${escapedSearchTerm}%'
+           OR BillingState LIKE '%${escapedSearchTerm}%'
+           OR Industry LIKE '%${escapedSearchTerm}%'
         ORDER BY Name 
-        LIMIT 10
+        LIMIT 20
       `;
       
+      console.log('  SOQL Query:', query);
+      
       const result = await this.conn.query(query);
+      
+      console.log('  Query Result:');
+      console.log('    Total Records:', result.totalSize);
+      console.log('    Records Found:', result.records.length);
+      console.log('    Records:', result.records.map(record => ({
+        Id: record.Id,
+        Name: record.Name,
+        Industry: record.Industry
+      })));
+      
       return result.records as SalesforceAccount[];
     } catch (error) {
       console.error('Error searching accounts:', error);
+      console.error('  Error Details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
       throw new Error('Failed to search Salesforce accounts');
     }
   }
