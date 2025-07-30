@@ -366,10 +366,10 @@ export default function CustomerInformationTab({
 
               {/* Company Logo Upload */}
               <div 
-                className={`flex items-start p-4 rounded-md border transition-colors ${
+                className={`flex items-start p-4 rounded-md border cursor-pointer transition-colors ${
                   currentStep === 'logo' ? 'border-blue-500 bg-blue-50' : 'hover:bg-gray-50'
-                } ${!selectedAccount || !selectedContact || !selectedOpportunity ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                onClick={() => selectedAccount && selectedContact && selectedOpportunity && handleStepButtonClick('logo')}
+                }`}
+                onClick={() => handleStepButtonClick('logo')}
               >
                 <div className="flex-shrink-0 mr-3 mt-1">
                   {(formData.template?.company_logo || formData.header?.company_logo) ? (
@@ -397,14 +397,9 @@ export default function CustomerInformationTab({
                       </div>
                     </div>
                   )}
-                  {!(formData.template?.company_logo || formData.header?.company_logo) && selectedAccount && selectedContact && selectedOpportunity && (
+                  {!(formData.template?.company_logo || formData.header?.company_logo) && (
                     <div className="mt-3 pt-2 border-t border-gray-200">
                       <p className="text-xs text-blue-600 font-medium">Click to upload</p>
-                    </div>
-                  )}
-                  {(!selectedAccount || !selectedContact || !selectedOpportunity) && (
-                    <div className="mt-3 pt-2 border-t border-gray-200">
-                      <p className="text-xs text-gray-500">Select account, contact & opportunity first</p>
                     </div>
                   )}
                 </div>
@@ -512,7 +507,7 @@ export default function CustomerInformationTab({
                </div>
              )}
 
-             {currentStep === 'logo' && selectedAccount && selectedContact && selectedOpportunity && (
+             {currentStep === 'logo' && (
                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                  <h4 className="text-lg font-semibold mb-4 text-blue-800">Step 4: Upload Company Logo</h4>
                  
@@ -550,9 +545,9 @@ export default function CustomerInformationTab({
                          </svg>
                        </div>
                        <div className="ml-3">
-                         <h3 className="text-sm font-medium text-green-800">Setup Complete!</h3>
+                         <h3 className="text-sm font-medium text-green-800">Logo Upload</h3>
                          <div className="mt-2 text-sm text-green-700">
-                           <p>All required customer information has been selected. The logo upload is optional and can be completed later.</p>
+                           <p>The logo upload is optional and can be completed at any time. You can also upload a logo later if needed.</p>
                          </div>
                        </div>
                      </div>
