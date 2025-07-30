@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   try {
     const { accountId, forceRefresh = false } = await request.json();
 
-    console.log('🔍 Account Contacts API Request:');
+    console.log('🔍 Account Opportunities API Request:');
     console.log('  Account ID:', accountId);
     console.log('  Force Refresh:', forceRefresh);
 
@@ -21,12 +21,12 @@ export async function POST(request: NextRequest) {
 
     // Check cache first (unless force refresh is requested)
     if (!forceRefresh) {
-      const cachedContacts = salesforceCache.getCachedContacts(accountId);
-      if (cachedContacts) {
-        console.log('  Returning cached contacts:', cachedContacts.length);
+      const cachedOpportunities = salesforceCache.getCachedOpportunities(accountId);
+      if (cachedOpportunities) {
+        console.log('  Returning cached opportunities:', cachedOpportunities.length);
         return NextResponse.json({
           success: true,
-          contacts: cachedContacts,
+          opportunities: cachedOpportunities,
           cached: true
         });
       }
@@ -60,29 +60,29 @@ export async function POST(request: NextRequest) {
     console.log('  Authenticating with Salesforce...');
     await salesforceClient.authenticate(config.username, config.password, config.security_token || undefined, config.login_url);
 
-    // Get contacts for the account
-    console.log('  Fetching contacts for account:', accountId);
-    const contacts = await salesforceClient.getAccountContacts(accountId);
-    console.log('  Contacts found:', contacts.length);
+    // Get opportunities for the account
+    console.log('  Fetching opportunities for account:', accountId);
+    const opportunities = await salesforceClient.getAccountOpportunities(accountId);
+    console.log('  Opportunities found:', opportunities.length);
 
-    // Cache the contacts
-    salesforceCache.cacheContacts(accountId, contacts);
+    // Cache the opportunities
+    salesforceCache.cacheOpportunities(accountId, opportunities);
 
     return NextResponse.json({
       success: true,
-      contacts,
+      opportunities,
       cached: false
     });
 
   } catch (error) {
-    console.error('Error getting account contacts from Salesforce:', error);
+    console.error('Error getting account opportunities from Salesforce:', error);
     console.error('  Error Details:', {
       name: error instanceof Error ? error.name : 'Unknown',
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : 'No stack trace'
     });
     return NextResponse.json(
-      { error: 'Failed to get account contacts from Salesforce' },
+      { error: 'Failed to get account opportunities from Salesforce' },
       { status: 500 }
     );
   }

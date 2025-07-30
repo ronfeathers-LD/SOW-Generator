@@ -55,22 +55,16 @@ export default function CustomerInformationTab({
     if (step === 'contact' && selectedAccount && selectedAccount.id && availableContacts.length === 0) {
       setIsLoadingContacts(true);
       try {
-        console.log('Selected Account Object:', selectedAccount);
-        console.log('Selected Account ID:', selectedAccount.id);
-        console.log('Selected Account Name:', selectedAccount.name);
         console.log('Loading contacts for account:', selectedAccount.id);
-        
-        const requestBody = {
-          accountId: selectedAccount.id
-        };
-        console.log('Request body:', requestBody);
-        
         const response = await fetch('/api/salesforce/account-contacts', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(requestBody),
+          body: JSON.stringify({
+            accountId: selectedAccount.id,
+            forceRefresh: false // Use cache by default
+          }),
         });
 
         console.log('Response status:', response.status);
@@ -97,6 +91,38 @@ export default function CustomerInformationTab({
       // If we have an account but no ID (loaded from existing data), show a message
       console.log('Account selected but no Salesforce ID available (loaded from existing data)');
       // We could potentially show a message to the user here
+    }
+  };
+
+  // Function to refresh contacts data
+  const refreshContacts = async () => {
+    if (!selectedAccount?.id) return;
+    
+    setIsLoadingContacts(true);
+    try {
+      console.log('Refreshing contacts for account:', selectedAccount.id);
+      const response = await fetch('/api/salesforce/account-contacts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accountId: selectedAccount.id,
+          forceRefresh: true // Force refresh from Salesforce
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Refreshed contacts data:', data);
+        setAvailableContacts(data.contacts || []);
+      } else {
+        console.error('Failed to refresh contacts');
+      }
+    } catch (error) {
+      console.error('Error refreshing contacts:', error);
+    } finally {
+      setIsLoadingContacts(false);
     }
   };
 
@@ -423,48 +449,68 @@ export default function CustomerInformationTab({
             {currentStep === 'contact' && selectedAccount && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                 <h4 className="text-lg font-semibold mb-4 text-blue-800">Step 2: Select Point of Contact</h4>
-                 
-                 {/* Contact Selection */}
-                 <div className="space-y-4">
-                   {isLoadingContacts ? (
-                     <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                       <p className="text-sm text-yellow-800">Loading contacts...</p>
-                     </div>
-                   ) : !selectedAccount.id ? (
-                     <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
-                       <p className="text-sm text-blue-800">
-                         This account was loaded from existing data and doesn't have a Salesforce ID. 
-                         To load contacts, please re-select the account from Salesforce.
-                       </p>
-                     </div>
-                   ) : availableContacts.length > 0 ? (
-                     <div className="space-y-2 max-h-60 overflow-y-auto">
-                       {availableContacts.map((contact) => (
-                         <div
-                           key={contact.Id}
-                           className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
-                           onClick={() => handleContactSelected(contact)}
-                         >
-                           <div className="font-medium text-gray-900">{contact.FirstName} {contact.LastName}</div>
-                           <div className="text-sm text-gray-600 mt-1">
-                             <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium mr-2">
-                               {contact.Title}
-                             </span>
-                             <span>{contact.Email}</span>
-                           </div>
-                         </div>
-                       ))}
-                     </div>
-                   ) : (
-                     <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                       <p className="text-sm text-yellow-800">
-                         No contacts found for this account. You may need to add contacts in Salesforce.
-                       </p>
-                     </div>
-                   )}
-                 </div>
-               </div>
-             )}
+                
+                {/* Contact Selection */}
+                <div className="space-y-4">
+                  {isLoadingContacts ? (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                      <p className="text-sm text-yellow-800">Loading contacts...</p>
+                    </div>
+                  ) : availableContacts.length > 0 ? (
+                    <>
+                      <div className="flex justify-between items-center mb-4">
+                        <p className="text-sm text-gray-600">
+                          Found {availableContacts.length} contact{availableContacts.length !== 1 ? 's' : ''} for {selectedAccount.name}
+                        </p>
+                        <button
+                          onClick={refreshContacts}
+                          disabled={isLoadingContacts}
+                          className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                        >
+                          <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Refresh
+                        </button>
+                      </div>
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {availableContacts.map((contact) => (
+                          <div
+                            key={contact.Id}
+                            className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                            onClick={() => handleContactSelected(contact)}
+                          >
+                            <div className="font-medium text-gray-900">{contact.FirstName} {contact.LastName}</div>
+                            <div className="text-sm text-gray-600 mt-1">
+                              <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium mr-2">
+                                {contact.Title}
+                              </span>
+                              <span>{contact.Email}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                      <p className="text-sm text-yellow-800">
+                        No contacts found for this account. You may need to add contacts in Salesforce.
+                      </p>
+                      <button
+                        onClick={refreshContacts}
+                        disabled={isLoadingContacts}
+                        className="mt-2 px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                      >
+                        <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Refresh
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
              {currentStep === 'opportunity' && selectedAccount && selectedContact && (
                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
