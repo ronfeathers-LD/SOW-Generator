@@ -5,10 +5,10 @@ import { SOWSalesforceData, SalesforceDataResponse } from '@/types/salesforce';
 // GET: Retrieve Salesforce data for a SOW
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: sowId } = params;
+    const { id: sowId } = await params;
 
     if (!sowId) {
       return NextResponse.json(
@@ -52,10 +52,10 @@ export async function GET(
 // POST: Save Salesforce data for a SOW
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: sowId } = params;
+    const { id: sowId } = await params;
     const salesforceData: Partial<SOWSalesforceData> = await request.json();
 
     if (!sowId) {
@@ -131,10 +131,10 @@ export async function POST(
 // PATCH: Update specific parts of Salesforce data
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: sowId } = params;
+    const { id: sowId } = await params;
     const updates: Partial<SOWSalesforceData> = await request.json();
 
     if (!sowId) {
