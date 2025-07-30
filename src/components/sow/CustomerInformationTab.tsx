@@ -51,19 +51,26 @@ export default function CustomerInformationTab({
   const handleStepButtonClick = async (step: SelectionStep) => {
     setCurrentStep(step);
     
-    // Load contacts if we're going to the contact step and we have a selected account
-    if (step === 'contact' && selectedAccount && availableContacts.length === 0) {
+    // Load contacts if we're going to the contact step and we have a selected account with a valid ID
+    if (step === 'contact' && selectedAccount && selectedAccount.id && availableContacts.length === 0) {
       setIsLoadingContacts(true);
       try {
+        console.log('Selected Account Object:', selectedAccount);
+        console.log('Selected Account ID:', selectedAccount.id);
+        console.log('Selected Account Name:', selectedAccount.name);
         console.log('Loading contacts for account:', selectedAccount.id);
+        
+        const requestBody = {
+          accountId: selectedAccount.id
+        };
+        console.log('Request body:', requestBody);
+        
         const response = await fetch('/api/salesforce/account-contacts', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            accountId: selectedAccount.id
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         console.log('Response status:', response.status);
@@ -86,6 +93,10 @@ export default function CustomerInformationTab({
       } finally {
         setIsLoadingContacts(false);
       }
+    } else if (step === 'contact' && selectedAccount && !selectedAccount.id) {
+      // If we have an account but no ID (loaded from existing data), show a message
+      console.log('Account selected but no Salesforce ID available (loaded from existing data)');
+      // We could potentially show a message to the user here
     }
   };
 
@@ -423,6 +434,13 @@ export default function CustomerInformationTab({
                    {isLoadingContacts ? (
                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
                        <p className="text-sm text-yellow-800">Loading contacts...</p>
+                     </div>
+                   ) : !selectedAccount.id ? (
+                     <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+                       <p className="text-sm text-blue-800">
+                         This account was loaded from existing data and doesn't have a Salesforce ID. 
+                         To load contacts, please re-select the account from Salesforce.
+                       </p>
                      </div>
                    ) : availableContacts.length > 0 ? (
                      <div className="space-y-2 max-h-60 overflow-y-auto">
