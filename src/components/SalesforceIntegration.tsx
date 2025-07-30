@@ -10,9 +10,10 @@ interface SalesforceIntegrationProps {
     opportunities: SalesforceOpportunity[];
   }) => void;
   onContactSelected?: (contact: SalesforceContact) => void;
+  showOnlyAccountSelection?: boolean;
 }
 
-export default function SalesforceIntegration({ onCustomerSelected, onContactSelected }: SalesforceIntegrationProps) {
+export default function SalesforceIntegration({ onCustomerSelected, onContactSelected, showOnlyAccountSelection = false }: SalesforceIntegrationProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [accounts, setAccounts] = useState<SalesforceAccount[]>([]);
@@ -275,8 +276,8 @@ export default function SalesforceIntegration({ onCustomerSelected, onContactSel
             Debug: selectedAccount={!!selectedAccount}, contacts.length={contacts.length}
           </div>
           
-          {/* POC Selection */}
-          {contacts.length > 0 && (
+          {/* POC Selection - Only show if not in account-only mode */}
+          {!showOnlyAccountSelection && contacts.length > 0 && (
             <div className="mt-3">
               <h5 className="text-sm font-medium text-green-800 mb-2">Select Point of Contact (POC)</h5>
               <div className="space-y-2 max-h-40 overflow-y-auto">
@@ -316,7 +317,7 @@ export default function SalesforceIntegration({ onCustomerSelected, onContactSel
             </div>
           )}
           
-          {contacts.length === 0 && (
+          {!showOnlyAccountSelection && contacts.length === 0 && (
             <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
               <div className="text-sm text-yellow-800">
                 No contacts found for this account. You may need to add contacts in Salesforce.
