@@ -7,7 +7,7 @@ interface SOW {
   id: string;
   client_name: string;
   sow_title: string;
-  start_date: Date;
+  start_date: Date | null;
   status: string;
   created_at: Date;
   updated_at: Date;
@@ -138,7 +138,7 @@ export default function SOWListPage() {
                           {sow.sow_title || 'N/A'}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {sow.start_date ? new Date(sow.start_date).toLocaleDateString() : 'N/A'}
+                          {sow.start_date && sow.start_date !== '1970-01-01T00:00:00.000Z' ? new Date(sow.start_date).toLocaleDateString() : 'N/A'}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           {sow.status}
