@@ -7,10 +7,10 @@ interface SOW {
   id: string;
   client_name: string;
   sow_title: string;
-  start_date: Date | null;
+  start_date: string | Date | null;
   status: string;
-  created_at: Date;
-  updated_at: Date;
+  created_at: string | Date;
+  updated_at: string | Date;
 }
 
 export default function SOWListPage() {

@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize clients
-    const avomaClient = new AvomaClient(avomaConfig.apiKey, avomaConfig.apiUrl);
+    const avomaClient = new AvomaClient(avomaConfig.api_key, avomaConfig.api_url);
     const geminiClient = new GeminiClient(process.env.GEMINI_API_KEY!);
 
     // Search for scoping calls
@@ -48,6 +48,16 @@ export async function POST(request: NextRequest) {
 
     // Get the most recent call transcript
     const mostRecentCall = scopingCalls[0]; // Assuming they're sorted by date
+    
+    if (!mostRecentCall.id) {
+      return NextResponse.json({
+        message: 'Call found but ID is not available',
+        calls: scopingCalls,
+        bulletPoints: [],
+        projectDescription: ''
+      });
+    }
+    
     const transcript = await avomaClient.getCallTranscriptText(mostRecentCall.id);
 
     if (!transcript) {

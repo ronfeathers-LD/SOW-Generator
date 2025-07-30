@@ -31,7 +31,7 @@ export default function ObjectivesTab({
       ...formData,
       objectives: { 
         ...formData.objectives!, 
-        keyObjectives: objectives 
+        key_objectives: objectives 
       }
     });
   };
@@ -41,7 +41,7 @@ export default function ObjectivesTab({
       ...formData,
       objectives: { 
         ...formData.objectives!, 
-        avomaTranscription: transcription 
+        avoma_transcription: transcription 
       }
     });
     // Clear any previous analysis errors when transcription changes
@@ -49,7 +49,7 @@ export default function ObjectivesTab({
   };
 
   const handleAnalyzeTranscription = async () => {
-    const transcription = formData.objectives?.avomaTranscription;
+    const transcription = formData.objectives?.avoma_transcription;
     
     if (!transcription || !transcription.trim()) {
       setAnalysisError('Please paste a transcription first');
@@ -175,7 +175,7 @@ export default function ObjectivesTab({
             </div>
             
             <textarea
-              value={formData.objectives?.avomaTranscription || ''}
+              value={formData.objectives?.avoma_transcription || ''}
               onChange={(e) => handleTranscriptionChange(e.target.value)}
               rows={12}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-mono text-sm"
@@ -236,7 +236,7 @@ export default function ObjectivesTab({
             List the specific objectives that will be achieved through this project.
           </p>
           
-          {(formData.objectives?.keyObjectives || ['']).map((objective, index) => (
+          {(formData.objectives?.key_objectives || ['']).map((objective, index) => (
             <div key={index} className="flex items-start space-x-3 mb-3">
               <div className="flex-shrink-0 w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center mt-1">
                 <span className="text-indigo-600 text-sm font-medium">{index + 1}</span>
@@ -245,7 +245,7 @@ export default function ObjectivesTab({
                 <textarea
                   value={objective}
                   onChange={(e) => {
-                    const newObjectives = [...(formData.objectives?.keyObjectives || [])];
+                    const newObjectives = [...(formData.objectives?.key_objectives || [])];
                     newObjectives[index] = e.target.value;
                     handleKeyObjectivesChange(newObjectives);
                   }}
@@ -254,11 +254,11 @@ export default function ObjectivesTab({
                   placeholder={`Describe objective ${index + 1}...`}
                 />
               </div>
-              {(formData.objectives?.keyObjectives || []).length > 1 && (
+              {(formData.objectives?.key_objectives || []).length > 1 && (
                 <button
                   type="button"
                   onClick={() => {
-                    const newObjectives = (formData.objectives?.keyObjectives || []).filter((_, i) => i !== index);
+                    const newObjectives = (formData.objectives?.key_objectives || []).filter((_, i) => i !== index);
                     handleKeyObjectivesChange(newObjectives.length > 0 ? newObjectives : ['']);
                   }}
                   className="flex-shrink-0 p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md"
@@ -275,7 +275,7 @@ export default function ObjectivesTab({
           <button
             type="button"
             onClick={() => {
-              const newObjectives = [...(formData.objectives?.keyObjectives || []), ''];
+                              const newObjectives = [...(formData.objectives?.key_objectives || []), ''];
               handleKeyObjectivesChange(newObjectives);
             }}
             className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"

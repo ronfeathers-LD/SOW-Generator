@@ -116,10 +116,10 @@ export default function EditSOWPage() {
             },
           },
           assumptions: {
-            accessRequirements: data.access_requirements || '',
-            travelRequirements: data.travel_requirements || '',
-            workingHours: data.working_hours || '',
-            testingResponsibilities: data.testing_responsibilities || '',
+            access_requirements: data.access_requirements || '',
+            travel_requirements: data.travel_requirements || '',
+            working_hours: data.working_hours || '',
+            testing_responsibilities: data.testing_responsibilities || '',
           },
           addendums: data.addendums || [{
             title: '',
@@ -132,7 +132,7 @@ export default function EditSOWPage() {
             },
           }],
           deliverables: data.deliverables || '',
-          clientSignerName: data.client_signer_name || '',
+          client_signer_name: data.client_signer_name || '',
         };
         
         setSOW(transformedData);

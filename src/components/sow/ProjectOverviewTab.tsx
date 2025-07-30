@@ -27,11 +27,11 @@ export default function ProjectOverviewTab({
           <h3 className="text-lg font-semibold mb-4">SOW Title</h3>
           <input
             type="text"
-            value={formData.template?.sowTitle || formData.header?.sowTitle || ''}
+            value={formData.template?.sow_title || formData.header?.sow_title || ''}
             onChange={(e) => setFormData({
               ...formData,
-              template: { ...formData.template!, sowTitle: e.target.value },
-              header: { ...formData.header!, sowTitle: e.target.value }
+              template: { ...formData.template!, sow_title: e.target.value },
+              header: { ...formData.header!, sow_title: e.target.value }
             })}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             placeholder="Enter SOW title"
@@ -64,10 +64,10 @@ export default function ProjectOverviewTab({
             <label className="block text-sm font-medium text-gray-700">Number of Units</label>
             <input
               type="text"
-              value={formData.template?.numberOfUnits || ''}
+              value={formData.template?.number_of_units || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                template: { ...formData.template!, numberOfUnits: e.target.value }
+                template: { ...formData.template!, number_of_units: e.target.value }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             />
@@ -88,10 +88,10 @@ export default function ProjectOverviewTab({
             <label className="block text-sm font-medium text-gray-700">Salesforce Tenants</label>
             <input
               type="text"
-              value={formData.template?.salesforceTenants || ''}
+              value={formData.template?.salesforce_tenants || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                template: { ...formData.template!, salesforceTenants: e.target.value }
+                template: { ...formData.template!, salesforce_tenants: e.target.value }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             />
@@ -100,10 +100,10 @@ export default function ProjectOverviewTab({
             <label className="block text-sm font-medium text-gray-700">Timeline (Weeks)</label>
             <input
               type="text"
-              value={formData.template?.timelineWeeks || ''}
+              value={formData.template?.timeline_weeks || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                template: { ...formData.template!, timelineWeeks: e.target.value }
+                template: { ...formData.template!, timeline_weeks: e.target.value }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             />

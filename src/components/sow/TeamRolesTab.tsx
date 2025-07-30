@@ -20,7 +20,7 @@ export default function TeamRolesTab({
         <p className="text-sm text-gray-600 mb-4">
           Define the roles and responsibilities for the client team
         </p>
-        {formData.roles?.clientRoles?.map((role, index) => (
+        {formData.roles?.client_roles?.map((role, index) => (
           <div key={index} className="border border-gray-200 rounded-md p-4 mb-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -29,11 +29,11 @@ export default function TeamRolesTab({
                   type="text"
                   value={role.role}
                   onChange={(e) => {
-                    const newRoles = [...(formData.roles?.clientRoles || [])];
+                    const newRoles = [...(formData.roles?.client_roles || [])];
                     newRoles[index] = { ...role, role: e.target.value };
                     setFormData({
                       ...formData,
-                      roles: { ...formData.roles!, clientRoles: newRoles }
+                      roles: { ...formData.roles!, client_roles: newRoles }
                     });
                   }}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -46,12 +46,12 @@ export default function TeamRolesTab({
                   type="text"
                   value={role.name}
                   onChange={(e) => {
-                    const newRoles = [...(formData.roles?.clientRoles || [])];
-                    newRoles[index] = { ...role, name: e.target.value };
-                    setFormData({
-                      ...formData,
-                      roles: { ...formData.roles!, clientRoles: newRoles }
-                    });
+                                    const newRoles = [...(formData.roles?.client_roles || [])];
+                newRoles[index] = { ...role, name: e.target.value };
+                setFormData({
+                  ...formData,
+                  roles: { ...formData.roles!, client_roles: newRoles }
+                });
                   }}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   placeholder="Full name"
@@ -64,11 +64,11 @@ export default function TeamRolesTab({
                 type="email"
                 value={role.email}
                 onChange={(e) => {
-                  const newRoles = [...(formData.roles?.clientRoles || [])];
+                  const newRoles = [...(formData.roles?.client_roles || [])];
                   newRoles[index] = { ...role, email: e.target.value };
                   setFormData({
                     ...formData,
-                    roles: { ...formData.roles!, clientRoles: newRoles }
+                    roles: { ...formData.roles!, client_roles: newRoles }
                   });
                 }}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -80,11 +80,11 @@ export default function TeamRolesTab({
               <textarea
                 value={role.responsibilities}
                 onChange={(e) => {
-                  const newRoles = [...(formData.roles?.clientRoles || [])];
+                  const newRoles = [...(formData.roles?.client_roles || [])];
                   newRoles[index] = { ...role, responsibilities: e.target.value };
                   setFormData({
                     ...formData,
-                    roles: { ...formData.roles!, clientRoles: newRoles }
+                    roles: { ...formData.roles!, client_roles: newRoles }
                   });
                 }}
                 rows={3}
@@ -96,10 +96,10 @@ export default function TeamRolesTab({
               <button
                 type="button"
                 onClick={() => {
-                  const newRoles = formData.roles?.clientRoles.filter((_, i) => i !== index) || [];
+                  const newRoles = formData.roles?.client_roles.filter((_, i) => i !== index) || [];
                   setFormData({
                     ...formData,
-                    roles: { ...formData.roles!, clientRoles: newRoles }
+                    roles: { ...formData.roles!, client_roles: newRoles }
                   });
                 }}
                 className="text-red-600 hover:text-red-800 text-sm font-medium"
@@ -112,7 +112,7 @@ export default function TeamRolesTab({
         <button
           type="button"
           onClick={() => {
-            const newRoles = [...(formData.roles?.clientRoles || []), {
+            const newRoles = [...(formData.roles?.client_roles || []), {
               role: '',
               name: '',
               email: '',
@@ -120,7 +120,7 @@ export default function TeamRolesTab({
             }];
             setFormData({
               ...formData,
-              roles: { ...formData.roles!, clientRoles: newRoles }
+              roles: { ...formData.roles!, client_roles: newRoles }
             });
           }}
           className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -162,10 +162,10 @@ export default function TeamRolesTab({
                 <label className="block text-sm font-medium text-gray-700">Rate per Hour</label>
                 <input
                   type="number"
-                  value={role.ratePerHour}
+                  value={role.rate_per_hour}
                   onChange={(e) => {
                     const newRoles = [...(formData.pricing?.roles || [])];
-                    newRoles[index] = { ...role, ratePerHour: parseFloat(e.target.value) || 0 };
+                    newRoles[index] = { ...role, rate_per_hour: parseFloat(e.target.value) || 0 };
                     setFormData({
                       ...formData,
                       pricing: { ...formData.pricing!, roles: newRoles }
@@ -181,10 +181,10 @@ export default function TeamRolesTab({
                 <label className="block text-sm font-medium text-gray-700">Total Hours</label>
                 <input
                   type="number"
-                  value={role.totalHours}
+                  value={role.total_hours}
                   onChange={(e) => {
                     const newRoles = [...(formData.pricing?.roles || [])];
-                    newRoles[index] = { ...role, totalHours: parseFloat(e.target.value) || 0 };
+                    newRoles[index] = { ...role, total_hours: parseFloat(e.target.value) || 0 };
                     setFormData({
                       ...formData,
                       pricing: { ...formData.pricing!, roles: newRoles }
@@ -199,7 +199,7 @@ export default function TeamRolesTab({
             </div>
             <div className="mt-4 flex justify-between items-center">
               <div className="text-sm text-gray-600">
-                Total: ${(role.ratePerHour * role.totalHours).toFixed(2)}
+                Total: ${(role.rate_per_hour * role.total_hours).toFixed(2)}
               </div>
               <button
                 type="button"
@@ -222,8 +222,8 @@ export default function TeamRolesTab({
           onClick={() => {
             const newRoles = [...(formData.pricing?.roles || []), {
               role: '',
-              ratePerHour: 0,
-              totalHours: 0
+              rate_per_hour: 0,
+              total_hours: 0
             }];
             setFormData({
               ...formData,
@@ -244,10 +244,10 @@ export default function TeamRolesTab({
         <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
           <h4 className="text-lg font-semibold text-blue-800 mb-2">Total Project Cost</h4>
           <div className="text-2xl font-bold text-blue-900">
-            ${formData.pricing.roles.reduce((total, role) => total + (role.ratePerHour * role.totalHours), 0).toFixed(2)}
+            ${formData.pricing.roles.reduce((total, role) => total + (role.rate_per_hour * role.total_hours), 0).toFixed(2)}
           </div>
           <p className="text-sm text-blue-700 mt-1">
-            Based on {formData.pricing.roles.length} role(s) and {formData.pricing.roles.reduce((total, role) => total + role.totalHours, 0)} total hours
+            Based on {formData.pricing.roles.length} role(s) and {formData.pricing.roles.reduce((total, role) => total + role.total_hours, 0)} total hours
           </p>
         </div>
       )}

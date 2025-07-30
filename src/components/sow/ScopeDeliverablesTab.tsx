@@ -19,10 +19,10 @@ export default function ScopeDeliverablesTab({
       <div className="bg-white shadow rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-4">Project Description</h3>
         <RichTextEditor
-          value={formData.scope?.projectDescription || ''}
+          value={formData.scope?.project_description || ''}
           onChange={(value) => setFormData({
             ...formData,
-            scope: { ...formData.scope!, projectDescription: value }
+            scope: { ...formData.scope!, project_description: value }
           })}
           placeholder="Describe the project scope and deliverables..."
         />
@@ -49,15 +49,15 @@ export default function ScopeDeliverablesTab({
             <label className="block text-sm font-medium text-gray-700">Start Date</label>
             <input
               type="date"
-              value={formData.scope?.timeline?.startDate ? new Date(formData.scope.timeline.startDate).toISOString().split('T')[0] : ''}
+              value={formData.scope?.timeline?.start_date ? new Date(formData.scope.timeline.start_date).toISOString().split('T')[0] : ''}
               onChange={(e) => setFormData({
                 ...formData,
                 scope: { 
                   ...formData.scope!, 
-                  timeline: { 
-                    ...formData.scope?.timeline!, 
-                    startDate: new Date(e.target.value) 
-                  } 
+                                  timeline: {
+                  ...formData.scope?.timeline!,
+                  start_date: new Date(e.target.value)
+                } 
                 }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"

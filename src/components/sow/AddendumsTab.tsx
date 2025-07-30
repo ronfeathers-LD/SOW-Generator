@@ -197,19 +197,19 @@ export default function AddendumsTab({
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Supported Items</label>
                   <div className="space-y-2">
-                    {addendum.supportScope?.supported?.map((item, itemIndex) => (
+                    {addendum.support_scope?.supported?.map((item, itemIndex) => (
                       <div key={itemIndex} className="flex items-center space-x-2">
                         <input
                           type="text"
                           value={item}
                           onChange={(e) => {
                             const newAddendums = [...(formData.addendums || [])];
-                            const newSupported = [...(addendum.supportScope?.supported || [])];
+                            const newSupported = [...(addendum.support_scope?.supported || [])];
                             newSupported[itemIndex] = e.target.value;
                             newAddendums[index] = { 
                               ...addendum, 
-                              supportScope: { 
-                                ...addendum.supportScope!, 
+                              support_scope: { 
+                                ...addendum.support_scope!, 
                                 supported: newSupported 
                               } 
                             };
@@ -225,11 +225,11 @@ export default function AddendumsTab({
                           type="button"
                           onClick={() => {
                             const newAddendums = [...(formData.addendums || [])];
-                            const newSupported = addendum.supportScope?.supported?.filter((_, i) => i !== itemIndex) || [];
+                            const newSupported = addendum.support_scope?.supported?.filter((_, i) => i !== itemIndex) || [];
                             newAddendums[index] = { 
                               ...addendum, 
-                              supportScope: { 
-                                ...addendum.supportScope!, 
+                              support_scope: { 
+                                ...addendum.support_scope!, 
                                 supported: newSupported 
                               } 
                             };
@@ -250,11 +250,11 @@ export default function AddendumsTab({
                       type="button"
                       onClick={() => {
                         const newAddendums = [...(formData.addendums || [])];
-                        const newSupported = [...(addendum.supportScope?.supported || []), ''];
+                        const newSupported = [...(addendum.support_scope?.supported || []), ''];
                         newAddendums[index] = { 
                           ...addendum, 
-                          supportScope: { 
-                            ...addendum.supportScope!, 
+                          support_scope: { 
+                            ...addendum.support_scope!, 
                             supported: newSupported 
                           } 
                         };
@@ -273,20 +273,20 @@ export default function AddendumsTab({
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Not Supported Items</label>
                   <div className="space-y-2">
-                    {addendum.supportScope?.notSupported?.map((item, itemIndex) => (
+                    {addendum.support_scope?.not_supported?.map((item, itemIndex) => (
                       <div key={itemIndex} className="flex items-center space-x-2">
                         <input
                           type="text"
                           value={item}
                           onChange={(e) => {
                             const newAddendums = [...(formData.addendums || [])];
-                            const newNotSupported = [...(addendum.supportScope?.notSupported || [])];
+                            const newNotSupported = [...(addendum.support_scope?.not_supported || [])];
                             newNotSupported[itemIndex] = e.target.value;
                             newAddendums[index] = { 
                               ...addendum, 
-                              supportScope: { 
-                                ...addendum.supportScope!, 
-                                notSupported: newNotSupported 
+                              support_scope: { 
+                                ...addendum.support_scope!, 
+                                not_supported: newNotSupported 
                               } 
                             };
                             setFormData({
@@ -301,12 +301,12 @@ export default function AddendumsTab({
                           type="button"
                           onClick={() => {
                             const newAddendums = [...(formData.addendums || [])];
-                            const newNotSupported = addendum.supportScope?.notSupported?.filter((_, i) => i !== itemIndex) || [];
+                            const newNotSupported = addendum.support_scope?.not_supported?.filter((_, i) => i !== itemIndex) || [];
                             newAddendums[index] = { 
                               ...addendum, 
-                              supportScope: { 
-                                ...addendum.supportScope!, 
-                                notSupported: newNotSupported 
+                              support_scope: { 
+                                ...addendum.support_scope!, 
+                                not_supported: newNotSupported 
                               } 
                             };
                             setFormData({
@@ -326,12 +326,12 @@ export default function AddendumsTab({
                       type="button"
                       onClick={() => {
                         const newAddendums = [...(formData.addendums || [])];
-                        const newNotSupported = [...(addendum.supportScope?.notSupported || []), ''];
+                        const newNotSupported = [...(addendum.support_scope?.not_supported || []), ''];
                         newAddendums[index] = { 
                           ...addendum, 
-                          supportScope: { 
-                            ...addendum.supportScope!, 
-                            notSupported: newNotSupported 
+                          support_scope: { 
+                            ...addendum.support_scope!, 
+                            not_supported: newNotSupported 
                           } 
                         };
                         setFormData({
@@ -358,9 +358,9 @@ export default function AddendumsTab({
               content: '',
               risks: [],
               mitigations: [],
-              supportScope: {
+              support_scope: {
                 supported: [],
-                notSupported: []
+                not_supported: []
               }
             }];
             setFormData({

@@ -38,24 +38,24 @@ export default function BillingPaymentTab({
         ...formData,
         template: {
           ...formData.template!,
-          billingCompanyName: formData.template?.customer_name || '',
-          billingContactName: billingInfo.billingContact || '',
-          billingAddress: billingInfo.billingAddress || '',
-          billingEmail: billingInfo.billingEmail || '',
+          billing_company_name: formData.template?.customer_name || '',
+          billing_contact_name: billingInfo.billingContact || '',
+          billing_address: billingInfo.billingAddress || '',
+          billing_email: billingInfo.billingEmail || '',
         },
         pricing: {
           ...formData.pricing!,
           billing: {
             ...formData.pricing?.billing!,
-            companyName: formData.template?.customer_name || '',
-            billingContact: billingInfo.billingContact || '',
-            billingAddress: billingInfo.billingAddress || '',
-            billingEmail: billingInfo.billingEmail || '',
-            paymentTerms: billingInfo.paymentTerms || '',
+            company_name: formData.template?.customer_name || '',
+            billing_contact: billingInfo.billingContact || '',
+            billing_address: billingInfo.billingAddress || '',
+            billing_email: billingInfo.billingEmail || '',
+            payment_terms: billingInfo.paymentTerms || '',
             currency: billingInfo.currency || 'USD',
-            taxExempt: billingInfo.taxExempt || false,
-            taxExemptionNumber: billingInfo.taxExemptionNumber || '',
-            creditRating: billingInfo.creditRating || '',
+            tax_exempt: billingInfo.taxExempt || false,
+            tax_exemption_number: billingInfo.taxExemptionNumber || '',
+            credit_rating: billingInfo.creditRating || '',
           }
         }
       });
@@ -114,13 +114,13 @@ export default function BillingPaymentTab({
             <label className="block text-sm font-medium text-gray-700">Billing Company Name</label>
             <input
               type="text"
-              value={formData.template?.billingCompanyName || ''}
+              value={formData.template?.billing_company_name || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                template: { ...formData.template!, billingCompanyName: e.target.value },
+                template: { ...formData.template!, billing_company_name: e.target.value },
                 pricing: {
                   ...formData.pricing!,
-                  billing: { ...formData.pricing?.billing!, companyName: e.target.value }
+                  billing: { ...formData.pricing?.billing!, company_name: e.target.value }
                 }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -130,13 +130,13 @@ export default function BillingPaymentTab({
             <label className="block text-sm font-medium text-gray-700">Billing Contact Name</label>
             <input
               type="text"
-              value={formData.template?.billingContactName || ''}
+              value={formData.template?.billing_contact_name || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                template: { ...formData.template!, billingContactName: e.target.value },
+                template: { ...formData.template!, billing_contact_name: e.target.value },
                 pricing: {
                   ...formData.pricing!,
-                  billing: { ...formData.pricing?.billing!, billingContact: e.target.value }
+                  billing: { ...formData.pricing?.billing!, billing_contact: e.target.value }
                 }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -146,13 +146,13 @@ export default function BillingPaymentTab({
             <label className="block text-sm font-medium text-gray-700">Billing Address</label>
             <input
               type="text"
-              value={formData.template?.billingAddress || ''}
+              value={formData.template?.billing_address || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                template: { ...formData.template!, billingAddress: e.target.value },
+                template: { ...formData.template!, billing_address: e.target.value },
                 pricing: {
                   ...formData.pricing!,
-                  billing: { ...formData.pricing?.billing!, billingAddress: e.target.value }
+                  billing: { ...formData.pricing?.billing!, billing_address: e.target.value }
                 }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -162,13 +162,13 @@ export default function BillingPaymentTab({
             <label className="block text-sm font-medium text-gray-700">Billing Email</label>
             <input
               type="email"
-              value={formData.template?.billingEmail || ''}
+              value={formData.template?.billing_email || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                template: { ...formData.template!, billingEmail: e.target.value },
+                template: { ...formData.template!, billing_email: e.target.value },
                 pricing: {
                   ...formData.pricing!,
-                  billing: { ...formData.pricing?.billing!, billingEmail: e.target.value }
+                  billing: { ...formData.pricing?.billing!, billing_email: e.target.value }
                 }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -178,13 +178,13 @@ export default function BillingPaymentTab({
             <label className="block text-sm font-medium text-gray-700">Purchase Order Number</label>
             <input
               type="text"
-              value={formData.template?.purchaseOrderNumber || ''}
+              value={formData.template?.purchase_order_number || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                template: { ...formData.template!, purchaseOrderNumber: e.target.value },
+                template: { ...formData.template!, purchase_order_number: e.target.value },
                 pricing: {
                   ...formData.pricing!,
-                  billing: { ...formData.pricing?.billing!, poNumber: e.target.value }
+                  billing: { ...formData.pricing?.billing!, po_number: e.target.value }
                 }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -194,12 +194,12 @@ export default function BillingPaymentTab({
             <label className="block text-sm font-medium text-gray-700">Payment Terms</label>
             <input
               type="text"
-              value={formData.pricing?.billing?.paymentTerms || ''}
+              value={formData.pricing?.billing?.payment_terms || ''}
               onChange={(e) => setFormData({
                 ...formData,
                 pricing: {
                   ...formData.pricing!,
-                  billing: { ...formData.pricing?.billing!, paymentTerms: e.target.value }
+                  billing: { ...formData.pricing?.billing!, payment_terms: e.target.value }
                 }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -223,12 +223,12 @@ export default function BillingPaymentTab({
           <div>
             <label className="block text-sm font-medium text-gray-700">Tax Exempt</label>
             <select
-              value={formData.pricing?.billing?.taxExempt ? 'yes' : 'no'}
+              value={formData.pricing?.billing?.tax_exempt ? 'yes' : 'no'}
               onChange={(e) => setFormData({
                 ...formData,
                 pricing: {
                   ...formData.pricing!,
-                  billing: { ...formData.pricing?.billing!, taxExempt: e.target.value === 'yes' }
+                  billing: { ...formData.pricing?.billing!, tax_exempt: e.target.value === 'yes' }
                 }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -241,12 +241,12 @@ export default function BillingPaymentTab({
             <label className="block text-sm font-medium text-gray-700">Tax Exemption Number</label>
             <input
               type="text"
-              value={formData.pricing?.billing?.taxExemptionNumber || ''}
+              value={formData.pricing?.billing?.tax_exemption_number || ''}
               onChange={(e) => setFormData({
                 ...formData,
                 pricing: {
                   ...formData.pricing!,
-                  billing: { ...formData.pricing?.billing!, taxExemptionNumber: e.target.value }
+                  billing: { ...formData.pricing?.billing!, tax_exemption_number: e.target.value }
                 }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -257,12 +257,12 @@ export default function BillingPaymentTab({
             <label className="block text-sm font-medium text-gray-700">Credit Rating</label>
             <input
               type="text"
-              value={formData.pricing?.billing?.creditRating || ''}
+              value={formData.pricing?.billing?.credit_rating || ''}
               onChange={(e) => setFormData({
                 ...formData,
                 pricing: {
                   ...formData.pricing!,
-                  billing: { ...formData.pricing?.billing!, creditRating: e.target.value }
+                  billing: { ...formData.pricing?.billing!, credit_rating: e.target.value }
                 }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -279,10 +279,10 @@ export default function BillingPaymentTab({
           <div>
             <label className="block text-sm font-medium text-gray-700">Access Requirements</label>
             <textarea
-              value={formData.assumptions?.accessRequirements || ''}
+              value={formData.assumptions?.access_requirements || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                assumptions: { ...formData.assumptions!, accessRequirements: e.target.value }
+                assumptions: { ...formData.assumptions!, access_requirements: e.target.value }
               })}
               rows={3}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -292,10 +292,10 @@ export default function BillingPaymentTab({
           <div>
             <label className="block text-sm font-medium text-gray-700">Travel Requirements</label>
             <textarea
-              value={formData.assumptions?.travelRequirements || ''}
+              value={formData.assumptions?.travel_requirements || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                assumptions: { ...formData.assumptions!, travelRequirements: e.target.value }
+                assumptions: { ...formData.assumptions!, travel_requirements: e.target.value }
               })}
               rows={3}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -305,10 +305,10 @@ export default function BillingPaymentTab({
           <div>
             <label className="block text-sm font-medium text-gray-700">Working Hours</label>
             <textarea
-              value={formData.assumptions?.workingHours || ''}
+              value={formData.assumptions?.working_hours || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                assumptions: { ...formData.assumptions!, workingHours: e.target.value }
+                assumptions: { ...formData.assumptions!, working_hours: e.target.value }
               })}
               rows={3}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -318,10 +318,10 @@ export default function BillingPaymentTab({
           <div>
             <label className="block text-sm font-medium text-gray-700">Testing Responsibilities</label>
             <textarea
-              value={formData.assumptions?.testingResponsibilities || ''}
+              value={formData.assumptions?.testing_responsibilities || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                assumptions: { ...formData.assumptions!, testingResponsibilities: e.target.value }
+                assumptions: { ...formData.assumptions!, testing_responsibilities: e.target.value }
               })}
               rows={3}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
