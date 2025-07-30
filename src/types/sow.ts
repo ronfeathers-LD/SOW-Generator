@@ -87,6 +87,8 @@ export interface SOWData {
   objectives: {
     description: string;
     keyObjectives: string[];
+    avomaMeetingUrl?: string;
+    avomaTranscription?: string;
   };
 
   // Project Scope

@@ -40,6 +40,12 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     initialData
       ? {
           ...initialData,
+          objectives: {
+            ...initialData.objectives,
+            description: initialData.objectives?.description || initialData.scope?.projectDescription || '',
+            keyObjectives: initialData.objectives?.keyObjectives || [''],
+            avomaTranscription: initialData.objectives?.avomaTranscription || '',
+          },
           scope: {
             ...initialData.scope,
             projectDescription: initialData.scope?.projectDescription || '',
@@ -224,6 +230,21 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       }
     }
   }, [initialData]);
+
+  // Initialize selected LeanData signator when signators are loaded and we have initial data
+  useEffect(() => {
+    if (leanDataSignators.length > 0 && initialData) {
+      // Find the signator that matches the existing data
+      const matchingSignator = leanDataSignators.find(signator => 
+        signator.name === initialData.template?.leanDataName ||
+        signator.email === initialData.template?.leanDataEmail
+      );
+      
+      if (matchingSignator) {
+        setSelectedLeanDataSignator(matchingSignator.id);
+      }
+    }
+  }, [leanDataSignators, initialData]);
 
   const handleLeanDataSignatorChange = (signatorId: string) => {
     setSelectedLeanDataSignator(signatorId);
@@ -424,10 +445,21 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       };
 
       // Debug logging
-      console.log('Saving SOW with customer data:', {
+      console.log('Saving SOW with data:', {
         customerName: formData.template?.customerName,
         customerSignatureName: formData.template?.customerSignatureName,
         customerEmail: formData.template?.customerEmail,
+        objectives: {
+          description: formData.objectives?.description,
+          keyObjectives: formData.objectives?.keyObjectives,
+          avomaTranscription: formData.objectives?.avomaTranscription,
+        },
+        leanDataSignator: {
+          leanDataName: formData.template?.leanDataName,
+          leanDataTitle: formData.template?.leanDataTitle,
+          leanDataEmail: formData.template?.leanDataEmail,
+          selectedLeanDataSignator: selectedLeanDataSignator
+        },
         opportunityData: {
           opportunityId: formData.template?.opportunityId,
           opportunityName: formData.template?.opportunityName,
@@ -439,7 +471,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           clientName: submissionData.header.clientName,
           clientSignerName: submissionData.clientSignerName,
           clientSignature: submissionData.clientSignature,
-          template: submissionData.template
+          template: submissionData.template,
+          objectives: submissionData.objectives
         }
       });
       

@@ -33,6 +33,11 @@ export async function POST(request: Request) {
         start_date: data.scope?.timeline?.startDate ? new Date(data.scope.timeline.startDate).toISOString() : new Date().toISOString(),
         duration: data.scope?.timeline?.duration || '',
         
+        // Project Objectives
+        objectives_description: data.objectives?.description || '',
+        objectives_key_objectives: data.objectives?.keyObjectives || [],
+        avoma_transcription: data.objectives?.avomaTranscription || '',
+        
         // Roles and Responsibilities
         client_roles: data.roles?.clientRoles || [],
         pricing_roles: data.pricing?.roles || [],
