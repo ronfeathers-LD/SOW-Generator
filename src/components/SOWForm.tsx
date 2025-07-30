@@ -645,6 +645,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           onCustomerSelectedFromSalesforce={handleCustomerSelectedFromSalesforce}
           onContactSelectedFromSalesforce={handleContactSelectedFromSalesforce}
           onOpportunitySelectedFromSalesforce={handleOpportunitySelectedFromSalesforce}
+          onAvailableOpportunitiesUpdate={setAvailableOpportunities}
           getSalesforceLink={getSalesforceLink}
           onLogoChange={handleLogoChange}
         />

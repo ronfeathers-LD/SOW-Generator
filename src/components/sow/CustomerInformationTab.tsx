@@ -15,6 +15,7 @@ interface CustomerInformationTabProps {
   onCustomerSelectedFromSalesforce: (customerData: { account: any; contacts: any[]; opportunities: any[] }) => void;
   onContactSelectedFromSalesforce: (contact: SalesforceContact | null) => void;
   onOpportunitySelectedFromSalesforce: (opportunity: SalesforceOpportunity | null) => void;
+  onAvailableOpportunitiesUpdate: (opportunities: SalesforceOpportunity[]) => void;
   getSalesforceLink: (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => string;
   onLogoChange: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
 }
@@ -32,19 +33,21 @@ export default function CustomerInformationTab({
   onCustomerSelectedFromSalesforce,
   onContactSelectedFromSalesforce,
   onOpportunitySelectedFromSalesforce,
+  onAvailableOpportunitiesUpdate,
   getSalesforceLink,
   onLogoChange,
 }: CustomerInformationTabProps) {
   const [currentStep, setCurrentStep] = useState<SelectionStep>(null);
   const [availableContacts, setAvailableContacts] = useState<SalesforceContact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+  const [loadingContactsPromise, setLoadingContactsPromise] = useState<Promise<any> | null>(null);
 
   // Load contacts when contact step is accessed and we have a selected account
   useEffect(() => {
-    if (currentStep === 'contact' && selectedAccount?.id && availableContacts.length === 0) {
+    if (currentStep === 'contact' && selectedAccount?.id && availableContacts.length === 0 && !isLoadingContacts) {
       handleStepButtonClick('contact');
     }
-  }, [currentStep, selectedAccount?.id, availableContacts.length]);
+  }, [currentStep, selectedAccount?.id, availableContacts.length, isLoadingContacts]);
 
   // Determine which step to show based on current selections
   const getNextStep = (): SelectionStep => {
@@ -59,10 +62,81 @@ export default function CustomerInformationTab({
     setCurrentStep(step);
     
     // Load contacts if we're going to the contact step and we have a selected account with a valid ID
-    if (step === 'contact' && selectedAccount && selectedAccount.id && availableContacts.length === 0) {
+    if (step === 'contact' && selectedAccount && selectedAccount.id && availableContacts.length === 0 && !isLoadingContacts) {
+      // Prevent duplicate requests
+      if (loadingContactsPromise) {
+        console.log('Contacts already loading, waiting for existing request...');
+        return;
+      }
+      
       setIsLoadingContacts(true);
+      const loadContactsPromise = (async () => {
+        try {
+          console.log('Loading contacts for account:', selectedAccount.id);
+          const response = await fetch('/api/salesforce/account-contacts', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              accountId: selectedAccount.id,
+              forceRefresh: false // Use cache by default
+            }),
+          });
+
+          console.log('Contacts API response status:', response.status);
+          console.log('Contacts API response ok:', response.ok);
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Contacts data received:', data);
+            setAvailableContacts(data.contacts || []);
+          } else {
+            // Try to get error details
+            let errorData;
+            try {
+              errorData = await response.json();
+            } catch (parseError) {
+              errorData = { error: 'Failed to parse error response', statusText: response.statusText };
+            }
+            
+            console.error('Failed to load contacts:', {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData,
+              url: response.url,
+              accountId: selectedAccount.id
+            });
+            
+            // Show user-friendly error message for configuration issues
+            if (response.status === 400 && errorData?.error === 'Salesforce integration is not configured') {
+              alert('Salesforce is not configured. Please go to the admin panel (/admin/salesforce) to set up your Salesforce credentials first.');
+            }
+          }
+        } catch (error) {
+          console.error('Error loading contacts:', error);
+          console.error('Error details:', {
+            name: error instanceof Error ? error.name : 'Unknown',
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : 'No stack trace'
+          });
+        } finally {
+          setIsLoadingContacts(false);
+          setLoadingContactsPromise(null);
+        }
+      })();
+      
+      setLoadingContactsPromise(loadContactsPromise);
+    } else if (step === 'contact' && selectedAccount && !selectedAccount.id) {
+      // If we have an account but no ID (loaded from existing data), show a message
+      console.log('Account selected but no Salesforce ID available (loaded from existing data)');
+    }
+    
+    // Load opportunities if we're going to the opportunity step and we have a selected account with a valid ID
+    if (step === 'opportunity' && selectedAccount && selectedAccount.id && availableOpportunities.length === 0) {
       try {
-        const response = await fetch('/api/salesforce/account-contacts', {
+        console.log('Loading opportunities for account:', selectedAccount.id);
+        const response = await fetch('/api/salesforce/account-opportunities', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -73,25 +147,41 @@ export default function CustomerInformationTab({
           }),
         });
 
+        console.log('Opportunities API response status:', response.status);
+        console.log('Opportunities API response ok:', response.ok);
+
         if (response.ok) {
           const data = await response.json();
-          setAvailableContacts(data.contacts || []);
+          console.log('Opportunities data received:', data);
+          // Update available opportunities through the parent component
+          if (data.opportunities) {
+            onAvailableOpportunitiesUpdate(data.opportunities);
+          }
         } else {
-          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-          console.error('Failed to load contacts:', {
+          // Try to get error details
+          let errorData;
+          try {
+            errorData = await response.json();
+          } catch (parseError) {
+            errorData = { error: 'Failed to parse error response', statusText: response.statusText };
+          }
+          
+          console.error('Failed to load opportunities:', {
             status: response.status,
             statusText: response.statusText,
-            error: errorData
+            error: errorData,
+            url: response.url,
+            accountId: selectedAccount.id
           });
         }
       } catch (error) {
-        console.error('Error loading contacts:', error);
-      } finally {
-        setIsLoadingContacts(false);
+        console.error('Error loading opportunities:', error);
+        console.error('Error details:', {
+          name: error instanceof Error ? error.name : 'Unknown',
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : 'No stack trace'
+        });
       }
-    } else if (step === 'contact' && selectedAccount && !selectedAccount.id) {
-      // If we have an account but no ID (loaded from existing data), show a message
-      console.log('Account selected but no Salesforce ID available (loaded from existing data)');
     }
   };
 
@@ -121,10 +211,13 @@ export default function CustomerInformationTab({
         
         // If we have a selected contact, make sure it's still in the refreshed list
         if (selectedContact && data.contacts) {
-          const contactStillExists = data.contacts.some((contact: any) => contact.Id === selectedContact.Id);
-          if (!contactStillExists) {
-            console.log('Selected contact no longer exists in refreshed data, clearing selection');
-            onContactSelectedFromSalesforce(null);
+          // Only check if the contact still exists if we have a valid ID
+          if (selectedContact.Id && selectedContact.Id.trim() !== '') {
+            const contactStillExists = data.contacts.some((contact: any) => contact.Id === selectedContact.Id);
+            
+            if (!contactStillExists) {
+              onContactSelectedFromSalesforce(null);
+            }
           }
         }
       } else {
@@ -139,6 +232,52 @@ export default function CustomerInformationTab({
       console.error('Error refreshing contacts:', error);
     } finally {
       setIsLoadingContacts(false);
+    }
+  };
+
+  // Function to refresh opportunities data
+  const refreshOpportunities = async () => {
+    if (!selectedAccount?.id) {
+      console.log('No selected account ID, cannot refresh opportunities');
+      return;
+    }
+    
+    try {
+      const response = await fetch('/api/salesforce/account-opportunities', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accountId: selectedAccount.id,
+          forceRefresh: true // Force refresh from Salesforce
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Update available opportunities through the parent component
+        if (data.opportunities) {
+          onAvailableOpportunitiesUpdate(data.opportunities);
+        }
+        
+        // If we have a selected opportunity, make sure it's still in the refreshed list
+        if (selectedOpportunity && data.opportunities) {
+          const opportunityStillExists = data.opportunities.some((opportunity: any) => opportunity.Id === selectedOpportunity.Id);
+          if (!opportunityStillExists) {
+            onOpportunitySelectedFromSalesforce(null);
+          }
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Failed to refresh opportunities:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing opportunities:', error);
     }
   };
 
@@ -533,37 +672,62 @@ export default function CustomerInformationTab({
                  <h4 className="text-lg font-semibold mb-4 text-blue-800">Step 3: Select Opportunity</h4>
                  
                  {availableOpportunities.length > 0 ? (
-                   <div className="space-y-2 max-h-60 overflow-y-auto">
-                     {availableOpportunities.map((opportunity) => (
-                       <div
-                         key={opportunity.Id}
-                         className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
-                         onClick={() => handleOpportunitySelected(opportunity)}
+                   <>
+                     <div className="flex justify-between items-center mb-4">
+                       <p className="text-sm text-gray-600">
+                         Found {availableOpportunities.length} opportunity{availableOpportunities.length !== 1 ? 'ies' : ''} for {selectedAccount.name}
+                       </p>
+                       <button 
+                         onClick={refreshOpportunities} 
+                         className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                        >
-                         <div className="font-medium text-gray-900">{opportunity.Name}</div>
-                         <div className="text-sm text-gray-600 mt-1">
-                           <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium mr-2">
-                             {opportunity.StageName}
-                           </span>
-                           {opportunity.Amount && (
-                             <span className="text-gray-600">
-                               ${opportunity.Amount.toLocaleString()}
+                         <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                         </svg>
+                         Refresh
+                       </button>
+                     </div>
+                     <div className="space-y-2 max-h-60 overflow-y-auto">
+                       {availableOpportunities.map((opportunity) => (
+                         <div
+                           key={opportunity.Id}
+                           className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                           onClick={() => handleOpportunitySelected(opportunity)}
+                         >
+                           <div className="font-medium text-gray-900">{opportunity.Name}</div>
+                           <div className="text-sm text-gray-600 mt-1">
+                             <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium mr-2">
+                               {opportunity.StageName}
                              </span>
+                             {opportunity.Amount && (
+                               <span className="text-gray-600">
+                                 ${opportunity.Amount.toLocaleString()}
+                               </span>
+                             )}
+                           </div>
+                           {opportunity.CloseDate && (
+                             <div className="text-xs text-gray-600 mt-1">
+                               Close Date: {new Date(opportunity.CloseDate).toLocaleDateString()}
+                             </div>
                            )}
                          </div>
-                         {opportunity.CloseDate && (
-                           <div className="text-xs text-gray-600 mt-1">
-                             Close Date: {new Date(opportunity.CloseDate).toLocaleDateString()}
-                           </div>
-                         )}
-                       </div>
-                     ))}
-                   </div>
+                       ))}
+                     </div>
+                   </>
                  ) : (
                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
                      <p className="text-sm text-yellow-800">
                        No opportunities found for this account. You may need to create opportunities in Salesforce.
                      </p>
+                     <button 
+                       onClick={refreshOpportunities} 
+                       className="mt-2 px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                     >
+                       <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                       </svg>
+                       Refresh
+                     </button>
                    </div>
                  )}
                </div>

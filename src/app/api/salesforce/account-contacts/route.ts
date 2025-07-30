@@ -51,7 +51,10 @@ export async function POST(request: NextRequest) {
     if (!config) {
       console.log('  Error: Salesforce integration is not configured');
       return NextResponse.json(
-        { error: 'Salesforce integration is not configured' },
+        { 
+          error: 'Salesforce integration is not configured',
+          details: 'Please configure Salesforce in the admin panel first. Go to /admin/salesforce to set up your Salesforce credentials.'
+        },
         { status: 400 }
       );
     }
@@ -76,11 +79,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error getting account contacts from Salesforce:', error);
-    console.error('  Error Details:', {
-      name: error instanceof Error ? error.name : 'Unknown',
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : 'No stack trace'
-    });
     return NextResponse.json(
       { error: 'Failed to get account contacts from Salesforce' },
       { status: 500 }
