@@ -55,6 +55,7 @@ export default function CustomerInformationTab({
     if (step === 'contact' && selectedAccount && availableContacts.length === 0) {
       setIsLoadingContacts(true);
       try {
+        console.log('Loading contacts for account:', selectedAccount.id);
         const response = await fetch('/api/salesforce/account-contacts', {
           method: 'POST',
           headers: {
@@ -65,11 +66,20 @@ export default function CustomerInformationTab({
           }),
         });
 
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+
         if (response.ok) {
           const data = await response.json();
+          console.log('Contacts data:', data);
           setAvailableContacts(data.contacts || []);
         } else {
-          console.error('Failed to load contacts');
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          console.error('Failed to load contacts:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorData
+          });
         }
       } catch (error) {
         console.error('Error loading contacts:', error);
