@@ -17,6 +17,7 @@ import ScopeDeliverablesTab from './sow/ScopeDeliverablesTab';
 import TeamRolesTab from './sow/TeamRolesTab';
 import BillingPaymentTab from './sow/BillingPaymentTab';
 import AddendumsTab from './sow/AddendumsTab';
+import { createSalesforceAccountData, createSalesforceContactData, createSalesforceOpportunityData } from '@/types/salesforce';
 
 interface LeanDataSignator {
   id: string;
@@ -292,7 +293,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
 
 
-  const handleCustomerSelectedFromSalesforce = (customerData: {
+  const handleCustomerSelectedFromSalesforce = async (customerData: {
     account: any;
     contacts: any[];
     opportunities: any[];
@@ -323,9 +324,30 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         customer_signature: '',
       },
     });
+
+    // Save Salesforce data to database if we have a SOW ID
+    if (initialData?.id) {
+      try {
+        const accountData = createSalesforceAccountData(account);
+        
+        await fetch(`/api/sow/${initialData.id}/salesforce-data`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            account_data: accountData,
+            contacts_data: contacts.map(contact => createSalesforceContactData(contact)),
+            opportunity_data: opportunities.length > 0 ? createSalesforceOpportunityData(opportunities[0]) : undefined
+          }),
+        });
+      } catch (error) {
+        console.error('Error saving Salesforce data:', error);
+      }
+    }
   };
 
-  const handleContactSelectedFromSalesforce = (contact: SalesforceContact | null) => {
+  const handleContactSelectedFromSalesforce = async (contact: SalesforceContact | null) => {
     setSelectedContact(contact);
     
     if (contact) {
@@ -339,6 +361,25 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           customer_signature: contact.Title || '',
         },
       });
+
+      // Save contact data to database if we have a SOW ID
+      if (initialData?.id) {
+        try {
+          const contactData = createSalesforceContactData(contact, 'primary_poc');
+          
+          await fetch(`/api/sow/${initialData.id}/salesforce-data`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contacts_data: [contactData]
+            }),
+          });
+        } catch (error) {
+          console.error('Error saving contact data:', error);
+        }
+      }
     } else {
       // Clear contact information when POC is deselected
       setFormData({
@@ -361,27 +402,46 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     return `${baseUrl}/${recordId}`;
   };
 
-  const handleOpportunitySelectedFromSalesforce = (opportunity: SalesforceOpportunity | null) => {
+  const handleOpportunitySelectedFromSalesforce = async (opportunity: SalesforceOpportunity | null) => {
     setSelectedOpportunity(opportunity);
     
     if (opportunity) {
       // Store opportunity information in form data
-              setFormData({
-          ...formData,
-          template: {
-            ...formData.template!,
-            // Auto-populate SOW title with opportunity name if it's not already set
-            sow_title: (!formData.template?.sow_title || formData.template.sow_title === 'Statement of Work for LeanData Implementation') 
-              ? `Statement of Work for ${opportunity.Name}` 
-              : formData.template.sow_title,
-            // Store opportunity details
-            opportunity_id: opportunity.Id,
-            opportunity_name: opportunity.Name,
-            opportunity_amount: opportunity.Amount,
-            opportunity_stage: opportunity.StageName,
-            opportunity_close_date: opportunity.CloseDate,
-          },
-        });
+      setFormData({
+        ...formData,
+        template: {
+          ...formData.template!,
+          // Auto-populate SOW title with opportunity name if it's not already set
+          sow_title: (!formData.template?.sow_title || formData.template.sow_title === 'Statement of Work for LeanData Implementation') 
+            ? `Statement of Work for ${opportunity.Name}` 
+            : formData.template.sow_title,
+          // Store opportunity details
+          opportunity_id: opportunity.Id,
+          opportunity_name: opportunity.Name,
+          opportunity_amount: opportunity.Amount,
+          opportunity_stage: opportunity.StageName,
+          opportunity_close_date: opportunity.CloseDate,
+        },
+      });
+
+      // Save opportunity data to database if we have a SOW ID
+      if (initialData?.id) {
+        try {
+          const opportunityData = createSalesforceOpportunityData(opportunity);
+          
+          await fetch(`/api/sow/${initialData.id}/salesforce-data`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              opportunity_data: opportunityData
+            }),
+          });
+        } catch (error) {
+          console.error('Error saving opportunity data:', error);
+        }
+      }
     } else {
       // Clear opportunity information when deselected
       setFormData({
