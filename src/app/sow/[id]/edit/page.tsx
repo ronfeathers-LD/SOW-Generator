@@ -58,7 +58,7 @@ export default function EditSOWPage() {
               lean_data_signature_date: null,
               
               // Project Details
-              products: ['Matching/Routing'],
+              products: [],
               number_of_units: '125',
               regions: '1',
               salesforce_tenants: '2',
@@ -153,9 +153,11 @@ export default function EditSOWPage() {
             custom_intro_content: data.custom_intro_content || null,
             custom_scope_content: data.custom_scope_content || null,
             custom_objectives_disclosure_content: data.custom_objectives_disclosure_content || null,
+            custom_assumptions_content: data.custom_assumptions_content || null,
             intro_content_edited: data.intro_content_edited || false,
             scope_content_edited: data.scope_content_edited || false,
             objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false,
+            assumptions_content_edited: data.assumptions_content_edited || false,
           };
           
           setSOW(transformedData);

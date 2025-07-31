@@ -168,7 +168,9 @@ export interface SOWData {
   custom_intro_content?: string;
   custom_scope_content?: string;
   custom_objectives_disclosure_content?: string;
+  custom_assumptions_content?: string;
   intro_content_edited?: boolean;
   scope_content_edited?: boolean;
   objectives_disclosure_content_edited?: boolean;
+  assumptions_content_edited?: boolean;
 } 

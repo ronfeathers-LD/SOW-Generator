@@ -12,17 +12,11 @@ interface Product {
 interface ProjectOverviewTabProps {
   formData: Partial<SOWData>;
   setFormData: (data: Partial<SOWData>) => void;
-  leanDataSignators: Array<{ id: string; name: string; email: string; title: string }>;
-  selectedLeanDataSignator: string;
-  onLeanDataSignatorChange: (signatorId: string) => void;
 }
 
 export default function ProjectOverviewTab({
   formData,
   setFormData,
-  leanDataSignators,
-  selectedLeanDataSignator,
-  onLeanDataSignatorChange,
 }: ProjectOverviewTabProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -73,7 +67,7 @@ export default function ProjectOverviewTab({
     <section className="space-y-6">
       <h2 className="text-2xl font-bold">Project Overview</h2>
       
-      {/* SOW Title and LeanData Signator - Side by Side */}
+      {/* SOW Title and Project Timeline - Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* SOW Title */}
         <div className="bg-white shadow rounded-lg p-6">
@@ -91,21 +85,48 @@ export default function ProjectOverviewTab({
           />
         </div>
 
-        {/* LeanData Signator */}
+        {/* Project Timeline */}
         <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4">LeanData Signator</h3>
-          <select
-            value={selectedLeanDataSignator}
-            onChange={(e) => onLeanDataSignatorChange(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          >
-            <option value="">Select a LeanData signator</option>
-            {leanDataSignators.map((signator) => (
-              <option key={signator.id} value={signator.id}>
-                {signator.name} - {signator.title}
-              </option>
-            ))}
-          </select>
+          <h3 className="text-lg font-semibold mb-4">Project Timeline</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Start Date</label>
+              <input
+                type="date"
+                value={formData.scope?.timeline?.start_date ? new Date(formData.scope.timeline.start_date).toISOString().split('T')[0] : ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  scope: { 
+                    ...formData.scope!, 
+                    timeline: {
+                      ...formData.scope?.timeline!,
+                      start_date: new Date(e.target.value)
+                    } 
+                  }
+                })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Duration</label>
+              <input
+                type="text"
+                value={formData.scope?.timeline?.duration || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  scope: { 
+                    ...formData.scope!, 
+                    timeline: { 
+                      ...formData.scope?.timeline!, 
+                      duration: e.target.value 
+                    } 
+                  }
+                })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                placeholder="e.g., 8 weeks, 3 months"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -348,49 +369,7 @@ export default function ProjectOverviewTab({
         </div>
       </div>
 
-      {/* Project Timeline */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-4">Project Timeline</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Start Date</label>
-            <input
-              type="date"
-              value={formData.scope?.timeline?.start_date ? new Date(formData.scope.timeline.start_date).toISOString().split('T')[0] : ''}
-              onChange={(e) => setFormData({
-                ...formData,
-                scope: { 
-                  ...formData.scope!, 
-                  timeline: {
-                    ...formData.scope?.timeline!,
-                    start_date: new Date(e.target.value)
-                  } 
-                }
-              })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Duration</label>
-            <input
-              type="text"
-              value={formData.scope?.timeline?.duration || ''}
-              onChange={(e) => setFormData({
-                ...formData,
-                scope: { 
-                  ...formData.scope!, 
-                  timeline: { 
-                    ...formData.scope?.timeline!, 
-                    duration: e.target.value 
-                  } 
-                }
-              })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="e.g., 8 weeks, 3 months"
-            />
-          </div>
-        </div>
-      </div>
+
     </section>
   );
 } 

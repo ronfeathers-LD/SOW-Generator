@@ -76,7 +76,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             lean_data_signature_date: null,
             
             // Project Details
-            products: ['Matching/Routing'],
+            products: [],
             number_of_units: '125',
             regions: '1',
             salesforce_tenants: '2',
@@ -584,11 +584,11 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">
-          {initialData || createdSOWId ? 'Edit SOW' : 'Create New SOW'}
+          {initialData ? 'Edit SOW' : 'Create New SOW'}
         </h1>
-        {(initialData || createdSOWId) && (
+        {initialData && (
           <span className="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full">
-            {initialData || createdSOWId ? 'Edit Mode' : 'Create Mode'}
+            Edit Mode
           </span>
         )}
       </div>
@@ -679,9 +679,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         <ProjectOverviewTab
           formData={formData}
           setFormData={updateFormData}
-          leanDataSignators={leanDataSignators}
-          selectedLeanDataSignator={selectedLeanDataSignator}
-          onLeanDataSignatorChange={handleLeanDataSignatorChange}
         />
       )}
 
@@ -718,6 +715,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         <TeamRolesTab
           formData={formData}
           setFormData={updateFormData}
+          leanDataSignators={leanDataSignators}
+          selectedLeanDataSignator={selectedLeanDataSignator}
+          onLeanDataSignatorChange={handleLeanDataSignatorChange}
         />
       )}
 

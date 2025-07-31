@@ -4,15 +4,46 @@ import { SOWData } from '@/types/sow';
 interface TeamRolesTabProps {
   formData: Partial<SOWData>;
   setFormData: (data: Partial<SOWData>) => void;
+  leanDataSignators: Array<{ id: string; name: string; email: string; title: string }>;
+  selectedLeanDataSignator: string;
+  onLeanDataSignatorChange: (signatorId: string) => void;
 }
 
 export default function TeamRolesTab({
   formData,
   setFormData,
+  leanDataSignators,
+  selectedLeanDataSignator,
+  onLeanDataSignatorChange,
 }: TeamRolesTabProps) {
   return (
     <section className="space-y-6">
       <h2 className="text-2xl font-bold">Team & Roles</h2>
+      
+      {/* LeanData Signator */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <h3 className="text-lg font-semibold mb-4">LeanData Signator</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Select the LeanData representative who will sign this SOW
+        </p>
+        <select
+          value={selectedLeanDataSignator}
+          onChange={(e) => onLeanDataSignatorChange(e.target.value)}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+        >
+          <option value="">Select a signator</option>
+          {leanDataSignators.map((signator) => (
+            <option key={signator.id} value={signator.id}>
+              {signator.name} - {signator.title}
+            </option>
+          ))}
+        </select>
+        {selectedLeanDataSignator && (
+          <div className="mt-2 text-sm text-gray-600">
+            Selected: {leanDataSignators.find(s => s.id === selectedLeanDataSignator)?.name} - {leanDataSignators.find(s => s.id === selectedLeanDataSignator)?.title}
+          </div>
+        )}
+      </div>
       
       {/* Client Roles */}
       <div className="bg-white shadow rounded-lg p-6">

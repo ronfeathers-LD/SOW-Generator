@@ -1,13 +1,21 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function NewSOWPage() {
   const router = useRouter();
+  const isCreating = useRef(false);
 
   useEffect(() => {
     async function createNewSOW() {
+      // Prevent multiple API calls
+      if (isCreating.current) {
+        return;
+      }
+      
+      isCreating.current = true;
+      
       try {
         // Create a new SOW with minimal data
         const response = await fetch('/api/sow', {
@@ -23,7 +31,7 @@ export default function NewSOWPage() {
               lean_data_name: 'Agam Vasani',
               lean_data_title: 'VP Customer Success',
               lean_data_email: 'agam.vasani@leandata.com',
-              products: ['Matching/Routing'],
+              products: [],
               number_of_units: '125',
               regions: '1',
               salesforce_tenants: '2',
@@ -52,12 +60,14 @@ export default function NewSOWPage() {
         router.push(`/sow/${data.id}/edit`);
       } catch (error) {
         console.error('Error creating new SOW:', error);
+        // Reset the flag on error so user can try again
+        isCreating.current = false;
         // You could show an error message here
       }
     }
 
     createNewSOW();
-  }, [router]);
+  }, []); // Remove router dependency since we don't need it
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

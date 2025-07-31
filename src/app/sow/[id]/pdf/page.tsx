@@ -4,6 +4,7 @@ import SOWTitlePage from '@/components/sow/SOWTitlePage';
 import SOWIntroPage from '@/components/sow/SOWIntroPage';
 import SOWScopePage from '@/components/sow/SOWScopePage';
 import SOWObjectivesPage from '@/components/sow/SOWObjectivesPage';
+import SOWAssumptionsPage from '@/components/sow/SOWAssumptionsPage';
 
 interface ClientRole {
   role: string;
@@ -69,9 +70,11 @@ interface SOW {
   custom_intro_content?: string;
   custom_scope_content?: string;
   custom_objectives_disclosure_content?: string;
+  custom_assumptions_content?: string;
   intro_content_edited?: boolean;
   scope_content_edited?: boolean;
   objectives_disclosure_content_edited?: boolean;
+  assumptions_content_edited?: boolean;
 }
 
 export default async function SOWPDFPage({ params }: { params: Promise<{ id: string }> }) {
@@ -98,13 +101,7 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
     ? sow.pricing_roles
     : [];
   const billing = (sow.billing_info || {}) as any;
-  const assumptions = [
-    "LeanData Professional Services will require access to the customer's SFDC's sandbox and production tenants for the configuration of LeanData; and, the customer will be responsible to ensure appropriate access is granted for the duration of the project. Customer will share all Salesforce details pertaining to configurations, including but not limited to: User IDs, fields/values, Queue IDs, Assignment rule IDs, etc.",
-    "For additional requests outside this SOW, LeanData shall work with Customer to determine if an additional SOW is required or determine alternate methods to remedy the request.",
-    "If the Customer requires LeanData to travel to Customer locations, then travel expenses shall be billed separately and not included in the estimate above. All expenses shall be pre-approved by Customer prior to LeanData booking travel itineraries.",
-    "All services described in this SOW, including any training, will be performed remotely from a LeanData office location during normal business hours: Monday through Friday from 9 am to 5 pm PDT.",
-    "Customer will conduct all required testing and communicate to LeanData anything that needs further investigation and/or additional changes to configurations."
-  ];
+
 
   return (
     <div className="min-h-screen bg-white">
@@ -145,7 +142,7 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
             customContent={sow.custom_objectives_disclosure_content}
             isEdited={sow.objectives_disclosure_content_edited}
             projectDetails={{
-              products: sow.products || ['Matching/Routing'],
+              products: sow.products || [],
               number_of_units: sow.number_of_units || '125',
               regions: sow.regions || '1',
               salesforce_tenants: sow.salesforce_tenants || '2',
@@ -255,12 +252,10 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
         {/* Assumptions */}
         <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
           <h2 className="text-3xl font-bold text-center mb-6">ASSUMPTIONS</h2>
-          <p className="mb-4">The following are the assumptions as part of the SOW:</p>
-          <ul className="list-disc pl-6 space-y-2 text-gray-700">
-            {assumptions.map((assumption, idx) => (
-              <li key={idx}>{assumption}</li>
-            ))}
-          </ul>
+          <SOWAssumptionsPage 
+            customContent={sow.custom_assumptions_content}
+            isEdited={sow.assumptions_content_edited}
+          />
         </div>
       </div>
     </div>

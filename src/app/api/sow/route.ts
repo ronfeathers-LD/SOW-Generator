@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     let defaultIntroContent = '';
     let defaultScopeContent = '';
     let defaultObjectivesDisclosureContent = '';
+    let defaultAssumptionsContent = '';
     
     try {
       const introTemplate = await getContentTemplate('intro');
@@ -46,6 +47,13 @@ export async function POST(request: Request) {
       if (objectivesDisclosureTemplate) {
         defaultObjectivesDisclosureContent = objectivesDisclosureTemplate.default_content;
         console.log('🔍 Objectives disclosure content length:', defaultObjectivesDisclosureContent.length);
+      }
+      
+      const assumptionsTemplate = await getContentTemplate('assumptions');
+      console.log('🔍 Assumptions template found:', !!assumptionsTemplate);
+      if (assumptionsTemplate) {
+        defaultAssumptionsContent = assumptionsTemplate.default_content;
+        console.log('🔍 Assumptions content length:', defaultAssumptionsContent.length);
       }
     } catch (templateError) {
       console.warn('Failed to fetch content templates:', templateError);
@@ -112,9 +120,11 @@ export async function POST(request: Request) {
         custom_intro_content: data.custom_intro_content || defaultIntroContent,
         custom_scope_content: data.custom_scope_content || defaultScopeContent,
         custom_objectives_disclosure_content: data.custom_objectives_disclosure_content || defaultObjectivesDisclosureContent,
+        custom_assumptions_content: data.custom_assumptions_content || defaultAssumptionsContent,
         intro_content_edited: data.intro_content_edited || false,
         scope_content_edited: data.scope_content_edited || false,
         objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false,
+        assumptions_content_edited: data.assumptions_content_edited || false,
       })
       .select()
       .single();

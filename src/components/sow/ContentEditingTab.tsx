@@ -14,6 +14,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
   const [introTemplate, setIntroTemplate] = useState<string>('');
   const [scopeTemplate, setScopeTemplate] = useState<string>('');
   const [objectivesDisclosureTemplate, setObjectivesDisclosureTemplate] = useState<string>('');
+  const [assumptionsTemplate, setAssumptionsTemplate] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,6 +35,11 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
         if (objectivesDisclosure) {
           setObjectivesDisclosureTemplate(objectivesDisclosure.default_content);
         }
+
+        const assumptions = await getContentTemplate('assumptions');
+        if (assumptions) {
+          setAssumptionsTemplate(assumptions.default_content);
+        }
       } catch (error) {
         console.error('Error loading templates:', error);
       } finally {
@@ -47,55 +53,73 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
   const handleIntroContentChange = (content: string) => {
     // Check if content has been edited from the original template
     const isEdited = content !== introTemplate && content.trim() !== '';
-    setFormData(prevData => ({
-      ...prevData,
+    setFormData({
+      ...formData,
       custom_intro_content: content,
       intro_content_edited: isEdited
-    }));
+    });
   };
 
   const handleScopeContentChange = (content: string) => {
     // Check if content has been edited from the original template
     const isEdited = content !== scopeTemplate && content.trim() !== '';
-    setFormData(prevData => ({
-      ...prevData,
+    setFormData({
+      ...formData,
       custom_scope_content: content,
       scope_content_edited: isEdited
-    }));
+    });
   };
 
   const handleObjectivesDisclosureContentChange = (content: string) => {
     // Check if content has been edited from the original template
     const isEdited = content !== objectivesDisclosureTemplate && content.trim() !== '';
-    setFormData(prevData => ({
-      ...prevData,
+    setFormData({
+      ...formData,
       custom_objectives_disclosure_content: content,
       objectives_disclosure_content_edited: isEdited
-    }));
+    });
   };
 
   const resetIntroContent = () => {
-    setFormData(prevData => ({
-      ...prevData,
+    setFormData({
+      ...formData,
       custom_intro_content: introTemplate,
       intro_content_edited: false
-    }));
+    });
   };
 
   const resetScopeContent = () => {
-    setFormData(prevData => ({
-      ...prevData,
+    setFormData({
+      ...formData,
       custom_scope_content: scopeTemplate,
       scope_content_edited: false
-    }));
+    });
   };
 
   const resetObjectivesDisclosureContent = () => {
-    setFormData(prevData => ({
-      ...prevData,
+    setFormData({
+      ...formData,
       custom_objectives_disclosure_content: objectivesDisclosureTemplate,
       objectives_disclosure_content_edited: false
-    }));
+    });
+  };
+
+  const handleAssumptionsContentChange = (content: string) => {
+    // Check if content has been edited from the original template
+    const isEdited = content !== assumptionsTemplate && content.trim() !== '';
+    setFormData({
+      ...formData,
+      custom_assumptions_content: content,
+      assumptions_content_edited: isEdited
+    });
+  };
+
+  const resetAssumptionsContent = () => {
+    setFormData({
+      ...formData,
+      custom_assumptions_content: assumptionsTemplate,
+      assumptions_content_edited: false
+    });
   };
 
   if (loading) {
@@ -232,6 +256,49 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
         </div>
 
         {formData.objectives_disclosure_content_edited && (
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p className="text-sm text-yellow-800">
+              <strong>Note:</strong> This content has been customized from the default template and will be flagged during approval.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Assumptions Section */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Assumptions Section</h3>
+          {formData.assumptions_content_edited && (
+            <div className="flex items-center space-x-2">
+              <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                Customized
+              </span>
+              <button
+                type="button"
+                onClick={resetAssumptionsContent}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Reset to Default
+              </button>
+            </div>
+          )}
+        </div>
+        
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Assumptions Content
+          </label>
+          <RichTextEditor
+            value={formData.custom_assumptions_content || ''}
+            onChange={handleAssumptionsContentChange}
+            placeholder="Enter the assumptions content for this SOW..."
+          />
+          <p className="mt-2 text-sm text-gray-500">
+            This content outlines the assumptions and requirements for the project.
+          </p>
+        </div>
+
+        {formData.assumptions_content_edited && (
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
             <p className="text-sm text-yellow-800">
               <strong>Note:</strong> This content has been customized from the default template and will be flagged during approval.

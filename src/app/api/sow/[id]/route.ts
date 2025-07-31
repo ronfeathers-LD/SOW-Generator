@@ -30,7 +30,7 @@ export async function GET(
       `)
       .eq('sow_id', sow.id);
 
-    const productNames = sowProducts?.map(sp => (sp.products as any)?.name).filter(Boolean) || ['Matching/Routing'];
+    const productNames = sowProducts?.map(sp => (sp.products as any)?.name).filter(Boolean) || [];
 
     // Return snake_case data directly with nested structure
     const transformedSow = {
@@ -88,9 +88,11 @@ export async function GET(
       custom_intro_content: sow.custom_intro_content || null,
       custom_scope_content: sow.custom_scope_content || null,
       custom_objectives_disclosure_content: sow.custom_objectives_disclosure_content || null,
+      custom_assumptions_content: sow.custom_assumptions_content || null,
       intro_content_edited: sow.intro_content_edited || false,
       scope_content_edited: sow.scope_content_edited || false,
       objectives_disclosure_content_edited: sow.objectives_disclosure_content_edited || false,
+      assumptions_content_edited: sow.assumptions_content_edited || false,
     };
 
     return NextResponse.json(transformedSow);
@@ -282,9 +284,11 @@ export async function PUT(
     if (data.custom_intro_content !== undefined) updateData.custom_intro_content = data.custom_intro_content;
     if (data.custom_scope_content !== undefined) updateData.custom_scope_content = data.custom_scope_content;
     if (data.custom_objectives_disclosure_content !== undefined) updateData.custom_objectives_disclosure_content = data.custom_objectives_disclosure_content;
+    if (data.custom_assumptions_content !== undefined) updateData.custom_assumptions_content = data.custom_assumptions_content;
     if (data.intro_content_edited !== undefined) updateData.intro_content_edited = data.intro_content_edited;
     if (data.scope_content_edited !== undefined) updateData.scope_content_edited = data.scope_content_edited;
     if (data.objectives_disclosure_content_edited !== undefined) updateData.objectives_disclosure_content_edited = data.objectives_disclosure_content_edited;
+    if (data.assumptions_content_edited !== undefined) updateData.assumptions_content_edited = data.assumptions_content_edited;
 
 
     
