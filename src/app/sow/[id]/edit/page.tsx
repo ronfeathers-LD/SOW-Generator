@@ -49,11 +49,14 @@ export default function EditSOWPage() {
               lean_data_signature_date: null,
               
               // Project Details
-              products: 'Matching/Routing',
+              products: ['Matching/Routing'],
               number_of_units: '125',
               regions: '1',
               salesforce_tenants: '2',
               timeline_weeks: '8',
+              start_date: null,
+              end_date: null,
+              units_consumption: 'All units immediately',
               
               // Billing Information
               billing_company_name: '',

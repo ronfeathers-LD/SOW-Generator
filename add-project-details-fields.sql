@@ -1,0 +1,9 @@
+-- Add project details fields to sows table
+ALTER TABLE sows ADD COLUMN IF NOT EXISTS products JSONB DEFAULT '["Matching/Routing"]';
+ALTER TABLE sows ADD COLUMN IF NOT EXISTS number_of_units TEXT DEFAULT '125';
+ALTER TABLE sows ADD COLUMN IF NOT EXISTS regions TEXT DEFAULT '1';
+ALTER TABLE sows ADD COLUMN IF NOT EXISTS salesforce_tenants TEXT DEFAULT '2';
+ALTER TABLE sows ADD COLUMN IF NOT EXISTS timeline_weeks TEXT DEFAULT '8';
+ALTER TABLE sows ADD COLUMN IF NOT EXISTS project_start_date TIMESTAMP WITH TIME ZONE;
+ALTER TABLE sows ADD COLUMN IF NOT EXISTS project_end_date TIMESTAMP WITH TIME ZONE;
+ALTER TABLE sows ADD COLUMN IF NOT EXISTS units_consumption TEXT DEFAULT 'All units immediately'; 

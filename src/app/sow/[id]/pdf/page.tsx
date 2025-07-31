@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import SOWTitlePage from '@/components/sow/SOWTitlePage';
 import SOWIntroPage from '@/components/sow/SOWIntroPage';
 import SOWScopePage from '@/components/sow/SOWScopePage';
+import SOWObjectivesPage from '@/components/sow/SOWObjectivesPage';
 
 interface ClientRole {
   role: string;
@@ -54,6 +55,15 @@ interface SOW {
   leandata_title: string;
   leandata_email: string;
   clientSignerName: string;
+  // Project Details
+  products?: string[];
+  number_of_units?: string;
+  regions?: string;
+  salesforce_tenants?: string;
+  timeline_weeks?: string;
+  project_start_date?: string;
+  project_end_date?: string;
+  units_consumption?: string;
 }
 
 export default async function SOWPDFPage({ params }: { params: Promise<{ id: string }> }) {
@@ -110,8 +120,27 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
 
         {/* Introduction */}
         <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
-          <h2 className="text-3xl font-bold text-center mb-6">INTRODUCTION</h2>
+          <h2 className="text-3xl font-bold text-center mb-6">LEANDATA, INC. STATEMENT OF WORK</h2>
           <SOWIntroPage clientName={sow.client_name} />
+        </div>
+
+        {/* Objectives */}
+        <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+          <h2 className="text-3xl font-bold text-center mb-6">OBJECTIVES</h2>
+          <SOWObjectivesPage 
+            deliverables={deliverables} 
+            keyObjectives={sow.key_objectives || []}
+            projectDetails={{
+              products: sow.products || ['Matching/Routing'],
+              number_of_units: sow.number_of_units || '125',
+              regions: sow.regions || '1',
+              salesforce_tenants: sow.salesforce_tenants || '2',
+              timeline_weeks: sow.timeline_weeks || '8',
+              start_date: sow.project_start_date ? new Date(sow.project_start_date) : new Date(sow.start_date),
+              end_date: sow.project_end_date ? new Date(sow.project_end_date) : null,
+              units_consumption: sow.units_consumption || 'All units immediately'
+            }}
+          />
         </div>
 
         {/* Scope */}

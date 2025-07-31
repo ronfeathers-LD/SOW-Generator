@@ -211,29 +211,16 @@ export default function ObjectivesTab({
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-2xl font-bold mb-6">Project Objectives & Scope</h2>
         
-        {/* Avoma Integration - URL Input */}
+        {/* Customer Name and Avoma URL Section */}
         <div className="mb-8">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900">Fetch from Avoma</h3>
+          <h3 className="text-lg font-semibold mb-4 text-gray-900">Customer & Avoma Integration</h3>
           <p className="text-sm text-gray-600 mb-4">
             Enter an Avoma meeting URL to automatically fetch the transcription and generate objectives.
           </p>
           
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-2">Avoma Meeting URL</h4>
-                <p className="text-sm text-gray-600 mb-2">
-                  Paste the URL from your Avoma meeting (e.g., https://app.avoma.com/meetings/...)
-                </p>
-                <input
-                  type="url"
-                  value={formData.objectives?.avoma_url || ''}
-                  onChange={(e) => handleAvomaUrlChange(e.target.value)}
-                  placeholder="https://app.avoma.com/meetings/..."
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              
+              {/* Left Column - Customer Name */}
               <div>
                 <h4 className="text-lg font-medium text-gray-900 mb-2">Customer Name</h4>
                 <p className="text-sm text-gray-600 mb-2">
@@ -247,6 +234,36 @@ export default function ObjectivesTab({
                   className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
                   disabled
                 />
+              </div>
+              
+              {/* Right Column - Avoma URL with Search Link */}
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 mb-2">Avoma Meeting URL</h4>
+                <p className="text-sm text-gray-600 mb-2">
+                  Paste the URL from your Avoma meeting or search for meetings
+                </p>
+                <div className="space-y-2">
+                  <input
+                    type="url"
+                    value={formData.objectives?.avoma_url || ''}
+                    onChange={(e) => handleAvomaUrlChange(e.target.value)}
+                    placeholder="https://app.avoma.com/meetings/..."
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                  {customerName && (
+                    <a
+                      href={`https://app.avoma.com/search?q=${customerName.split(' ').join('%2C')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      Search Avoma for "{customerName}" meetings
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
             

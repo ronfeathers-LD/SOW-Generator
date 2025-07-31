@@ -19,6 +19,19 @@ export async function GET(
       );
     }
 
+    // Fetch products for this SOW
+    const { data: sowProducts, error: productsError } = await supabase
+      .from('sow_products')
+      .select(`
+        product_id,
+        products (
+          name
+        )
+      `)
+      .eq('sow_id', sow.id);
+
+    const productNames = sowProducts?.map(sp => (sp.products as any)?.name).filter(Boolean) || ['Matching/Routing'];
+
     // Return snake_case data directly with nested structure
     const transformedSow = {
       ...sow,
@@ -43,6 +56,14 @@ export async function GET(
         lean_data_name: sow.leandata_name || '',
         lean_data_title: sow.leandata_title || '',
         lean_data_email: sow.leandata_email || '',
+        products: productNames,
+        number_of_units: sow.number_of_units || '125',
+        regions: sow.regions || '1',
+        salesforce_tenants: sow.salesforce_tenants || '2',
+        timeline_weeks: sow.timeline_weeks || '8',
+        start_date: sow.project_start_date ? new Date(sow.project_start_date) : null,
+        end_date: sow.project_end_date ? new Date(sow.project_end_date) : null,
+        units_consumption: sow.units_consumption || 'All units immediately',
         opportunity_id: sow.opportunity_id || '',
         opportunity_name: sow.opportunity_name || '',
         opportunity_amount: sow.opportunity_amount || undefined,
@@ -230,6 +251,17 @@ export async function PUT(
     
 
     
+    // Project Details Information
+    if (data.template) {
+      if (data.template.number_of_units !== undefined) updateData.number_of_units = data.template.number_of_units;
+      if (data.template.regions !== undefined) updateData.regions = data.template.regions;
+      if (data.template.salesforce_tenants !== undefined) updateData.salesforce_tenants = data.template.salesforce_tenants;
+      if (data.template.timeline_weeks !== undefined) updateData.timeline_weeks = data.template.timeline_weeks;
+      if (data.template.start_date !== undefined) updateData.project_start_date = data.template.start_date ? new Date(data.template.start_date).toISOString() : null;
+      if (data.template.end_date !== undefined) updateData.project_end_date = data.template.end_date ? new Date(data.template.end_date).toISOString() : null;
+      if (data.template.units_consumption !== undefined) updateData.units_consumption = data.template.units_consumption;
+    }
+
     // Salesforce Opportunity Information
     if (data.template) {
       if (data.template.opportunity_id !== undefined) updateData.opportunity_id = data.template.opportunity_id || null;
@@ -256,6 +288,58 @@ export async function PUT(
         { error: 'Failed to update SOW', details: updateError.message },
         { status: 500 }
       );
+    }
+
+    // Handle products if provided
+    if (data.template?.products !== undefined) {
+      const sowId = (await params).id;
+      
+      console.log('🔍 Processing products:', data.template.products);
+      
+      // Delete existing product associations
+      const { error: deleteError } = await supabase
+        .from('sow_products')
+        .delete()
+        .eq('sow_id', sowId);
+
+      if (deleteError) {
+        console.error('Error deleting existing products:', deleteError);
+      }
+
+      // Get product IDs for the provided product names
+      if (data.template.products.length > 0) {
+        const { data: productIds, error: productError } = await supabase
+          .from('products')
+          .select('id, name')
+          .in('name', data.template.products);
+
+        if (productError) {
+          console.error('Error fetching product IDs:', productError);
+          console.error('Requested product names:', data.template.products);
+        } else {
+          console.log('🔍 Found product IDs:', productIds);
+          
+          if (productIds && productIds.length > 0) {
+            // Insert new product associations
+            const sowProductData = productIds.map(product => ({
+              sow_id: sowId,
+              product_id: product.id
+            }));
+
+            const { error: insertError } = await supabase
+              .from('sow_products')
+              .insert(sowProductData);
+
+            if (insertError) {
+              console.error('Error inserting product associations:', insertError);
+            } else {
+              console.log('🔍 Successfully inserted product associations');
+            }
+          } else {
+            console.warn('🔍 No product IDs found for names:', data.template.products);
+          }
+        }
+      }
     }
 
     console.log('🔍 Updated SOW response:', updatedSOW);

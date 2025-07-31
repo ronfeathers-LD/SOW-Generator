@@ -67,6 +67,15 @@ interface SOW {
   };
   clientSignerName?: string;
   salesforceAccountId?: string;
+  // Project Details
+  products?: string[];
+  number_of_units?: string;
+  regions?: string;
+  salesforce_tenants?: string;
+  timeline_weeks?: string;
+  project_start_date?: string;
+  project_end_date?: string;
+  units_consumption?: string;
 }
 
 interface SOWVersion {
@@ -495,7 +504,7 @@ export default function SOWDetailsPage() {
               <div className="border-2 border-green-300 rounded-lg p-4 mb-8">
                 <h3 className="text-lg font-bold text-green-800 mb-4 text-center">📋 INTRODUCTION SECTION</h3>
                 <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
-                  <h2 className="text-3xl font-bold text-center mb-6">INTRODUCTION</h2>
+                  <h2 className="text-3xl font-bold text-center mb-6">LEANDATA, INC. STATEMENT OF WORK</h2>
                   <SOWIntroPage clientName={salesforceData?.account_data?.name || sow.clientName} />
                 </div>
               </div>
@@ -505,7 +514,20 @@ export default function SOWDetailsPage() {
                 <h3 className="text-lg font-bold text-indigo-800 mb-4 text-center">🎯 OBJECTIVES SECTION</h3>
                 <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold text-center mb-6">OBJECTIVES</h2>
-                  <SOWObjectivesPage deliverables={sow.deliverables} keyObjectives={sow.keyObjectives} />
+                  <SOWObjectivesPage 
+                    deliverables={sow.deliverables} 
+                    keyObjectives={sow.keyObjectives}
+                    projectDetails={{
+                      products: sow.products || ['Matching/Routing'],
+                      number_of_units: sow.number_of_units || '125',
+                      regions: sow.regions || '1',
+                      salesforce_tenants: sow.salesforce_tenants || '2',
+                      timeline_weeks: sow.timeline_weeks || '8',
+                      start_date: sow.project_start_date ? new Date(sow.project_start_date) : new Date(sow.startDate),
+                      end_date: sow.project_end_date ? new Date(sow.project_end_date) : null,
+                      units_consumption: sow.units_consumption || 'All units immediately'
+                    }}
+                  />
                 </div>
               </div>
 

@@ -212,7 +212,21 @@ Please provide a professional, 2-3 sentence project description that captures th
     transcript: string,
     customerName: string
   ): Promise<TranscriptionAnalysisResponse> {
-    const prompt = `
+    // Fetch the AI prompt from the database
+    const { supabase } = await import('@/lib/supabase');
+    
+    const { data: aiPrompt, error: promptError } = await supabase
+      .from('ai_prompts')
+      .select('prompt_content')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .limit(1)
+      .single();
+
+    if (promptError || !aiPrompt?.prompt_content) {
+      console.warn('Failed to fetch AI prompt from database, using fallback prompt');
+      // Fallback to the original hardcoded prompt
+      const fallbackPrompt = `
 You are an expert at analyzing sales call transcripts and extracting key information for Statement of Work (SOW) documents.
 
 Please analyze the following call transcript between LeanData and ${customerName} and provide:
@@ -248,6 +262,25 @@ Guidelines:
 - Do not use markdown code blocks
 - Ensure the JSON is valid and parseable
 `;
+      return this.executePrompt(fallbackPrompt, transcript, customerName);
+    }
+
+    // Use the prompt from the database, replacing placeholders
+    const prompt = aiPrompt.prompt_content
+      .replace(/\{customerName\}/g, customerName)
+      .replace(/\{transcription\}/g, transcript);
+
+    return this.executePrompt(prompt, transcript, customerName);
+  }
+
+  /**
+   * Execute a prompt and parse the response
+   */
+  private async executePrompt(
+    prompt: string,
+    transcript: string,
+    customerName: string
+  ): Promise<TranscriptionAnalysisResponse> {
 
     try {
       const result = await this.model.generateContent(prompt);

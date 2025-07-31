@@ -39,11 +39,14 @@ export interface SOWTemplate {
   lean_data_signature_date: Date | null;
   
   // Project Details
-  products: string;
+  products: string[];
   number_of_units: string;
   regions: string;
   salesforce_tenants: string;
   timeline_weeks: string;
+  start_date: Date | null;
+  end_date: Date | null;
+  units_consumption: string;
   
   // Billing Information
   billing_company_name: string;
