@@ -116,9 +116,9 @@ export async function GET() {
     // Return snake_case data directly
     const transformedSows = sows.map(sow => ({
       ...sow,
-      created_at: sow.created_at ? new Date(sow.created_at) : new Date(),
-      updated_at: sow.updated_at ? new Date(sow.updated_at) : new Date(),
-      start_date: sow.start_date && sow.start_date !== '1970-01-01T00:00:00.000Z' ? new Date(sow.start_date) : null,
+      created_at: sow.created_at ? new Date(sow.created_at).toISOString() : new Date().toISOString(),
+      updated_at: sow.updated_at ? new Date(sow.updated_at).toISOString() : new Date().toISOString(),
+      start_date: sow.start_date && sow.start_date !== '1970-01-01T00:00:00.000Z' ? new Date(sow.start_date).toISOString() : null,
     }));
 
     return NextResponse.json(transformedSows);

@@ -22,15 +22,26 @@ export default function SOWListPage() {
   useEffect(() => {
     const fetchSOWs = async () => {
       try {
+        console.log('Fetching SOWs...');
         const response = await fetch('/api/sow');
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+        
         if (!response.ok) {
-          throw new Error('Failed to fetch SOWs');
+          const errorText = await response.text();
+          console.error('Response error text:', errorText);
+          throw new Error(`Failed to fetch SOWs: ${response.status} ${errorText}`);
         }
+        
         const data = await response.json();
+        console.log('SOWs data received:', data);
+        console.log('Data length:', data.length);
         setSows(data);
       } catch (err) {
+        console.error('Error fetching SOWs:', err);
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
+        console.log('Setting loading to false');
         setLoading(false);
       }
     };
@@ -62,6 +73,8 @@ export default function SOWListPage() {
     }
   };
 
+  console.log('Component render - loading:', loading, 'error:', error, 'sows length:', sows?.length);
+  
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-8">
@@ -129,48 +142,77 @@ export default function SOWListPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
-                    {sows.map((sow) => (
-                      <tr key={sow.id}>
-                        <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                          {sow.client_name || 'N/A'}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {sow.sow_title || 'N/A'}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {sow.start_date && sow.start_date !== '1970-01-01T00:00:00.000Z' ? new Date(sow.start_date).toLocaleDateString() : 'N/A'}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {sow.status}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {sow.created_at ? new Date(sow.created_at).toLocaleDateString() : 'N/A'} {sow.created_at ? new Date(sow.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}
-                        </td>
-                        <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                          <div className="flex justify-end space-x-2">
-                            <Link
-                              href={`/sow/${sow.id}`}
-                              className="text-indigo-600 hover:text-indigo-900"
-                            >
-                              View
-                            </Link>
-                            <Link
-                              href={`/sow/${sow.id}/edit`}
-                              className="text-green-600 hover:text-green-900"
-                            >
-                              Edit
-                            </Link>
-                            <button
-                              onClick={() => handleDelete(sow.id)}
-                              disabled={deletingId === sow.id}
-                              className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {deletingId === sow.id ? 'Deleting...' : 'Delete'}
-                            </button>
-                          </div>
+                    {sows && sows.length > 0 ? (
+                      sows.map((sow) => (
+                        <tr key={sow.id}>
+                          <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                            {sow.client_name || 'N/A'}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {sow.sow_title || 'N/A'}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {(() => {
+                              try {
+                                if (sow.start_date && sow.start_date !== '1970-01-01T00:00:00.000Z') {
+                                  return new Date(sow.start_date).toLocaleDateString();
+                                }
+                                return 'N/A';
+                              } catch (error) {
+                                console.error('Error parsing start_date:', error, sow.start_date);
+                                return 'N/A';
+                              }
+                            })()}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {sow.status}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {(() => {
+                              try {
+                                if (sow.created_at) {
+                                  const date = new Date(sow.created_at);
+                                  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+                                }
+                                return 'N/A';
+                              } catch (error) {
+                                console.error('Error parsing created_at:', error, sow.created_at);
+                                return 'N/A';
+                              }
+                            })()}
+                          </td>
+                          <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                            <div className="flex justify-end space-x-2">
+                              <Link
+                                href={`/sow/${sow.id}`}
+                                className="text-indigo-600 hover:text-indigo-900"
+                              >
+                                View
+                              </Link>
+                              <Link
+                                href={`/sow/${sow.id}/edit`}
+                                className="text-green-600 hover:text-green-900"
+                              >
+                                Edit
+                              </Link>
+                              <button
+                                onClick={() => handleDelete(sow.id)}
+                                disabled={deletingId === sow.id}
+                                className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {deletingId === sow.id ? 'Deleting...' : 'Delete'}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
+                          No SOWs found
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>

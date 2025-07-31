@@ -13,6 +13,13 @@ interface GeminiConfig {
   lastError?: string;
 }
 
+const AVAILABLE_MODELS = [
+  { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Fastest)', description: 'Fastest model, commonly overloaded' },
+  { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (Recommended)', description: 'More capable, often less load' },
+  { value: 'gemini-1.0-pro', label: 'Gemini 1.0 Pro (Fallback)', description: 'Older model, usually available' },
+  { value: 'gemini-pro', label: 'Gemini Pro (Legacy)', description: 'Legacy model, most reliable' }
+];
+
 export default function GeminiAdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -22,6 +29,7 @@ export default function GeminiAdminPage() {
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [apiKey, setApiKey] = useState('');
+  const [selectedModel, setSelectedModel] = useState('gemini-1.5-pro');
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -41,6 +49,7 @@ export default function GeminiAdminPage() {
         const data = await response.json();
         setConfig(data);
         setApiKey(data.apiKey || '');
+        setSelectedModel(data.modelName || 'gemini-1.5-pro');
       }
     } catch (error) {
       console.error('Error fetching Gemini config:', error);
@@ -59,7 +68,7 @@ export default function GeminiAdminPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ apiKey }),
+        body: JSON.stringify({ apiKey, modelName: selectedModel }),
       });
 
       if (response.ok) {
@@ -89,6 +98,7 @@ export default function GeminiAdminPage() {
                     },
                     body: JSON.stringify({ 
                       apiKey,
+                      modelName: selectedModel,
                       useFormData: true // Test with the form data instead of stored config
                     }),
                   });
@@ -158,6 +168,27 @@ export default function GeminiAdminPage() {
                     >
                       Google AI Studio
                     </a>
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="modelName" className="block text-sm font-medium text-gray-700 mb-2">
+                    AI Model
+                  </label>
+                  <select
+                    id="modelName"
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  >
+                    {AVAILABLE_MODELS.map((model) => (
+                      <option key={model.value} value={model.value}>
+                        {model.label} - {model.description}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Choose a model. If one is overloaded, try a different one.
                   </p>
                 </div>
 

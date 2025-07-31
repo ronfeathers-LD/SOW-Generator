@@ -24,9 +24,10 @@ export async function GET() {
       });
     }
 
-    // Return the config with masked API key for security
+    // Return the actual API key for admin panel (it's secure since this is admin-only)
     return NextResponse.json({ 
-      apiKey: config.api_key ? '••••••••••••••••' : '',
+      apiKey: config.api_key || '',
+      modelName: config.model_name || 'gemini-1.5-flash',
       isConfigured: true 
     });
   } catch (error) {
@@ -46,15 +47,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { apiKey, modelName, isActive } = body;
 
+    console.log('🔍 Saving Gemini config:', {
+      hasApiKey: !!apiKey,
+      apiKeyLength: apiKey?.length,
+      modelName: modelName
+    });
+
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });
     }
 
     // Deactivate any existing configurations
-    await supabase
+    const deactivateResult = await supabase
       .from('gemini_configs')
       .update({ is_active: false })
       .eq('is_active', true);
+
+    console.log('🔍 Deactivated existing configs:', deactivateResult);
 
     // Create new configuration
     const { data: config, error } = await supabase
@@ -68,9 +77,23 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Supabase error:', error);
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      console.error('🔍 Supabase error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      return NextResponse.json({ 
+        error: 'Database error: ' + error.message,
+        details: error.details 
+      }, { status: 500 });
     }
+
+    console.log('🔍 Successfully created config:', { 
+      id: config.id,
+      modelName: config.model_name,
+      isActive: config.is_active
+    });
 
     // Don't return the actual API key in the response
     const { api_key, ...safeConfig } = config;
@@ -80,8 +103,10 @@ export async function POST(request: NextRequest) {
       isConfigured: true 
     });
   } catch (error) {
-    console.error('Error creating Gemini config:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('🔍 Error creating Gemini config:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error: ' + (error instanceof Error ? error.message : 'Unknown error')
+    }, { status: 500 });
   }
 }
 

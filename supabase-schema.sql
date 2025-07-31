@@ -41,7 +41,8 @@ CREATE TABLE IF NOT EXISTS sows (
   project_description TEXT DEFAULT '',
   objectives_description TEXT DEFAULT '',
   objectives_key_objectives JSONB DEFAULT '[]',
-  avoma_transcription TEXT DEFAULT ''
+  avoma_transcription TEXT DEFAULT '',
+  avoma_url TEXT DEFAULT ''
 );
 
 -- Create users table

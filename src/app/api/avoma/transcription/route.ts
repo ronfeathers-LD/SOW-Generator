@@ -1,38 +1,112 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { AvomaClient, getAvomaConfig } from '@/lib/avoma';
 
-const API_KEY = process.env.AVOMA_API_KEY;
+interface AvomaTranscriptionResponse {
+  speakers: Array<{
+    email: string;
+    id: number;
+    is_rep: boolean;
+    name: string;
+  }>;
+  transcript: Array<{
+    speaker_id: number;
+    timestamps: number[];
+    transcript: string;
+  }>;
+  transcription_vtt_url: string;
+  uuid: string;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { meetingUuid } = await request.json();
+    const { meetingUuid, avomaUrl } = await request.json();
 
-    if (!meetingUuid) {
+    // Get Avoma configuration from database
+    const avomaConfig = await getAvomaConfig();
+    
+    if (!avomaConfig) {
+      return NextResponse.json(
+        { error: 'Avoma integration is not configured. Please contact your administrator.' },
+        { status: 503 }
+      );
+    }
+
+    if (!avomaConfig.is_active) {
+      return NextResponse.json(
+        { error: 'Avoma integration is currently disabled. Please contact your administrator.' },
+        { status: 503 }
+      );
+    }
+
+    let uuid = meetingUuid;
+
+    // If avomaUrl is provided, extract the UUID from it
+    if (avomaUrl && !uuid) {
+      const urlMatch = avomaUrl.match(/\/meetings\/([a-f0-9-]+)/);
+      if (urlMatch) {
+        uuid = urlMatch[1];
+      } else {
+        return NextResponse.json({ error: 'Invalid Avoma URL format' }, { status: 400 });
+      }
+    }
+
+    if (!uuid) {
       return NextResponse.json({ error: 'Meeting UUID is required' }, { status: 400 });
     }
 
-    if (!API_KEY) {
-      return NextResponse.json({ error: 'Avoma API key not configured' }, { status: 500 });
-    }
+    // Initialize Avoma client
+    const avomaClient = new AvomaClient(avomaConfig.api_key, avomaConfig.api_url);
 
-    // Get the meeting details
-    const meetingResponse = await fetch(`https://api.avoma.com/v1/meetings/${meetingUuid}/`, {
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!meetingResponse.ok) {
-      if (meetingResponse.status === 404) {
-        return NextResponse.json({ error: 'Meeting not found' }, { status: 404 });
+    try {
+      // First, get the meeting details to check if transcript is ready
+      const meeting = await avomaClient.getMeeting(uuid);
+      
+      if (!meeting.transcript_ready) {
+        return NextResponse.json({
+          error: 'Transcript is not ready for this meeting',
+          meeting: {
+            subject: meeting.subject,
+            start_at: meeting.start_at,
+            attendees: meeting.attendees?.map((a: any) => a.name).join(', '),
+            transcript_ready: meeting.transcript_ready,
+            duration: meeting.duration ? Math.round(meeting.duration / 60) : null
+          }
+        }, { status: 400 });
       }
-      throw new Error(`Failed to fetch meeting: ${meetingResponse.statusText}`);
-    }
 
-    const meeting = await meetingResponse.json();
+      // Try to get the transcript content using the transcriptions endpoint
+      let transcriptContent = '';
+      let speakers: any[] = [];
+      
+      try {
+        // Check if we have a specific transcription UUID
+        const transcriptUuid = meeting.transcription_uuid || uuid;
+        
+        // Use the new client method for meeting transcripts
+        const transcriptResult = await avomaClient.getMeetingTranscriptText(transcriptUuid);
+        
+        transcriptContent = transcriptResult.text;
+        speakers = transcriptResult.speakers;
+        
+      } catch (transcriptError) {
+        console.error('🔍 Meeting transcript endpoint failed:', transcriptError);
+      }
 
-    // Provide clear instructions for accessing transcription
-    const transcriptionInstructions = `To access the transcription for this meeting:
+      // If we couldn't get the transcript content, try the old method as fallback
+      if (!transcriptContent) {
+        try {
+          // Try using the call transcript endpoint if we have a call ID
+          if (meeting.id) {
+            transcriptContent = await avomaClient.getCallTranscriptText(meeting.id);
+          }
+        } catch (fallbackError) {
+          console.error('🔍 Fallback transcript method also failed:', fallbackError);
+        }
+      }
+
+      // If we still couldn't get the transcript content, provide instructions
+      if (!transcriptContent) {
+        const transcriptionInstructions = `To access the transcription for this meeting:
 
 1. Visit the meeting URL: ${meeting.url}
 2. Log in to your Avoma account if prompted
@@ -42,21 +116,47 @@ export async function POST(request: NextRequest) {
 
 Note: The Avoma API does not provide direct access to transcription content. You'll need to manually copy the transcription from the web interface.`;
 
-    return NextResponse.json({
-      transcription: transcriptionInstructions,
-      meeting: {
-        subject: meeting.subject,
-        start_at: meeting.start_at,
-        attendees: meeting.attendees?.map((a: any) => a.name).join(', '),
-        transcript_ready: meeting.transcript_ready,
-        duration: meeting.duration ? Math.round(meeting.duration / 60) : null
+        return NextResponse.json({
+          transcription: transcriptionInstructions,
+          meeting: {
+            subject: meeting.subject,
+            start_at: meeting.start_at,
+            attendees: meeting.attendees?.map((a: any) => a.name).join(', '),
+            transcript_ready: meeting.transcript_ready,
+            duration: meeting.duration ? Math.round(meeting.duration / 60) : null,
+            url: meeting.url
+          }
+        });
       }
-    });
+
+      // Return the actual transcript content with speaker information
+      return NextResponse.json({
+        transcription: transcriptContent,
+        speakers: speakers,
+        meeting: {
+          subject: meeting.subject,
+          start_at: meeting.start_at,
+          attendees: meeting.attendees?.map((a: any) => a.name).join(', '),
+          transcript_ready: meeting.transcript_ready,
+          duration: meeting.duration ? Math.round(meeting.duration / 60) : null,
+          url: meeting.url
+        }
+      });
+
+    } catch (meetingError) {
+      console.error('Error fetching meeting details:', meetingError);
+      
+      if (meetingError instanceof Error && meetingError.message.includes('404')) {
+        return NextResponse.json({ error: 'Meeting not found' }, { status: 404 });
+      }
+      
+      throw meetingError;
+    }
 
   } catch (error) {
-    console.error('Error fetching Avoma meeting details:', error);
+    console.error('Error in Avoma transcription API:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch meeting details' },
+      { error: 'Failed to fetch transcription' },
       { status: 500 }
     );
   }

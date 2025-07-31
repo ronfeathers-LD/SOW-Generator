@@ -13,7 +13,6 @@ import OpportunityLookup from './OpportunityLookup';
 import ProjectOverviewTab from './sow/ProjectOverviewTab';
 import CustomerInformationTab from './sow/CustomerInformationTab';
 import ObjectivesTab from './sow/ObjectivesTab';
-import ScopeDeliverablesTab from './sow/ScopeDeliverablesTab';
 import TeamRolesTab from './sow/TeamRolesTab';
 import BillingPaymentTab from './sow/BillingPaymentTab';
 import AddendumsTab from './sow/AddendumsTab';
@@ -173,7 +172,16 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   const [selectedContact, setSelectedContact] = useState<SalesforceContact | null>(null);
   const [selectedOpportunity, setSelectedOpportunity] = useState<SalesforceOpportunity | null>(null);
   const [availableOpportunities, setAvailableOpportunities] = useState<SalesforceOpportunity[]>([]);
-  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Wrapper function to track changes
+  const updateFormData = (newData: Partial<SOWData>) => {
+    setFormData(newData);
+    if (initialData) {
+      setHasChanges(true);
+    }
+  };
 
   // Fetch LeanData signators on component mount
   useEffect(() => {
@@ -323,6 +331,10 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         customer_email: '',
         customer_signature_name: '',
         customer_signature: '',
+      },
+      header: {
+        ...formData.header!,
+        client_name: account.Name,
       },
     });
 
@@ -480,6 +492,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       const method = initialData ? 'PUT' : 'POST';
       
       // Map template fields to snake_case for API submission
+      console.log('🔍 Form data before submission:', formData);
+      console.log('🔍 Objectives data before submission:', formData.objectives);
+      
       const submissionData = {
         ...formData,
         client_signer_name: formData.template?.customer_signature_name || '',
@@ -519,6 +534,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       
       const data = await response.json();
       console.log('SOW save response:', data);
+      console.log('🔍 Response includes avoma_url:', data.avoma_url);
       
       // Show success notification
       setNotification({
@@ -527,6 +543,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           ? 'Customer information saved successfully!' 
           : (initialData ? 'SOW updated successfully!' : 'SOW created successfully!')
       });
+      
+      // Reset changes flag after successful save
+      setHasChanges(false);
       
       // Clear notification after 3 seconds
       setTimeout(() => setNotification(null), 3000);
@@ -550,19 +569,20 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     { key: 'Project Overview', label: 'Project Overview' },
     { key: 'Customer Information', label: 'Customer Information' },
     { key: 'Objectives', label: 'Objectives' },
-    { key: 'Scope & Deliverables', label: 'Scope & Deliverables' },
     { key: 'Team & Roles', label: 'Team & Roles' },
     { key: 'Billing & Payment', label: 'Billing & Payment' },
     { key: 'Addendums', label: 'Addendums' },
   ];
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Notification */}
       {notification && (
         <div className={`fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg max-w-sm transform transition-all duration-300 ease-in-out ${
           notification.type === 'success' 
             ? 'bg-green-50 border border-green-200 text-green-800' 
+            : notification.type === 'warning'
+            ? 'bg-yellow-50 border border-yellow-200 text-yellow-800'
             : 'bg-red-50 border border-red-200 text-red-800'
         }`}>
           <div className="flex items-center">
@@ -570,6 +590,10 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               {notification.type === 'success' ? (
                 <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              ) : notification.type === 'warning' ? (
+                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
               ) : (
                 <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -587,6 +611,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
                 className={`inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                   notification.type === 'success'
                     ? 'text-green-400 hover:text-green-500 focus:ring-green-500'
+                    : notification.type === 'warning'
+                    ? 'text-yellow-400 hover:text-yellow-500 focus:ring-yellow-500'
                     : 'text-red-400 hover:text-red-500 focus:ring-red-500'
                 }`}
               >
@@ -607,7 +633,17 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             <button
               key={tab.key}
               type="button"
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => {
+                // Show warning if switching tabs without saving and there are changes
+                if (initialData && activeTab !== tab.key && hasChanges) {
+                  setNotification({
+                    type: 'warning',
+                    message: 'Remember to click "Update SOW" to save your changes before switching tabs!'
+                  });
+                  setTimeout(() => setNotification(null), 4000);
+                }
+                setActiveTab(tab.key);
+              }}
               className={
                 (activeTab === tab.key
                   ? 'border-indigo-500 text-indigo-600'
@@ -625,7 +661,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       {activeTab === 'Project Overview' && (
         <ProjectOverviewTab
           formData={formData}
-          setFormData={setFormData}
+          setFormData={updateFormData}
           leanDataSignators={leanDataSignators}
           selectedLeanDataSignator={selectedLeanDataSignator}
           onLeanDataSignatorChange={handleLeanDataSignatorChange}
@@ -636,7 +672,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       {activeTab === 'Customer Information' && (
         <CustomerInformationTab
           formData={formData}
-          setFormData={setFormData}
+          setFormData={updateFormData}
           initialData={initialData}
           selectedAccount={selectedAccount}
           selectedContact={selectedContact}
@@ -655,15 +691,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       {activeTab === 'Objectives' && (
         <ObjectivesTab
           formData={formData}
-          setFormData={setFormData}
-        />
-      )}
-
-      {/* Scope & Deliverables Section */}
-      {activeTab === 'Scope & Deliverables' && (
-        <ScopeDeliverablesTab
-          formData={formData}
-          setFormData={setFormData}
+          setFormData={updateFormData}
+          selectedAccount={selectedAccount}
         />
       )}
 
@@ -671,7 +700,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       {activeTab === 'Team & Roles' && (
         <TeamRolesTab
           formData={formData}
-          setFormData={setFormData}
+          setFormData={updateFormData}
         />
       )}
 
@@ -679,7 +708,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       {activeTab === 'Billing & Payment' && (
         <BillingPaymentTab
           formData={formData}
-          setFormData={setFormData}
+          setFormData={updateFormData}
           selectedAccountId={selectedAccount?.id}
         />
       )}
@@ -688,7 +717,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       {activeTab === 'Addendums' && (
         <AddendumsTab
           formData={formData}
-          setFormData={setFormData}
+          setFormData={updateFormData}
         />
       )}
 

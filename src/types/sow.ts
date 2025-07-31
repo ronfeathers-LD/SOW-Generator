@@ -87,7 +87,7 @@ export interface SOWData {
   objectives: {
     description: string;
     key_objectives: string[];
-    avoma_meeting_url?: string;
+    avoma_url?: string;
     avoma_transcription?: string;
   };
 

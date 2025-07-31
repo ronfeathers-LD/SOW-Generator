@@ -26,6 +26,7 @@ export async function GET(
         description: sow.objectives_description || '',
         key_objectives: sow.objectives_key_objectives || [],
         avoma_transcription: sow.avoma_transcription || '',
+        avoma_url: sow.avoma_url || '',
       },
       scope: {
         project_description: sow.project_description || '',
@@ -82,26 +83,12 @@ export async function PUT(
   try {
     data = await request.json();
     
-    // Detect data structure and log it
+    // Detect data structure
     const isNestedStructure = data.header && data.template && data.objectives;
     const isFlatStructure = data.client_name && data.sow_title;
     
-    console.log('🔍 Data structure detection:', {
-      isNestedStructure,
-      isFlatStructure,
-      hasHeader: !!data.header,
-      hasTemplate: !!data.template,
-      hasClientName: !!data.client_name,
-      hasSowTitle: !!data.sow_title,
-      sampleData: {
-        nested: { header: data.header?.clientName, template: data.template?.customerName },
-        flat: { client_name: data.client_name, sow_title: data.sow_title }
-      }
-    });
-    
     // Transform flat structure to nested if needed
     if (isFlatStructure && !isNestedStructure) {
-      console.log('⚠️  Converting flat structure to nested structure');
       data = {
         header: {
           company_logo: data.company_logo || '',
@@ -158,18 +145,7 @@ export async function PUT(
       };
     }
     
-    // Debug logging for final structure
-    console.log('API received data (after transformation):', {
-      client_name: data.header?.client_name,
-      client_signer_name: data.client_signer_name,
-      client_signature: data.client_signature,
-      lean_data_signator: {
-        lean_data_name: data.template?.lean_data_name,
-        lean_data_title: data.template?.lean_data_title,
-        lean_data_email: data.template?.lean_data_email,
-      },
-      template: data.template
-    });
+
     
     // Find the SOW to ensure it exists
     const { data: existingSOW, error: findError } = await supabase
@@ -210,10 +186,24 @@ export async function PUT(
     }
     
     // Objectives fields
+    console.log('🔍 API received objectives data:', data.objectives);
     if (data.objectives) {
-      if (data.objectives.description !== undefined) updateData.objectives_description = data.objectives.description;
-      if (data.objectives.key_objectives !== undefined) updateData.objectives_key_objectives = data.objectives.key_objectives;
-      if (data.objectives.avoma_transcription !== undefined) updateData.avoma_transcription = data.objectives.avoma_transcription;
+      if (data.objectives.description !== undefined) {
+        updateData.objectives_description = data.objectives.description;
+        console.log('🔍 Setting objectives_description:', data.objectives.description);
+      }
+      if (data.objectives.key_objectives !== undefined) {
+        updateData.objectives_key_objectives = data.objectives.key_objectives;
+        console.log('🔍 Setting objectives_key_objectives:', data.objectives.key_objectives);
+      }
+      if (data.objectives.avoma_transcription !== undefined) {
+        updateData.avoma_transcription = data.objectives.avoma_transcription;
+        console.log('🔍 Setting avoma_transcription:', data.objectives.avoma_transcription);
+      }
+      if (data.objectives.avoma_url !== undefined) {
+        updateData.avoma_url = data.objectives.avoma_url;
+        console.log('🔍 Setting avoma_url:', data.objectives.avoma_url);
+      }
     }
     
     // Roles fields
@@ -238,12 +228,7 @@ export async function PUT(
       if (data.template.lean_data_email !== undefined) updateData.leandata_email = data.template.lean_data_email;
     }
     
-    // Debug logging for LeanData signator update
-    console.log('LeanData signator update data:', {
-      lean_data_name: updateData.leandata_name,
-      lean_data_title: updateData.leandata_title,
-      lean_data_email: updateData.leandata_email,
-    });
+
     
     // Salesforce Opportunity Information
     if (data.template) {
@@ -254,8 +239,7 @@ export async function PUT(
       if (data.template.opportunity_close_date !== undefined) updateData.opportunity_close_date = data.template.opportunity_close_date ? new Date(data.template.opportunity_close_date).toISOString() : null;
     }
 
-    // Debug logging for update data
-    console.log('Updating SOW with data:', updateData);
+
     
     // Update the SOW
     const { data: updatedSOW, error: updateError } = await supabase
@@ -273,6 +257,9 @@ export async function PUT(
         { status: 500 }
       );
     }
+
+    console.log('🔍 Updated SOW response:', updatedSOW);
+    console.log('🔍 Updated SOW avoma_url:', updatedSOW.avoma_url);
 
     return NextResponse.json(updatedSOW);
   } catch (error) {

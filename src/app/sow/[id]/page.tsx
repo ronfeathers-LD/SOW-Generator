@@ -63,6 +63,7 @@ interface SOW {
     date: string;
   };
   clientSignerName?: string;
+  salesforceAccountId?: string;
 }
 
 interface SOWVersion {
@@ -70,6 +71,21 @@ interface SOWVersion {
   version: number;
   isLatest: boolean;
   createdAt: string;
+}
+
+interface SalesforceData {
+  account_data?: {
+    name: string;
+    id: string;
+  };
+  contacts_data?: Array<{
+    first_name?: string;
+    last_name: string;
+    email?: string;
+    title?: string;
+    role: string;
+  }>;
+  opportunity_data?: any;
 }
 
 function safeJsonParse<T>(value: any, defaultValue: T): T {
@@ -86,12 +102,45 @@ function safeJsonParse<T>(value: any, defaultValue: T): T {
   }
 }
 
+// Helper function to find the appropriate signator from Salesforce contacts
+function findSignator(contacts: SalesforceData['contacts_data']): { name: string; title: string; email: string } | null {
+  if (!contacts || contacts.length === 0) return null;
+  
+  // Priority order: decision_maker > primary_poc > first contact
+  const decisionMaker = contacts.find(contact => contact.role === 'decision_maker');
+  if (decisionMaker) {
+    return {
+      name: `${decisionMaker.first_name || ''} ${decisionMaker.last_name}`.trim(),
+      title: decisionMaker.title || '',
+      email: decisionMaker.email || ''
+    };
+  }
+  
+  const primaryPoc = contacts.find(contact => contact.role === 'primary_poc');
+  if (primaryPoc) {
+    return {
+      name: `${primaryPoc.first_name || ''} ${primaryPoc.last_name}`.trim(),
+      title: primaryPoc.title || '',
+      email: primaryPoc.email || ''
+    };
+  }
+  
+  // Fallback to first contact
+  const firstContact = contacts[0];
+  return {
+    name: `${firstContact.first_name || ''} ${firstContact.last_name}`.trim(),
+    title: firstContact.title || '',
+    email: firstContact.email || ''
+  };
+}
+
 export default function SOWDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
   const isPDF = searchParams.get('pdf') === '1';
   const [sow, setSOW] = useState<SOW | null>(null);
+  const [salesforceData, setSalesforceData] = useState<SalesforceData | null>(null);
   const [versions, setVersions] = useState<SOWVersion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -136,12 +185,29 @@ export default function SOWDetailsPage() {
             },
           },
           addendums: safeJsonParse(data.addendums, []),
-          companyLogo: data.companyLogo || '',
+          companyLogo: data.header?.company_logo || data.companyLogo || '',
           clientSignature: data.clientSignature || undefined,
-          clientSignerName: data.clientSignerName || undefined
+          clientSignerName: data.clientSignerName || undefined,
+          salesforceAccountId: data.salesforce_account_id || undefined
         };
         
         setSOW(parsedData);
+
+        // Fetch Salesforce data if available
+        if (parsedData.salesforceAccountId) {
+          try {
+            const salesforceResponse = await fetch(`/api/sow/${params.id}/salesforce-data`);
+            if (salesforceResponse.ok) {
+              const salesforceResult = await salesforceResponse.json();
+              if (salesforceResult.success && salesforceResult.data) {
+                setSalesforceData(salesforceResult.data);
+              }
+            }
+          } catch (salesforceError) {
+            console.warn('Failed to fetch Salesforce data:', salesforceError);
+            // Don't fail the entire page load if Salesforce data fails
+          }
+        }
 
         // Fetch version history
         const versionsResponse = await fetch(`/api/sow/${params.id}/versions`);
@@ -398,131 +464,149 @@ export default function SOWDetailsPage() {
 
             {/* Main SOW Content to Export */}
             <div id="sow-content-to-export">
-              {/* Title Page */}
-              <div id="title-page" className="mb-12">
-                <SOWTitlePage
-                  clientName={sow.clientName}
-                  clientLogo={sow.companyLogo}
-                  clientSignature={{
-                    name: sow.clientSignerName || sow.clientSignature?.name || 'Not Entered',
-                    title: sow.clientSignature?.title || sow.clientTitle || 'Not Entered',
-                    email: sow.clientSignature?.email || sow.clientEmail || 'Not Entered',
-                    date: sow.signatureDate || 'Not Entered'
-                  }}
-                  leandataSignature={{
-                    name: "Agam Vasani",
-                    title: "VP Customer Success",
-                    email: "agam.vasani@leandata.com"
-                  }}
-                />
+              {/* Title Page Section */}
+              <div className="border-2 border-blue-300 rounded-lg p-4 mb-8">
+                <h3 className="text-lg font-bold text-blue-800 mb-4 text-center">📄 TITLE PAGE SECTION</h3>
+                <div id="title-page" className="mb-12">
+                  <SOWTitlePage
+                    clientName={salesforceData?.account_data?.name || sow.clientName}
+                    clientLogo={sow.companyLogo}
+                    clientSignature={{
+                      name: findSignator(salesforceData?.contacts_data)?.name || sow.clientSignerName || sow.clientSignature?.name || 'Not Entered',
+                      title: findSignator(salesforceData?.contacts_data)?.title || sow.clientSignature?.title || sow.clientTitle || 'Not Entered',
+                      email: findSignator(salesforceData?.contacts_data)?.email || sow.clientSignature?.email || sow.clientEmail || 'Not Entered',
+                      date: sow.signatureDate || 'Not Entered'
+                    }}
+                    leandataSignature={{
+                      name: "Agam Vasani",
+                      title: "VP Customer Success",
+                      email: "agam.vasani@leandata.com"
+                    }}
+                  />
+                </div>
               </div>
 
-              {/* SOW Intro Page */}
-              <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
-                <h2 className="text-3xl font-bold text-center mb-6">INTRODUCTION</h2>
-                <SOWIntroPage clientName={sow.clientName} />
+              {/* SOW Intro Page Section */}
+              <div className="border-2 border-green-300 rounded-lg p-4 mb-8">
+                <h3 className="text-lg font-bold text-green-800 mb-4 text-center">📋 INTRODUCTION SECTION</h3>
+                <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                  <h2 className="text-3xl font-bold text-center mb-6">INTRODUCTION</h2>
+                  <SOWIntroPage clientName={salesforceData?.account_data?.name || sow.clientName} />
+                </div>
               </div>
 
-              {/* SOW Scope Page */}
-              <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
-                <h2 className="text-3xl font-bold text-center mb-6">SCOPE</h2>
-                <SOWScopePage deliverables={sow.deliverables} />
+              {/* SOW Scope Page Section */}
+              <div className="border-2 border-purple-300 rounded-lg p-4 mb-8">
+                <h3 className="text-lg font-bold text-purple-800 mb-4 text-center">🎯 SCOPE SECTION</h3>
+                <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                  <h2 className="text-3xl font-bold text-center mb-6">SCOPE</h2>
+                  <SOWScopePage deliverables={sow.deliverables} />
+                </div>
               </div>
 
-              {/* Roles and Responsibilities */}
-              <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
-                <h2 className="text-3xl font-bold text-center mb-6">ROLES AND RESPONSIBILITIES</h2>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Role</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/3">Responsibilities</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      <tr>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Account Executive</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">Point of contact for account-level needs and services expansion. Liaison to facilitate meetings and project manage services/artifacts</td>
-                      </tr>
-                      <tr>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Project Manager</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">Manage timelines, project risk and communications, track and resolve issues</td>
-                      </tr>
-                      <tr>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Solution Engineer</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">Develop custom code, if any, to fulfill the requirements. Certified LeanData Consultant.</td>
-                      </tr>
-                    </tbody>
-                  </table>
+              {/* Roles and Responsibilities Section */}
+              <div className="border-2 border-orange-300 rounded-lg p-4 mb-8">
+                <h3 className="text-lg font-bold text-orange-800 mb-4 text-center">👥 ROLES & RESPONSIBILITIES SECTION</h3>
+                <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                  <h2 className="text-3xl font-bold text-center mb-6">ROLES AND RESPONSIBILITIES</h2>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Role</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/3">Responsibilities</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        <tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Account Executive</td>
+                          <td className="px-6 py-4 text-sm text-gray-700">Point of contact for account-level needs and services expansion. Liaison to facilitate meetings and project manage services/artifacts</td>
+                        </tr>
+                        <tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Project Manager</td>
+                          <td className="px-6 py-4 text-sm text-gray-700">Manage timelines, project risk and communications, track and resolve issues</td>
+                        </tr>
+                        <tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Solution Engineer</td>
+                          <td className="px-6 py-4 text-sm text-gray-700">Develop custom code, if any, to fulfill the requirements. Certified LeanData Consultant.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
 
               {/* Pricing Section */}
-              <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
-                <h2 className="text-3xl font-bold text-center mb-6">PRICING</h2>
-                <p className="mb-4 text-center">
-                  The tasks above will be completed on a time and material basis, using the LeanData standard workday of 8 hours for a duration of {sow.duration || 'N/A'}.
-                </p>
-                <div className="overflow-x-auto mb-4">
-                  <table className="min-w-full divide-y divide-gray-200 border">
-                    <thead className="bg-blue-100">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">LeanData Role</th>
-                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Rate/Hr</th>
-                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total Hours</th>
-                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total USD</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {Array.isArray(sow.pricing.roles) && sow.pricing.roles.map((role, idx) => (
-                        <tr key={idx}>
-                          <td className="px-6 py-4 whitespace-nowrap font-semibold">{role.role}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">${role.ratePerHour?.toFixed(2) || '0.00'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{role.totalHours}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{role.ratePerHour && role.totalHours ? (role.ratePerHour * role.totalHours).toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '$0.00'}</td>
+              <div className="border-2 border-red-300 rounded-lg p-4 mb-8">
+                <h3 className="text-lg font-bold text-red-800 mb-4 text-center">💰 PRICING SECTION</h3>
+                <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                  <h2 className="text-3xl font-bold text-center mb-6">PRICING</h2>
+                  <p className="mb-4 text-center">
+                    The tasks above will be completed on a time and material basis, using the LeanData standard workday of 8 hours for a duration of {sow.duration || 'N/A'}.
+                  </p>
+                  <div className="overflow-x-auto mb-4">
+                    <table className="min-w-full divide-y divide-gray-200 border">
+                      <thead className="bg-blue-100">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">LeanData Role</th>
+                          <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Rate/Hr</th>
+                          <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total Hours</th>
+                          <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total USD</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {Array.isArray(sow.pricing.roles) && sow.pricing.roles.map((role, idx) => (
+                          <tr key={idx}>
+                            <td className="px-6 py-4 whitespace-nowrap font-semibold">{role.role}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">${role.ratePerHour?.toFixed(2) || '0.00'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">{role.totalHours}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">{role.ratePerHour && role.totalHours ? (role.ratePerHour * role.totalHours).toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '$0.00'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="mb-2 text-sm text-gray-700">LeanData shall notify Customer when costs are projected to exceed this estimate, providing the opportunity for Customer and LeanData to resolve jointly how to proceed. Hours listed above are to be consumed by the end date and cannot be extended.</p>
+                  <p className="mb-2 text-sm text-gray-700">Any additional requests or mutually agreed-upon additional hours required to complete the tasks shall be documented in a change order Exhibit to this SOW and signed by both parties. <span className="font-bold">Additional hours will be billed at the Rate/Hr.</span></p>
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 mt-8 text-sm">
+                    <dt className="font-semibold">Company Name:</dt>
+                    <dd>{sow.pricing?.billing?.companyName || 'N/A'}</dd>
+                    <dt className="font-semibold">Billing Contact Name:</dt>
+                    <dd>{sow.pricing?.billing?.billingContact || 'N/A'}</dd>
+                    <dt className="font-semibold">Billing Address:</dt>
+                    <dd>
+                      {(sow.pricing?.billing?.billingAddress || 'N/A')
+                        .split(',')
+                        .map((line, idx) => (
+                          <span key={idx} className="block">{line.trim()}</span>
+                        ))}
+                    </dd>
+                    <dt className="font-semibold">Billing Email:</dt>
+                    <dd>{sow.pricing?.billing?.billingEmail || 'N/A'}</dd>
+                    <dt className="font-semibold">Purchase Order Number:</dt>
+                    <dd>{sow.pricing?.billing?.poNumber || 'PO provided by customer'}</dd>
+                    <dt className="font-semibold">Payment Terms:</dt>
+                    <dd>{sow.pricing?.billing?.paymentTerms || 'N/A'}</dd>
+                    <dt className="font-semibold">Currency:</dt>
+                    <dd>{sow.pricing?.billing?.currency || 'N/A'}</dd>
+                  </dl>
                 </div>
-                <p className="mb-2 text-sm text-gray-700">LeanData shall notify Customer when costs are projected to exceed this estimate, providing the opportunity for Customer and LeanData to resolve jointly how to proceed. Hours listed above are to be consumed by the end date and cannot be extended.</p>
-                <p className="mb-2 text-sm text-gray-700">Any additional requests or mutually agreed-upon additional hours required to complete the tasks shall be documented in a change order Exhibit to this SOW and signed by both parties. <span className="font-bold">Additional hours will be billed at the Rate/Hr.</span></p>
-                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 mt-8 text-sm">
-                  <dt className="font-semibold">Company Name:</dt>
-                  <dd>{sow.pricing?.billing?.companyName || 'N/A'}</dd>
-                  <dt className="font-semibold">Billing Contact Name:</dt>
-                  <dd>{sow.pricing?.billing?.billingContact || 'N/A'}</dd>
-                  <dt className="font-semibold">Billing Address:</dt>
-                  <dd>
-                    {(sow.pricing?.billing?.billingAddress || 'N/A')
-                      .split(',')
-                      .map((line, idx) => (
-                        <span key={idx} className="block">{line.trim()}</span>
-                      ))}
-                  </dd>
-                  <dt className="font-semibold">Billing Email:</dt>
-                  <dd>{sow.pricing?.billing?.billingEmail || 'N/A'}</dd>
-                  <dt className="font-semibold">Purchase Order Number:</dt>
-                  <dd>{sow.pricing?.billing?.poNumber || 'PO provided by customer'}</dd>
-                  <dt className="font-semibold">Payment Terms:</dt>
-                  <dd>{sow.pricing?.billing?.paymentTerms || 'N/A'}</dd>
-                  <dt className="font-semibold">Currency:</dt>
-                  <dd>{sow.pricing?.billing?.currency || 'N/A'}</dd>
-                </dl>
               </div>
 
               {/* Assumptions Section */}
-              <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
-                <h2 className="text-3xl font-bold text-center mb-6">ASSUMPTIONS</h2>
-                <p className="mb-4">The following are the assumptions as part of the SOW:</p>
-                <ul className="list-disc pl-6 space-y-2 text-gray-700">
-                  <li>LeanData Professional Services will require access to the customer's SFDC's sandbox and production tenants for the configuration of LeanData; and, the customer will be responsible to ensure appropriate access is granted for the duration of the project. Customer will share all Salesforce details pertaining to configurations, including but not limited to: User IDs, fields/values, Queue IDs, Assignment rule IDs, etc.</li>
-                  <li>For additional requests outside this SOW, LeanData shall work with Customer to determine if an additional SOW is required or determine alternate methods to remedy the request.</li>
-                  <li>If the Customer requires LeanData to travel to Customer locations, then travel expenses shall be billed separately and not included in the estimate above. All expenses shall be pre-approved by Customer prior to LeanData booking travel itineraries.</li>
-                  <li>All services described in this SOW, including any training, will be performed remotely from a LeanData office location during normal business hours: Monday through Friday from 9 am to 5 pm PDT.</li>
-                  <li>Customer will conduct all required testing and communicate to LeanData anything that needs further investigation and/or additional changes to configurations.</li>
-                </ul>
+              <div className="border-2 border-teal-300 rounded-lg p-4 mb-8">
+                <h3 className="text-lg font-bold text-teal-800 mb-4 text-center">📝 ASSUMPTIONS SECTION</h3>
+                <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                  <h2 className="text-3xl font-bold text-center mb-6">ASSUMPTIONS</h2>
+                  <p className="mb-4">The following are the assumptions as part of the SOW:</p>
+                  <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                    <li>LeanData Professional Services will require access to the customer's SFDC's sandbox and production tenants for the configuration of LeanData; and, the customer will be responsible to ensure appropriate access is granted for the duration of the project. Customer will share all Salesforce details pertaining to configurations, including but not limited to: User IDs, fields/values, Queue IDs, Assignment rule IDs, etc.</li>
+                    <li>For additional requests outside this SOW, LeanData shall work with Customer to determine if an additional SOW is required or determine alternate methods to remedy the request.</li>
+                    <li>If the Customer requires LeanData to travel to Customer locations, then travel expenses shall be billed separately and not included in the estimate above. All expenses shall be pre-approved by Customer prior to LeanData booking travel itineraries.</li>
+                    <li>All services described in this SOW, including any training, will be performed remotely from a LeanData office location during normal business hours: Monday through Friday from 9 am to 5 pm PDT.</li>
+                    <li>Customer will conduct all required testing and communicate to LeanData anything that needs further investigation and/or additional changes to configurations.</li>
+                  </ul>
+                </div>
               </div>
             </div>
 

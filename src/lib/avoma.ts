@@ -233,6 +233,51 @@ class AvomaClient {
   }
 
   /**
+   * Get the transcript for a specific meeting using the transcriptions endpoint
+   */
+  async getMeetingTranscript(meetingUuid: string): Promise<any> {
+    console.log('🔍 Fetching meeting transcript for:', meetingUuid);
+    
+    // Use the transcriptions endpoint with the correct UUID
+    const result = await this.makeRequest(`/transcriptions/${meetingUuid}/`);
+    return result;
+  }
+
+  /**
+   * Get full transcript text for a meeting with speaker information
+   */
+  async getMeetingTranscriptText(meetingUuid: string): Promise<{ text: string; speakers: any[] }> {
+    try {
+      const transcriptData = await this.getMeetingTranscript(meetingUuid);
+      
+      const speakers = transcriptData.speakers || [];
+      let transcriptText = '';
+      
+      if (transcriptData.transcript && Array.isArray(transcriptData.transcript)) {
+        const speakerMap = new Map(speakers.map((s: any) => [s.id, s.name]));
+        
+        transcriptText = transcriptData.transcript
+          .map((segment: any) => {
+            const speakerName = speakerMap.get(segment.speaker_id) || `Speaker ${segment.speaker_id}`;
+            return `${speakerName}: ${segment.transcript}`;
+          })
+          .join('\n\n');
+      }
+      
+      return {
+        text: transcriptText,
+        speakers: speakers
+      };
+    } catch (error) {
+      console.error('Error getting meeting transcript:', error);
+      return {
+        text: '',
+        speakers: []
+      };
+    }
+  }
+
+  /**
    * Find meetings for a specific customer using the search endpoint
    */
   async findScopingCalls(customerName: string): Promise<AvomaCall[]> {

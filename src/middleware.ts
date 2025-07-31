@@ -18,6 +18,7 @@ export async function middleware(request: NextRequest) {
                        request.nextUrl.pathname.startsWith("/api/debug") ||
                        request.nextUrl.pathname === "/sow/new" ||
                        request.nextUrl.pathname === "/dashboard" ||
+                       request.nextUrl.pathname.startsWith("/sow") ||
                        request.nextUrl.pathname.startsWith("/api/avoma/search") ||
                        request.nextUrl.pathname.startsWith("/api/avoma/transcription") ||
                        request.nextUrl.pathname.startsWith("/api/gemini/analyze-transcription") ||

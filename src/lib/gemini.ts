@@ -30,10 +30,33 @@ interface TranscriptionAnalysisResponse {
 class GeminiClient {
   private genAI: GoogleGenerativeAI;
   private model: any;
+  private modelName: string;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, modelName: string = 'gemini-1.5-flash') {
     this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    this.modelName = modelName;
+    this.model = this.genAI.getGenerativeModel({ model: this.modelName });
+  }
+
+  /**
+   * Switch to a different model (useful when one model is overloaded)
+   */
+  switchModel(newModelName: string) {
+    this.modelName = newModelName;
+    this.model = this.genAI.getGenerativeModel({ model: this.modelName });
+    console.log(`Switched to model: ${this.modelName}`);
+  }
+
+  /**
+   * Get available models for fallback
+   */
+  static getAvailableModels(): string[] {
+    return [
+      'gemini-1.5-flash',    // Fastest, most commonly overloaded
+      'gemini-1.5-pro',      // More capable, sometimes less load
+      'gemini-1.0-pro',      // Older model, often less load
+      'gemini-pro'           // Legacy model, usually available
+    ];
   }
 
   /**
@@ -133,6 +156,53 @@ Please provide a professional, 2-3 sentence project description that captures th
       console.error('Error generating project description:', error);
       return 'Project description could not be generated due to an error';
     }
+  }
+
+  /**
+   * Analyze transcription with model fallback - tries different models if one is overloaded
+   */
+  async analyzeTranscriptionWithFallback(
+    transcript: string,
+    customerName: string
+  ): Promise<TranscriptionAnalysisResponse> {
+    const models = GeminiClient.getAvailableModels();
+    let lastError: Error | null = null;
+
+    // Start with the current model (saved in database), then try others if needed
+    const currentModelIndex = models.indexOf(this.modelName);
+    const orderedModels = [
+      this.modelName, // Start with the saved model
+      ...models.filter(m => m !== this.modelName) // Then try other models
+    ];
+
+    for (const modelName of orderedModels) {
+      try {
+        console.log(`Trying model: ${modelName}`);
+        this.switchModel(modelName);
+        
+        const result = await this.analyzeTranscription(transcript, customerName);
+        console.log(`Success with model: ${modelName}`);
+        return result;
+        
+      } catch (error) {
+        console.log(`Model ${modelName} failed:`, error instanceof Error ? error.message : 'Unknown error');
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        
+        // If it's not an overload error, don't try other models
+        if (error instanceof Error && 
+            !error.message.includes('503 Service Unavailable') && 
+            !error.message.includes('model is overloaded') &&
+            !error.message.includes('Please try again later')) {
+          throw error;
+        }
+        
+        // Continue to next model for overload errors
+        continue;
+      }
+    }
+    
+    // All models failed
+    throw lastError || new Error('All Gemini models are currently overloaded');
   }
 
   /**
@@ -450,7 +520,7 @@ export async function analyzeTranscription(transcript: string, customerName: str
   
   const { data: config, error } = await supabase
     .from('gemini_configs')
-    .select('api_key')
+    .select('api_key, model_name, is_active')
     .eq('is_active', true)
     .single();
 
@@ -458,6 +528,22 @@ export async function analyzeTranscription(transcript: string, customerName: str
     throw new Error('Gemini API key not configured. Please configure it in the admin panel.');
   }
 
-  const client = new GeminiClient(config.api_key);
-  return await client.analyzeTranscription(transcript, customerName);
+  // Debug API key format
+  console.log('🔍 API Key Debug:');
+  console.log('  - Length:', config.api_key.length);
+  console.log('  - First 10 chars:', config.api_key.substring(0, 10));
+  console.log('  - Last 10 chars:', config.api_key.substring(config.api_key.length - 10));
+  console.log('  - Contains invalid chars:', /[^\x00-\x7F]/.test(config.api_key));
+  console.log('  - Contains bullet points:', config.api_key.includes('•'));
+  console.log('  - Contains dots:', config.api_key.includes('····'));
+  console.log('  - Selected model:', config.model_name);
+  
+  // Check if API key looks like it's been masked
+  if (config.api_key.includes('•') || config.api_key.includes('····')) {
+    throw new Error('API key appears to be masked. Please enter the actual API key, not the masked version.');
+  }
+
+  // Use the primary API key with the saved model
+  const client = new GeminiClient(config.api_key, config.model_name || 'gemini-1.5-flash');
+  return await client.analyzeTranscriptionWithFallback(transcript, customerName);
 } 

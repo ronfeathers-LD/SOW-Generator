@@ -50,7 +50,7 @@ export default function SOWTitlePage({
         {/* Client Logo */}
         {(clientLogo ?? '').length > 0 && (
           <div className="w-full flex justify-center mb-8">
-            <div className="relative w-64 h-28">
+            <div className="relative w-96 h-32">
               <Image
                 src={clientLogo ?? ''}
                 alt={`${clientName} logo`}
@@ -98,9 +98,7 @@ export default function SOWTitlePage({
                     (leandataSignature?.title || 'VP Customer Success')
                   ].filter(Boolean).join(', ')}
                   <br />
-                  <a href={`mailto:${leandataSignature?.email || 'agam.vasani@leandata.com'}`} className="text-blue-600 underline">
-                    {leandataSignature?.email || 'agam.vasani@leandata.com'}
-                  </a>
+                  {leandataSignature?.email || 'agam.vasani@leandata.com'}
                 </div>
               </div>
               {/* Date Line */}
