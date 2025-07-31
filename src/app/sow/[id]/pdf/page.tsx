@@ -72,6 +72,7 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
   const deliverables = typeof sow.deliverables === 'string'
     ? sow.deliverables.split('\n').filter(Boolean)
     : [];
+  const projectDescription = sow.project_description || '';
   const clientRoles = Array.isArray(sow.client_roles)
     ? sow.client_roles
     : [];
@@ -116,7 +117,7 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
         {/* Scope */}
         <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
           <h2 className="text-3xl font-bold text-center mb-6">SCOPE</h2>
-          <SOWScopePage deliverables={deliverables} />
+          <SOWScopePage deliverables={deliverables} projectDescription={projectDescription} />
         </div>
 
         {/* Roles and Responsibilities */}

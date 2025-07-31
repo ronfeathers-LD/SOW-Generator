@@ -67,9 +67,9 @@ export default function SOWTitlePage({
             <p className="mb-2">This SOW is accepted by {clientName}:</p>
             <div className="grid grid-cols-2 gap-8 items-end">
               {/* Signature Line */}
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-start">
                 <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                <div className="text-sm mt-2 text-center">
+                <div className="text-sm mt-2 text-left">
                   {[
                     (clientSignature?.name || '<FIRSTNAME LASTNAME>'),
                     (clientSignature?.title || '<TITLE>')
@@ -90,9 +90,9 @@ export default function SOWTitlePage({
             <p className="mb-2">This SOW is accepted by LeanData, Inc.:</p>
             <div className="grid grid-cols-2 gap-8 items-end">
               {/* Signature Line */}
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-start">
                 <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                <div className="text-sm mt-2 text-center">
+                <div className="text-sm mt-2 text-left">
                   {[
                     (leandataSignature?.name || 'Agam Vasani'),
                     (leandataSignature?.title || 'VP Customer Success')

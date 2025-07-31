@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import SOWTitlePage from '@/components/sow/SOWTitlePage';
 import SOWIntroPage from '@/components/sow/SOWIntroPage';
+import SOWObjectivesPage from '@/components/sow/SOWObjectivesPage';
 import SOWScopePage from '@/components/sow/SOWScopePage';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -25,6 +26,8 @@ interface SOW {
   clientEmail: string;
   signatureDate: string;
   deliverables: string[];
+  projectDescription: string;
+  keyObjectives: string[];
   startDate: string;
   duration: string;
   clientRoles: ClientRole[];
@@ -162,6 +165,8 @@ export default function SOWDetailsPage() {
         const parsedData = {
           ...data,
           deliverables: data.deliverables ? data.deliverables.split('\n').filter(Boolean) : [],
+          projectDescription: data.objectives?.description || data.scope?.project_description || data.project_description || '',
+          keyObjectives: data.objectives?.key_objectives || [],
           clientRoles: Array.isArray(data.clientRoles) ? data.clientRoles.map((role: any) => ({
             role: role.role || '',
             name: role.name || '',
@@ -495,12 +500,21 @@ export default function SOWDetailsPage() {
                 </div>
               </div>
 
+              {/* SOW Objectives Page Section */}
+              <div className="border-2 border-indigo-300 rounded-lg p-4 mb-8">
+                <h3 className="text-lg font-bold text-indigo-800 mb-4 text-center">🎯 OBJECTIVES SECTION</h3>
+                <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                  <h2 className="text-3xl font-bold text-center mb-6">OBJECTIVES</h2>
+                  <SOWObjectivesPage deliverables={sow.deliverables} keyObjectives={sow.keyObjectives} />
+                </div>
+              </div>
+
               {/* SOW Scope Page Section */}
               <div className="border-2 border-purple-300 rounded-lg p-4 mb-8">
                 <h3 className="text-lg font-bold text-purple-800 mb-4 text-center">🎯 SCOPE SECTION</h3>
                 <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold text-center mb-6">SCOPE</h2>
-                  <SOWScopePage deliverables={sow.deliverables} />
+                  <SOWScopePage deliverables={sow.deliverables} projectDescription={sow.projectDescription} />
                 </div>
               </div>
 

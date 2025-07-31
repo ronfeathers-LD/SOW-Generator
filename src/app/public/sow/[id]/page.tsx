@@ -21,6 +21,7 @@ interface SOW {
   clientEmail: string;
   signatureDate: string;
   deliverables: string[];
+  projectDescription: string;
   startDate: string;
   duration: string;
   clientRoles: ClientRole[];
@@ -93,6 +94,7 @@ export default function PublicSOWPage() {
         const parsedData = {
           ...data,
           deliverables: data.deliverables ? data.deliverables.split('\n').filter(Boolean) : [],
+          projectDescription: data.objectives?.description || data.scope?.project_description || data.project_description || '',
           clientRoles: Array.isArray(data.clientRoles) ? data.clientRoles.map((role: any) => ({
             role: role.role || '',
             name: role.name || '',
@@ -163,6 +165,7 @@ export default function PublicSOWPage() {
         />
         <SOWScopePage 
           deliverables={sow.deliverables}
+          projectDescription={sow.projectDescription}
         />
       </div>
     </div>
