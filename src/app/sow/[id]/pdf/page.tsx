@@ -64,6 +64,14 @@ interface SOW {
   project_start_date?: string;
   project_end_date?: string;
   units_consumption?: string;
+  
+  // Custom content tracking
+  custom_intro_content?: string;
+  custom_scope_content?: string;
+  custom_objectives_disclosure_content?: string;
+  intro_content_edited?: boolean;
+  scope_content_edited?: boolean;
+  objectives_disclosure_content_edited?: boolean;
 }
 
 export default async function SOWPDFPage({ params }: { params: Promise<{ id: string }> }) {
@@ -121,7 +129,11 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
         {/* Introduction */}
         <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
           <h2 className="text-3xl font-bold text-center mb-6">LEANDATA, INC. STATEMENT OF WORK</h2>
-          <SOWIntroPage clientName={sow.client_name} />
+          <SOWIntroPage 
+            clientName={sow.client_name}
+            customContent={sow.custom_intro_content}
+            isEdited={sow.intro_content_edited}
+          />
         </div>
 
         {/* Objectives */}
@@ -130,6 +142,8 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
           <SOWObjectivesPage 
             deliverables={deliverables} 
             keyObjectives={sow.key_objectives || []}
+            customContent={sow.custom_objectives_disclosure_content}
+            isEdited={sow.objectives_disclosure_content_edited}
             projectDetails={{
               products: sow.products || ['Matching/Routing'],
               number_of_units: sow.number_of_units || '125',
@@ -146,7 +160,12 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
         {/* Scope */}
         <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
           <h2 className="text-3xl font-bold text-center mb-6">SCOPE</h2>
-          <SOWScopePage deliverables={deliverables} projectDescription={projectDescription} />
+          <SOWScopePage 
+            deliverables={deliverables} 
+            projectDescription={projectDescription}
+            customContent={sow.custom_scope_content}
+            isEdited={sow.scope_content_edited}
+          />
         </div>
 
         {/* Roles and Responsibilities */}

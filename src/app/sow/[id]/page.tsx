@@ -76,6 +76,14 @@ interface SOW {
   project_start_date?: string;
   project_end_date?: string;
   units_consumption?: string;
+  
+  // Custom content tracking
+  custom_intro_content?: string;
+  custom_scope_content?: string;
+  custom_objectives_disclosure_content?: string;
+  intro_content_edited?: boolean;
+  scope_content_edited?: boolean;
+  objectives_disclosure_content_edited?: boolean;
 }
 
 interface SOWVersion {
@@ -202,7 +210,13 @@ export default function SOWDetailsPage() {
           companyLogo: data.header?.company_logo || data.companyLogo || '',
           clientSignature: data.clientSignature || undefined,
           clientSignerName: data.clientSignerName || undefined,
-          salesforceAccountId: data.salesforce_account_id || undefined
+          salesforceAccountId: data.salesforce_account_id || undefined,
+          custom_intro_content: data.custom_intro_content || undefined,
+          custom_scope_content: data.custom_scope_content || undefined,
+          custom_objectives_disclosure_content: data.custom_objectives_disclosure_content || undefined,
+          intro_content_edited: data.intro_content_edited || false,
+          scope_content_edited: data.scope_content_edited || false,
+          objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false
         };
         
         setSOW(parsedData);
@@ -505,7 +519,11 @@ export default function SOWDetailsPage() {
                 <h3 className="text-lg font-bold text-green-800 mb-4 text-center">📋 INTRODUCTION SECTION</h3>
                 <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold text-center mb-6">LEANDATA, INC. STATEMENT OF WORK</h2>
-                  <SOWIntroPage clientName={salesforceData?.account_data?.name || sow.clientName} />
+                  <SOWIntroPage 
+                    clientName={salesforceData?.account_data?.name || sow.clientName}
+                    customContent={sow.custom_intro_content}
+                    isEdited={sow.intro_content_edited}
+                  />
                 </div>
               </div>
 
@@ -517,6 +535,8 @@ export default function SOWDetailsPage() {
                   <SOWObjectivesPage 
                     deliverables={sow.deliverables} 
                     keyObjectives={sow.keyObjectives}
+                    customContent={sow.custom_objectives_disclosure_content}
+                    isEdited={sow.objectives_disclosure_content_edited}
                     projectDetails={{
                       products: sow.products || ['Matching/Routing'],
                       number_of_units: sow.number_of_units || '125',
@@ -531,12 +551,19 @@ export default function SOWDetailsPage() {
                 </div>
               </div>
 
+
+
               {/* SOW Scope Page Section */}
               <div className="border-2 border-purple-300 rounded-lg p-4 mb-8">
                 <h3 className="text-lg font-bold text-purple-800 mb-4 text-center">🎯 SCOPE SECTION</h3>
                 <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold text-center mb-6">SCOPE</h2>
-                  <SOWScopePage deliverables={sow.deliverables} projectDescription={sow.projectDescription} />
+                  <SOWScopePage 
+                    deliverables={sow.deliverables} 
+                    projectDescription={sow.projectDescription}
+                    customContent={sow.custom_scope_content}
+                    isEdited={sow.scope_content_edited}
+                  />
                 </div>
               </div>
 

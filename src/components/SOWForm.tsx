@@ -16,6 +16,7 @@ import ObjectivesTab from './sow/ObjectivesTab';
 import TeamRolesTab from './sow/TeamRolesTab';
 import BillingPaymentTab from './sow/BillingPaymentTab';
 import AddendumsTab from './sow/AddendumsTab';
+import ContentEditingTab from './sow/ContentEditingTab';
 import { createSalesforceAccountData, createSalesforceContactData, createSalesforceOpportunityData } from '@/types/salesforce';
 
 interface LeanDataSignator {
@@ -491,12 +492,10 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     }
 
     try {
-      const url = initialData ? `/api/sow/${initialData.id}` : '/api/sow';
-      const method = initialData ? 'PUT' : 'POST';
+      const url = `/api/sow/${initialData?.id}`;
+      const method = 'PUT';
       
       // Map template fields to snake_case for API submission
-      console.log('🔍 Form data before submission:', formData);
-      console.log('🔍 Objectives data before submission:', formData.objectives);
       
       const submissionData = {
         ...formData,
@@ -539,12 +538,14 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       console.log('SOW save response:', data);
       console.log('🔍 Response includes avoma_url:', data.avoma_url);
       
+
+      
       // Show success notification
       setNotification({
         type: 'success',
         message: activeTab === 'Customer Information' 
           ? 'Customer information saved successfully!' 
-          : (initialData ? 'SOW updated successfully!' : 'SOW created successfully!')
+          : 'SOW updated successfully!'
       });
       
       // Reset changes flag after successful save
@@ -560,7 +561,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         type: 'error',
         message: activeTab === 'Customer Information' 
           ? 'Failed to save customer information. Please try again.' 
-          : 'Failed to save SOW. Please try again.'
+          : 'Failed to update SOW. Please try again.'
       });
       
       // Clear notification after 5 seconds
@@ -574,11 +575,24 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     { key: 'Objectives', label: 'Objectives' },
     { key: 'Team & Roles', label: 'Team & Roles' },
     { key: 'Billing & Payment', label: 'Billing & Payment' },
+    { key: 'Content Editing', label: 'Content Editing' },
     { key: 'Addendums', label: 'Addendums' },
   ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">
+          {initialData || createdSOWId ? 'Edit SOW' : 'Create New SOW'}
+        </h1>
+        {(initialData || createdSOWId) && (
+          <span className="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full">
+            {initialData || createdSOWId ? 'Edit Mode' : 'Create Mode'}
+          </span>
+        )}
+      </div>
+      
       {/* Notification */}
       {notification && (
         <div className={`fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg max-w-sm transform transition-all duration-300 ease-in-out ${
@@ -716,6 +730,14 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         />
       )}
 
+      {/* Content Editing Section */}
+      {activeTab === 'Content Editing' && (
+        <ContentEditingTab
+          formData={formData}
+          setFormData={updateFormData}
+        />
+      )}
+
       {/* Addendums Section */}
       {activeTab === 'Addendums' && (
         <AddendumsTab
@@ -732,7 +754,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         >
           {activeTab === 'Customer Information' 
             ? 'Save Customer Information' 
-            : (initialData ? 'Update SOW' : 'Save SOW')
+            : 'Update SOW'
           }
         </button>
       </div>

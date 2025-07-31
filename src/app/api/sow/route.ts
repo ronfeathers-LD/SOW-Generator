@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { getContentTemplate, processIntroContent, processScopeContent } from '@/lib/sow-content';
 
 export async function POST(request: Request) {
   try {
@@ -7,6 +8,49 @@ export async function POST(request: Request) {
     
     // Log the incoming data for debugging
     console.log('Received data:', data);
+    
+    // Fetch default content templates
+    let defaultIntroContent = '';
+    let defaultScopeContent = '';
+    let defaultObjectivesDisclosureContent = '';
+    
+    try {
+      const introTemplate = await getContentTemplate('intro');
+      console.log('🔍 Intro template found:', !!introTemplate);
+      if (introTemplate) {
+        // Process the intro template with the client name
+        const clientName = data.header?.client_name || data.template?.customer_name || '';
+        console.log('🔍 Client name for intro:', clientName);
+        
+        // If no client name is available yet, store the template with placeholder
+        if (!clientName) {
+          defaultIntroContent = introTemplate.default_content;
+        } else {
+          defaultIntroContent = processIntroContent(introTemplate.default_content, clientName);
+        }
+        console.log('🔍 Processed intro content length:', defaultIntroContent.length);
+      }
+      
+      const scopeTemplate = await getContentTemplate('scope');
+      console.log('🔍 Scope template found:', !!scopeTemplate);
+      if (scopeTemplate) {
+        // Process the scope template with deliverables
+        const deliverables = data.scope?.deliverables ? data.scope.deliverables.split('\n').filter(Boolean) : [];
+        console.log('🔍 Deliverables for scope:', deliverables);
+        defaultScopeContent = processScopeContent(scopeTemplate.default_content, deliverables);
+        console.log('🔍 Processed scope content length:', defaultScopeContent.length);
+      }
+      
+      const objectivesDisclosureTemplate = await getContentTemplate('objectives-disclosure');
+      console.log('🔍 Objectives disclosure template found:', !!objectivesDisclosureTemplate);
+      if (objectivesDisclosureTemplate) {
+        defaultObjectivesDisclosureContent = objectivesDisclosureTemplate.default_content;
+        console.log('🔍 Objectives disclosure content length:', defaultObjectivesDisclosureContent.length);
+      }
+    } catch (templateError) {
+      console.warn('Failed to fetch content templates:', templateError);
+      // Continue with empty content if templates fail to load
+    }
     
     const { data: sow, error } = await supabase
       .from('sows')
@@ -63,6 +107,14 @@ export async function POST(request: Request) {
         opportunity_amount: data.template?.opportunityAmount || null,
         opportunity_stage: data.template?.opportunityStage || null,
         opportunity_close_date: data.template?.opportunityCloseDate ? new Date(data.template.opportunityCloseDate).toISOString() : null,
+        
+        // Copy default content templates into the SOW
+        custom_intro_content: data.custom_intro_content || defaultIntroContent,
+        custom_scope_content: data.custom_scope_content || defaultScopeContent,
+        custom_objectives_disclosure_content: data.custom_objectives_disclosure_content || defaultObjectivesDisclosureContent,
+        intro_content_edited: data.intro_content_edited || false,
+        scope_content_edited: data.scope_content_edited || false,
+        objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false,
       })
       .select()
       .single();
@@ -78,6 +130,12 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
+    console.log('🔍 SOW created with content lengths:', {
+      intro: sow.custom_intro_content?.length || 0,
+      scope: sow.custom_scope_content?.length || 0,
+      objectives_disclosure: sow.custom_objectives_disclosure_content?.length || 0
+    });
 
     return NextResponse.json({ 
       success: true, 

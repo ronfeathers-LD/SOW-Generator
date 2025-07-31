@@ -84,6 +84,13 @@ export async function GET(
       client_signer_name: sow.client_signer_name || '',
       // Explicitly include salesforce_account_id
       salesforce_account_id: sow.salesforce_account_id || null,
+      // Include custom content fields
+      custom_intro_content: sow.custom_intro_content || null,
+      custom_scope_content: sow.custom_scope_content || null,
+      custom_objectives_disclosure_content: sow.custom_objectives_disclosure_content || null,
+      intro_content_edited: sow.intro_content_edited || false,
+      scope_content_edited: sow.scope_content_edited || false,
+      objectives_disclosure_content_edited: sow.objectives_disclosure_content_edited || false,
     };
 
     return NextResponse.json(transformedSow);
@@ -270,6 +277,14 @@ export async function PUT(
       if (data.template.opportunity_stage !== undefined) updateData.opportunity_stage = data.template.opportunity_stage || null;
       if (data.template.opportunity_close_date !== undefined) updateData.opportunity_close_date = data.template.opportunity_close_date ? new Date(data.template.opportunity_close_date).toISOString() : null;
     }
+
+    // Custom Content fields
+    if (data.custom_intro_content !== undefined) updateData.custom_intro_content = data.custom_intro_content;
+    if (data.custom_scope_content !== undefined) updateData.custom_scope_content = data.custom_scope_content;
+    if (data.custom_objectives_disclosure_content !== undefined) updateData.custom_objectives_disclosure_content = data.custom_objectives_disclosure_content;
+    if (data.intro_content_edited !== undefined) updateData.intro_content_edited = data.intro_content_edited;
+    if (data.scope_content_edited !== undefined) updateData.scope_content_edited = data.scope_content_edited;
+    if (data.objectives_disclosure_content_edited !== undefined) updateData.objectives_disclosure_content_edited = data.objectives_disclosure_content_edited;
 
 
     

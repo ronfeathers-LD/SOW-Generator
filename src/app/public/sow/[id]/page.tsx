@@ -60,6 +60,12 @@ interface SOW {
     date: string;
   };
   clientSignerName?: string;
+  
+  // Custom content tracking
+  custom_intro_content?: string;
+  custom_scope_content?: string;
+  intro_content_edited?: boolean;
+  scope_content_edited?: boolean;
 }
 
 function safeJsonParse<T>(value: any, defaultValue: T): T {
@@ -120,7 +126,11 @@ export default function PublicSOWPage() {
           addendums: safeJsonParse(data.addendums, []),
           companyLogo: data.companyLogo || '',
           clientSignature: data.clientSignature || undefined,
-          clientSignerName: data.clientSignerName || undefined
+          clientSignerName: data.clientSignerName || undefined,
+          custom_intro_content: data.custom_intro_content || undefined,
+          custom_scope_content: data.custom_scope_content || undefined,
+          intro_content_edited: data.intro_content_edited || false,
+          scope_content_edited: data.scope_content_edited || false
         };
         
         setSOW(parsedData);
@@ -162,10 +172,14 @@ export default function PublicSOWPage() {
         />
         <SOWIntroPage 
           clientName={sow.clientName}
+          customContent={sow.custom_intro_content}
+          isEdited={sow.intro_content_edited}
         />
         <SOWScopePage 
           deliverables={sow.deliverables}
           projectDescription={sow.projectDescription}
+          customContent={sow.custom_scope_content}
+          isEdited={sow.scope_content_edited}
         />
       </div>
     </div>

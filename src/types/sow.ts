@@ -63,6 +63,18 @@ export interface SOWTemplate {
   opportunity_close_date?: string;
 }
 
+export interface SOWContentTemplate {
+  id: string;
+  created_at: Date;
+  updated_at: Date;
+  section_name: string;
+  section_title: string;
+  default_content: string;
+  is_active: boolean;
+  sort_order: number;
+  description?: string;
+}
+
 export interface SOWData {
   id?: string;
   created_at?: Date;
@@ -151,4 +163,12 @@ export interface SOWData {
   opportunity_amount?: number;
   opportunity_stage?: string;
   opportunity_close_date?: string;
+
+  // Custom content tracking
+  custom_intro_content?: string;
+  custom_scope_content?: string;
+  custom_objectives_disclosure_content?: string;
+  intro_content_edited?: boolean;
+  scope_content_edited?: boolean;
+  objectives_disclosure_content_edited?: boolean;
 } 
