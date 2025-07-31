@@ -21,7 +21,6 @@ const hasValidGoogleCredentials = () => {
 
 // Log the callback URL for debugging
 const callbackUrl = `${process.env.NEXTAUTH_URL}/api/auth/callback/google`;
-console.log('Callback URL:', callbackUrl);
 
 export const authOptions = {
   providers: hasValidGoogleCredentials() ? [
@@ -44,7 +43,7 @@ export const authOptions = {
   jwt: {
     secret: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'production' ? undefined : 'dev-secret'),
   },
-  debug: process.env.NODE_ENV === 'development', // Only debug in development
+  debug: false, // Disable debug to avoid warnings
   callbacks: {
     async signIn({ user }: any) {
       try {

@@ -12,11 +12,16 @@ export default async function Home() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm">
-        <h1 className="text-4xl font-bold mb-8">Welcome to SOW Generator</h1>
-        <p className="text-xl">Your Statement of Work generation tool</p>
-        <LoginButton />
+    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gradient-to-br from-indigo-50 to-white">
+      <div className="z-10 max-w-2xl w-full text-center">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Welcome to SOW Generator</h1>
+          <p className="text-xl text-gray-600 mb-8">Your Statement of Work generation tool</p>
+          <p className="text-sm text-gray-500 mb-8">Please sign in to access your SOWs and create new ones.</p>
+        </div>
+        <div className="flex justify-center">
+          <LoginButton />
+        </div>
       </div>
     </main>
   )

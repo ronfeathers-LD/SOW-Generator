@@ -11,34 +11,28 @@ export async function middleware(request: NextRequest) {
   const isAdmin = token?.role === "admin";
   const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
   const isGeminiAdminRoute = request.nextUrl.pathname.startsWith("/api/admin/gemini");
-  const isPublicRoute = request.nextUrl.pathname.startsWith("/public") || 
-                       request.nextUrl.pathname.startsWith("/api/public") ||
-                       request.nextUrl.pathname === "/" ||
+  
+  // Only allow these routes without authentication
+  const isPublicRoute = request.nextUrl.pathname === "/" || 
                        request.nextUrl.pathname.startsWith("/api/auth") ||
-                       request.nextUrl.pathname.startsWith("/api/debug") ||
-                       request.nextUrl.pathname === "/sow/new" ||
-                       request.nextUrl.pathname === "/dashboard" ||
-                       request.nextUrl.pathname.startsWith("/sow") ||
-                       request.nextUrl.pathname.startsWith("/api/avoma/search") ||
-                       request.nextUrl.pathname.startsWith("/api/avoma/transcription") ||
-                       request.nextUrl.pathname.startsWith("/api/gemini/analyze-transcription") ||
-                       request.nextUrl.pathname.startsWith("/api/salesforce") ||
-                       request.nextUrl.pathname.startsWith("/api/admin/salesforce") ||
-                       request.nextUrl.pathname.startsWith("/api/sow");
+                       request.nextUrl.pathname.startsWith("/_next") ||
+                       request.nextUrl.pathname === "/favicon.ico" ||
+                       request.nextUrl.pathname.startsWith("/public") ||
+                       request.nextUrl.pathname.startsWith("/api/public");
 
   // Allow access to public routes
   if (isPublicRoute) {
     return NextResponse.next();
   }
 
-  // Redirect non-admin users trying to access admin routes
-  if ((isAdminRoute || isGeminiAdminRoute) && !isAdmin) {
-    return NextResponse.redirect(new URL("/sow", request.url));
-  }
-
   // Require authentication for all other routes
   if (!token) {
     return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  // Redirect non-admin users trying to access admin routes
+  if ((isAdminRoute || isGeminiAdminRoute) && !isAdmin) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();
@@ -52,7 +46,6 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public folder
      */
     "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
