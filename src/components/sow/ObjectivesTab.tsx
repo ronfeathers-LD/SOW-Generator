@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SOWData } from '@/types/sow';
-import RichTextEditor from '../RichTextEditor';
+import WYSIWYGEditor from '../WYSIWYGEditor';
 
 interface ObjectivesTabProps {
   formData: Partial<SOWData>;
@@ -431,7 +431,7 @@ export default function ObjectivesTab({
                 List the specific objectives that will be achieved through this project. Use the toolbar to format with bullet points, numbered lists, and emphasis.
               </p>
               
-              <RichTextEditor
+              <WYSIWYGEditor
                 value={formData.objectives?.key_objectives?.join('\n\n') || ''}
                 onChange={(value) => {
                   // Convert the rich text content back to an array of objectives

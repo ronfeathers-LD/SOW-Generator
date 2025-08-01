@@ -4,43 +4,43 @@ import { SOWData } from '@/types/sow';
 interface TeamRolesTabProps {
   formData: Partial<SOWData>;
   setFormData: (data: Partial<SOWData>) => void;
-  leanDataSignators: Array<{ id: string; name: string; email: string; title: string }>;
-  selectedLeanDataSignator: string;
-  onLeanDataSignatorChange: (signatorId: string) => void;
+  leanDataSignatories: Array<{ id: string; name: string; email: string; title: string }>;
+selectedLeanDataSignatory: string;
+onLeanDataSignatoryChange: (signatoryId: string) => void;
 }
 
 export default function TeamRolesTab({
   formData,
   setFormData,
-  leanDataSignators,
-  selectedLeanDataSignator,
-  onLeanDataSignatorChange,
+  leanDataSignatories,
+  selectedLeanDataSignatory,
+  onLeanDataSignatoryChange,
 }: TeamRolesTabProps) {
   return (
     <section className="space-y-6">
       <h2 className="text-2xl font-bold">Team & Roles</h2>
       
-      {/* LeanData Signator */}
+      {/* LeanData Signatory */}
       <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-4">LeanData Signator</h3>
+        <h3 className="text-lg font-semibold mb-4">LeanData Signatory</h3>
         <p className="text-sm text-gray-600 mb-4">
           Select the LeanData representative who will sign this SOW
         </p>
         <select
-          value={selectedLeanDataSignator}
-          onChange={(e) => onLeanDataSignatorChange(e.target.value)}
+          value={selectedLeanDataSignatory}
+          onChange={(e) => onLeanDataSignatoryChange(e.target.value)}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
         >
-          <option value="">Select a signator</option>
-          {leanDataSignators.map((signator) => (
-            <option key={signator.id} value={signator.id}>
-              {signator.name} - {signator.title}
+          <option value="">Select a signatory</option>
+          {leanDataSignatories.map((signatory) => (
+            <option key={signatory.id} value={signatory.id}>
+              {signatory.name} - {signatory.title}
             </option>
           ))}
         </select>
-        {selectedLeanDataSignator && (
+        {selectedLeanDataSignatory && (
           <div className="mt-2 text-sm text-gray-600">
-            Selected: {leanDataSignators.find(s => s.id === selectedLeanDataSignator)?.name} - {leanDataSignators.find(s => s.id === selectedLeanDataSignator)?.title}
+            Selected: {leanDataSignatories.find(s => s.id === selectedLeanDataSignatory)?.name} - {leanDataSignatories.find(s => s.id === selectedLeanDataSignatory)?.title}
           </div>
         )}
       </div>

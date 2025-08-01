@@ -18,7 +18,7 @@ async function checkAdminAccess() {
   return { session };
 }
 
-// PUT - Update a LeanData signator
+// PUT - Update a LeanData signatory
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -39,23 +39,23 @@ export async function PUT(
       );
     }
 
-    // Check if email already exists for a different signator
-    const { data: existingSignator } = await supabase
-      .from('lean_data_signators')
+    // Check if email already exists for a different signatory
+    const { data: existingSignatory } = await supabase
+      .from('lean_data_signatories')
       .select('*')
       .eq('email', email)
       .neq('id', (await params).id)
       .single();
 
-    if (existingSignator) {
+    if (existingSignatory) {
       return NextResponse.json(
-        { error: 'A signator with this email already exists' },
+        { error: 'A signatory with this email already exists' },
         { status: 400 }
       );
     }
 
-    const { data: signator, error } = await supabase
-      .from('lean_data_signators')
+    const { data: signatory, error } = await supabase
+      .from('lean_data_signatories')
       .update({
         name,
         email,
@@ -66,17 +66,17 @@ export async function PUT(
       .select()
       .single();
 
-    return NextResponse.json(signator);
+    return NextResponse.json(signatory);
   } catch (error) {
-    console.error('Error updating LeanData signator:', error);
+    console.error('Error updating LeanData signatory:', error);
     return NextResponse.json(
-      { error: 'Failed to update LeanData signator' },
+      { error: 'Failed to update LeanData signatory' },
       { status: 500 }
     );
   }
 }
 
-// DELETE - Delete a LeanData signator
+// DELETE - Delete a LeanData signatory
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -88,15 +88,15 @@ export async function DELETE(
 
   try {
     const { error } = await supabase
-      .from('lean_data_signators')
+      .from('lean_data_signatories')
       .delete()
       .eq('id', (await params).id);
 
-    return NextResponse.json({ message: 'LeanData signator deleted successfully' });
+    return NextResponse.json({ message: 'LeanData signatory deleted successfully' });
   } catch (error) {
-    console.error('Error deleting LeanData signator:', error);
+    console.error('Error deleting LeanData signatory:', error);
     return NextResponse.json(
-      { error: 'Failed to delete LeanData signator' },
+      { error: 'Failed to delete LeanData signatory' },
       { status: 500 }
     );
   }

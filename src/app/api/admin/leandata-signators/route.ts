@@ -18,7 +18,7 @@ async function checkAdminAccess() {
   return { session };
 }
 
-// GET - Fetch all LeanData signators
+// GET - Fetch all LeanData signatories
 export async function GET() {
   const authCheck = await checkAdminAccess();
   if ('error' in authCheck) {
@@ -26,22 +26,22 @@ export async function GET() {
   }
 
   try {
-    const { data: signators, error } = await supabase
-      .from('lean_data_signators')
+    const { data: signatories, error } = await supabase
+      .from('lean_data_signatories')
       .select('*')
       .order('name', { ascending: true });
 
-    return NextResponse.json(signators);
+    return NextResponse.json(signatories);
   } catch (error) {
-    console.error('Error fetching LeanData signators:', error);
+    console.error('Error fetching LeanData signatories:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch LeanData signators' },
+      { error: 'Failed to fetch LeanData signatories' },
       { status: 500 }
     );
   }
 }
 
-// POST - Create a new LeanData signator
+// POST - Create a new LeanData signatory
 export async function POST(request: NextRequest) {
   const authCheck = await checkAdminAccess();
   if ('error' in authCheck) {
@@ -60,21 +60,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if email already exists
-    const { data: existingSignator } = await supabase
-      .from('lean_data_signators')
+    const { data: existingSignatory } = await supabase
+      .from('lean_data_signatories')
       .select('*')
       .eq('email', email)
       .single();
 
-    if (existingSignator) {
+    if (existingSignatory) {
       return NextResponse.json(
-        { error: 'A signator with this email already exists' },
+        { error: 'A signatory with this email already exists' },
         { status: 400 }
       );
     }
 
-    const { data: signator, error } = await supabase
-      .from('lean_data_signators')
+    const { data: signatory, error } = await supabase
+      .from('lean_data_signatories')
       .insert({
         name,
         email,
@@ -83,11 +83,11 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    return NextResponse.json(signator, { status: 201 });
+    return NextResponse.json(signatory, { status: 201 });
   } catch (error) {
-    console.error('Error creating LeanData signator:', error);
+    console.error('Error creating LeanData signatory:', error);
     return NextResponse.json(
-      { error: 'Failed to create LeanData signator' },
+      { error: 'Failed to create LeanData signatory' },
       { status: 500 }
     );
   }

@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { GeminiBulletPoint } from '@/lib/gemini';
 import { SalesforceOpportunity, SalesforceContact } from '@/lib/salesforce';
 import AvomaIntegration from './AvomaIntegration';
-import RichTextEditor from './RichTextEditor';
+import WYSIWYGEditor from './WYSIWYGEditor';
 import SalesforceIntegration from './SalesforceIntegration';
 import OpportunityLookup from './OpportunityLookup';
 import ProjectOverviewTab from './sow/ProjectOverviewTab';
@@ -19,7 +19,7 @@ import AddendumsTab from './sow/AddendumsTab';
 import ContentEditingTab from './sow/ContentEditingTab';
 import { createSalesforceAccountData, createSalesforceContactData, createSalesforceOpportunityData } from '@/types/salesforce';
 
-interface LeanDataSignator {
+interface LeanDataSignatory {
   id: string;
   name: string;
   email: string;
@@ -170,8 +170,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   const [logoPreview, setLogoPreview] = useState<string | null>(initialData?.header?.company_logo || null);
   const [activeTab, setActiveTab] = useState('Project Overview');
   const router = useRouter();
-  const [leanDataSignators, setLeanDataSignators] = useState<LeanDataSignator[]>([]);
-  const [selectedLeanDataSignator, setSelectedLeanDataSignator] = useState<string>('');
+  const [leanDataSignatories, setLeanDataSignatories] = useState<LeanDataSignatory[]>([]);
+  const [selectedLeanDataSignatory, setSelectedLeanDataSignatory] = useState<string>('');
   const [selectedAccount, setSelectedAccount] = useState<{ id: string; name: string } | null>(null);
   const [selectedContact, setSelectedContact] = useState<SalesforceContact | null>(null);
   const [selectedOpportunity, setSelectedOpportunity] = useState<SalesforceOpportunity | null>(null);
@@ -187,21 +187,21 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     }
   };
 
-  // Fetch LeanData signators on component mount
+  // Fetch LeanData signatories on component mount
   useEffect(() => {
-    const fetchLeanDataSignators = async () => {
+    const fetchLeanDataSignatories = async () => {
       try {
-        const response = await fetch('/api/leandata-signators');
+        const response = await fetch('/api/leandata-signatories');
         if (response.ok) {
           const data = await response.json();
-          setLeanDataSignators(data);
+          setLeanDataSignatories(data);
         }
       } catch (error) {
-        console.error('Error fetching LeanData signators:', error);
+        console.error('Error fetching LeanData signatories:', error);
       }
     };
 
-    fetchLeanDataSignators();
+    fetchLeanDataSignatories();
   }, []);
 
   // Load existing data when editing
@@ -245,36 +245,36 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     }
   }, [initialData]);
 
-  // Initialize selected LeanData signator when signators are loaded and we have initial data
+    // Initialize selected LeanData signatory when signatories are loaded and we have initial data
   useEffect(() => {
-    if (leanDataSignators.length > 0 && initialData) {
-      // Find the signator that matches the existing data
-      const matchingSignator = leanDataSignators.find(signator => 
-        signator.name === initialData.template?.lean_data_name ||
-        signator.email === initialData.template?.lean_data_email
+    if (leanDataSignatories.length > 0 && initialData) {
+      // Find the signatory that matches the existing data
+      const matchingSignatory = leanDataSignatories.find(signatory =>
+        signatory.name === initialData.template?.lean_data_name ||
+        signatory.email === initialData.template?.lean_data_email
       );
-      
-      if (matchingSignator) {
-        setSelectedLeanDataSignator(matchingSignator.id);
+
+      if (matchingSignatory) {
+        setSelectedLeanDataSignatory(matchingSignatory.id);
       }
     }
-  }, [leanDataSignators, initialData]);
+  }, [leanDataSignatories, initialData]);
 
-  const handleLeanDataSignatorChange = (signatorId: string) => {
-    setSelectedLeanDataSignator(signatorId);
-    
-    if (signatorId) {
-      const selectedSignator = leanDataSignators.find(s => s.id === signatorId);
-      if (selectedSignator) {
+    const handleLeanDataSignatoryChange = (signatoryId: string) => {
+    setSelectedLeanDataSignatory(signatoryId);
+
+    if (signatoryId) {
+      const selectedSignatory = leanDataSignatories.find(s => s.id === signatoryId);
+      if (selectedSignatory) {
         setFormData({
           ...formData,
           template: {
             ...formData.template!,
-            lean_data_name: selectedSignator.name,
-            lean_data_title: selectedSignator.title,
-            lean_data_email: selectedSignator.email,
-            lean_data_signature_name: selectedSignator.name,
-            lean_data_signature: selectedSignator.title
+            lean_data_name: selectedSignatory.name,
+            lean_data_title: selectedSignatory.title,
+            lean_data_email: selectedSignatory.email,
+            lean_data_signature_name: selectedSignatory.name,
+            lean_data_signature: selectedSignatory.title
           }
         });
       }
@@ -715,9 +715,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         <TeamRolesTab
           formData={formData}
           setFormData={updateFormData}
-          leanDataSignators={leanDataSignators}
-          selectedLeanDataSignator={selectedLeanDataSignator}
-          onLeanDataSignatorChange={handleLeanDataSignatorChange}
+                        leanDataSignatories={leanDataSignatories}
+              selectedLeanDataSignatory={selectedLeanDataSignatory}
+              onLeanDataSignatoryChange={handleLeanDataSignatoryChange}
         />
       )}
 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
 import { getContentTemplate, processIntroContent, processScopeContent } from '@/lib/sow-content';
-import RichTextEditor from '../RichTextEditor';
+import WYSIWYGEditor from '../WYSIWYGEditor';
 
 interface ContentEditingTabProps {
   formData: Partial<SOWData>;
@@ -183,7 +183,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Introduction Content
           </label>
-          <RichTextEditor
+          <WYSIWYGEditor
             value={formData.custom_intro_content || ''}
             onChange={handleIntroContentChange}
             placeholder="Enter the introduction content for this SOW..."
@@ -226,7 +226,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Scope Content
           </label>
-          <RichTextEditor
+          <WYSIWYGEditor
             value={formData.custom_scope_content || ''}
             onChange={handleScopeContentChange}
             placeholder="Enter the scope content for this SOW..."
@@ -269,7 +269,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Objectives Disclosure Content
           </label>
-          <RichTextEditor
+          <WYSIWYGEditor
             value={formData.custom_objectives_disclosure_content || ''}
             onChange={handleObjectivesDisclosureContentChange}
             placeholder="Enter the objectives disclosure content for this SOW..."
@@ -312,7 +312,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Assumptions Content
           </label>
-          <RichTextEditor
+          <WYSIWYGEditor
             value={formData.custom_assumptions_content || ''}
             onChange={handleAssumptionsContentChange}
             placeholder="Enter the assumptions content for this SOW..."
@@ -355,7 +355,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Project Phases Content
           </label>
-          <RichTextEditor
+          <WYSIWYGEditor
             value={formData.custom_project_phases_content || ''}
             onChange={handleProjectPhasesContentChange}
             placeholder="Enter the project phases content for this SOW..."

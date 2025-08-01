@@ -12,7 +12,7 @@ export async function GET() {
     }
 
     // Fetch all configuration statuses in parallel
-    const [avomaConfig, salesforceConfig, geminiConfig, leanDataSignators] = await Promise.all([
+    const [avomaConfig, salesforceConfig, geminiConfig, leanDataSignatories] = await Promise.all([
       supabase
         .from('avoma_configs')
         .select('is_active')
@@ -35,7 +35,7 @@ export async function GET() {
         .then(result => ({ config: result.data, error: result.error })),
       
       supabase
-        .from('leandata_signators')
+        .from('lean_data_signatories')
         .select('count')
         .then(result => ({ count: result.data?.length || 0, error: result.error }))
     ]);
@@ -60,7 +60,7 @@ export async function GET() {
       salesforceConfigured: !!(salesforceConfig.config && salesforceConfig.config.is_active),
       avomaConfigured: !!(avomaConfig.config && avomaConfig.config.is_active),
       geminiConfigured: !!(geminiConfig.config && geminiConfig.config.is_active),
-      leanDataSignators: leanDataSignators.count
+              leanDataSignatories: leanDataSignatories.count
     });
 
   } catch (error) {

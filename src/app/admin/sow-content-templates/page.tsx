@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { SOWContentTemplate } from '@/types/sow';
+import WYSIWYGEditor from '@/components/WYSIWYGEditor';
 
 export default function SOWContentTemplatesPage() {
   const [templates, setTemplates] = useState<SOWContentTemplate[]>([]);
@@ -241,16 +242,16 @@ function TemplateForm({ template, onSave, onCancel }: TemplateFormProps) {
           <label className="block text-sm font-medium text-gray-700">
             Default Content
           </label>
-          <textarea
-            value={formData.default_content}
-            onChange={(e) => setFormData({ ...formData, default_content: e.target.value })}
-            rows={8}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="Enter the default content for this section..."
-            required
-          />
+          <div className="mt-1">
+            <WYSIWYGEditor
+              value={formData.default_content}
+              onChange={(value) => setFormData({ ...formData, default_content: value })}
+              placeholder="Enter the default content for this section..."
+            />
+          </div>
           <p className="mt-1 text-sm text-gray-500">
             Use {'{clientName}'} and {'{deliverables}'} as placeholders that will be replaced with actual values.
+            You can use the toolbar above to format your content with headers, bold text, lists, tables, and more.
           </p>
         </div>
 

@@ -69,11 +69,11 @@ export default function AdminNav() {
                     Gemini AI
                   </Link>
                   <Link 
-                    href="/admin/leandata-signators"
+                    href="/admin/leandata-signatories"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     onClick={() => setIsConfigOpen(false)}
                   >
-                    LeanData Signators
+                    LeanData Signatories
                   </Link>
                 </div>
               </div>

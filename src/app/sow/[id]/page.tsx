@@ -128,8 +128,8 @@ function safeJsonParse<T>(value: any, defaultValue: T): T {
   }
 }
 
-// Helper function to find the appropriate signator from Salesforce contacts
-function findSignator(contacts: SalesforceData['contacts_data']): { name: string; title: string; email: string } | null {
+  // Helper function to find the appropriate signatory from Salesforce contacts
+  function findSignatory(contacts: SalesforceData['contacts_data']): { name: string; title: string; email: string } | null {
   if (!contacts || contacts.length === 0) return null;
   
   // Priority order: decision_maker > primary_poc > first contact
@@ -510,9 +510,9 @@ export default function SOWDetailsPage() {
                     clientName={salesforceData?.account_data?.name || sow.clientName}
                     clientLogo={sow.companyLogo}
                     clientSignature={{
-                      name: findSignator(salesforceData?.contacts_data)?.name || sow.clientSignerName || sow.clientSignature?.name || 'Not Entered',
-                      title: findSignator(salesforceData?.contacts_data)?.title || sow.clientSignature?.title || sow.clientTitle || 'Not Entered',
-                      email: findSignator(salesforceData?.contacts_data)?.email || sow.clientSignature?.email || sow.clientEmail || 'Not Entered',
+                          name: findSignatory(salesforceData?.contacts_data)?.name || sow.clientSignerName || sow.clientSignature?.name || 'Not Entered',
+    title: findSignatory(salesforceData?.contacts_data)?.title || sow.clientSignature?.title || sow.clientTitle || 'Not Entered',
+    email: findSignatory(salesforceData?.contacts_data)?.email || sow.clientSignature?.email || sow.clientEmail || 'Not Entered',
                       date: sow.signatureDate || 'Not Entered'
                     }}
                     leandataSignature={{

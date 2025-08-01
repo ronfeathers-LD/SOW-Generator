@@ -82,7 +82,7 @@ export interface SalesforceConfig {
   last_error?: string;
 }
 
-export interface LeanDataSignator {
+export interface LeanDataSignatory {
   id: string;
   created_at: string;
   updated_at: string;

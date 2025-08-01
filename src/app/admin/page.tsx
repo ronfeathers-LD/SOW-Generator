@@ -9,7 +9,7 @@ interface DashboardStats {
   salesforceConfigured: boolean;
   avomaConfigured: boolean;
   geminiConfigured: boolean;
-  leanDataSignators: number;
+  leanDataSignatories: number;
 }
 
 export default function AdminDashboard() {
@@ -33,7 +33,7 @@ export default function AdminDashboard() {
           salesforceConfigured: status.salesforceConfigured || false,
           avomaConfigured: status.avomaConfigured || false,
           geminiConfigured: status.geminiConfigured || false,
-          leanDataSignators: status.leanDataSignators || 0,
+          leanDataSignatories: status.leanDataSignatories || 0,
         });
       } else {
         throw new Error('Failed to fetch system status');
@@ -47,7 +47,7 @@ export default function AdminDashboard() {
         salesforceConfigured: false,
         avomaConfigured: false,
         geminiConfigured: false,
-        leanDataSignators: 0,
+        leanDataSignatories: 0,
       });
     } finally {
       setIsLoading(false);
