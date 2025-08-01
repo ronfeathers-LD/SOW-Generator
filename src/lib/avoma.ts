@@ -97,26 +97,7 @@ class AvomaClient {
   private async makeRequest(endpoint: string, options: RequestInit = {}) {
     const url = `${this.baseUrl}${endpoint}`;
     
-    // Log the full request details
-    console.log('🔍 Avoma API Request Details:');
-    console.log('  URL:', url);
-    console.log('  Method:', options.method || 'GET');
-    console.log('  Headers:', {
-      'Authorization': `Bearer ${this.apiKey.substring(0, 10)}...`,
-      'Content-Type': 'application/json',
-      ...options.headers,
-    });
-    console.log('  Body:', options.body || 'No body');
-    console.log('  Full Request Object:', {
-      url,
-      method: options.method || 'GET',
-      headers: {
-        'Authorization': `Bearer ${this.apiKey.substring(0, 10)}...`,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      body: options.body,
-    });
+    // Request details logged
     
     const response = await fetch(url, {
       ...options,
@@ -127,17 +108,14 @@ class AvomaClient {
       },
     });
 
-    console.log('🔍 Avoma API Response:');
-    console.log('  Status:', response.status);
-    console.log('  Status Text:', response.statusText);
-    console.log('  Response Headers:', Object.fromEntries(response.headers.entries()));
+    // Response received
 
     if (!response.ok) {
       throw new Error(`Avoma API error: ${response.status} ${response.statusText}`);
     }
 
     const responseData = await response.json();
-    console.log('  Response Data:', responseData);
+    // Response data processed
     
     return responseData;
   }
@@ -151,17 +129,9 @@ class AvomaClient {
       const fromDate = new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 6 months ago
     
     // Debug: Log the actual dates being used
-          console.log('🔍 Date Debug:');
-      console.log('  Current Date:', new Date().toISOString());
-      console.log('  To Date (today):', toDate);
-      console.log('  From Date (6 months ago):', fromDate);
+              // Date parameters prepared
     
-    console.log('🔍 Building Avoma Search Parameters:');
-    console.log('  Query:', query);
-    console.log('  Customer Name:', customerName);
-    console.log('  Limit:', limit);
-    console.log('  From Date:', fromDate);
-    console.log('  To Date:', toDate);
+    // Search parameters prepared
     
     const params = new URLSearchParams({
       limit: limit.toString(),
@@ -175,14 +145,13 @@ class AvomaClient {
       params.append('customer_name', customerName);
     }
 
-    console.log('🔍 Final URL Parameters:', params.toString());
-    console.log('🔍 Full URL:', `${this.baseUrl}/meetings?${params.toString()}`);
+    // URL parameters prepared
 
           // Add pagination if provided
       if (nextPage) {
         // If nextPage is a full URL, use it directly
         if (nextPage.startsWith('http')) {
-          console.log('🔍 Using full pagination URL:', nextPage);
+          // Using full pagination URL
           return this.makeRequest(nextPage.replace(this.baseUrl, ''));
         } else {
           // Otherwise, add it as a page parameter
@@ -191,7 +160,7 @@ class AvomaClient {
       }
       
       // Always use the /meetings endpoint - it supports both query and date parameters
-      console.log('🔍 Using /meetings endpoint with parameters:', params.toString());
+      // Using /meetings endpoint
       return this.makeRequest(`/meetings?${params.toString()}`);
   }
 
@@ -206,7 +175,7 @@ class AvomaClient {
    * Get detailed information about a specific meeting by UUID
    */
   async getMeeting(meetingId: string): Promise<AvomaCall> {
-    console.log('🔍 Fetching specific meeting:', meetingId);
+    // Fetching specific meeting
     return this.makeRequest(`/meetings/${meetingId}`);
   }
 
@@ -214,14 +183,14 @@ class AvomaClient {
    * Search meetings for specific keywords/account names
    */
   async searchMeetings(query: string, limit: number = 20): Promise<any> {
-    console.log('🔍 Searching meetings for:', query);
+    // Searching meetings for query
     
     const params = new URLSearchParams({
       q: query,
       limit: limit.toString(),
     });
 
-    console.log('🔍 Meeting search URL:', `${this.baseUrl}/meetings?${params.toString()}`);
+    // Meeting search URL prepared
     return this.makeRequest(`/meetings?${params.toString()}`);
   }
 
@@ -236,7 +205,7 @@ class AvomaClient {
    * Get the transcript for a specific meeting using the transcriptions endpoint
    */
   async getMeetingTranscript(meetingUuid: string): Promise<any> {
-    console.log('🔍 Fetching meeting transcript for:', meetingUuid);
+    // Fetching meeting transcript
     
     // Use the transcriptions endpoint with the correct UUID
     const result = await this.makeRequest(`/transcriptions/${meetingUuid}/`);
@@ -282,7 +251,7 @@ class AvomaClient {
    */
   async findScopingCalls(customerName: string): Promise<AvomaCall[]> {
     try {
-      console.log('🔍 Searching for meetings with customer:', customerName);
+      // Searching for meetings with customer
       
       // Try to get meetings without the q parameter to avoid 400 errors
       // Use date parameters to get recent meetings
@@ -295,10 +264,10 @@ class AvomaClient {
         limit: '100' // Get more results to filter locally
       });
 
-      console.log('🔍 Fetching meetings with params:', params.toString());
+      // Fetching meetings with params
       const searchResults = await this.makeRequest(`/meetings?${params.toString()}`);
       
-      console.log('🔍 Search results:', searchResults);
+      // Search results received
       
       if (searchResults.results && Array.isArray(searchResults.results)) {
         // Filter for meetings that contain the customer name and scoping-related keywords

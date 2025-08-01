@@ -14,14 +14,15 @@ export async function POST(request: Request) {
     let defaultScopeContent = '';
     let defaultObjectivesDisclosureContent = '';
     let defaultAssumptionsContent = '';
+    let defaultProjectPhasesContent = '';
     
     try {
       const introTemplate = await getContentTemplate('intro');
-      console.log('🔍 Intro template found:', !!introTemplate);
+      // Intro template loaded
       if (introTemplate) {
         // Process the intro template with the client name
         const clientName = data.header?.client_name || data.template?.customer_name || '';
-        console.log('🔍 Client name for intro:', clientName);
+        // Client name processed
         
         // If no client name is available yet, store the template with placeholder
         if (!clientName) {
@@ -29,31 +30,38 @@ export async function POST(request: Request) {
         } else {
           defaultIntroContent = processIntroContent(introTemplate.default_content, clientName);
         }
-        console.log('🔍 Processed intro content length:', defaultIntroContent.length);
+        // Intro content processed
       }
       
       const scopeTemplate = await getContentTemplate('scope');
-      console.log('🔍 Scope template found:', !!scopeTemplate);
+      // Scope template loaded
       if (scopeTemplate) {
         // Process the scope template with deliverables
         const deliverables = data.scope?.deliverables ? data.scope.deliverables.split('\n').filter(Boolean) : [];
-        console.log('🔍 Deliverables for scope:', deliverables);
+        // Deliverables processed
         defaultScopeContent = processScopeContent(scopeTemplate.default_content, deliverables);
-        console.log('🔍 Processed scope content length:', defaultScopeContent.length);
+        // Scope content processed
       }
       
       const objectivesDisclosureTemplate = await getContentTemplate('objectives-disclosure');
-      console.log('🔍 Objectives disclosure template found:', !!objectivesDisclosureTemplate);
+      // Objectives disclosure template loaded
       if (objectivesDisclosureTemplate) {
         defaultObjectivesDisclosureContent = objectivesDisclosureTemplate.default_content;
-        console.log('🔍 Objectives disclosure content length:', defaultObjectivesDisclosureContent.length);
+        // Objectives disclosure content processed
       }
       
       const assumptionsTemplate = await getContentTemplate('assumptions');
-      console.log('🔍 Assumptions template found:', !!assumptionsTemplate);
+      // Assumptions template loaded
       if (assumptionsTemplate) {
         defaultAssumptionsContent = assumptionsTemplate.default_content;
-        console.log('🔍 Assumptions content length:', defaultAssumptionsContent.length);
+        // Assumptions content processed
+      }
+      
+      const projectPhasesTemplate = await getContentTemplate('project-phases');
+      // Project phases template loaded
+      if (projectPhasesTemplate) {
+        defaultProjectPhasesContent = projectPhasesTemplate.default_content;
+        // Project phases content processed
       }
     } catch (templateError) {
       console.warn('Failed to fetch content templates:', templateError);
@@ -121,10 +129,12 @@ export async function POST(request: Request) {
         custom_scope_content: data.custom_scope_content || defaultScopeContent,
         custom_objectives_disclosure_content: data.custom_objectives_disclosure_content || defaultObjectivesDisclosureContent,
         custom_assumptions_content: data.custom_assumptions_content || defaultAssumptionsContent,
+        custom_project_phases_content: data.custom_project_phases_content || defaultProjectPhasesContent,
         intro_content_edited: data.intro_content_edited || false,
         scope_content_edited: data.scope_content_edited || false,
         objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false,
         assumptions_content_edited: data.assumptions_content_edited || false,
+        project_phases_content_edited: data.project_phases_content_edited || false,
       })
       .select()
       .single();
@@ -141,11 +151,7 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log('🔍 SOW created with content lengths:', {
-      intro: sow.custom_intro_content?.length || 0,
-      scope: sow.custom_scope_content?.length || 0,
-      objectives_disclosure: sow.custom_objectives_disclosure_content?.length || 0
-    });
+    // SOW created successfully
 
     return NextResponse.json({ 
       success: true, 

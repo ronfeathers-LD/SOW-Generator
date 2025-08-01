@@ -44,7 +44,7 @@ class GeminiClient {
   switchModel(newModelName: string) {
     this.modelName = newModelName;
     this.model = this.genAI.getGenerativeModel({ model: this.modelName });
-    console.log(`Switched to model: ${this.modelName}`);
+          // Model switched
   }
 
   /**
@@ -177,15 +177,15 @@ Please provide a professional, 2-3 sentence project description that captures th
 
     for (const modelName of orderedModels) {
       try {
-        console.log(`Trying model: ${modelName}`);
+        // Trying model
         this.switchModel(modelName);
         
         const result = await this.analyzeTranscription(transcript, customerName);
-        console.log(`Success with model: ${modelName}`);
+                  // Success with model
         return result;
         
       } catch (error) {
-        console.log(`Model ${modelName} failed:`, error instanceof Error ? error.message : 'Unknown error');
+        // Model failed, trying next
         lastError = error instanceof Error ? error : new Error('Unknown error');
         
         // If it's not an overload error, don't try other models
@@ -291,7 +291,7 @@ Guidelines:
         throw new Error('No content received from Gemini');
       }
 
-      console.log('Raw Gemini response:', content);
+      // Raw response received
 
       // Try to parse the JSON response
       try {
@@ -311,7 +311,7 @@ Guidelines:
           cleanedContent = jsonMatch[0];
         }
         
-        console.log('Cleaned content for parsing:', cleanedContent);
+        // Content cleaned for parsing
         
         const parsed = JSON.parse(cleanedContent);
         
@@ -329,7 +329,7 @@ Guidelines:
         
         // Try a second attempt with a simpler prompt
         try {
-          console.log('Attempting second request with simplified prompt...');
+          // Attempting second request with simplified prompt
           const simplePrompt = `
 Analyze this call transcript and return ONLY valid JSON:
 {
@@ -352,7 +352,7 @@ Customer: ${customerName}
             
             const parsed = JSON.parse(finalContent);
             if (parsed.objective && parsed.scope) {
-              console.log('Second attempt successful');
+              // Second attempt successful
               return {
                 objective: parsed.objective,
                 scope: Array.isArray(parsed.scope) ? parsed.scope : ['Scope could not be generated']
@@ -562,14 +562,7 @@ export async function analyzeTranscription(transcript: string, customerName: str
   }
 
   // Debug API key format
-  console.log('🔍 API Key Debug:');
-  console.log('  - Length:', config.api_key.length);
-  console.log('  - First 10 chars:', config.api_key.substring(0, 10));
-  console.log('  - Last 10 chars:', config.api_key.substring(config.api_key.length - 10));
-  console.log('  - Contains invalid chars:', /[^\x00-\x7F]/.test(config.api_key));
-  console.log('  - Contains bullet points:', config.api_key.includes('•'));
-  console.log('  - Contains dots:', config.api_key.includes('····'));
-  console.log('  - Selected model:', config.model_name);
+      // API key validation completed
   
   // Check if API key looks like it's been masked
   if (config.api_key.includes('•') || config.api_key.includes('····')) {

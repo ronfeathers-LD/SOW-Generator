@@ -535,8 +535,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       }
       
       const data = await response.json();
-      console.log('SOW save response:', data);
-      console.log('🔍 Response includes avoma_url:', data.avoma_url);
+              // SOW save response received
+      // Response includes avoma_url
       
 
       

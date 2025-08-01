@@ -38,7 +38,7 @@ class SalesforceCacheManager {
       return null;
     }
 
-    console.log(`📦 Using cached contacts for account ${accountId} (${Math.round((entry.expiresAt - Date.now()) / 1000)}s remaining)`);
+    // Using cached contacts
     return entry.data;
   }
 
@@ -52,7 +52,7 @@ class SalesforceCacheManager {
       expiresAt
     });
 
-    console.log(`📦 Cached ${contacts.length} contacts for account ${accountId} (expires in ${this.CONTACTS_CACHE_DURATION / 1000}s)`);
+    // Contacts cached
   }
 
   // Get cached opportunities for an account
@@ -69,7 +69,7 @@ class SalesforceCacheManager {
       return null;
     }
 
-    console.log(`📦 Using cached opportunities for account ${accountId} (${Math.round((entry.expiresAt - Date.now()) / 1000)}s remaining)`);
+    // Using cached opportunities
     return entry.data;
   }
 
@@ -83,21 +83,21 @@ class SalesforceCacheManager {
       expiresAt
     });
 
-    console.log(`📦 Cached ${opportunities.length} opportunities for account ${accountId} (expires in ${this.OPPORTUNITIES_CACHE_DURATION / 1000}s)`);
+    // Opportunities cached
   }
 
   // Clear cache for a specific account
   clearAccountCache(accountId: string): void {
     this.cache.contacts.delete(accountId);
     this.cache.opportunities.delete(accountId);
-    console.log(`🗑️ Cleared cache for account ${accountId}`);
+    // Cache cleared for account
   }
 
   // Clear all cache
   clearAllCache(): void {
     this.cache.contacts.clear();
     this.cache.opportunities.clear();
-    console.log(`🗑️ Cleared all Salesforce cache`);
+    // All cache cleared
   }
 
   // Get cache statistics
@@ -124,7 +124,7 @@ class SalesforceCacheManager {
   // Force refresh cache for an account
   forceRefresh(accountId: string): void {
     this.clearAccountCache(accountId);
-    console.log(`🔄 Force refresh requested for account ${accountId}`);
+    // Force refresh requested
   }
 }
 

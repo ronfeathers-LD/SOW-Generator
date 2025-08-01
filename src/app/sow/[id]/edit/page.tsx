@@ -19,15 +19,7 @@ export default function EditSOWPage() {
         
         if (response.ok) {
           const data = await response.json();
-          console.log('🔍 SOW data loaded for edit:', {
-            id: data.id,
-            custom_intro_content: data.custom_intro_content,
-            custom_scope_content: data.custom_scope_content,
-            custom_objectives_disclosure_content: data.custom_objectives_disclosure_content,
-            intro_content_edited: data.intro_content_edited,
-            scope_content_edited: data.scope_content_edited,
-            objectives_disclosure_content_edited: data.objectives_disclosure_content_edited
-          });
+          // SOW data loaded for edit
           
           // Transform the data to match the form structure
           const transformedData: SOWData = {

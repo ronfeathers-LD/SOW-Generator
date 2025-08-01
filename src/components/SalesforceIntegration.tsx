@@ -271,10 +271,7 @@ export default function SalesforceIntegration({ onCustomerSelected, onContactSel
             <div><strong>Contacts:</strong> {contacts.length} found</div>
           </div>
           
-          {/* Debug info */}
-          <div className="mt-2 text-xs text-gray-500">
-            Debug: selectedAccount={!!selectedAccount}, contacts.length={contacts.length}
-          </div>
+
           
           {/* POC Selection - Only show if not in account-only mode */}
           {!showOnlyAccountSelection && contacts.length > 0 && (

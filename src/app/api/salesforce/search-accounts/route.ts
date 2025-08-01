@@ -6,8 +6,7 @@ export async function POST(request: NextRequest) {
   try {
     const { searchTerm } = await request.json();
 
-    console.log('🔍 Salesforce Search Request:');
-    console.log('  Search Term:', searchTerm);
+      // Salesforce search request
 
     if (!searchTerm) {
       return NextResponse.json(
@@ -23,11 +22,7 @@ export async function POST(request: NextRequest) {
       .eq('is_active', true)
       .single();
 
-    console.log('🔍 Salesforce Config:');
-    console.log('  Config Found:', !!config);
-    console.log('  Username:', config?.username);
-    console.log('  Login URL:', config?.login_url);
-    console.log('  Is Active:', config?.is_active);
+    // Salesforce config loaded
 
     if (!config) {
       return NextResponse.json(
@@ -37,16 +32,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Authenticate with Salesforce using stored credentials
-    console.log('🔍 Authenticating with Salesforce...');
+    // Authenticating with Salesforce
     await salesforceClient.authenticate(config.username, config.password, config.security_token || undefined, config.login_url);
 
     // Search for accounts
-    console.log('🔍 Searching for accounts...');
+    // Searching for accounts
     const accounts = await salesforceClient.searchAccounts(searchTerm);
 
-    console.log('🔍 Search Results:');
-    console.log('  Accounts Found:', accounts.length);
-    console.log('  Accounts:', accounts.map(acc => ({ Id: acc.Id, Name: acc.Name })));
+    // Search results processed
 
     return NextResponse.json({
       success: true,

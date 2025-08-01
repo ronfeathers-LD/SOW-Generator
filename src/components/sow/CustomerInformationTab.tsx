@@ -40,14 +40,6 @@ export default function CustomerInformationTab({
   const [currentStep, setCurrentStep] = useState<SelectionStep>(null);
   const [availableContacts, setAvailableContacts] = useState<SalesforceContact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
-  const [loadingContactsPromise, setLoadingContactsPromise] = useState<Promise<any> | null>(null);
-
-  // Load contacts when contact step is accessed and we have a selected account
-  useEffect(() => {
-    if (currentStep === 'contact' && selectedAccount?.id && availableContacts.length === 0 && !isLoadingContacts) {
-      handleStepButtonClick('contact');
-    }
-  }, [currentStep, selectedAccount?.id, availableContacts.length, isLoadingContacts]);
 
   // Determine which step to show based on current selections
   const getNextStep = (): SelectionStep => {
@@ -62,80 +54,48 @@ export default function CustomerInformationTab({
     setCurrentStep(step);
     
     // Load contacts if we're going to the contact step and we have a selected account with a valid ID
+    // Only load if we don't already have contacts (to prevent double loading)
     if (step === 'contact' && selectedAccount && selectedAccount.id && availableContacts.length === 0 && !isLoadingContacts) {
-      // Prevent duplicate requests
-      if (loadingContactsPromise) {
-        console.log('Contacts already loading, waiting for existing request...');
-        return;
-      }
-      
       setIsLoadingContacts(true);
-      const loadContactsPromise = (async () => {
-        try {
-          console.log('Loading contacts for account:', selectedAccount.id);
-          const response = await fetch('/api/salesforce/account-contacts', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              accountId: selectedAccount.id,
-              forceRefresh: false // Use cache by default
-            }),
-          });
+      try {
+        const response = await fetch('/api/salesforce/account-contacts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            accountId: selectedAccount.id,
+            forceRefresh: false // Use cache by default
+          }),
+        });
 
-          console.log('Contacts API response status:', response.status);
-          console.log('Contacts API response ok:', response.ok);
-
-          if (response.ok) {
-            const data = await response.json();
-            console.log('Contacts data received:', data);
-            setAvailableContacts(data.contacts || []);
-          } else {
-            // Try to get error details
-            let errorData;
-            try {
-              errorData = await response.json();
-            } catch (parseError) {
-              errorData = { error: 'Failed to parse error response', statusText: response.statusText };
-            }
-            
-            console.error('Failed to load contacts:', {
-              status: response.status,
-              statusText: response.statusText,
-              error: errorData,
-              url: response.url,
-              accountId: selectedAccount.id
-            });
-            
-            // Show user-friendly error message for configuration issues
-            if (response.status === 400 && errorData?.error === 'Salesforce integration is not configured') {
-              alert('Salesforce is not configured. Please go to the admin panel (/admin/salesforce) to set up your Salesforce credentials first.');
-            }
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableContacts(data.contacts || []);
+        } else {
+          // Try to get error details
+          let errorData;
+          try {
+            errorData = await response.json();
+          } catch (parseError) {
+            errorData = { error: 'Failed to parse error response', statusText: response.statusText };
           }
-        } catch (error) {
-          console.error('Error loading contacts:', error);
-          console.error('Error details:', {
-            name: error instanceof Error ? error.name : 'Unknown',
-            message: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : 'No stack trace'
-          });
-        } finally {
-          setIsLoadingContacts(false);
-          setLoadingContactsPromise(null);
+          
+          // Show user-friendly error message for configuration issues
+          if (response.status === 400 && errorData?.error === 'Salesforce integration is not configured') {
+            alert('Salesforce is not configured. Please go to the admin panel (/admin/salesforce) to set up your Salesforce credentials first.');
+          }
         }
-      })();
-      
-      setLoadingContactsPromise(loadContactsPromise);
-    } else if (step === 'contact' && selectedAccount && !selectedAccount.id) {
-      // If we have an account but no ID (loaded from existing data), show a message
-      console.log('Account selected but no Salesforce ID available (loaded from existing data)');
+      } catch (error) {
+        console.error('Error loading contacts:', error);
+      } finally {
+        setIsLoadingContacts(false);
+      }
     }
     
     // Load opportunities if we're going to the opportunity step and we have a selected account with a valid ID
     if (step === 'opportunity' && selectedAccount && selectedAccount.id && availableOpportunities.length === 0) {
       try {
-        console.log('Loading opportunities for account:', selectedAccount.id);
         const response = await fetch('/api/salesforce/account-opportunities', {
           method: 'POST',
           headers: {
@@ -238,7 +198,6 @@ export default function CustomerInformationTab({
   // Function to refresh opportunities data
   const refreshOpportunities = async () => {
     if (!selectedAccount?.id) {
-      console.log('No selected account ID, cannot refresh opportunities');
       return;
     }
     
@@ -283,7 +242,9 @@ export default function CustomerInformationTab({
 
   const handleAccountSelected = (customerData: { account: any; contacts: any[]; opportunities: any[] }) => {
     onCustomerSelectedFromSalesforce(customerData);
+    // Set contacts from the customer data to avoid double loading
     setAvailableContacts(customerData.contacts || []);
+    // Automatically proceed to contact selection since we already have the contacts
     setCurrentStep('contact');
   };
 
@@ -578,11 +539,7 @@ export default function CustomerInformationTab({
                       </div>
                     </div>
                   )}
-                  {!(formData.template?.company_logo || formData.header?.company_logo) && (
-                    <div className="mt-3 pt-2 border-t border-gray-200">
-                      <p className="text-xs text-blue-600 font-medium">Click to upload</p>
-                    </div>
-                  )}
+
                 </div>
               </div>
             </div>

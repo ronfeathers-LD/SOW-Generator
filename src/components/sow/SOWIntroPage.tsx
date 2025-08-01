@@ -90,16 +90,7 @@ LeanData will perform the professional services described in this SOW, which may
         className="text-base leading-relaxed"
         dangerouslySetInnerHTML={{ __html: content }} 
       />
-      {/* Debug: Show raw content */}
-      {process.env.NODE_ENV === 'development' && (
-        <details className="mt-4 p-2 bg-gray-100 rounded text-xs">
-          <summary>Debug: Raw Content (Length: {content.length})</summary>
-          <pre className="whitespace-pre-wrap">{content}</pre>
-          <hr className="my-2" />
-          <div>Contains HTML tags: {content.includes('<') ? 'Yes' : 'No'}</div>
-          <div>Contains markdown: {content.includes('#') || content.includes('*') ? 'Yes' : 'No'}</div>
-        </details>
-      )}
+
     </div>
   );
 } 

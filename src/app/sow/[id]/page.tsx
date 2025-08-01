@@ -8,6 +8,7 @@ import SOWIntroPage from '@/components/sow/SOWIntroPage';
 import SOWObjectivesPage from '@/components/sow/SOWObjectivesPage';
 import SOWScopePage from '@/components/sow/SOWScopePage';
 import SOWAssumptionsPage from '@/components/sow/SOWAssumptionsPage';
+import SOWProjectPhasesPage from '@/components/sow/SOWProjectPhasesPage';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useSession } from 'next-auth/react';
@@ -83,10 +84,12 @@ interface SOW {
   custom_scope_content?: string;
   custom_objectives_disclosure_content?: string;
   custom_assumptions_content?: string;
+  custom_project_phases_content?: string;
   intro_content_edited?: boolean;
   scope_content_edited?: boolean;
   objectives_disclosure_content_edited?: boolean;
   assumptions_content_edited?: boolean;
+  project_phases_content_edited?: boolean;
 }
 
 interface SOWVersion {
@@ -217,9 +220,13 @@ export default function SOWDetailsPage() {
           custom_intro_content: data.custom_intro_content || undefined,
           custom_scope_content: data.custom_scope_content || undefined,
           custom_objectives_disclosure_content: data.custom_objectives_disclosure_content || undefined,
+          custom_assumptions_content: data.custom_assumptions_content || undefined,
+          custom_project_phases_content: data.custom_project_phases_content || undefined,
           intro_content_edited: data.intro_content_edited || false,
           scope_content_edited: data.scope_content_edited || false,
-          objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false
+          objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false,
+          assumptions_content_edited: data.assumptions_content_edited || false,
+          project_phases_content_edited: data.project_phases_content_edited || false
         };
         
         setSOW(parsedData);
@@ -566,6 +573,17 @@ export default function SOWDetailsPage() {
                     projectDescription={sow.projectDescription}
                     customContent={sow.custom_scope_content}
                     isEdited={sow.scope_content_edited}
+                  />
+                </div>
+              </div>
+
+              {/* SOW Project Phases Page Section */}
+              <div className="border-2 border-teal-300 rounded-lg p-4 mb-8">
+                <h3 className="text-lg font-bold text-teal-800 mb-4 text-center">📋 PROJECT PHASES SECTION</h3>
+                <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                  <SOWProjectPhasesPage 
+                    customContent={sow.custom_project_phases_content}
+                    isEdited={sow.project_phases_content_edited}
                   />
                 </div>
               </div>

@@ -83,13 +83,7 @@ A summary of scope assumptions, Customer's relevant use cases, and the Parties' 
         dangerouslySetInnerHTML={{ __html: content }}
       />
       
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mt-4 p-2 bg-gray-100 text-xs text-gray-600 rounded">
-          <strong>Debug:</strong> Content length: {content.length} | 
-          Has HTML: {content.includes('<') ? 'Yes' : 'No'} | 
-          Custom content: {customContent ? 'Yes' : 'No'}
-        </div>
-      )}
+
     </div>
   );
 } 

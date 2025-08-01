@@ -15,6 +15,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
   const [scopeTemplate, setScopeTemplate] = useState<string>('');
   const [objectivesDisclosureTemplate, setObjectivesDisclosureTemplate] = useState<string>('');
   const [assumptionsTemplate, setAssumptionsTemplate] = useState<string>('');
+  const [projectPhasesTemplate, setProjectPhasesTemplate] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,6 +40,11 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
         const assumptions = await getContentTemplate('assumptions');
         if (assumptions) {
           setAssumptionsTemplate(assumptions.default_content);
+        }
+
+        const projectPhases = await getContentTemplate('project-phases');
+        if (projectPhases) {
+          setProjectPhasesTemplate(projectPhases.default_content);
         }
       } catch (error) {
         console.error('Error loading templates:', error);
@@ -119,6 +125,24 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
       ...formData,
       custom_assumptions_content: assumptionsTemplate,
       assumptions_content_edited: false
+    });
+  };
+
+  const handleProjectPhasesContentChange = (content: string) => {
+    // Check if content has been edited from the original template
+    const isEdited = content !== projectPhasesTemplate && content.trim() !== '';
+    setFormData({
+      ...formData,
+      custom_project_phases_content: content,
+      project_phases_content_edited: isEdited
+    });
+  };
+
+  const resetProjectPhasesContent = () => {
+    setFormData({
+      ...formData,
+      custom_project_phases_content: projectPhasesTemplate,
+      project_phases_content_edited: false
     });
   };
 
@@ -299,6 +323,49 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
         </div>
 
         {formData.assumptions_content_edited && (
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p className="text-sm text-yellow-800">
+              <strong>Note:</strong> This content has been customized from the default template and will be flagged during approval.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Project Phases Section */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Project Phases Section</h3>
+          {formData.project_phases_content_edited && (
+            <div className="flex items-center space-x-2">
+              <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                Customized
+              </span>
+              <button
+                type="button"
+                onClick={resetProjectPhasesContent}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Reset to Default
+              </button>
+            </div>
+          )}
+        </div>
+        
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Project Phases Content
+          </label>
+          <RichTextEditor
+            value={formData.custom_project_phases_content || ''}
+            onChange={handleProjectPhasesContentChange}
+            placeholder="Enter the project phases content for this SOW..."
+          />
+          <p className="mt-2 text-sm text-gray-500">
+            This content displays the project phases, activities, and artifacts table.
+          </p>
+        </div>
+
+        {formData.project_phases_content_edited && (
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
             <p className="text-sm text-yellow-800">
               <strong>Note:</strong> This content has been customized from the default template and will be flagged during approval.

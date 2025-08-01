@@ -89,10 +89,12 @@ export async function GET(
       custom_scope_content: sow.custom_scope_content || null,
       custom_objectives_disclosure_content: sow.custom_objectives_disclosure_content || null,
       custom_assumptions_content: sow.custom_assumptions_content || null,
+      custom_project_phases_content: sow.custom_project_phases_content || null,
       intro_content_edited: sow.intro_content_edited || false,
       scope_content_edited: sow.scope_content_edited || false,
       objectives_disclosure_content_edited: sow.objectives_disclosure_content_edited || false,
       assumptions_content_edited: sow.assumptions_content_edited || false,
+      project_phases_content_edited: sow.project_phases_content_edited || false,
     };
 
     return NextResponse.json(transformedSow);
@@ -216,23 +218,23 @@ export async function PUT(
     }
     
     // Objectives fields
-    console.log('🔍 API received objectives data:', data.objectives);
+    // API received objectives data
     if (data.objectives) {
       if (data.objectives.description !== undefined) {
         updateData.objectives_description = data.objectives.description;
-        console.log('🔍 Setting objectives_description:', data.objectives.description);
+        // Setting objectives_description
       }
       if (data.objectives.key_objectives !== undefined) {
         updateData.objectives_key_objectives = data.objectives.key_objectives;
-        console.log('🔍 Setting objectives_key_objectives:', data.objectives.key_objectives);
+        // Setting objectives_key_objectives
       }
       if (data.objectives.avoma_transcription !== undefined) {
         updateData.avoma_transcription = data.objectives.avoma_transcription;
-        console.log('🔍 Setting avoma_transcription:', data.objectives.avoma_transcription);
+        // Setting avoma_transcription
       }
       if (data.objectives.avoma_url !== undefined) {
         updateData.avoma_url = data.objectives.avoma_url;
-        console.log('🔍 Setting avoma_url:', data.objectives.avoma_url);
+        // Setting avoma_url
       }
     }
     
@@ -285,10 +287,12 @@ export async function PUT(
     if (data.custom_scope_content !== undefined) updateData.custom_scope_content = data.custom_scope_content;
     if (data.custom_objectives_disclosure_content !== undefined) updateData.custom_objectives_disclosure_content = data.custom_objectives_disclosure_content;
     if (data.custom_assumptions_content !== undefined) updateData.custom_assumptions_content = data.custom_assumptions_content;
+    if (data.custom_project_phases_content !== undefined) updateData.custom_project_phases_content = data.custom_project_phases_content;
     if (data.intro_content_edited !== undefined) updateData.intro_content_edited = data.intro_content_edited;
     if (data.scope_content_edited !== undefined) updateData.scope_content_edited = data.scope_content_edited;
     if (data.objectives_disclosure_content_edited !== undefined) updateData.objectives_disclosure_content_edited = data.objectives_disclosure_content_edited;
     if (data.assumptions_content_edited !== undefined) updateData.assumptions_content_edited = data.assumptions_content_edited;
+    if (data.project_phases_content_edited !== undefined) updateData.project_phases_content_edited = data.project_phases_content_edited;
 
 
     
@@ -313,7 +317,7 @@ export async function PUT(
     if (data.template?.products !== undefined) {
       const sowId = (await params).id;
       
-      console.log('🔍 Processing products:', data.template.products);
+      // Processing products
       
       // Delete existing product associations
       const { error: deleteError } = await supabase
@@ -336,7 +340,7 @@ export async function PUT(
           console.error('Error fetching product IDs:', productError);
           console.error('Requested product names:', data.template.products);
         } else {
-          console.log('🔍 Found product IDs:', productIds);
+          // Found product IDs
           
           if (productIds && productIds.length > 0) {
             // Insert new product associations
@@ -352,17 +356,16 @@ export async function PUT(
             if (insertError) {
               console.error('Error inserting product associations:', insertError);
             } else {
-              console.log('🔍 Successfully inserted product associations');
+              // Successfully inserted product associations
             }
           } else {
-            console.warn('🔍 No product IDs found for names:', data.template.products);
+            // No product IDs found for names
           }
         }
       }
     }
 
-    console.log('🔍 Updated SOW response:', updatedSOW);
-    console.log('🔍 Updated SOW avoma_url:', updatedSOW.avoma_url);
+    // Updated SOW response
 
     return NextResponse.json(updatedSOW);
   } catch (error) {

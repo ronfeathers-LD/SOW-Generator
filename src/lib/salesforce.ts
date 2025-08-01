@@ -135,30 +135,24 @@ class SalesforceClient {
       });
     }
     try {
-      console.log('Attempting Salesforce authentication...');
-      console.log('Login URL:', this.conn.loginUrl);
-      console.log('Username:', username);
-      console.log('Has security token:', !!securityToken);
-      console.log('Security token length:', securityToken ? securityToken.length : 0);
+          // Authentication attempt started
       
       // Try authentication with password + security token first
       try {
         await this.conn.login(username, password + (securityToken || ''));
-        console.log('Salesforce authentication successful with password + token');
+        // Authentication successful with password + token
       } catch (error) {
         // If that fails, try with password only (in case token is already appended)
         if (error instanceof Error && error.message.includes('INVALID_LOGIN')) {
-          console.log('First attempt failed, trying with password only...');
+          // First attempt failed, trying with password only
           await this.conn.login(username, password);
-          console.log('Salesforce authentication successful with password only');
+                      // Authentication successful with password only
         } else {
           throw error;
         }
       }
       
-      console.log('Salesforce authentication successful');
-      console.log('Instance URL:', this.conn.instanceUrl);
-      console.log('User Info:', this.conn.userInfo);
+              // Authentication successful
     } catch (error) {
       console.error('Salesforce authentication failed:', error);
       
@@ -200,7 +194,7 @@ class SalesforceClient {
         code,
         grant_type: 'authorization_code'
       });
-      console.log('Salesforce OAuth2 authentication successful');
+              // OAuth2 authentication successful
     } catch (error) {
       console.error('Salesforce OAuth2 authentication failed:', error);
       throw new Error('Failed to authenticate with Salesforce OAuth2');
@@ -212,9 +206,7 @@ class SalesforceClient {
    */
   async searchAccounts(searchTerm: string): Promise<SalesforceAccount[]> {
     try {
-      console.log('🔍 Salesforce Account Search:');
-      console.log('  Search Term:', searchTerm);
-      console.log('  Instance URL:', this.conn.instanceUrl);
+          // Salesforce account search initiated
       
       // Escape single quotes in search term to prevent SOQL injection
       const escapedSearchTerm = searchTerm.replace(/'/g, "\\'");
@@ -231,18 +223,11 @@ class SalesforceClient {
         LIMIT 20
       `;
       
-      console.log('  SOQL Query:', query);
+      // SOQL query prepared
       
       const result = await this.conn.query(query);
       
-      console.log('  Query Result:');
-      console.log('    Total Records:', result.totalSize);
-      console.log('    Records Found:', result.records.length);
-      console.log('    Records:', result.records.map(record => ({
-        Id: record.Id,
-        Name: record.Name,
-        Industry: record.Industry
-      })));
+      // Query executed successfully
       
       return result.records as SalesforceAccount[];
     } catch (error) {
