@@ -296,6 +296,9 @@ class SalesforceClient {
                Account.Name
         FROM Opportunity 
         WHERE AccountId = '${accountId}' 
+          AND StageName != 'Closed Lost'
+          AND StageName != 'Closed Won'
+          AND StageName != 'Disqualified'
         ORDER BY CloseDate DESC
       `;
       

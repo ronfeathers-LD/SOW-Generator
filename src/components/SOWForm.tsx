@@ -56,9 +56,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             lean_data_signature: initialData.template?.lean_data_signature || '',
             lean_data_signature_date: initialData.template?.lean_data_signature_date || null,
             products: initialData.template?.products || [],
-            number_of_units: initialData.template?.number_of_units || '125',
-            regions: initialData.template?.regions || '1',
-            salesforce_tenants: initialData.template?.salesforce_tenants || '2',
+            number_of_units: initialData.template?.number_of_units || null,
+            regions: initialData.template?.regions || null,
+            salesforce_tenants: initialData.template?.salesforce_tenants || null,
             timeline_weeks: initialData.template?.timeline_weeks || '8',
             start_date: initialData.template?.start_date || (initialData.project_start_date ? new Date(initialData.project_start_date) : null),
             end_date: initialData.template?.end_date || (initialData.project_end_date ? new Date(initialData.project_end_date) : null),
@@ -110,9 +110,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             
             // Project Details
             products: [],
-            number_of_units: '125',
-            regions: '1',
-            salesforce_tenants: '2',
+            number_of_units: null,
+            regions: null,
+            salesforce_tenants: null,
             timeline_weeks: '8',
             start_date: null,
             end_date: null,
@@ -210,14 +210,11 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   const [selectedOpportunity, setSelectedOpportunity] = useState<SalesforceOpportunity | null>(null);
   const [availableOpportunities, setAvailableOpportunities] = useState<SalesforceOpportunity[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
-  const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Wrapper function to track changes
+  // Wrapper function to update form data
   const updateFormData = (newData: Partial<SOWData>) => {
     setFormData(newData);
-    if (initialData) {
-      setHasChanges(true);
-    }
   };
 
   // Fetch LeanData signatories on component mount
@@ -244,8 +241,10 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   // Load existing data when editing
   useEffect(() => {
     if (initialData) {
-      // Set selected account if customer name exists
-      if (initialData.template?.customer_name || initialData.header?.client_name) {
+      // Set selected account if available from initialData or if customer name exists
+      if (initialData.selectedAccount) {
+        setSelectedAccount(initialData.selectedAccount);
+      } else if (initialData.template?.customer_name || initialData.header?.client_name) {
         const accountId = initialData.salesforce_account_id || '';
         setSelectedAccount({
           id: accountId, // Use the Salesforce account ID if available
@@ -514,97 +513,196 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
 
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleTabSave = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Only validate customer signature name if we're on the Customer Information tab or if it's an update
-    if (activeTab === 'Customer Information' && !formData.template?.customer_signature_name?.trim()) {
-      alert('Please enter the customer signature name');
+
+    
+    if (!initialData?.id) {
+      setNotification({
+        type: 'error',
+        message: 'No SOW ID found. Please create a new SOW first.'
+      });
+      setTimeout(() => setNotification(null), 5000);
       return;
     }
-    
-    // For other tabs, allow saving without customer signature name (it can be filled later)
-    if (!formData.template?.customer_signature_name?.trim()) {
-      console.log('Saving SOW without customer signature name - can be filled later');
+
+    // Tab-specific validation
+    if (activeTab === 'Customer Information' && !formData.template?.customer_signature_name?.trim()) {
+      setNotification({
+        type: 'error',
+        message: 'Please enter the customer signature name'
+      });
+      setTimeout(() => setNotification(null), 5000);
+      return;
     }
 
     try {
-      const url = `/api/sow/${initialData?.id}`;
-      const method = 'PUT';
+      setIsSaving(true);
+      const url = `/api/sow/${initialData.id}/tab-update`;
       
-      // Map template fields to snake_case for API submission
+      // Prepare tab-specific data
+      let tabData: any = {};
       
-      const submissionData = {
-        ...formData,
-        client_signer_name: formData.template?.customer_signature_name || '',
-        client_signature: {
-          name: formData.template?.customer_signature_name || '',
-          title: formData.template?.customer_signature || '',
-          email: formData.template?.customer_email || '',
-          signature_date: formData.template?.customer_signature_date || null,
-        },
-        header: {
-          company_logo: formData.header?.company_logo || '',
-          sow_title: formData.header?.sow_title || '',
-          client_name: formData.template?.customer_name || formData.header?.client_name || '',
-        },
-        // Ensure opportunity data is included in submission
-        template: {
-          ...formData.template,
-          start_date: formData.template?.start_date || null,
-          end_date: formData.template?.end_date || null,
-          opportunity_id: formData.template?.opportunity_id || null,
-          opportunity_name: formData.template?.opportunity_name || null,
-          opportunity_amount: formData.template?.opportunity_amount || null,
-          opportunity_stage: formData.template?.opportunity_stage || null,
-          opportunity_close_date: formData.template?.opportunity_close_date || null,
-        }
-      };
+      switch (activeTab) {
+        case 'Project Overview':
+          tabData = {
+            template: {
+              sow_title: formData.template?.sow_title,
+              products: formData.template?.products || [],
+              number_of_units: formData.template?.number_of_units,
+              regions: formData.template?.regions,
+              salesforce_tenants: formData.template?.salesforce_tenants,
+              timeline_weeks: formData.template?.timeline_weeks,
+              start_date: formData.template?.start_date,
+              end_date: formData.template?.end_date,
+              units_consumption: formData.template?.units_consumption,
+            },
+            scope: {
+              timeline: {
+                start_date: formData.scope?.timeline?.start_date,
+                duration: formData.scope?.timeline?.duration,
+              }
+            }
+          };
+          break;
 
+        case 'Customer Information':
+          tabData = {
+            template: {
+              customer_name: formData.template?.customer_name,
+              customer_signature_name: formData.template?.customer_signature_name,
+              customer_email: formData.template?.customer_email,
+              lean_data_name: formData.template?.lean_data_name,
+              lean_data_title: formData.template?.lean_data_title,
+              lean_data_email: formData.template?.lean_data_email,
+              opportunity_id: formData.template?.opportunity_id,
+              opportunity_name: formData.template?.opportunity_name,
+              opportunity_amount: formData.template?.opportunity_amount,
+              opportunity_stage: formData.template?.opportunity_stage,
+              opportunity_close_date: formData.template?.opportunity_close_date,
+            },
+            header: {
+              company_logo: formData.header?.company_logo,
+            },
+            client_signature: {
+              name: formData.template?.customer_signature_name,
+              title: formData.template?.customer_signature,
+              email: formData.template?.customer_email,
+              signature_date: formData.template?.customer_signature_date,
+            }
+          };
+          break;
+
+        case 'Objectives':
+          tabData = {
+            objectives: {
+              description: formData.objectives?.description,
+              key_objectives: formData.objectives?.key_objectives,
+              avoma_transcription: formData.objectives?.avoma_transcription,
+              avoma_url: formData.objectives?.avoma_url,
+            }
+          };
+          break;
+
+        case 'Team & Roles':
+          tabData = {
+            roles: {
+              client_roles: formData.roles?.client_roles,
+            },
+            pricing: {
+              roles: formData.pricing?.roles,
+            }
+          };
+          break;
+
+        case 'Billing & Payment':
+          tabData = {
+            pricing: {
+              billing: formData.pricing?.billing,
+            },
+            assumptions: {
+              access_requirements: formData.assumptions?.access_requirements,
+              travel_requirements: formData.assumptions?.travel_requirements,
+              working_hours: formData.assumptions?.working_hours,
+              testing_responsibilities: formData.assumptions?.testing_responsibilities,
+            }
+          };
+          break;
+
+        case 'Content Editing':
+          tabData = {
+            custom_intro_content: formData.custom_intro_content,
+            custom_scope_content: formData.custom_scope_content,
+            custom_objectives_disclosure_content: formData.custom_objectives_disclosure_content,
+            custom_assumptions_content: formData.custom_assumptions_content,
+            custom_project_phases_content: formData.custom_project_phases_content,
+            intro_content_edited: formData.intro_content_edited,
+            scope_content_edited: formData.scope_content_edited,
+            objectives_disclosure_content_edited: formData.objectives_disclosure_content_edited,
+            assumptions_content_edited: formData.assumptions_content_edited,
+            project_phases_content_edited: formData.project_phases_content_edited,
+          };
+          break;
+
+        case 'Addendums':
+          tabData = {
+            addendums: formData.addendums,
+          };
+          break;
+
+        default:
+          setNotification({
+            type: 'error',
+            message: 'Unknown tab. Please try again.'
+          });
+          setTimeout(() => setNotification(null), 5000);
+          return;
+      }
+
+
+      
       const response = await fetch(url, {
-        method,
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(submissionData),
+        body: JSON.stringify({
+          tab: activeTab,
+          data: tabData
+        }),
       });
       
       if (!response.ok) {
-        throw new Error('Failed to save SOW');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save tab data');
       }
       
-      const data = await response.json();
-              // SOW save response received
-      // Response includes avoma_url
-      
-
+      const result = await response.json();
       
       // Show success notification
       setNotification({
         type: 'success',
-        message: activeTab === 'Customer Information' 
-          ? 'Customer information saved successfully!' 
-          : 'SOW updated successfully!'
+        message: result.message || `${activeTab} saved successfully!`
       });
       
-      // Reset changes flag after successful save
-      setHasChanges(false);
+
       
       // Clear notification after 3 seconds
       setTimeout(() => setNotification(null), 3000);
     } catch (error) {
-      console.error('Error saving SOW:', error);
+      console.error(`Error saving ${activeTab}:`, error);
       
       // Show error notification
       setNotification({
         type: 'error',
-        message: activeTab === 'Customer Information' 
-          ? 'Failed to save customer information. Please try again.' 
-          : 'Failed to update SOW. Please try again.'
+        message: `Failed to save ${activeTab}. Please try again.`
       });
       
       // Clear notification after 5 seconds
       setTimeout(() => setNotification(null), 5000);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -681,7 +779,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleTabSave} className="space-y-8">
       {/* Tab Navigation */}
       <div className="mb-8 border-b border-gray-200">
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
@@ -690,14 +788,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               key={tab.key}
               type="button"
               onClick={() => {
-                // Show warning if switching tabs without saving and there are changes
-                if (initialData && activeTab !== tab.key && hasChanges) {
-                  setNotification({
-                    type: 'warning',
-                    message: 'Remember to click "Update SOW" to save your changes before switching tabs!'
-                  });
-                  setTimeout(() => setNotification(null), 4000);
-                }
                 setActiveTab(tab.key);
               }}
               className={
@@ -728,11 +818,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           setFormData={updateFormData}
           initialData={initialData}
           selectedAccount={selectedAccount}
-          selectedContact={selectedContact}
           selectedOpportunity={selectedOpportunity}
           availableOpportunities={availableOpportunities}
           onCustomerSelectedFromSalesforce={handleCustomerSelectedFromSalesforce}
-          onContactSelectedFromSalesforce={handleContactSelectedFromSalesforce}
           onOpportunitySelectedFromSalesforce={handleOpportunitySelectedFromSalesforce}
           onAvailableOpportunitiesUpdate={setAvailableOpportunities}
           getSalesforceLink={getSalesforceLink}
@@ -754,9 +842,13 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         <TeamRolesTab
           formData={formData}
           setFormData={updateFormData}
-                        leanDataSignatories={leanDataSignatories}
-              selectedLeanDataSignatory={selectedLeanDataSignatory}
-              onLeanDataSignatoryChange={handleLeanDataSignatoryChange}
+          leanDataSignatories={leanDataSignatories}
+          selectedLeanDataSignatory={selectedLeanDataSignatory}
+          onLeanDataSignatoryChange={handleLeanDataSignatoryChange}
+          selectedAccount={selectedAccount}
+          selectedContact={selectedContact}
+          onContactSelectedFromSalesforce={handleContactSelectedFromSalesforce}
+          getSalesforceLink={getSalesforceLink}
         />
       )}
 
@@ -789,12 +881,20 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       <div className="flex justify-end">
         <button
           type="submit"
-          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          disabled={isSaving}
+          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {activeTab === 'Customer Information' 
-            ? 'Save Customer Information' 
-            : 'Update SOW'
-          }
+          {isSaving ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Saving...
+            </>
+          ) : (
+            `Save ${activeTab}`
+          )}
         </button>
       </div>
     </form>

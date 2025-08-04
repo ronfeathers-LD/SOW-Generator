@@ -34,39 +34,23 @@ export default function SOWAssumptionsPage({
           let processedContent = textToHtml(template.default_content);
           setContent(processedContent);
         } else {
-          // Fallback to hardcoded content if no template found
-          const fallbackText = `The following are the assumptions as part of the SOW:
-
-• LeanData Professional Services will require access to the customer's SFDC's sandbox and production tenants for the configuration of LeanData; and, the customer will be responsible to ensure appropriate access is granted for the duration of the project. Customer will share all Salesforce details pertaining to configurations, including but not limited to: User IDs, fields/values, Queue IDs, Assignment rule IDs, etc.
-
-• For additional requests outside this SOW, LeanData shall work with Customer to determine if an additional SOW is required or determine alternate methods to remedy the request.
-
-• If the Customer requires LeanData to travel to Customer locations, then travel expenses shall be billed separately and not included in the estimate above. All expenses shall be pre-approved by Customer prior to LeanData booking travel itineraries.
-
-• All services described in this SOW, including any training, will be performed remotely from a LeanData office location during normal business hours: Monday through Friday from 9 am to 5 pm PDT.
-
-• Customer will conduct all required testing and communicate to LeanData anything that needs further investigation and/or additional changes to configurations.`;
+          // Fallback to generic message if no template found
+          const fallbackText = `<div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
+            <p class="text-yellow-800 font-medium">⚠️ NOTE: This is fallback content</p>
+            <p class="text-yellow-700 text-sm mt-1">The Assumptions section template could not be loaded. Please configure the content template in the admin panel.</p>
+          </div>`;
           
-          let processedContent = textToHtml(fallbackText);
-          setContent(processedContent);
+          setContent(fallbackText);
         }
       } catch (error) {
         console.error('Error loading assumptions content:', error);
-        // Set fallback content on error
-        const fallbackText = `The following are the assumptions as part of the SOW:
-
-• LeanData Professional Services will require access to the customer's SFDC's sandbox and production tenants for the configuration of LeanData; and, the customer will be responsible to ensure appropriate access is granted for the duration of the project. Customer will share all Salesforce details pertaining to configurations, including but not limited to: User IDs, fields/values, Queue IDs, Assignment rule IDs, etc.
-
-• For additional requests outside this SOW, LeanData shall work with Customer to determine if an additional SOW is required or determine alternate methods to remedy the request.
-
-• If the Customer requires LeanData to travel to Customer locations, then travel expenses shall be billed separately and not included in the estimate above. All expenses shall be pre-approved by Customer prior to LeanData booking travel itineraries.
-
-• All services described in this SOW, including any training, will be performed remotely from a LeanData office location during normal business hours: Monday through Friday from 9 am to 5 pm PDT.
-
-• Customer will conduct all required testing and communicate to LeanData anything that needs further investigation and/or additional changes to configurations.`;
+        // Fallback to generic message if error occurs
+        const fallbackText = `<div class="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+          <p class="text-red-800 font-medium">⚠️ NOTE: This is fallback content</p>
+          <p class="text-red-700 text-sm mt-1">An error occurred while loading the Assumptions section template. Please check the configuration and try again.</p>
+        </div>`;
         
-        let processedContent = textToHtml(fallbackText);
-        setContent(processedContent);
+        setContent(fallbackText);
       } finally {
         setLoading(false);
       }

@@ -1,12 +1,19 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
+import { SalesforceContact } from '@/lib/salesforce';
+import SalesforceIntegration from '../SalesforceIntegration';
 
 interface TeamRolesTabProps {
   formData: Partial<SOWData>;
   setFormData: (data: Partial<SOWData>) => void;
   leanDataSignatories: Array<{ id: string; name: string; email: string; title: string }>;
-selectedLeanDataSignatory: string;
-onLeanDataSignatoryChange: (signatoryId: string) => void;
+  selectedLeanDataSignatory: string;
+  onLeanDataSignatoryChange: (signatoryId: string) => void;
+  // New props for signer selection
+  selectedAccount: { id: string; name: string } | null;
+  selectedContact: SalesforceContact | null;
+  onContactSelectedFromSalesforce: (contact: SalesforceContact | null) => void;
+  getSalesforceLink: (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => string;
 }
 
 export default function TeamRolesTab({
@@ -15,10 +22,205 @@ export default function TeamRolesTab({
   leanDataSignatories,
   selectedLeanDataSignatory,
   onLeanDataSignatoryChange,
+  selectedAccount,
+  selectedContact,
+  onContactSelectedFromSalesforce,
+  getSalesforceLink,
 }: TeamRolesTabProps) {
+  const [availableContacts, setAvailableContacts] = useState<SalesforceContact[]>([]);
+  const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+  const [currentStep, setCurrentStep] = useState<'signer' | 'leanData' | 'clientRoles' | 'leanDataRoles'>('signer');
+
+  // Load contacts when account is selected
+  useEffect(() => {
+    if (selectedAccount?.id) {
+      loadContacts(selectedAccount.id);
+    }
+  }, [selectedAccount?.id]);
+
+  const loadContacts = async (accountId: string) => {
+    setIsLoadingContacts(true);
+    try {
+      const response = await fetch('/api/salesforce/account-contacts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accountId: accountId,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableContacts(data.contacts || []);
+      }
+    } catch (error) {
+      console.error('Error loading contacts:', error);
+    } finally {
+      setIsLoadingContacts(false);
+    }
+  };
+
+  const refreshContacts = async () => {
+    if (!selectedAccount?.id) return;
+    await loadContacts(selectedAccount.id);
+  };
+
+  const handleContactSelected = (contact: SalesforceContact | null) => {
+    onContactSelectedFromSalesforce(contact);
+    if (contact) {
+      setCurrentStep('leanData');
+    }
+  };
+
+  const handleAccountSelected = (customerData: { account: any; contacts: any[]; opportunities: any[] }) => {
+    setAvailableContacts(customerData.contacts || []);
+    setCurrentStep('signer');
+  };
+
   return (
     <section className="space-y-6">
       <h2 className="text-2xl font-bold">Team & Roles</h2>
+      
+      {/* Signer Selection */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <h3 className="text-lg font-semibold mb-4">Customer Signer</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Select the customer contact who will sign this SOW
+        </p>
+        
+        {!selectedAccount ? (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+            <p className="text-sm text-yellow-800">
+              Please select a customer account first in the Customer Information tab.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Current Signer Display */}
+            <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-gray-900">Current Signer</h4>
+                  <p className="text-sm text-gray-600">
+                    {selectedContact 
+                      ? `${selectedContact.FirstName || ''} ${selectedContact.LastName}`.trim()
+                      : formData.template?.customer_signature_name
+                      ? `${formData.template.customer_signature_name} (manual entry)`
+                      : 'No signer selected'
+                    }
+                  </p>
+                  {(selectedContact || formData.template?.customer_signature_name) && (
+                    <div className="text-xs text-gray-600 space-y-1 mt-2">
+                      {selectedContact && (
+                        <div className="flex items-center">
+                          <svg className="h-3 w-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          <span>Contact verified in Salesforce</span>
+                        </div>
+                      )}
+                      {formData.template?.customer_email && (
+                        <div className="flex items-center">
+                          <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          <span>Email: {formData.template.customer_email}</span>
+                        </div>
+                      )}
+                      {formData.template?.customer_signature && (
+                        <div className="flex items-center">
+                          <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          <span>Title: {formData.template.customer_signature}</span>
+                        </div>
+                      )}
+                      {selectedContact && (
+                        <a
+                          href={getSalesforceLink(selectedContact.Id, 'Contact')}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 underline flex items-center"
+                        >
+                          <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                            <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                          </svg>
+                          View in Salesforce
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setCurrentStep('signer')}
+                  className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                >
+                  Change Signer
+                </button>
+              </div>
+            </div>
+
+            {/* Contact Selection */}
+            {currentStep === 'signer' && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h4 className="text-lg font-semibold mb-4 text-blue-800">Select Customer Signer</h4>
+                
+                <div className="space-y-4">
+                  {isLoadingContacts ? (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                      <p className="text-sm text-yellow-800">Loading contacts...</p>
+                    </div>
+                  ) : availableContacts.length > 0 ? (
+                    <>
+                      <div className="flex justify-between items-center mb-4">
+                        <p className="text-sm text-gray-600">
+                          Found {availableContacts.length} contact{availableContacts.length !== 1 ? 's' : ''} for {selectedAccount.name}
+                        </p>
+                        <button
+                          onClick={refreshContacts}
+                          disabled={isLoadingContacts}
+                          className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                        >
+                          <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Refresh
+                        </button>
+                      </div>
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {availableContacts.map((contact) => (
+                          <div
+                            key={contact.Id}
+                            className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                            onClick={() => handleContactSelected(contact)}
+                          >
+                            <div className="font-medium text-gray-900">{contact.FirstName} {contact.LastName}</div>
+                            <div className="text-sm text-gray-600 mt-1">
+                              <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium mr-2">
+                                {contact.Title}
+                              </span>
+                              <span>{contact.Email}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                      <p className="text-sm text-yellow-800">
+                        No contacts found for {selectedAccount.name}. Please ensure contacts exist in Salesforce.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
       
       {/* LeanData Signatory */}
       <div className="bg-white shadow rounded-lg p-6">

@@ -37,27 +37,23 @@ export default function SOWIntroPage({ clientName, customContent, isEdited }: SO
           const processedContent = processIntroContent(template.default_content, clientName);
           setContent(processedContent);
         } else {
-          // Fallback to hardcoded content if no template found
-          const clientNameDisplay = clientName || '[Client Name]';
-          const fallbackText = `THIS STATEMENT OF WORK ("SOW"), is entered into by {clientName}, ("Customer") and LeanData, Inc., ("LeanData") effective as of the date of the last signature above ("SOW Effective Date") and is hereby incorporated by reference into that certain Master Subscription and Professional Services Agreement or other agreement between the Customer and LeanData ("Agreement").  To the extent there are any inconsistencies between or among the Agreement and this SOW, including all Exhibits to this SOW, such inconsistencies shall be resolved in accordance with the following order of precedence: (i) this SOW, (ii) any Exhibits to this SOW, and (iii), the Agreement.
-
-LeanData will perform the professional services described in this SOW, which may include consultation, configuration, integration, project management and training (collectively, the "Professional Services").  LeanData will not start performing such Professional Services under this SOW until both Parties sign this SOW and the Agreement.  This SOW and the Agreement constitute the Parties' complete agreement regarding the Professional Services and other matters addressed in this SOW.`;
+          // Fallback to generic message if no template found
+          const fallbackText = `<div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
+            <p class="text-yellow-800 font-medium">⚠️ NOTE: This is fallback content</p>
+            <p class="text-yellow-700 text-sm mt-1">The Introduction section template could not be loaded. Please configure the content template in the admin panel.</p>
+          </div>`;
           
-          let processedContent = textToHtml(fallbackText);
-          processedContent = processedContent.replace(/PLACEHOLDER_STARTclientNamePLACEHOLDER_END/g, `<span class="font-bold">${clientNameDisplay}</span>`);
-          setContent(processedContent);
+          setContent(fallbackText);
         }
       } catch (error) {
         console.error('Error loading intro content:', error);
-        // Fallback content
-        const clientNameDisplay = clientName || '[Client Name]';
-        const fallbackText = `THIS STATEMENT OF WORK ("SOW"), is entered into by {clientName}, ("Customer") and LeanData, Inc., ("LeanData") effective as of the date of the last signature above ("SOW Effective Date") and is hereby incorporated by reference into that certain Master Subscription and Professional Services Agreement or other agreement between the Customer and LeanData ("Agreement").  To the extent there are any inconsistencies between or among the Agreement and this SOW, including all Exhibits to this SOW, such inconsistencies shall be resolved in accordance with the following order of precedence: (i) this SOW, (ii) any Exhibits to this SOW, and (iii), the Agreement.
-
-LeanData will perform the professional services described in this SOW, which may include consultation, configuration, integration, project management and training (collectively, the "Professional Services").  LeanData will not start performing such Professional Services under this SOW until both Parties sign this SOW and the Agreement.  This SOW and the Agreement constitute the Parties' complete agreement regarding the Professional Services and other matters addressed in this SOW.`;
+        // Fallback to generic message if error occurs
+        const fallbackText = `<div class="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+          <p class="text-red-800 font-medium">⚠️ NOTE: This is fallback content</p>
+          <p class="text-red-700 text-sm mt-1">An error occurred while loading the Introduction section template. Please check the configuration and try again.</p>
+        </div>`;
         
-        let processedContent = textToHtml(fallbackText);
-        processedContent = processedContent.replace(/PLACEHOLDER_STARTclientNamePLACEHOLDER_END/g, `<span class="font-bold">${clientNameDisplay}</span>`);
-        setContent(processedContent);
+        setContent(fallbackText);
       } finally {
         setLoading(false);
       }

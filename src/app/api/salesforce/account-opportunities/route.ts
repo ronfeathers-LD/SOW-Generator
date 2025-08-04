@@ -62,8 +62,17 @@ export async function POST(request: NextRequest) {
 
     // Get opportunities for the account
 
-    const opportunities = await salesforceClient.getAccountOpportunities(accountId);
+    const salesforceOpportunities = await salesforceClient.getAccountOpportunities(accountId);
 
+    // Transform Salesforce opportunity objects to match frontend expectations
+    const opportunities = salesforceOpportunities.map(opportunity => ({
+      id: opportunity.Id,
+      name: opportunity.Name,
+      amount: opportunity.Amount,
+      closeDate: opportunity.CloseDate,
+      stageName: opportunity.StageName,
+      description: opportunity.Description
+    }));
 
     // Cache the opportunities
     salesforceCache.cacheOpportunities(accountId, opportunities);

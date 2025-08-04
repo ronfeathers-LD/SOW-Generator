@@ -20,7 +20,6 @@ export default function ProjectOverviewTab({
 }: ProjectOverviewTabProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -42,11 +41,6 @@ export default function ProjectOverviewTab({
 
   const selectedProducts = formData.template?.products || [];
   
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   const handleProductToggle = (productName: string) => {
     const currentProducts = formData.template?.products || [];
     const newProducts = currentProducts.includes(productName)
@@ -145,22 +139,6 @@ export default function ProjectOverviewTab({
                 )}
               </label>
               
-              {/* Search Bar */}
-              <div className="relative mb-4">
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-              </div>
-
               {loadingProducts ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -168,13 +146,13 @@ export default function ProjectOverviewTab({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {filteredProducts.length === 0 ? (
+                  {products.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
-                      {searchTerm ? 'No products found matching your search.' : 'No products available.'}
+                      No products available.
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                      {filteredProducts.map((product) => {
+                      {products.map((product) => {
                         const isSelected = isProductSelected(product.name);
                         return (
                           <div
@@ -253,9 +231,10 @@ export default function ProjectOverviewTab({
               value={formData.template?.number_of_units || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                template: { ...formData.template!, number_of_units: e.target.value }
+                template: { ...formData.template!, number_of_units: e.target.value || null }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              placeholder="Enter number of units"
             />
           </div>
           <div>
@@ -265,9 +244,10 @@ export default function ProjectOverviewTab({
               value={formData.template?.regions || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                template: { ...formData.template!, regions: e.target.value }
+                template: { ...formData.template!, regions: e.target.value || null }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              placeholder="Enter regions/business units"
             />
           </div>
           <div>
@@ -277,9 +257,10 @@ export default function ProjectOverviewTab({
               value={formData.template?.salesforce_tenants || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                template: { ...formData.template!, salesforce_tenants: e.target.value }
+                template: { ...formData.template!, salesforce_tenants: e.target.value || null }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              placeholder="Enter number of Salesforce tenants"
             />
           </div>
           <div>

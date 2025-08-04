@@ -36,27 +36,23 @@ export default function SOWScopePage({ deliverables, projectDescription, customC
           const processedContent = processScopeContent(template.default_content, deliverables);
           setContent(processedContent);
         } else {
-          // Fallback to hardcoded content if no template found
-          const fallbackContent = `<p class="mb-4">The customer has implemented LeanData and seeks to augment their team with LeanData expertise through Expert Services provided by the LeanData Professional Services team. As part of Expert Services, LeanData personnel as requested in the table below will assist the customer with one or more of the following:</p>
-
-{deliverables}
-
-<p>Customer is designated to have the primary responsibility for activities, successful and timely completion depends on participation by, and key content from, Customer's subject matter experts, as well as decisions and approvals from Customer's leadership team.</p>`;
+          // Fallback to generic message if no template found
+          const fallbackContent = `<div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
+            <p class="text-yellow-800 font-medium">⚠️ NOTE: This is fallback content</p>
+            <p class="text-yellow-700 text-sm mt-1">The Scope section template could not be loaded. Please configure the content template in the admin panel.</p>
+          </div>`;
           
-          const processedContent = processScopeContent(fallbackContent, deliverables);
-          setContent(processedContent);
+          setContent(fallbackContent);
         }
       } catch (error) {
         console.error('Error loading scope content:', error);
-        // Fallback content
-        const fallbackContent = `<p class="mb-4">The customer has implemented LeanData and seeks to augment their team with LeanData expertise through Expert Services provided by the LeanData Professional Services team. As part of Expert Services, LeanData personnel as requested in the table below will assist the customer with one or more of the following:</p>
-
-{deliverables}
-
-<p>Customer is designated to have the primary responsibility for activities, successful and timely completion depends on participation by, and key content from, Customer's subject matter experts, as well as decisions and approvals from Customer's leadership team.</p>`;
+        // Fallback to generic message if error occurs
+        const fallbackContent = `<div class="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+          <p class="text-red-800 font-medium">⚠️ NOTE: This is fallback content</p>
+          <p class="text-red-700 text-sm mt-1">An error occurred while loading the Scope section template. Please check the configuration and try again.</p>
+        </div>`;
         
-        const processedContent = processScopeContent(fallbackContent, deliverables);
-        setContent(processedContent);
+        setContent(fallbackContent);
       } finally {
         setLoading(false);
       }

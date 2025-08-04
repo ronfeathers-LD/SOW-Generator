@@ -14,6 +14,7 @@ export default function EditSOWPage() {
 
   useEffect(() => {
     const fetchSOW = async () => {
+      
       try {
         const response = await fetch(`/api/sow/${params.id}`);
         
@@ -30,8 +31,13 @@ export default function EditSOWPage() {
             updated_at: new Date(data.updated_at),
             // Include salesforce_account_id
             salesforce_account_id: data.salesforce_account_id,
-            // Template structure mapping
-            template: {
+            // Include selected account information if available
+            selectedAccount: data.salesforce_account_id ? {
+              id: data.salesforce_account_id,
+              name: data.client_name || data.template?.customer_name || '',
+            } : null,
+            // Use the template data from the API response
+            template: data.template || {
               // Header Information
               sow_title: data.sow_title || 'Statement of Work for LeanData Implementation',
               company_logo: data.company_logo || '',
@@ -52,28 +58,28 @@ export default function EditSOWPage() {
               lean_data_signature_date: null,
               
               // Project Details
-              products: [],
-              number_of_units: '125',
-              regions: '1',
-              salesforce_tenants: '2',
-              timeline_weeks: '8',
-              start_date: null,
-              end_date: null,
-              units_consumption: 'All units immediately',
+              products: data.template?.products || [],
+              number_of_units: data.template?.number_of_units || '125',
+              regions: data.template?.regions || '1',
+              salesforce_tenants: data.template?.salesforce_tenants || '2',
+              timeline_weeks: data.template?.timeline_weeks || '8',
+              start_date: data.template?.start_date || null,
+              end_date: data.template?.end_date || null,
+              units_consumption: data.template?.units_consumption || 'All units immediately',
               
               // Billing Information
-              billing_company_name: '',
-              billing_contact_name: '',
-              billing_address: '',
-              billing_email: '',
-              purchase_order_number: '',
+              billing_company_name: data.template?.billing_company_name || '',
+              billing_contact_name: data.template?.billing_contact_name || '',
+              billing_address: data.template?.billing_address || '',
+              billing_email: data.template?.billing_email || '',
+              purchase_order_number: data.template?.purchase_order_number || '',
               
               // Salesforce Opportunity Information
-              opportunity_id: data.opportunity_id || '',
-              opportunity_name: data.opportunity_name || '',
-              opportunity_amount: data.opportunity_amount || undefined,
-              opportunity_stage: data.opportunity_stage || '',
-              opportunity_close_date: data.opportunity_close_date || undefined,
+              opportunity_id: data.template?.opportunity_id || data.opportunity_id || '',
+              opportunity_name: data.template?.opportunity_name || data.opportunity_name || '',
+              opportunity_amount: data.template?.opportunity_amount || data.opportunity_amount || undefined,
+              opportunity_stage: data.template?.opportunity_stage || data.opportunity_stage || '',
+              opportunity_close_date: data.template?.opportunity_close_date || data.opportunity_close_date || undefined,
             },
             objectives: {
               description: data.objectives?.description || '',

@@ -78,8 +78,8 @@ export async function POST(request: Request) {
         
         // Header Information
         company_logo: data.header?.company_logo || '',
-        client_name: data.header?.client_name || '',
-        sow_title: data.header?.sow_title || '',
+        client_name: data.template?.customer_name || data.header?.client_name || '',
+        sow_title: data.template?.sow_title || data.header?.sow_title || 'Untitled SOW',
         
         // Client Signature Information
         client_title: data.client_signature?.title || '',
@@ -113,16 +113,19 @@ export async function POST(request: Request) {
         addendums: data.addendums || [],
         
         // LeanData Information
-        leandata_name: data.template?.leanDataName || 'Agam Vasani',
-        leandata_title: data.template?.leanDataTitle || 'VP Customer Success',
-        leandata_email: data.template?.leanDataEmail || 'agam.vasani@leandata.com',
+        leandata_name: data.template?.lean_data_name || 'Agam Vasani',
+        leandata_title: data.template?.lean_data_title || 'VP Customer Success',
+        leandata_email: data.template?.lean_data_email || 'agam.vasani@leandata.com',
+        
+        // Salesforce Account Information
+        salesforce_account_id: data.selectedAccount?.id || null,
         
         // Salesforce Opportunity Information
-        opportunity_id: data.template?.opportunityId || null,
-        opportunity_name: data.template?.opportunityName || null,
-        opportunity_amount: data.template?.opportunityAmount || null,
-        opportunity_stage: data.template?.opportunityStage || null,
-        opportunity_close_date: data.template?.opportunityCloseDate ? new Date(data.template.opportunityCloseDate).toISOString() : null,
+        opportunity_id: data.template?.opportunity_id || null,
+        opportunity_name: data.template?.opportunity_name || null,
+        opportunity_amount: data.template?.opportunity_amount || null,
+        opportunity_stage: data.template?.opportunity_stage || null,
+        opportunity_close_date: data.template?.opportunity_close_date ? new Date(data.template.opportunity_close_date).toISOString() : null,
         
         // Copy default content templates into the SOW
         custom_intro_content: data.custom_intro_content || defaultIntroContent,

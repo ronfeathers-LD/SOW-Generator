@@ -34,23 +34,23 @@ export default function SOWObjectivesDisclosurePage({
           let processedContent = textToHtml(template.default_content);
           setContent(processedContent);
         } else {
-          // Fallback to hardcoded content if no template found
-          const fallbackText = `Customers and LeanData's responsibilities for the project are described in this SOW. Where LeanData is designated to have the primary responsibility for certain activities, successful and timely completion depends on participation by, and key content from, Customer's subject matter experts, as well as decisions and approvals from Customer's leadership team and other assumptions set forth in this SOW. Likewise, where Customer has the primary responsibility for certain activities, LeanData will provide appropriate cooperation and input. Where the Parties are jointly responsible for certain activities, the Parties will collaborate in good faith to resolve issues in accordance with the relevant mutually agreed priorities and the other terms of this SOW.
-
-A summary of scope assumptions, Customer's relevant use cases, and the Parties' respective responsibilities under this SOW appears below. LeanData has relied on this information in estimating the applicable fees, timeline, level of effort and resources required for the Professional Services under this SOW. This SOW is based on current assumptions and information currently known as of the SOW Effective Date. During the "Discovery" phase of the implementation, LeanData will gather additional detailed information about Customer's requirements and use cases, based upon which the scope of the implementation may change, resulting in a Post-Discovery Change Order mutually agreed by the Parties.`;
+          // Fallback to generic message if no template found
+          const fallbackText = `<div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
+            <p class="text-yellow-800 font-medium">⚠️ NOTE: This is fallback content</p>
+            <p class="text-yellow-700 text-sm mt-1">The Objectives Disclosure section template could not be loaded. Please configure the content template in the admin panel.</p>
+          </div>`;
           
-          let processedContent = textToHtml(fallbackText);
-          setContent(processedContent);
+          setContent(fallbackText);
         }
       } catch (error) {
         console.error('Error loading objectives disclosure content:', error);
-        // Fallback content
-        const fallbackText = `Customers and LeanData's responsibilities for the project are described in this SOW. Where LeanData is designated to have the primary responsibility for certain activities, successful and timely completion depends on participation by, and key content from, Customer's subject matter experts, as well as decisions and approvals from Customer's leadership team and other assumptions set forth in this SOW. Likewise, where Customer has the primary responsibility for certain activities, LeanData will provide appropriate cooperation and input. Where the Parties are jointly responsible for certain activities, the Parties will collaborate in good faith to resolve issues in accordance with the relevant mutually agreed priorities and the other terms of this SOW.
-
-A summary of scope assumptions, Customer's relevant use cases, and the Parties' respective responsibilities under this SOW appears below. LeanData has relied on this information in estimating the applicable fees, timeline, level of effort and resources required for the Professional Services under this SOW. This SOW is based on current assumptions and information currently known as of the SOW Effective Date. During the "Discovery" phase of the implementation, LeanData will gather additional detailed information about Customer's requirements and use cases, based upon which the scope of the implementation may change, resulting in a Post-Discovery Change Order mutually agreed by the Parties.`;
+        // Fallback to generic message if error occurs
+        const fallbackText = `<div class="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+          <p class="text-red-800 font-medium">⚠️ NOTE: This is fallback content</p>
+          <p class="text-red-700 text-sm mt-1">An error occurred while loading the Objectives Disclosure section template. Please check the configuration and try again.</p>
+        </div>`;
         
-        let processedContent = textToHtml(fallbackText);
-        setContent(processedContent);
+        setContent(fallbackText);
       } finally {
         setLoading(false);
       }

@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const result = await analyzeTranscription(transcript, customerName, existingDescription, existingObjectives, selectedProducts);
 
     // Check if the result contains the error message
-    if (result.objective.includes('could not be generated due to formatting issues')) {
+    if (result.objectiveOverview.includes('could not be generated due to formatting issues')) {
       console.error('Gemini returned formatting error for customer:', customerName);
       return NextResponse.json(
         { error: 'The AI analysis returned unexpected formatting. Please try again or contact support if the issue persists.' },

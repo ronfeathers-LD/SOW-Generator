@@ -1,73 +1,108 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import CustomerSelectionWizard from '@/components/sow/CustomerSelectionWizard';
+
+interface Account {
+  id: string;
+  name: string;
+  billingCity?: string;
+  billingState?: string;
+  billingCountry?: string;
+  industry?: string;
+  numberOfEmployees?: number;
+}
+
+interface Opportunity {
+  id: string;
+  name: string;
+  amount?: number;
+  closeDate?: string;
+  stageName: string;
+  description?: string;
+}
 
 export default function NewSOWPage() {
   const router = useRouter();
-  const isCreating = useRef(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [showWizard, setShowWizard] = useState(true);
 
-  useEffect(() => {
-    async function createNewSOW() {
-      // Prevent multiple API calls
-      if (isCreating.current) {
-        return;
-      }
-      
-      isCreating.current = true;
-      
-      try {
-        // Create a new SOW with minimal data
-        const response = await fetch('/api/sow', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+  const handleCustomerSelectionComplete = async (selectedAccount: Account, selectedOpportunity: Opportunity) => {
+    setIsCreating(true);
+    setShowWizard(false);
+
+    try {
+      const customerName = selectedAccount.name;
+
+      // Create a new SOW with the customer and opportunity information
+      const response = await fetch('/api/sow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          // Include customer information
+          template: {
+            sow_title: `Statement of Work for ${customerName}`,
+            customer_name: customerName,
+            lean_data_name: 'Agam Vasani',
+            lean_data_title: 'VP Customer Success',
+            lean_data_email: 'agam.vasani@leandata.com',
+            products: [],
+            number_of_units: null,
+            regions: null,
+            salesforce_tenants: null,
+            timeline_weeks: '8',
+            units_consumption: 'All units immediately',
+            // Include opportunity information (now required)
+            opportunity_id: selectedOpportunity.id,
+            opportunity_name: selectedOpportunity.name,
+            opportunity_amount: selectedOpportunity.amount || null,
+            opportunity_stage: selectedOpportunity.stageName,
+            opportunity_close_date: selectedOpportunity.closeDate || null,
           },
-          body: JSON.stringify({
-            // Minimal data to create a new SOW
-            template: {
-              sow_title: 'Statement of Work for LeanData Implementation',
-              customer_name: '',
-              lean_data_name: 'Agam Vasani',
-              lean_data_title: 'VP Customer Success',
-              lean_data_email: 'agam.vasani@leandata.com',
-              products: [],
-              number_of_units: '125',
-              regions: '1',
-              salesforce_tenants: '2',
-              timeline_weeks: '8',
-              units_consumption: 'All units immediately',
-            },
-            objectives: {
-              description: '',
-              key_objectives: [''],
-              avoma_transcription: '',
-            },
-            scope: {
-              project_description: '',
-              deliverables: '',
-            },
-          }),
-        });
+          objectives: {
+            description: '',
+            key_objectives: [''],
+            avoma_transcription: '',
+          },
+          scope: {
+            project_description: '',
+            deliverables: '',
+          },
+          // Store the selected account information for later use
+          selectedAccount: {
+            id: selectedAccount.id,
+            name: selectedAccount.name,
+            billingCity: selectedAccount.billingCity,
+            billingState: selectedAccount.billingState,
+            billingCountry: selectedAccount.billingCountry,
+            industry: selectedAccount.industry,
+            numberOfEmployees: selectedAccount.numberOfEmployees,
+          },
+        }),
+      });
 
-        if (!response.ok) {
-          throw new Error('Failed to create new SOW');
-        }
-
-        const data = await response.json();
-        
-        // Redirect to edit mode for the new SOW
-        router.push(`/sow/${data.id}/edit`);
-      } catch (error) {
-        console.error('Error creating new SOW:', error);
-        // Reset the flag on error so user can try again
-        isCreating.current = false;
-        // You could show an error message here
+      if (!response.ok) {
+        throw new Error('Failed to create new SOW');
       }
-    }
 
-    createNewSOW();
-  }, []); // Remove router dependency since we don't need it
+      const data = await response.json();
+      
+      // Redirect to edit mode for the new SOW
+      router.push(`/sow/${data.id}/edit`);
+    } catch (error) {
+      console.error('Error creating new SOW:', error);
+      setIsCreating(false);
+      setShowWizard(true);
+      // You could show an error message here
+    }
+  };
+
+  if (showWizard) {
+    return <CustomerSelectionWizard onComplete={handleCustomerSelectionComplete} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

@@ -1,0 +1,189 @@
+import { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { tab, data } = await request.json();
+    const sowId = (await params).id;
+    
+
+
+    // Find the SOW to ensure it exists
+    const { data: existingSOW, error: findError } = await supabase
+      .from('sows')
+      .select('*')
+      .eq('id', sowId)
+      .single();
+
+    if (findError || !existingSOW) {
+      return NextResponse.json({ error: 'SOW not found' }, { status: 404 });
+    }
+
+    // Build update data object based on the tab
+    const updateData: any = {};
+
+    switch (tab) {
+      case 'Project Overview':
+        // Handle project overview data
+        if (data.template) {
+          if (data.template.sow_title !== undefined) updateData.sow_title = data.template.sow_title;
+          if (data.template.number_of_units !== undefined) updateData.number_of_units = data.template.number_of_units;
+          if (data.template.regions !== undefined) updateData.regions = data.template.regions;
+          if (data.template.salesforce_tenants !== undefined) updateData.salesforce_tenants = data.template.salesforce_tenants;
+          if (data.template.timeline_weeks !== undefined) updateData.timeline_weeks = data.template.timeline_weeks;
+          if (data.template.start_date !== undefined) updateData.project_start_date = data.template.start_date ? new Date(data.template.start_date).toISOString() : null;
+          if (data.template.end_date !== undefined) updateData.project_end_date = data.template.end_date ? new Date(data.template.end_date).toISOString() : null;
+          if (data.template.units_consumption !== undefined) updateData.units_consumption = data.template.units_consumption;
+        }
+        if (data.scope?.timeline) {
+          if (data.scope.timeline.start_date !== undefined) updateData.start_date = new Date(data.scope.timeline.start_date).toISOString();
+          if (data.scope.timeline.duration !== undefined) updateData.duration = data.scope.timeline.duration;
+        }
+
+        // Handle products
+        if (data.template?.products !== undefined) {
+          // Delete existing product associations
+          const { error: deleteError } = await supabase
+            .from('sow_products')
+            .delete()
+            .eq('sow_id', sowId);
+
+          if (deleteError) {
+            console.error('Error deleting existing products:', deleteError);
+          }
+
+          // Insert new product associations if products are selected
+          if (data.template.products.length > 0) {
+            const { data: productIds, error: productError } = await supabase
+              .from('products')
+              .select('id, name')
+              .in('name', data.template.products);
+
+            if (productError) {
+              console.error('Error fetching product IDs:', productError);
+            } else if (productIds && productIds.length > 0) {
+              const sowProductData = productIds.map(product => ({
+                sow_id: sowId,
+                product_id: product.id
+              }));
+
+              const { error: insertError } = await supabase
+                .from('sow_products')
+                .insert(sowProductData);
+
+              if (insertError) {
+                console.error('Error inserting product associations:', insertError);
+              }
+            }
+          }
+        }
+        break;
+
+      case 'Customer Information':
+        // Handle customer information data
+        if (data.template) {
+          if (data.template.customer_name !== undefined) updateData.client_name = data.template.customer_name;
+          if (data.template.customer_signature_name !== undefined) updateData.client_signer_name = data.template.customer_signature_name;
+          if (data.template.customer_email !== undefined) updateData.client_email = data.template.customer_email;
+          if (data.template.lean_data_name !== undefined) updateData.leandata_name = data.template.lean_data_name;
+          if (data.template.lean_data_title !== undefined) updateData.leandata_title = data.template.lean_data_title;
+          if (data.template.lean_data_email !== undefined) updateData.leandata_email = data.template.lean_data_email;
+          if (data.template.opportunity_id !== undefined) updateData.opportunity_id = data.template.opportunity_id || null;
+          if (data.template.opportunity_name !== undefined) updateData.opportunity_name = data.template.opportunity_name || null;
+          if (data.template.opportunity_amount !== undefined) updateData.opportunity_amount = data.template.opportunity_amount || null;
+          if (data.template.opportunity_stage !== undefined) updateData.opportunity_stage = data.template.opportunity_stage || null;
+          if (data.template.opportunity_close_date !== undefined) updateData.opportunity_close_date = data.template.opportunity_close_date ? new Date(data.template.opportunity_close_date).toISOString() : null;
+        }
+        if (data.header) {
+          if (data.header.company_logo !== undefined) updateData.company_logo = data.header.company_logo;
+        }
+        if (data.client_signature) {
+          if (data.client_signature.title !== undefined) updateData.client_title = data.client_signature.title;
+          if (data.client_signature.email !== undefined) updateData.client_email = data.client_signature.email;
+          if (data.client_signature.signature_date !== undefined) updateData.signature_date = new Date(data.client_signature.signature_date).toISOString();
+        }
+        break;
+
+      case 'Objectives':
+        // Handle objectives data
+        if (data.objectives) {
+          if (data.objectives.description !== undefined) updateData.objectives_description = data.objectives.description;
+          if (data.objectives.key_objectives !== undefined) updateData.objectives_key_objectives = data.objectives.key_objectives;
+          if (data.objectives.avoma_transcription !== undefined) updateData.avoma_transcription = data.objectives.avoma_transcription;
+          if (data.objectives.avoma_url !== undefined) updateData.avoma_url = data.objectives.avoma_url;
+        }
+        break;
+
+      case 'Team & Roles':
+        // Handle team and roles data
+        if (data.roles?.client_roles !== undefined) updateData.client_roles = data.roles.client_roles;
+        if (data.pricing?.roles !== undefined) updateData.pricing_roles = data.pricing.roles;
+        break;
+
+      case 'Billing & Payment':
+        // Handle billing and payment data
+        if (data.pricing?.billing !== undefined) updateData.billing_info = data.pricing.billing;
+        if (data.assumptions) {
+          if (data.assumptions.access_requirements !== undefined) updateData.access_requirements = data.assumptions.access_requirements;
+          if (data.assumptions.travel_requirements !== undefined) updateData.travel_requirements = data.assumptions.travel_requirements;
+          if (data.assumptions.working_hours !== undefined) updateData.working_hours = data.assumptions.working_hours;
+          if (data.assumptions.testing_responsibilities !== undefined) updateData.testing_responsibilities = data.assumptions.testing_responsibilities;
+        }
+        break;
+
+      case 'Content Editing':
+        // Handle content editing data
+        if (data.custom_intro_content !== undefined) updateData.custom_intro_content = data.custom_intro_content;
+        if (data.custom_scope_content !== undefined) updateData.custom_scope_content = data.custom_scope_content;
+        if (data.custom_objectives_disclosure_content !== undefined) updateData.custom_objectives_disclosure_content = data.custom_objectives_disclosure_content;
+        if (data.custom_assumptions_content !== undefined) updateData.custom_assumptions_content = data.custom_assumptions_content;
+        if (data.custom_project_phases_content !== undefined) updateData.custom_project_phases_content = data.custom_project_phases_content;
+        if (data.intro_content_edited !== undefined) updateData.intro_content_edited = data.intro_content_edited;
+        if (data.scope_content_edited !== undefined) updateData.scope_content_edited = data.scope_content_edited;
+        if (data.objectives_disclosure_content_edited !== undefined) updateData.objectives_disclosure_content_edited = data.objectives_disclosure_content_edited;
+        if (data.assumptions_content_edited !== undefined) updateData.assumptions_content_edited = data.assumptions_content_edited;
+        if (data.project_phases_content_edited !== undefined) updateData.project_phases_content_edited = data.project_phases_content_edited;
+        break;
+
+      case 'Addendums':
+        // Handle addendums data
+        if (data.addendums !== undefined) updateData.addendums = data.addendums;
+        break;
+
+      default:
+        return NextResponse.json({ error: 'Invalid tab specified' }, { status: 400 });
+    }
+
+    // Update the SOW with the tab-specific data
+    const { data: updatedSOW, error: updateError } = await supabase
+      .from('sows')
+      .update(updateData)
+      .eq('id', sowId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Supabase update error:', updateError);
+      return NextResponse.json(
+        { error: 'Failed to update SOW', details: updateError.message },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: `${tab} updated successfully`,
+      data: updatedSOW 
+    });
+
+  } catch (error) {
+    console.error('Error updating SOW tab:', error);
+    return NextResponse.json(
+      { error: 'Failed to update SOW tab' },
+      { status: 500 }
+    );
+  }
+} 

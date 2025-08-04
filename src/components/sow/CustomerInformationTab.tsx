@@ -9,42 +9,36 @@ interface CustomerInformationTabProps {
   setFormData: (data: Partial<SOWData>) => void;
   initialData?: SOWData;
   selectedAccount: { id: string; name: string } | null;
-  selectedContact: SalesforceContact | null;
   selectedOpportunity: SalesforceOpportunity | null;
   availableOpportunities: SalesforceOpportunity[];
   onCustomerSelectedFromSalesforce: (customerData: { account: any; contacts: any[]; opportunities: any[] }) => void;
-  onContactSelectedFromSalesforce: (contact: SalesforceContact | null) => void;
   onOpportunitySelectedFromSalesforce: (opportunity: SalesforceOpportunity | null) => void;
   onAvailableOpportunitiesUpdate: (opportunities: SalesforceOpportunity[]) => void;
   getSalesforceLink: (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => string;
   onLogoChange: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
 }
 
-type SelectionStep = 'account' | 'contact' | 'opportunity' | 'logo' | null;
+type SelectionStep = 'account' | 'opportunity' | 'logo' | null;
 
 export default function CustomerInformationTab({
   formData,
   setFormData,
   initialData,
   selectedAccount,
-  selectedContact,
   selectedOpportunity,
   availableOpportunities,
   onCustomerSelectedFromSalesforce,
-  onContactSelectedFromSalesforce,
   onOpportunitySelectedFromSalesforce,
   onAvailableOpportunitiesUpdate,
   getSalesforceLink,
   onLogoChange,
 }: CustomerInformationTabProps) {
-  const [currentStep, setCurrentStep] = useState<SelectionStep>(null);
-  const [availableContacts, setAvailableContacts] = useState<SalesforceContact[]>([]);
-  const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+  const [currentStep, setCurrentStep] = useState<SelectionStep>('account');
+  const [isLoadingOpportunities, setIsLoadingOpportunities] = useState(false);
 
   // Determine which step to show based on current selections
   const getNextStep = (): SelectionStep => {
     if (!selectedAccount) return 'account';
-    if (!selectedContact) return 'contact';
     if (!selectedOpportunity) return 'opportunity';
     if (!(formData.template?.company_logo || formData.header?.company_logo)) return 'logo';
     return null;
@@ -53,48 +47,9 @@ export default function CustomerInformationTab({
   const handleStepButtonClick = async (step: SelectionStep) => {
     setCurrentStep(step);
     
-    // Load contacts if we're going to the contact step and we have a selected account with a valid ID
-    // Only load if we don't already have contacts (to prevent double loading)
-    if (step === 'contact' && selectedAccount && selectedAccount.id && availableContacts.length === 0 && !isLoadingContacts) {
-      setIsLoadingContacts(true);
-      try {
-        const response = await fetch('/api/salesforce/account-contacts', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            accountId: selectedAccount.id,
-            forceRefresh: false // Use cache by default
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setAvailableContacts(data.contacts || []);
-        } else {
-          // Try to get error details
-          let errorData;
-          try {
-            errorData = await response.json();
-          } catch (parseError) {
-            errorData = { error: 'Failed to parse error response', statusText: response.statusText };
-          }
-          
-          // Show user-friendly error message for configuration issues
-          if (response.status === 400 && errorData?.error === 'Salesforce integration is not configured') {
-            alert('Salesforce is not configured. Please go to the admin panel (/admin/salesforce) to set up your Salesforce credentials first.');
-          }
-        }
-      } catch (error) {
-        console.error('Error loading contacts:', error);
-      } finally {
-        setIsLoadingContacts(false);
-      }
-    }
-    
     // Load opportunities if we're going to the opportunity step and we have a selected account with a valid ID
     if (step === 'opportunity' && selectedAccount && selectedAccount.id && availableOpportunities.length === 0) {
+      setIsLoadingOpportunities(true);
       try {
         const response = await fetch('/api/salesforce/account-opportunities', {
           method: 'POST',
@@ -107,12 +62,8 @@ export default function CustomerInformationTab({
           }),
         });
 
-        console.log('Opportunities API response status:', response.status);
-        console.log('Opportunities API response ok:', response.ok);
-
         if (response.ok) {
           const data = await response.json();
-          console.log('Opportunities data received:', data);
           // Update available opportunities through the parent component
           if (data.opportunities) {
             onAvailableOpportunitiesUpdate(data.opportunities);
@@ -141,57 +92,9 @@ export default function CustomerInformationTab({
           message: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : 'No stack trace'
         });
+      } finally {
+        setIsLoadingOpportunities(false);
       }
-    }
-  };
-
-  // Function to refresh contacts data
-  const refreshContacts = async () => {
-    if (!selectedAccount?.id) {
-      console.log('No selected account ID, cannot refresh contacts');
-      return;
-    }
-    
-    setIsLoadingContacts(true);
-    try {
-      const response = await fetch('/api/salesforce/account-contacts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          accountId: selectedAccount.id,
-          forceRefresh: true // Force refresh from Salesforce
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setAvailableContacts(data.contacts || []);
-        
-        // If we have a selected contact, make sure it's still in the refreshed list
-        if (selectedContact && data.contacts) {
-          // Only check if the contact still exists if we have a valid ID
-          if (selectedContact.Id && selectedContact.Id.trim() !== '') {
-            const contactStillExists = data.contacts.some((contact: any) => contact.Id === selectedContact.Id);
-            
-            if (!contactStillExists) {
-              onContactSelectedFromSalesforce(null);
-            }
-          }
-        }
-      } else {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('Failed to refresh contacts:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData
-        });
-      }
-    } catch (error) {
-      console.error('Error refreshing contacts:', error);
-    } finally {
-      setIsLoadingContacts(false);
     }
   };
 
@@ -201,6 +104,7 @@ export default function CustomerInformationTab({
       return;
     }
     
+    setIsLoadingOpportunities(true);
     try {
       const response = await fetch('/api/salesforce/account-opportunities', {
         method: 'POST',
@@ -237,22 +141,15 @@ export default function CustomerInformationTab({
       }
     } catch (error) {
       console.error('Error refreshing opportunities:', error);
+    } finally {
+      setIsLoadingOpportunities(false);
     }
   };
 
   const handleAccountSelected = (customerData: { account: any; contacts: any[]; opportunities: any[] }) => {
     onCustomerSelectedFromSalesforce(customerData);
-    // Set contacts from the customer data to avoid double loading
-    setAvailableContacts(customerData.contacts || []);
-    // Automatically proceed to contact selection since we already have the contacts
-    setCurrentStep('contact');
-  };
-
-  const handleContactSelected = (contact: SalesforceContact | null) => {
-    onContactSelectedFromSalesforce(contact);
-    if (contact) {
-      setCurrentStep('opportunity');
-    }
+    // Automatically proceed to opportunity selection since we already have the opportunities
+    setCurrentStep('opportunity');
   };
 
   const handleOpportunitySelected = (opportunity: SalesforceOpportunity | null) => {
@@ -327,96 +224,12 @@ export default function CustomerInformationTab({
                 </div>
               </div>
 
-              {/* Signer (Contact) Check */}
-              <div 
-                className={`flex items-start p-4 rounded-md border transition-colors ${
-                  currentStep === 'contact' ? 'border-blue-500 bg-blue-50' : 'hover:bg-gray-50'
-                } ${!selectedAccount ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                onClick={() => selectedAccount && handleStepButtonClick('contact')}
-              >
-                <div className="flex-shrink-0 mr-3 mt-1">
-                  {selectedContact || formData.template?.customer_signature_name ? (
-                    <svg className="h-6 w-6 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  ) : (
-                    <svg className="h-6 w-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">Signer (Contact)</p>
-                  <p className="text-xs text-gray-500 mb-2">
-                    {selectedContact 
-                      ? `${selectedContact.FirstName || ''} ${selectedContact.LastName}`.trim()
-                                      : formData.template?.customer_signature_name
-                    ? `${formData.template.customer_signature_name} (manual entry)`
-                        : 'No signer selected'
-                    }
-                  </p>
-                  {(selectedContact || formData.template?.customer_signature_name) && (
-                    <div className="text-xs text-gray-600 space-y-1">
-                      {selectedContact && (
-                        <div className="flex items-center">
-                          <svg className="h-3 w-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          <span>Contact verified in Salesforce</span>
-                        </div>
-                      )}
-                                          {formData.template?.customer_email && (
-                        <div className="flex items-center">
-                          <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                                                  <span>Email: {formData.template.customer_email}</span>
-                        </div>
-                      )}
-                                          {formData.template?.customer_signature && (
-                        <div className="flex items-center">
-                          <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                                                  <span>Title: {formData.template.customer_signature}</span>
-                        </div>
-                      )}
-                      {selectedContact && (
-                        <a
-                          href={getSalesforceLink(selectedContact.Id, 'Contact')}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 underline flex items-center"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                            <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-                          </svg>
-                          View in Salesforce
-                        </a>
-                      )}
-                    </div>
-                  )}
-                  {!selectedContact && selectedAccount && (
-                    <div className="mt-3 pt-2 border-t border-gray-200">
-                      <p className="text-xs text-blue-600 font-medium">Click to select</p>
-                    </div>
-                  )}
-                  {!selectedAccount && (
-                    <div className="mt-3 pt-2 border-t border-gray-200">
-                      <p className="text-xs text-gray-500">Select account first</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
               {/* Opportunity Check */}
               <div 
                 className={`flex items-start p-4 rounded-md border transition-colors ${
                   currentStep === 'opportunity' ? 'border-blue-500 bg-blue-50' : 'hover:bg-gray-50'
-                } ${!selectedAccount || !selectedContact ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                onClick={() => selectedAccount && selectedContact && handleStepButtonClick('opportunity')}
+                } ${!selectedAccount ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                onClick={() => selectedAccount && handleStepButtonClick('opportunity')}
               >
                 <div className="flex-shrink-0 mr-3 mt-1">
                   {(selectedOpportunity || (initialData && (initialData.opportunity_id || initialData.template?.opportunity_id))) ? (
@@ -493,14 +306,14 @@ export default function CustomerInformationTab({
                       )}
                     </div>
                   )}
-                  {!selectedOpportunity && selectedAccount && selectedContact && (
+                  {!selectedOpportunity && selectedAccount && (
                     <div className="mt-3 pt-2 border-t border-gray-200">
                       <p className="text-xs text-blue-600 font-medium">Click to select</p>
                     </div>
                   )}
-                  {(!selectedAccount || !selectedContact) && (
+                  {(!selectedAccount) && (
                     <div className="mt-3 pt-2 border-t border-gray-200">
-                      <p className="text-xs text-gray-500">Select account & contact first</p>
+                      <p className="text-xs text-gray-500">Select account first</p>
                     </div>
                   )}
                 </div>
@@ -552,81 +365,14 @@ export default function CustomerInformationTab({
                 <h4 className="text-lg font-semibold mb-4 text-blue-800">Step 1: Select Account</h4>
                 <SalesforceIntegration 
                   onCustomerSelected={handleAccountSelected}
-                  onContactSelected={onContactSelectedFromSalesforce}
                   showOnlyAccountSelection={true}
                 />
               </div>
             )}
 
-            {currentStep === 'contact' && selectedAccount && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                <h4 className="text-lg font-semibold mb-4 text-blue-800">Step 2: Select Point of Contact</h4>
-                
-                {/* Contact Selection */}
-                <div className="space-y-4">
-                  {isLoadingContacts ? (
-                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                      <p className="text-sm text-yellow-800">Loading contacts...</p>
-                    </div>
-                  ) : availableContacts.length > 0 ? (
-                    <>
-                      <div className="flex justify-between items-center mb-4">
-                        <p className="text-sm text-gray-600">
-                          Found {availableContacts.length} contact{availableContacts.length !== 1 ? 's' : ''} for {selectedAccount.name}
-                        </p>
-                        <button
-                          onClick={refreshContacts}
-                          disabled={isLoadingContacts}
-                          className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                        >
-                          <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                          Refresh
-                        </button>
-                      </div>
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {availableContacts.map((contact) => (
-                          <div
-                            key={contact.Id}
-                            className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
-                            onClick={() => handleContactSelected(contact)}
-                          >
-                            <div className="font-medium text-gray-900">{contact.FirstName} {contact.LastName}</div>
-                            <div className="text-sm text-gray-600 mt-1">
-                              <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium mr-2">
-                                {contact.Title}
-                              </span>
-                              <span>{contact.Email}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                      <p className="text-sm text-yellow-800">
-                        No contacts found for this account. You may need to add contacts in Salesforce.
-                      </p>
-                      <button
-                        onClick={refreshContacts}
-                        disabled={isLoadingContacts}
-                        className="mt-2 px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                      >
-                        <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Refresh
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-             {currentStep === 'opportunity' && selectedAccount && selectedContact && (
+             {currentStep === 'opportunity' && selectedAccount && (
                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                 <h4 className="text-lg font-semibold mb-4 text-blue-800">Step 3: Select Opportunity</h4>
+                 <h4 className="text-lg font-semibold mb-4 text-blue-800">Step 2: Select Opportunity</h4>
                  
                  {availableOpportunities.length > 0 ? (
                    <>
@@ -692,7 +438,7 @@ export default function CustomerInformationTab({
 
              {currentStep === 'logo' && (
                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                 <h4 className="text-lg font-semibold mb-4 text-blue-800">Step 4: Upload Company Logo</h4>
+                 <h4 className="text-lg font-semibold mb-4 text-blue-800">Step 3: Upload Company Logo</h4>
                  
                  <div className="space-y-4">
                    <div>
@@ -743,7 +489,7 @@ export default function CustomerInformationTab({
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
                 <h4 className="text-lg font-semibold mb-4 text-gray-800">Selection Instructions</h4>
                 <p className="text-gray-600">
-                  Click on any of the cards on the left to begin the selection process. You'll need to select an account first, then a contact, and finally an opportunity.
+                  Click on any of the cards on the left to begin the selection process. You'll need to select an account first, then an opportunity.
                 </p>
               </div>
             )}

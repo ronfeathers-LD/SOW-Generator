@@ -156,6 +156,10 @@ export interface SOWData {
   
   // Salesforce Information
   salesforce_account_id?: string;
+  selectedAccount?: {
+    id: string;
+    name: string;
+  } | null;
   
   // Salesforce Opportunity Information
   opportunity_id?: string;

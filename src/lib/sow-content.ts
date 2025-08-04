@@ -69,8 +69,29 @@ export function processScopeContent(
   content: string,
   deliverables: string[]
 ): string {
+  // Process deliverables - they should come as strings that can be formatted
+  // Each deliverable might be a category with items, or individual items
   const deliverablesHtml = deliverables
-    .map((deliverable, index) => `<div class="mb-4"><div>${deliverable}</div></div>`)
+    .map((deliverable, index) => {
+      // Check if this is a category with items (contains newlines)
+      if (deliverable.includes('\n')) {
+        const lines = deliverable.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        const category = lines[0]; // First line is the category
+        const items = lines.slice(1); // Rest are items
+        
+        const itemsHtml = items
+          .map(item => `<div class="ml-4 mb-2">${item}</div>`)
+          .join('\n');
+        
+        return `<div class="mb-4">
+          <div class="font-bold text-lg mb-2">${category}</div>
+          ${itemsHtml}
+        </div>`;
+      } else {
+        // Single item
+        return `<div class="mb-4"><div>${deliverable}</div></div>`;
+      }
+    })
     .join('\n');
 
   return content.replace(/{deliverables}/g, deliverablesHtml);

@@ -37,7 +37,18 @@ export async function POST(request: NextRequest) {
 
     // Search for accounts
     // Searching for accounts
-    const accounts = await salesforceClient.searchAccounts(searchTerm);
+    const salesforceAccounts = await salesforceClient.searchAccounts(searchTerm);
+
+    // Transform Salesforce account objects to match frontend expectations
+    const accounts = salesforceAccounts.map(account => ({
+      id: account.Id,
+      name: account.Name,
+      billingCity: account.BillingCity,
+      billingState: account.BillingState,
+      billingCountry: account.BillingCountry,
+      industry: account.Industry,
+      numberOfEmployees: account.NumberOfEmployees
+    }));
 
     // Search results processed
 

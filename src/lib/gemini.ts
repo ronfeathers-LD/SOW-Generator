@@ -23,8 +23,9 @@ interface ObjectivesGenerationResponse {
 }
 
 interface TranscriptionAnalysisResponse {
-  objective: string;
-  scope: string[];
+  objectiveOverview: string;
+  keyObjectives: string[];
+  deliverables: string[];
   isFallback?: boolean;
 }
 
@@ -71,31 +72,38 @@ class GeminiClient {
     const prompt = `
 You are an expert at analyzing sales calls and extracting key information for Statement of Work (SOW) documents.
 
-Please analyze the following call transcript between LeanData and ${customerName} and extract:
-
-1. **Deliverables** - Specific products, services, or outcomes that will be delivered
-2. **Requirements** - Technical or business requirements mentioned
-3. **Assumptions** - Assumptions made during the conversation
-4. **Timeline** - Any timeline or scheduling information
+Please analyze the following call transcript between LeanData and ${customerName} and extract deliverables in a structured format.
 
 ${projectContext ? `Project Context: ${projectContext}` : ''}
 
 Call Transcript:
 ${transcript}
 
-Please provide your response in the following JSON format:
+Please provide your response in the following JSON format, organizing deliverables by category:
 {
   "bulletPoints": [
     {
-      "title": "Brief title",
-      "description": "Detailed description",
-      "category": "deliverable|requirement|assumption|timeline"
+      "title": "LEADS",
+      "description": "Deduplication of Leads against existing Leads and Contacts.\nRoute Leads to Matched Accounts.\nUse GR nodes to determine if there are open cases. If there is an open case, send notification to case owner and lead owner.\nRoute leads via GEO and Revenue to Round Robins and individuals if no account match\nSend Teams notifications on lead to account match and lead assignment",
+      "category": "deliverable"
+    },
+    {
+      "title": "CONTACTS", 
+      "description": "Mimics Lead Routing\nIf contact matches open opportunities, assign contact role.",
+      "category": "deliverable"
+    },
+    {
+      "title": "INTEGRATIONS",
+      "description": "Teams\nGong",
+      "category": "deliverable"
     }
   ],
   "summary": "Brief summary of the key points discussed"
 }
 
-Focus on actionable items that would be included in a professional SOW document. Be specific and avoid generic statements.
+IMPORTANT: For deliverables, organize them into categories like LEADS, CONTACTS, INTEGRATIONS, etc. Each category should be a separate bullet point with the category name as the title and the specific items as the description (separated by newlines).
+
+Focus on organizing deliverables into logical categories like LEADS, CONTACTS, INTEGRATIONS, etc. Each category should contain specific, actionable items that would be included in a professional SOW document. Be specific and avoid generic statements.
 `;
 
     try {
@@ -236,10 +244,11 @@ Please provide a professional, 2-3 sentence project description that captures th
       const fallbackPrompt = `
 You are an expert at analyzing sales call transcripts and extracting key information for Statement of Work (SOW) documents.
 
-Please analyze the following call transcript between LeanData and ${customerName} and provide:
+Please analyze the following call transcript between LeanData and ${customerName} and provide three distinct sections:
 
-1. **Objective** - A clear, concise overall objective for the project (2-3 sentences)
-2. **Scope** - 5-7 specific scope items that detail what will be implemented
+1. **Objective Overview** - A high-level overview of what the project will entail (2-3 sentences)
+2. **Key Objectives** - Pain points that the customer has outlined for us to solve (discovered through AI analysis)
+3. **Deliverables** - Solutions to the pain points, utilizing LeanData products (organized by product/category)
 
 ${existingDescription ? `Existing Project Description: ${existingDescription}` : ''}
 ${existingObjectives && existingObjectives.length > 0 ? `Existing Objectives: ${existingObjectives.join(', ')}` : ''}
@@ -252,19 +261,26 @@ CRITICAL: You must respond with ONLY valid JSON. Do not include any explanatory 
 
 Required JSON format:
 {
-  "objective": "A clear, professional objective statement that captures the main goal of the project",
-  "scope": [
-    "Specific scope item 1",
-    "Specific scope item 2",
-    "Specific scope item 3",
-    "Specific scope item 4",
-    "Specific scope item 5"
+  "objectiveOverview": "A clear, professional high-level overview of what the project will entail",
+  "keyObjectives": [
+    "Pain point 1: Description of the business problem or challenge",
+    "Pain point 2: Description of the business problem or challenge",
+    "Pain point 3: Description of the business problem or challenge",
+    "Pain point 4: Description of the business problem or challenge",
+    "Pain point 5: Description of the business problem or challenge"
+  ],
+  "deliverables": [
+    "LEANDATA ROUTING\\n• Solution 1: Specific LeanData Routing implementation\\n• Solution 2: Specific LeanData Routing implementation\\n• Solution 3: Specific LeanData Routing implementation",
+    "LEANDATA BOOKIT\\n• Solution 1: Specific LeanData BookIt implementation\\n• Solution 2: Specific LeanData BookIt implementation",
+    "INTEGRATIONS\\n• Teams integration for notifications\\n• ZoomInfo integration for data enrichment"
   ]
 }
 
 Guidelines:
-- The objective should be business-focused and capture the main goal
-- Scope items should be specific, actionable, and implementation-focused
+- The objective overview should be business-focused and capture the high-level project scope
+- Key objectives should focus on PAIN POINTS and business challenges the customer is facing
+- Deliverables should be SOLUTIONS to those pain points, organized by LeanData product/category
+- Each deliverable category should contain specific, actionable solutions using LeanData products
 - Focus on LeanData products and services mentioned in the call
 - Be professional and suitable for a formal SOW document
 - Avoid generic statements - be specific to what was discussed
@@ -366,13 +382,18 @@ Please consider the existing content and selected products above and enhance or 
         
         const parsed = JSON.parse(cleanedContent);
         
-        if (!parsed.objective || !parsed.scope) {
+        if (!parsed.objectiveOverview || !parsed.keyObjectives) {
           throw new Error('Missing required fields in parsed response');
         }
         
         return {
-          objective: parsed.objective,
-          scope: Array.isArray(parsed.scope) ? parsed.scope : ['Scope could not be generated'],
+          objectiveOverview: parsed.objectiveOverview,
+          keyObjectives: Array.isArray(parsed.keyObjectives) ? parsed.keyObjectives : ['Key objectives could not be generated'],
+          deliverables: Array.isArray(parsed.deliverables) ? parsed.deliverables : [
+            'LEANDATA ROUTING\n• Lead routing based on employee size, geography, and account tiering\n• Lead-to-lead matching and account matching to reduce duplicates\n• Contact routing that mirrors lead routing logic\n• Round robin and individual assignment logic',
+            'LEANDATA BOOKIT\n• Notification workflows for sales and support teams\n• SLA notifications via Microsoft Teams and/or Outreach',
+            'INTEGRATIONS\n• Teams integration for notifications\n• ZoomInfo integration for data enrichment'
+          ],
           isFallback: false
         };
             } catch (parseError) {
@@ -385,8 +406,8 @@ Please consider the existing content and selected products above and enhance or 
           const simplePrompt = `
 Analyze this call transcript and return ONLY valid JSON:
 {
-  "objective": "brief project objective",
-  "scope": ["item1", "item2", "item3", "item4", "item5"]
+  "objectiveOverview": "brief project overview",
+  "keyObjectives": ["pain point 1", "pain point 2", "pain point 3", "pain point 4", "pain point 5"]
 }
 
 Transcript: ${transcript}
@@ -403,11 +424,16 @@ Customer: ${customerName}
             const finalContent = jsonMatch ? jsonMatch[0] : cleanedContent;
             
             const parsed = JSON.parse(finalContent);
-            if (parsed.objective && parsed.scope) {
+            if (parsed.objectiveOverview && parsed.keyObjectives) {
               // Second attempt successful
               return {
-                objective: parsed.objective,
-                scope: Array.isArray(parsed.scope) ? parsed.scope : ['Scope could not be generated'],
+                objectiveOverview: parsed.objectiveOverview,
+                keyObjectives: Array.isArray(parsed.keyObjectives) ? parsed.keyObjectives : ['Key objectives could not be generated'],
+                deliverables: Array.isArray(parsed.deliverables) ? parsed.deliverables : [
+                  'LEANDATA ROUTING\n• Lead routing based on employee size, geography, and account tiering\n• Lead-to-lead matching and account matching to reduce duplicates\n• Contact routing that mirrors lead routing logic\n• Round robin and individual assignment logic',
+                  'LEANDATA BOOKIT\n• Notification workflows for sales and support teams\n• SLA notifications via Microsoft Teams and/or Outreach',
+                  'INTEGRATIONS\n• Teams integration for notifications\n• ZoomInfo integration for data enrichment'
+                ],
                 isFallback: false
               };
             }
@@ -512,13 +538,18 @@ Customer: ${customerName}
         }
         
         return {
-          objective: objective.replace(/^.*?:\s*/, '').trim(),
-          scope: scopeItems.length > 0 ? scopeItems : [
-            'Implement lead routing and automation',
-            'Set up account matching and deduplication',
-            'Configure territory-based lead assignment',
-            'Integrate with existing Salesforce workflows',
-            'Provide training and documentation'
+          objectiveOverview: objective.replace(/^.*?:\s*/, '').trim(),
+          keyObjectives: scopeItems.length > 0 ? scopeItems : [
+            'Manual lead routing and assignment processes',
+            'Duplicate leads and contacts in Salesforce',
+            'Inconsistent data quality across objects',
+            'Lack of automated territory-based assignment',
+            'Manual management and distribution by operations'
+          ],
+          deliverables: [
+            'LEANDATA ROUTING\n• Lead routing based on employee size, geography, and account tiering\n• Lead-to-lead matching and account matching to reduce duplicates\n• Contact routing that mirrors lead routing logic\n• Round robin and individual assignment logic',
+            'LEANDATA BOOKIT\n• Notification workflows for sales and support teams\n• SLA notifications via Microsoft Teams and/or Outreach',
+            'INTEGRATIONS\n• Teams integration for notifications\n• ZoomInfo integration for data enrichment'
           ],
           isFallback: true
         };
@@ -544,13 +575,18 @@ Customer: ${customerName}
       }
       
       return {
-        objective: errorMessage,
-        scope: [
-          'Implement lead routing and automation',
-          'Set up account matching and deduplication',
-          'Configure territory-based lead assignment',
-          'Integrate with existing Salesforce workflows',
-          'Provide training and documentation'
+        objectiveOverview: errorMessage,
+        keyObjectives: [
+          'Manual lead routing and assignment processes',
+          'Duplicate leads and contacts in Salesforce',
+          'Inconsistent data quality across objects',
+          'Lack of automated territory-based assignment',
+          'Manual management and distribution by operations'
+        ],
+        deliverables: [
+          'LEANDATA ROUTING\n• Lead routing based on employee size, geography, and account tiering\n• Lead-to-lead matching and account matching to reduce duplicates\n• Contact routing that mirrors lead routing logic\n• Round robin and individual assignment logic',
+          'LEANDATA BOOKIT\n• Notification workflows for sales and support teams\n• SLA notifications via Microsoft Teams and/or Outreach',
+          'INTEGRATIONS\n• Teams integration for notifications\n• ZoomInfo integration for data enrichment'
         ]
       };
     }
