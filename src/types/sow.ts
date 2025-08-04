@@ -175,4 +175,8 @@ export interface SOWData {
   objectives_disclosure_content_edited?: boolean;
   assumptions_content_edited?: boolean;
   project_phases_content_edited?: boolean;
+  
+  // Database date fields
+  project_start_date?: string;
+  project_end_date?: string;
 } 

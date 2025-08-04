@@ -7,6 +7,7 @@ import { textToHtml } from '@/lib/text-to-html';
 interface SOWObjectivesPageProps {
   deliverables: string[]; 
   keyObjectives: string[];
+  projectDescription?: string;
   customContent?: string;
   isEdited?: boolean;
   projectDetails?: {
@@ -24,6 +25,7 @@ interface SOWObjectivesPageProps {
 export default function SOWObjectivesPage({ 
   deliverables, 
   keyObjectives, 
+  projectDescription,
   customContent,
   isEdited = false,
   projectDetails 
@@ -75,15 +77,59 @@ A summary of scope assumptions, Customer's relevant use cases, and the Parties' 
 
   return (
     <div className="prose max-w-none text-left">
+      {/* Project Description */}
+      {projectDescription && projectDescription.trim() && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-4">Project Description:</h3>
+          <p className="text-gray-700 leading-relaxed">
+            {projectDescription}
+          </p>
+        </div>
+      )}
+
       {/* Key Objectives from table */}
       {keyObjectives && keyObjectives.length > 0 && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-4">Key Objectives:</h3>
-          <ul className="list-disc pl-6 space-y-2 text-gray-700">
-            {keyObjectives.map((objective, index) => (
-              <li key={index}>{objective}</li>
-            ))}
-          </ul>
+          <div className="space-y-4 text-gray-700">
+            {keyObjectives.map((objective, index) => {
+              const trimmedObjective = objective.trim();
+              
+              // Skip empty lines
+              if (trimmedObjective.length === 0) {
+                return null;
+              }
+              
+              // Check if this is a product header (ends with :)
+              if (trimmedObjective.endsWith(':')) {
+                return (
+                  <div key={index}>
+                    <h4 className="font-semibold text-gray-900 mt-4 mb-2">
+                      {trimmedObjective.slice(0, -1)} {/* Remove the trailing colon */}
+                    </h4>
+                  </div>
+                );
+              }
+              
+              // Check if this is a bullet point (starts with •)
+              if (trimmedObjective.startsWith('• ')) {
+                return (
+                  <div key={index} className="flex items-start">
+                    <span className="text-gray-400 mr-2 mt-1">•</span>
+                    <span className="flex-1">{trimmedObjective.substring(2)}</span>
+                  </div>
+                );
+              }
+              
+              // Regular item (fallback)
+              return (
+                <div key={index} className="flex items-start">
+                  <span className="text-gray-400 mr-2 mt-1">•</span>
+                  <span className="flex-1">{trimmedObjective}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

@@ -3,7 +3,7 @@ import { analyzeTranscription } from '@/lib/gemini';
 
 export async function POST(request: NextRequest) {
   try {
-    const { transcript, customerName } = await request.json();
+    const { transcript, customerName, existingDescription, existingObjectives, selectedProducts } = await request.json();
 
     if (!transcript) {
       return NextResponse.json({ error: 'Transcription is required' }, { status: 400 });
@@ -13,10 +13,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Customer name is required' }, { status: 400 });
     }
 
-    console.log('Analyzing transcription for customer:', customerName);
-    console.log('Transcription length:', transcript.length);
+    
 
-    const result = await analyzeTranscription(transcript, customerName);
+    const result = await analyzeTranscription(transcript, customerName, existingDescription, existingObjectives, selectedProducts);
 
     // Check if the result contains the error message
     if (result.objective.includes('could not be generated due to formatting issues')) {

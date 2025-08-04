@@ -7,7 +7,7 @@ export async function POST(request: Request) {
     const data = await request.json();
     
     // Log the incoming data for debugging
-    console.log('Received data:', data);
+  
     
     // Fetch default content templates
     let defaultIntroContent = '';

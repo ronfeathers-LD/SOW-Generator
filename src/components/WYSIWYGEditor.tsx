@@ -400,7 +400,7 @@ export default function WYSIWYGEditor({ value, onChange, placeholder }: WYSIWYGE
         onInput={handleInput}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        className="w-full min-h-[250px] p-3 focus:outline-none"
+        className="w-full min-h-[250px] p-3 focus:outline-none wysiwyg-content"
         style={{
           lineHeight: '1.6',
           fontSize: '14px'

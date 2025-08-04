@@ -20,6 +20,8 @@ export default function EditSOWPage() {
         if (response.ok) {
           const data = await response.json();
           // SOW data loaded for edit
+          console.log('SOW Edit - Raw API data:', data);
+          console.log('SOW Edit - objectives data:', data.objectives);
           
           // Transform the data to match the form structure
           const transformedData: SOWData = {

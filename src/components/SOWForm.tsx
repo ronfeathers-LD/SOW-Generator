@@ -41,6 +41,39 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     initialData
       ? {
           ...initialData,
+          template: {
+            sow_title: initialData.template?.sow_title || 'Statement of Work for LeanData Implementation',
+            company_logo: initialData.template?.company_logo || '',
+            customer_name: initialData.template?.customer_name || '',
+            customer_signature_name: initialData.template?.customer_signature_name || '',
+            customer_signature: initialData.template?.customer_signature || '',
+            customer_email: initialData.template?.customer_email || '',
+            customer_signature_date: initialData.template?.customer_signature_date || null,
+            lean_data_name: initialData.template?.lean_data_name || 'Agam Vasani',
+            lean_data_title: initialData.template?.lean_data_title || 'VP Customer Success',
+            lean_data_email: initialData.template?.lean_data_email || 'agam.vasani@leandata.com',
+            lean_data_signature_name: initialData.template?.lean_data_signature_name || 'Agam Vasani',
+            lean_data_signature: initialData.template?.lean_data_signature || '',
+            lean_data_signature_date: initialData.template?.lean_data_signature_date || null,
+            products: initialData.template?.products || [],
+            number_of_units: initialData.template?.number_of_units || '125',
+            regions: initialData.template?.regions || '1',
+            salesforce_tenants: initialData.template?.salesforce_tenants || '2',
+            timeline_weeks: initialData.template?.timeline_weeks || '8',
+            start_date: initialData.template?.start_date || (initialData.project_start_date ? new Date(initialData.project_start_date) : null),
+            end_date: initialData.template?.end_date || (initialData.project_end_date ? new Date(initialData.project_end_date) : null),
+            units_consumption: initialData.template?.units_consumption || 'All units immediately',
+            billing_company_name: initialData.template?.billing_company_name || '',
+            billing_contact_name: initialData.template?.billing_contact_name || '',
+            billing_address: initialData.template?.billing_address || '',
+            billing_email: initialData.template?.billing_email || '',
+            purchase_order_number: initialData.template?.purchase_order_number || '',
+            opportunity_id: initialData.template?.opportunity_id || '',
+            opportunity_name: initialData.template?.opportunity_name || '',
+            opportunity_amount: initialData.template?.opportunity_amount || undefined,
+            opportunity_stage: initialData.template?.opportunity_stage || '',
+            opportunity_close_date: initialData.template?.opportunity_close_date || '',
+          },
           objectives: {
             ...initialData.objectives,
             description: initialData.objectives?.description || initialData.scope?.project_description || '',
@@ -194,10 +227,14 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         const response = await fetch('/api/leandata-signatories');
         if (response.ok) {
           const data = await response.json();
-          setLeanDataSignatories(data);
+          setLeanDataSignatories(data || []);
+        } else {
+          console.error('Failed to fetch LeanData signatories:', response.status, response.statusText);
+          setLeanDataSignatories([]);
         }
       } catch (error) {
         console.error('Error fetching LeanData signatories:', error);
+        setLeanDataSignatories([]);
       }
     };
 
@@ -247,7 +284,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
     // Initialize selected LeanData signatory when signatories are loaded and we have initial data
   useEffect(() => {
-    if (leanDataSignatories.length > 0 && initialData) {
+    if (leanDataSignatories && leanDataSignatories.length > 0 && initialData) {
       // Find the signatory that matches the existing data
       const matchingSignatory = leanDataSignatories.find(signatory =>
         signatory.name === initialData.template?.lean_data_name ||
@@ -263,7 +300,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     const handleLeanDataSignatoryChange = (signatoryId: string) => {
     setSelectedLeanDataSignatory(signatoryId);
 
-    if (signatoryId) {
+    if (signatoryId && leanDataSignatories) {
       const selectedSignatory = leanDataSignatories.find(s => s.id === signatoryId);
       if (selectedSignatory) {
         setFormData({
@@ -514,6 +551,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         // Ensure opportunity data is included in submission
         template: {
           ...formData.template,
+          start_date: formData.template?.start_date || null,
+          end_date: formData.template?.end_date || null,
           opportunity_id: formData.template?.opportunity_id || null,
           opportunity_name: formData.template?.opportunity_name || null,
           opportunity_amount: formData.template?.opportunity_amount || null,

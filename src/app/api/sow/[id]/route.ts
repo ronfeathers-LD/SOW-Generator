@@ -19,6 +19,9 @@ export async function GET(
       );
     }
 
+    // Debug logging for Avoma URL
+
+
     // Fetch products for this SOW
     const { data: sowProducts, error: productsError } = await supabase
       .from('sow_products')

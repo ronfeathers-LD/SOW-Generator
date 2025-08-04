@@ -79,8 +79,8 @@ CREATE TABLE IF NOT EXISTS salesforce_configs (
   last_error TEXT
 );
 
--- Create lean_data_signators table
-CREATE TABLE IF NOT EXISTS lean_data_signators (
+-- Create lean_data_signatories table
+CREATE TABLE IF NOT EXISTS lean_data_signatories (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -136,7 +136,7 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_sows_updated_at BEFORE UPDATE ON sows FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_comments_updated_at BEFORE UPDATE ON comments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_salesforce_configs_updated_at BEFORE UPDATE ON salesforce_configs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_lean_data_signators_updated_at BEFORE UPDATE ON lean_data_signators FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_lean_data_signatories_updated_at BEFORE UPDATE ON lean_data_signatories FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_avoma_configs_updated_at BEFORE UPDATE ON avoma_configs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_gemini_configs_updated_at BEFORE UPDATE ON gemini_configs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 

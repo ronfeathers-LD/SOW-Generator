@@ -94,6 +94,7 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
     ? sow.deliverables.split('\n').filter(Boolean)
     : [];
   const projectDescription = sow.project_description || '';
+  const objectivesDescription = sow.objectives?.description || sow.project_description || '';
   const clientRoles = Array.isArray(sow.client_roles)
     ? sow.client_roles
     : [];
@@ -139,6 +140,7 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
           <SOWObjectivesPage 
             deliverables={deliverables} 
             keyObjectives={sow.key_objectives || []}
+            projectDescription={objectivesDescription}
             customContent={sow.custom_objectives_disclosure_content}
             isEdited={sow.objectives_disclosure_content_edited}
             projectDetails={{

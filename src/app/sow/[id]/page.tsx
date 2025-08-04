@@ -545,6 +545,7 @@ export default function SOWDetailsPage() {
                   <SOWObjectivesPage 
                     deliverables={sow.deliverables} 
                     keyObjectives={sow.keyObjectives}
+                    projectDescription={sow.projectDescription}
                     customContent={sow.custom_objectives_disclosure_content}
                     isEdited={sow.objectives_disclosure_content_edited}
                     projectDetails={{

@@ -25,6 +25,7 @@ interface ObjectivesGenerationResponse {
 interface TranscriptionAnalysisResponse {
   objective: string;
   scope: string[];
+  isFallback?: boolean;
 }
 
 class GeminiClient {
@@ -163,7 +164,10 @@ Please provide a professional, 2-3 sentence project description that captures th
    */
   async analyzeTranscriptionWithFallback(
     transcript: string,
-    customerName: string
+    customerName: string,
+    existingDescription?: string,
+    existingObjectives?: string[],
+    selectedProducts?: string[]
   ): Promise<TranscriptionAnalysisResponse> {
     const models = GeminiClient.getAvailableModels();
     let lastError: Error | null = null;
@@ -180,7 +184,7 @@ Please provide a professional, 2-3 sentence project description that captures th
         // Trying model
         this.switchModel(modelName);
         
-        const result = await this.analyzeTranscription(transcript, customerName);
+        const result = await this.analyzeTranscription(transcript, customerName, existingDescription, existingObjectives, selectedProducts);
                   // Success with model
         return result;
         
@@ -210,7 +214,10 @@ Please provide a professional, 2-3 sentence project description that captures th
    */
   async analyzeTranscription(
     transcript: string,
-    customerName: string
+    customerName: string,
+    existingDescription?: string,
+    existingObjectives?: string[],
+    selectedProducts?: string[]
   ): Promise<TranscriptionAnalysisResponse> {
     // Fetch the AI prompt from the database
     const { supabase } = await import('@/lib/supabase');
@@ -233,6 +240,10 @@ Please analyze the following call transcript between LeanData and ${customerName
 
 1. **Objective** - A clear, concise overall objective for the project (2-3 sentences)
 2. **Scope** - 5-7 specific scope items that detail what will be implemented
+
+${existingDescription ? `Existing Project Description: ${existingDescription}` : ''}
+${existingObjectives && existingObjectives.length > 0 ? `Existing Objectives: ${existingObjectives.join(', ')}` : ''}
+${selectedProducts && selectedProducts.length > 0 ? `Selected Products: ${selectedProducts.join(', ')}` : ''}
 
 Call Transcript:
 ${transcript}
@@ -257,20 +268,38 @@ Guidelines:
 - Focus on LeanData products and services mentioned in the call
 - Be professional and suitable for a formal SOW document
 - Avoid generic statements - be specific to what was discussed
+- ${existingDescription || existingObjectives?.length ? 'Consider the existing content and enhance or refine it based on the new transcript information.' : ''}
 - Use double quotes for all strings
 - Do not include any text before or after the JSON
 - Do not use markdown code blocks
 - Ensure the JSON is valid and parseable
 `;
-      return this.executePrompt(fallbackPrompt, transcript, customerName);
+      return this.executePrompt(fallbackPrompt, transcript, customerName, existingDescription, existingObjectives, selectedProducts);
     }
 
     // Use the prompt from the database, replacing placeholders
-    const prompt = aiPrompt.prompt_content
+    let prompt = aiPrompt.prompt_content
       .replace(/\{customerName\}/g, customerName)
       .replace(/\{transcription\}/g, transcript);
 
-    return this.executePrompt(prompt, transcript, customerName);
+    // Debug: Log the prompt being sent to AI
+    console.log('AI Prompt being sent:', prompt);
+
+    // Add existing content context if available
+    if (existingDescription || existingObjectives?.length || selectedProducts?.length) {
+      const existingContext = `
+Existing Project Description: ${existingDescription || 'None provided'}
+Existing Objectives: ${existingObjectives?.length ? existingObjectives.join(', ') : 'None provided'}
+Selected Products: ${selectedProducts?.length ? selectedProducts.join(', ') : 'None provided'}
+
+Please consider the existing content and selected products above and enhance or refine it based on the new transcript information.`;
+      
+      // Insert the existing context before the transcription
+      prompt = prompt.replace(/\{transcription\}/g, existingContext + '\n\nCall Transcript:\n{transcription}');
+      prompt = prompt.replace(/\{transcription\}/g, transcript);
+    }
+
+    return this.executePrompt(prompt, transcript, customerName, existingDescription, existingObjectives, selectedProducts);
   }
 
   /**
@@ -279,13 +308,19 @@ Guidelines:
   private async executePrompt(
     prompt: string,
     transcript: string,
-    customerName: string
+    customerName: string,
+    existingDescription?: string,
+    existingObjectives?: string[],
+    selectedProducts?: string[]
   ): Promise<TranscriptionAnalysisResponse> {
 
     try {
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const content = response.text();
+
+      // Debug: Log the raw AI response
+      console.log('Raw AI Response:', content);
 
       if (!content) {
         throw new Error('No content received from Gemini');
@@ -311,6 +346,22 @@ Guidelines:
           cleanedContent = jsonMatch[0];
         }
         
+        // Additional cleaning for markdown content
+        cleanedContent = cleanedContent
+          .replace(/^---.*$/gm, '') // Remove markdown separators
+          .replace(/^###\s*\*\*.*?\*\*:?\s*/gm, '') // Remove markdown headers with bold
+          .replace(/^#+\s*\*\*.*?\*\*:?\s*/gm, '') // Remove any markdown headers with bold
+          .replace(/^#+\s*.*?:?\s*/gm, '') // Remove other markdown headers
+          .replace(/^\*\*.*?\*\*:?\s*/gm, '') // Remove bold text labels
+          .replace(/^[-*]\s*/gm, '') // Remove list markers
+          .trim();
+        
+        // Try to find JSON again after cleaning
+        const finalJsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+        if (finalJsonMatch) {
+          cleanedContent = finalJsonMatch[0];
+        }
+        
         // Content cleaned for parsing
         
         const parsed = JSON.parse(cleanedContent);
@@ -321,7 +372,8 @@ Guidelines:
         
         return {
           objective: parsed.objective,
-          scope: Array.isArray(parsed.scope) ? parsed.scope : ['Scope could not be generated']
+          scope: Array.isArray(parsed.scope) ? parsed.scope : ['Scope could not be generated'],
+          isFallback: false
         };
             } catch (parseError) {
         console.error('JSON parsing error:', parseError);
@@ -355,7 +407,8 @@ Customer: ${customerName}
               // Second attempt successful
               return {
                 objective: parsed.objective,
-                scope: Array.isArray(parsed.scope) ? parsed.scope : ['Scope could not be generated']
+                scope: Array.isArray(parsed.scope) ? parsed.scope : ['Scope could not be generated'],
+                isFallback: false
               };
             }
           }
@@ -364,44 +417,99 @@ Customer: ${customerName}
         }
         
         // Fallback to text extraction
-        const lines: string[] = content.split('\n').filter((line: string) => line.trim().length > 0);
+        // Clean markdown content for text extraction
+        const cleanedContent = content
+          .replace(/^---.*$/gm, '') // Remove markdown separators
+          .trim();
         
-        // Look for objective in various formats
-        let objective: string | undefined = lines.find((line: string) => 
-          line.toLowerCase().includes('objective') || 
-          line.toLowerCase().includes('goal') ||
-          line.toLowerCase().includes('aim') ||
-          line.toLowerCase().includes('purpose')
-        );
+        const lines: string[] = cleanedContent.split('\n').filter((line: string) => line.trim().length > 0);
         
-        // If no objective found, try to extract from the first meaningful paragraph
-        if (!objective) {
-          objective = lines.find((line: string) => 
-            line.length > 20 && 
-            !line.startsWith('-') && 
-            !line.startsWith('•') && 
-            !line.startsWith('*') &&
-            !/^\d+\./.test(line.trim())
-          );
+        // Look for objective section
+        let objectiveSection = '';
+        let scopeSection = '';
+        let currentSection = '';
+        
+        for (const line of lines) {
+          if (line.match(/^#+\s*\*\*.*OBJECTIVE.*\*\*/i) || line.match(/^#+\s*OBJECTIVE/i)) {
+            currentSection = 'objective';
+            continue;
+          } else if (line.match(/^#+\s*\*\*.*SCOPE.*\*\*/i) || line.match(/^#+\s*SCOPE/i)) {
+            currentSection = 'scope';
+            continue;
+          }
+          
+          if (currentSection === 'objective' && !line.match(/^#+\s*/)) {
+            objectiveSection += line + '\n';
+          } else if (currentSection === 'scope' && !line.match(/^#+\s*/)) {
+            scopeSection += line + '\n';
+          }
         }
         
-        objective = objective || 'Project objective could not be generated due to formatting issues';
+        // Use parsed sections if available, otherwise fall back to line-by-line search
+        let objective: string = '';
+        if (objectiveSection.trim()) {
+          objective = objectiveSection.trim();
+        } else {
+          // Look for objective in various formats
+          const objectiveLine = lines.find((line: string) => 
+            line.toLowerCase().includes('objective') || 
+            line.toLowerCase().includes('goal') ||
+            line.toLowerCase().includes('aim') ||
+            line.toLowerCase().includes('purpose')
+          );
+          
+          // If no objective found, try to extract from the first meaningful paragraph
+          if (objectiveLine) {
+            objective = objectiveLine;
+          } else {
+            objective = lines.find((line: string) => 
+              line.length > 20 && 
+              !line.startsWith('-') && 
+              !line.startsWith('•') && 
+              !line.startsWith('*') &&
+              !/^\d+\./.test(line.trim())
+            ) || 'Project objective could not be generated due to formatting issues';
+          }
+        }
         
-        // Extract scope items from various list formats
-        const scopeItems: string[] = lines
-          .filter((line: string) => 
-            line.trim().startsWith('-') || 
-            line.trim().startsWith('•') || 
-            line.trim().startsWith('*') ||
-            /^\d+\./.test(line.trim()) ||
-            line.trim().startsWith('1.') ||
-            line.trim().startsWith('2.') ||
-            line.trim().startsWith('3.') ||
-            line.trim().startsWith('4.') ||
-            line.trim().startsWith('5.')
-          )
-          .map((line: string) => line.replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, '').trim())
-          .filter((item: string) => item.length > 0);
+        // Extract scope items from parsed section or various list formats
+        let scopeItems: string[] = [];
+        if (scopeSection.trim()) {
+          // Parse scope section for list items
+          const scopeLines = scopeSection.split('\n').filter(line => line.trim().length > 0);
+          scopeItems = scopeLines
+            .filter((line: string) => 
+              line.trim().startsWith('-') || 
+              line.trim().startsWith('•') || 
+              line.trim().startsWith('*') ||
+              /^\d+\./.test(line.trim()) ||
+              line.trim().startsWith('1.') ||
+              line.trim().startsWith('2.') ||
+              line.trim().startsWith('3.') ||
+              line.trim().startsWith('4.') ||
+              line.trim().startsWith('5.')
+            )
+            .map((line: string) => line.replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, '').trim())
+            .filter((item: string) => item.length > 0);
+        }
+        
+        // If no scope items found in parsed section, fall back to line-by-line search
+        if (scopeItems.length === 0) {
+          scopeItems = lines
+            .filter((line: string) => 
+              line.trim().startsWith('-') || 
+              line.trim().startsWith('•') || 
+              line.trim().startsWith('*') ||
+              /^\d+\./.test(line.trim()) ||
+              line.trim().startsWith('1.') ||
+              line.trim().startsWith('2.') ||
+              line.trim().startsWith('3.') ||
+              line.trim().startsWith('4.') ||
+              line.trim().startsWith('5.')
+            )
+            .map((line: string) => line.replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, '').trim())
+            .filter((item: string) => item.length > 0);
+        }
         
         return {
           objective: objective.replace(/^.*?:\s*/, '').trim(),
@@ -411,7 +519,8 @@ Customer: ${customerName}
             'Configure territory-based lead assignment',
             'Integrate with existing Salesforce workflows',
             'Provide training and documentation'
-          ]
+          ],
+          isFallback: true
         };
       }
     } catch (error) {
@@ -547,7 +656,13 @@ export async function generateObjectives(request: ObjectivesGenerationRequest): 
 }
 
 // Helper function to analyze transcription
-export async function analyzeTranscription(transcript: string, customerName: string): Promise<TranscriptionAnalysisResponse> {
+export async function analyzeTranscription(
+  transcript: string, 
+  customerName: string, 
+  existingDescription?: string, 
+  existingObjectives?: string[],
+  selectedProducts?: string[]
+): Promise<TranscriptionAnalysisResponse> {
   // Get API key from database
   const { supabase } = await import('@/lib/supabase');
   
@@ -571,5 +686,5 @@ export async function analyzeTranscription(transcript: string, customerName: str
 
   // Use the primary API key with the saved model
   const client = new GeminiClient(config.api_key, config.model_name || 'gemini-1.5-flash');
-  return await client.analyzeTranscriptionWithFallback(transcript, customerName);
+  return await client.analyzeTranscriptionWithFallback(transcript, customerName, existingDescription, existingObjectives, selectedProducts);
 } 

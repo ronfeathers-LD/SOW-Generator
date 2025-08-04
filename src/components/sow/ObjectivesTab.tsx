@@ -20,6 +20,10 @@ export default function ObjectivesTab({
 
   // Get customer name from selected account
   const customerName = selectedAccount?.name || '';
+  
+  // Debug logging for Avoma URL
+  console.log('ObjectivesTab - formData.objectives:', formData.objectives);
+  console.log('ObjectivesTab - avoma_url:', formData.objectives?.avoma_url);
 
   const handleProjectDescriptionChange = (description: string) => {
     setFormData({
@@ -130,7 +134,10 @@ export default function ObjectivesTab({
         },
         body: JSON.stringify({
           transcript: transcription,
-          customerName: customerName
+          customerName: customerName,
+          existingDescription: formData.objectives?.description || '',
+          existingObjectives: formData.objectives?.key_objectives || [],
+          selectedProducts: formData.template?.products || []
         }),
       });
 
@@ -160,18 +167,74 @@ export default function ObjectivesTab({
         throw new Error('AI analysis failed. Please try again in a few minutes.');
       }
 
+
+      
       // Update the form with the generated objective and scope
-      const generatedKeyObjectives = result.scope.map((item: string, index: number) => `${index + 1}. ${item}`);
+      // Handle the new JSON structure where scope is an array of objects with product and items
+      let generatedKeyObjectives: string[] = [];
+      
+      if (Array.isArray(result.scope)) {
+        // Check if it's the new format (array of objects with product and items)
+        if (result.scope.length > 0 && typeof result.scope[0] === 'object' && result.scope[0].hasOwnProperty('product')) {
+          // New format: include product names as headers with their items
+          result.scope.forEach((productGroup: any) => {
+            if (productGroup.product && productGroup.items && Array.isArray(productGroup.items)) {
+              // Add product name as a header
+              const headerText = `${productGroup.product}:`;
+              generatedKeyObjectives.push(headerText);
+              
+              // Add items under this product
+              productGroup.items.forEach((item: any) => {
+                if (typeof item === 'string' && item.trim().length > 0) {
+                  // Remove any existing numbering and convert to bullet point format
+                  const cleanItem = item.replace(/^\d+\.\s*/, '').trim();
+                  const bulletItem = `• ${cleanItem}`;
+                  generatedKeyObjectives.push(bulletItem);
+                }
+              });
+              
+              // Add a blank line between product groups for better formatting
+              generatedKeyObjectives.push('');
+            }
+          });
+          
+          // Remove the last empty line if it exists
+          if (generatedKeyObjectives.length > 0 && generatedKeyObjectives[generatedKeyObjectives.length - 1] === '') {
+            generatedKeyObjectives.pop();
+          }
+        } else {
+          // Old format: simple array of strings
+          generatedKeyObjectives = result.scope
+            .filter((item: any) => typeof item === 'string' && item.trim().length > 0)
+            .map((item: string, index: number) => {
+              // Remove any existing numbering and convert to bullet point format
+              const cleanItem = item.replace(/^\d+\.\s*/, '').trim();
+              return cleanItem;
+            });
+        }
+      }
+      
+
+      
+      // Ensure we have valid objectives
+      const finalObjectives = generatedKeyObjectives.length > 0 ? generatedKeyObjectives : [''];
       
       const updatedFormData = {
         ...formData,
         objectives: {
           ...formData.objectives!,
           description: result.objective,
-          key_objectives: generatedKeyObjectives
+          key_objectives: finalObjectives
         }
       };
       
+      // Show fallback warning if applicable
+      if (result.isFallback) {
+        setAnalysisError('Note: AI response was generated using fallback parsing due to formatting issues. Please review the content carefully.');
+      }
+      
+      console.log('Updated form data:', updatedFormData);
+      console.log('Final objectives being set:', finalObjectives);
       setFormData(updatedFormData);
 
     } catch (error) {
@@ -269,7 +332,7 @@ export default function ObjectivesTab({
             
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-600">
-                {customerName ? `Customer: ${customerName}` : 'No customer name set'}
+                
               </div>
               <button
                 type="button"
@@ -296,20 +359,7 @@ export default function ObjectivesTab({
               </button>
             </div>
             
-            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-yellow-700 text-sm">
-                    <strong>Note:</strong> AI analysis may take a few moments and occasionally experience delays during peak usage. If you encounter an overload error, please wait 1-2 minutes and try again.
-                  </p>
-                </div>
-              </div>
-            </div>
+
             
             {transcriptionError && (
               <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
@@ -326,89 +376,72 @@ export default function ObjectivesTab({
               </div>
             )}
             
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-blue-700 text-sm">
-                    <strong>Tip:</strong> Copy the URL from your Avoma meeting and paste it above. The system will automatically extract the meeting ID and fetch the transcription if available.
-                  </p>
-                </div>
-              </div>
-            </div>
+
           </div>
         </div>
 
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column - Transcription */}
-          <div className="space-y-6">
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Call Transcription</h3>
-                  <p className="text-sm text-gray-600">
-                    Review the transcription from your scoping call
-                  </p>
-                </div>
-                {formData.objectives?.avoma_transcription && customerName && (
-                  <button
-                    type="button"
-                    onClick={() => handleAnalyzeTranscription()}
-                    disabled={isAnalyzing}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isAnalyzing ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Analyzing...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                        </svg>
-                        Generate Content
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-              
-              <textarea
-                value={formData.objectives?.avoma_transcription || ''}
-                onChange={(e) => handleTranscriptionChange(e.target.value)}
-                rows={20}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-mono text-sm"
-                placeholder="Paste the transcription from your scoping call here, or use the Avoma integration above to fetch it automatically..."
-              />
-              
-              {analysisError && (
-                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-red-700 text-sm">{analysisError}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+        {/* Call Transcription - Full Width */}
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Call Transcription</h3>
+              <p className="text-sm text-gray-600">
+                Review the transcription from your scoping call
+              </p>
             </div>
+            {formData.objectives?.avoma_transcription && customerName && (
+              <button
+                type="button"
+                onClick={() => handleAnalyzeTranscription()}
+                disabled={isAnalyzing}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    Generate Content
+                  </>
+                )}
+              </button>
+            )}
           </div>
+          
+          <textarea
+            value={formData.objectives?.avoma_transcription || ''}
+            onChange={(e) => handleTranscriptionChange(e.target.value)}
+            rows={7}
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-mono text-sm"
+            placeholder="Paste the transcription from your scoping call here, or use the Avoma integration above to fetch it automatically..."
+          />
+          
+          {analysisError && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-red-700 text-sm">{analysisError}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
-          {/* Right Column - Generated Content */}
-          <div className="space-y-6">
+        {/* Full Width Layout */}
+        <div className="space-y-6">
             {/* Project Description */}
             <div className="bg-white border border-gray-200 rounded-lg p-6">
               <h3 className="text-lg font-semibold mb-4 text-gray-900">Project Description</h3>
@@ -432,14 +465,138 @@ export default function ObjectivesTab({
               </p>
               
               <WYSIWYGEditor
-                value={formData.objectives?.key_objectives?.join('\n\n') || ''}
+                value={(() => {
+                  const objectives = formData.objectives?.key_objectives || [];
+                  
+                  if (!Array.isArray(objectives) || objectives.length === 0) {
+                    return '';
+                  }
+                  
+                  // Convert array to HTML format - handle both simple items and structured content
+                  let htmlValue = '';
+                  let currentList = '';
+                  
+                  objectives.forEach(obj => {
+                    if (!obj || typeof obj !== 'string') return;
+                    
+                    const trimmedObj = obj.trim();
+                    if (trimmedObj.length === 0) return;
+                    
+                    // Check if this is a product header with markdown (starts with ** and ends with **:)
+                    if (trimmedObj.startsWith('**') && trimmedObj.endsWith(':**')) {
+                      // Close any existing list
+                      if (currentList) {
+                        htmlValue += `<ul>${currentList}</ul>`;
+                        currentList = '';
+                      }
+                      // Add the product header - strip markdown
+                      const headerText = trimmedObj.replace(/^\*\*(.*?)\*\*:$/, '$1');
+                      htmlValue += `<h4 class="font-semibold text-gray-900 mt-4 mb-2">${headerText}</h4>`;
+                    }
+                    // Check if this is a product header (ends with :) - but not markdown
+                    else if (trimmedObj.endsWith(':')) {
+                      // Close any existing list
+                      if (currentList) {
+                        htmlValue += `<ul>${currentList}</ul>`;
+                        currentList = '';
+                      }
+                      // Add the product header
+                      const headerText = trimmedObj.slice(0, -1); // Remove the trailing colon
+                      htmlValue += `<h4 class="font-semibold text-gray-900 mt-4 mb-2">${headerText}</h4>`;
+                    }
+                    // Check if this is a bullet point (starts with •)
+                    else if (trimmedObj.startsWith('• ')) {
+                      const itemText = trimmedObj.substring(2); // Remove the • and space
+                      currentList += `<li>${itemText}</li>`;
+                    }
+                    // Check if this is an empty line
+                    else if (trimmedObj === '') {
+                      // Close any existing list
+                      if (currentList) {
+                        htmlValue += `<ul>${currentList}</ul>`;
+                        currentList = '';
+                      }
+                    }
+                    // Regular item (fallback)
+                    else {
+                      currentList += `<li>${trimmedObj}</li>`;
+                    }
+                  });
+                  
+                  // Close any remaining list
+                  if (currentList) {
+                    htmlValue += `<ul>${currentList}</ul>`;
+                  }
+                  
+                  // If no structured content was found, fall back to simple list
+                  if (htmlValue === '') {
+                    const listItems = objectives
+                      .map(obj => obj && typeof obj === 'string' ? obj.trim() : '')
+                      .filter(obj => obj.length > 0)
+                      .map(obj => `<li>${obj}</li>`)
+                      .join('');
+                    htmlValue = `<ul>${listItems}</ul>`;
+                  }
+                  return htmlValue;
+                })()}
                 onChange={(value) => {
                   // Convert the rich text content back to an array of objectives
-                  // Split by double line breaks to separate objectives
-                  const objectives = value
-                    .split(/\n\s*\n/)
-                    .map(obj => obj.trim())
-                    .filter(obj => obj.length > 0);
+                  const tempDiv = document.createElement('div');
+                  tempDiv.innerHTML = value;
+                  
+                  const objectives: string[] = [];
+                  
+                  // Process all child nodes to maintain structure
+                  Array.from(tempDiv.childNodes).forEach(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                      const element = node as Element;
+                      
+                      if (element.tagName === 'H4') {
+                        // This is a product header
+                        let headerText = element.textContent?.trim() || '';
+                        // Strip any markdown that might have been re-introduced
+                        headerText = headerText.replace(/^\*\*(.*?)\*\*$/, '$1').trim();
+                        if (headerText) {
+                          objectives.push(`${headerText}:`);
+                        }
+                      } else if (element.tagName === 'UL') {
+                        // This is a list of items
+                        const listItems = Array.from(element.querySelectorAll('li'))
+                          .map(li => li.textContent?.trim() || '')
+                          .filter(text => text.length > 0)
+                          .map(text => `• ${text}`);
+                        
+                        objectives.push(...listItems);
+                        
+                        // Add empty line after list for spacing
+                        if (listItems.length > 0) {
+                          objectives.push('');
+                        }
+                      }
+                    }
+                  });
+                  
+                  // Remove trailing empty line
+                  if (objectives.length > 0 && objectives[objectives.length - 1] === '') {
+                    objectives.pop();
+                  }
+                  
+                  // Fallback: if no structured content found, try simple list parsing
+                  if (objectives.length === 0) {
+                    const listItems = Array.from(tempDiv.querySelectorAll('li'))
+                      .map(li => li.textContent?.trim() || '')
+                      .filter(text => text.length > 0);
+                    
+                    const fallbackItems = value
+                      .split(/\n/)
+                      .map(line => line.trim())
+                      .filter(line => line.length > 0 && !line.startsWith('<'))
+                      .map(line => line.replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, '').trim())
+                      .filter(line => line.length > 0);
+                    
+                    const fallbackObjectives = listItems.length > 0 ? listItems : fallbackItems;
+                    objectives.push(...fallbackObjectives);
+                  }
                   
                   setFormData({
                     ...formData,
@@ -452,20 +609,6 @@ export default function ObjectivesTab({
                 placeholder="Enter project objectives here. Use bullet points or numbered lists for better organization..."
               />
             </div>
-
-            {/* Scope & Deliverables Placeholder */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold mb-4 text-gray-900">Scope & Deliverables</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                This section will be populated when we integrate the Scope and Deliverables tab content.
-              </p>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <p className="text-sm text-gray-500">
-                  Coming soon: Detailed scope items, deliverables, and implementation phases will be displayed here.
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </section>

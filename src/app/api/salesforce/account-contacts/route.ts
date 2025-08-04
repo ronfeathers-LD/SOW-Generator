@@ -7,12 +7,10 @@ export async function POST(request: NextRequest) {
   try {
     const { accountId, forceRefresh = false } = await request.json();
 
-    console.log('🔍 Account Contacts API Request:');
-    console.log('  Account ID:', accountId);
-    console.log('  Force Refresh:', forceRefresh);
+    
 
     if (!accountId) {
-      console.log('  Error: Account ID is required');
+  
       return NextResponse.json(
         { error: 'Account ID is required' },
         { status: 400 }
@@ -23,7 +21,7 @@ export async function POST(request: NextRequest) {
     if (!forceRefresh) {
       const cachedContacts = salesforceCache.getCachedContacts(accountId);
       if (cachedContacts) {
-        console.log('  Returning cached contacts:', cachedContacts.length);
+    
         return NextResponse.json({
           success: true,
           contacts: cachedContacts,
@@ -38,18 +36,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Get stored Salesforce configuration
-    console.log('  Getting Salesforce config...');
+
     const { data: config } = await supabase
       .from('salesforce_configs')
       .select('*')
       .eq('is_active', true)
       .single();
 
-    console.log('  Config found:', !!config);
-    console.log('  Config active:', config?.is_active);
+
 
     if (!config) {
-      console.log('  Error: Salesforce integration is not configured');
+      
       return NextResponse.json(
         { 
           error: 'Salesforce integration is not configured',
@@ -60,13 +57,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Authenticate with Salesforce using stored credentials
-    console.log('  Authenticating with Salesforce...');
+
     await salesforceClient.authenticate(config.username, config.password, config.security_token || undefined, config.login_url);
 
     // Get contacts for the account
-    console.log('  Fetching contacts for account:', accountId);
+
     const contacts = await salesforceClient.getAccountContacts(accountId);
-    console.log('  Contacts found:', contacts.length);
+
 
     // Cache the contacts
     salesforceCache.cacheContacts(accountId, contacts);
