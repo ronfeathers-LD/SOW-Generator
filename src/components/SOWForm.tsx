@@ -457,6 +457,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           customer_signature_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
           customer_signature: contact.Title || '',
         },
+        // Also store the Salesforce contact ID
+        salesforce_contact_id: contact.Id,
       });
 
       // Save contact data to database if we have a SOW ID
@@ -487,6 +489,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           customer_signature_name: '',
           customer_signature: '',
         },
+        // Also clear the Salesforce contact ID
+        salesforce_contact_id: undefined,
       });
     }
   };
