@@ -38,7 +38,6 @@ export default function TeamRolesTab({
 
   // Load contacts when account is selected and set initial contact selection state
   useEffect(() => {
-    console.log('🔍 TeamRolesTab useEffect - selectedAccount:', selectedAccount?.id, 'selectedContact:', selectedContact);
     if (selectedAccount?.id) {
       loadContacts(selectedAccount.id);
       
@@ -49,7 +48,6 @@ export default function TeamRolesTab({
                            formData.salesforce_contact_id;
       
       const shouldShowSelection = !hasContactInfo;
-      console.log('🔍 Setting showContactSelection to:', shouldShowSelection, 'hasContactInfo:', hasContactInfo);
       setShowContactSelection(shouldShowSelection);
     }
   }, [selectedAccount?.id, selectedContact, formData.template?.customer_signature_name, formData.salesforce_contact_id]);
@@ -133,11 +131,6 @@ export default function TeamRolesTab({
                           contactDisplay = formData.template.customer_signature_name;
                         }
                         
-                        console.log('🔍 Current signer display:', {
-                          selectedContact,
-                          customer_signature_name: formData.template?.customer_signature_name,
-                          contactDisplay
-                        });
                         return contactDisplay;
                       })()}
                     </p>

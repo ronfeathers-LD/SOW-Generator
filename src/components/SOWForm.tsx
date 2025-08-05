@@ -278,14 +278,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       }
       
       // Set selected contact if contact information exists
-      console.log('🔍 Loading contact data from initialData:', {
-        customer_signature_name: initialData.template?.customer_signature_name,
-        client_signer_name: initialData.client_signer_name,
-        customer_email: initialData.template?.customer_email,
-        customer_signature: initialData.template?.customer_signature,
-        client_signature: initialData.client_signature,
-        salesforce_contact_id: initialData.salesforce_contact_id
-      });
       
       // Check if we have any contact information (either from template or legacy fields)
       const hasContactInfo = initialData.template?.customer_signature_name || 
@@ -309,7 +301,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           Account: { Name: initialData.template?.customer_name || initialData.header?.client_name || '' }
         };
         
-        console.log('🔍 Setting selectedContact with:', contactData);
         setSelectedContact(contactData);
         
         // Also ensure the form data is properly set
@@ -323,8 +314,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           },
           salesforce_contact_id: contactData.Id,
         }));
-      } else {
-        console.log('🔍 No contact data found in initialData');
       }
       
       // Set selected opportunity if opportunity data exists
