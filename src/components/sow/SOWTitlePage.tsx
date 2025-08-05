@@ -67,76 +67,88 @@ export default function SOWTitlePage({
             </div>
           </div>
         )}
-        {/* Signature Blocks */}
-        <div className="w-full max-w-3xl mt-16 space-y-16">
-          {/* Client Signature */}
-          <div>
-            <p className="mb-2">This SOW is accepted by {clientName}:</p>
-            <div className="grid grid-cols-2 gap-8 items-end">
-              {/* Signature Line */}
-              <div className="flex flex-col items-start">
-                <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                <div className="text-sm mt-2 text-left">
-                  {[
-                    (clientSignature?.name || '<FIRSTNAME LASTNAME>'),
-                    (clientSignature?.title || '<TITLE>')
-                  ].filter(Boolean).join(', ')}
-                  <br />
-                  {clientSignature?.email || '<EMAIL>'}
-                </div>
-              </div>
-              {/* Date Line */}
-              <div className="flex flex-col items-center">
-                <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                <div className="text-sm mt-2 text-center">DATE<br /><br /></div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Second Client Signature (if provided) */}
-          {clientSignature2 && clientSignature2.name && clientSignature2.name.trim() && (
-            <div>
-              <div className="grid grid-cols-2 gap-8 items-end">
-                {/* Signature Line */}
-                <div className="flex flex-col items-start">
-                  <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                  <div className="text-sm mt-2 text-left">
-                    {[
-                      (clientSignature2.name || '<FIRSTNAME LASTNAME>'),
-                      (clientSignature2.title || '<TITLE>')
-                    ].filter(Boolean).join(', ')}
-                    <br />
-                    {clientSignature2.email || '<EMAIL>'}
+        {/* Signature Blocks - 50/50 Split */}
+        <div className="w-full max-w-6xl mt-16">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+            {/* Left Side - Customer Signatures */}
+            <div className="space-y-8">
+              <h3 className="text-lg font-semibold text-center mb-6">Customer Signatures</h3>
+              
+              {/* Primary Client Signature */}
+              <div>
+                <p className="mb-2 text-sm text-gray-600">This SOW is accepted by {clientName}:</p>
+                <div className="grid grid-cols-2 gap-8 items-end">
+                  {/* Signature Line */}
+                  <div className="flex flex-col items-start">
+                    <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
+                    <div className="text-sm mt-2 text-left">
+                      {[
+                        (clientSignature?.name || '<FIRSTNAME LASTNAME>'),
+                        (clientSignature?.title || '<TITLE>')
+                      ].filter(Boolean).join(', ')}
+                      <br />
+                      {clientSignature?.email || '<EMAIL>'}
+                    </div>
+                  </div>
+                  {/* Date Line */}
+                  <div className="flex flex-col items-center">
+                    <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
+                    <div className="text-sm mt-2 text-center">DATE<br /><br /></div>
                   </div>
                 </div>
-                {/* Date Line */}
-                <div className="flex flex-col items-center">
-                  <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                  <div className="text-sm mt-2 text-center">DATE<br /><br /></div>
-                </div>
               </div>
+              
+              {/* Second Client Signature (if provided) */}
+              {clientSignature2 && clientSignature2.name && clientSignature2.name.trim() && (
+                <div>
+                  <div className="grid grid-cols-2 gap-8 items-end">
+                    {/* Signature Line */}
+                    <div className="flex flex-col items-start">
+                      <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
+                      <div className="text-sm mt-2 text-left">
+                        {[
+                          (clientSignature2.name || '<FIRSTNAME LASTNAME>'),
+                          (clientSignature2.title || '<TITLE>')
+                        ].filter(Boolean).join(', ')}
+                        <br />
+                        {clientSignature2.email || '<EMAIL>'}
+                      </div>
+                    </div>
+                    {/* Date Line */}
+                    <div className="flex flex-col items-center">
+                      <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
+                      <div className="text-sm mt-2 text-center">DATE<br /><br /></div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-          {/* LeanData Signature */}
-          <div>
-            <p className="mb-2">This SOW is accepted by LeanData, Inc.:</p>
-            <div className="grid grid-cols-2 gap-8 items-end">
-              {/* Signature Line */}
-              <div className="flex flex-col items-start">
-                <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                <div className="text-sm mt-2 text-left">
-                  {[
-                    (leandataSignature?.name || 'Agam Vasani'),
-                    (leandataSignature?.title || 'VP Customer Success')
-                  ].filter(Boolean).join(', ')}
-                  <br />
-                  {leandataSignature?.email || 'agam.vasani@leandata.com'}
+
+            {/* Right Side - LeanData Signature */}
+            <div className="space-y-8">
+              <h3 className="text-lg font-semibold text-center mb-6">LeanData Signature</h3>
+              
+              <div>
+                <p className="mb-2 text-sm text-gray-600">This SOW is accepted by LeanData, Inc.:</p>
+                <div className="grid grid-cols-2 gap-8 items-end">
+                  {/* Signature Line */}
+                  <div className="flex flex-col items-start">
+                    <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
+                    <div className="text-sm mt-2 text-left">
+                      {[
+                        (leandataSignature?.name || 'Agam Vasani'),
+                        (leandataSignature?.title || 'VP Customer Success')
+                      ].filter(Boolean).join(', ')}
+                      <br />
+                      {leandataSignature?.email || 'agam.vasani@leandata.com'}
+                    </div>
+                  </div>
+                  {/* Date Line */}
+                  <div className="flex flex-col items-center">
+                    <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
+                    <div className="text-sm mt-2 text-center">DATE<br /><br /></div>
+                  </div>
                 </div>
-              </div>
-              {/* Date Line */}
-              <div className="flex flex-col items-center">
-                <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                <div className="text-sm mt-2 text-center">DATE<br /><br /></div>
               </div>
             </div>
           </div>
