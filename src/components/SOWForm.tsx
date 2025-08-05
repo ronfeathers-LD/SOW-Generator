@@ -719,6 +719,11 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               customer_signature_name: formData.template?.customer_signature_name,
               customer_email: formData.template?.customer_email,
               customer_signature: formData.template?.customer_signature,
+              // Second signer information
+              customer_signature_name_2: formData.template?.customer_signature_name_2,
+              customer_signature_2: formData.template?.customer_signature_2,
+              customer_email_2: formData.template?.customer_email_2,
+              customer_signature_date_2: formData.template?.customer_signature_date_2,
             },
             // Save Salesforce contact ID
             salesforce_contact_id: selectedContact?.Id || null

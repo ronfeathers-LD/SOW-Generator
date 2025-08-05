@@ -66,6 +66,12 @@ interface SOW {
   };
   clientSignerName?: string;
   salesforceAccountId?: string;
+  
+  // Second Customer Signer (optional)
+  customer_signature_name_2?: string;
+  customer_signature_2?: string;
+  customer_email_2?: string;
+  customer_signature_date_2?: string;
   // Project Details
   products?: string[];
   number_of_units?: string;
@@ -532,6 +538,12 @@ export default function SOWDetailsPage() {
     email: findSignatory(salesforceData?.contacts_data)?.email || sow.clientSignature?.email || sow.clientEmail || 'Not Entered',
                       date: sow.signatureDate || 'Not Entered'
                     }}
+                    clientSignature2={sow.customer_signature_name_2 ? {
+                      name: sow.customer_signature_name_2,
+                      title: sow.customer_signature_2 || '',
+                      email: sow.customer_email_2 || '',
+                      date: sow.customer_signature_date_2 || ''
+                    } : undefined}
                     leandataSignature={{
                       name: "Agam Vasani",
                       title: "VP Customer Success",

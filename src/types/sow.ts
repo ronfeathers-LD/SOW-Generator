@@ -27,6 +27,12 @@ export interface SOWTemplate {
   customer_email: string;
   customer_signature_date: Date | null;
   
+  // Second Customer Signer (optional)
+  customer_signature_name_2?: string;
+  customer_signature_2?: string;
+  customer_email_2?: string;
+  customer_signature_date_2?: Date | null;
+  
   // LeanData Information
   lean_data_name: string;
   lean_data_title: string;

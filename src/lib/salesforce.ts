@@ -286,7 +286,7 @@ class SalesforceClient {
                Account.Name
         FROM Contact 
         WHERE AccountId = '${accountId}' 
-        ORDER BY LastName, FirstName
+        ORDER BY FirstName, LastName
       `;
       
       const result = await this.conn.query(query);
@@ -333,7 +333,7 @@ class SalesforceClient {
         WHERE FirstName LIKE '%${searchTerm}%' 
            OR LastName LIKE '%${searchTerm}%' 
            OR Email LIKE '%${searchTerm}%'
-        ORDER BY LastName, FirstName 
+        ORDER BY FirstName, LastName 
         LIMIT 10
       `;
       

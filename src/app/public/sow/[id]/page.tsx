@@ -59,6 +59,12 @@ interface SOW {
   clientSignerName?: string;
   salesforceAccountId?: string;
   
+  // Second Customer Signer (optional)
+  customer_signature_name_2?: string;
+  customer_signature_2?: string;
+  customer_email_2?: string;
+  customer_signature_date_2?: string;
+  
   // Custom content tracking
   custom_intro_content?: string;
   custom_scope_content?: string;
@@ -127,6 +133,10 @@ export default function PublicSOWPage() {
           companyLogo: data.companyLogo || '',
           clientSignature: data.clientSignature || undefined,
           clientSignerName: data.clientSignerName || undefined,
+          customer_signature_name_2: data.customer_signature_name_2 || undefined,
+          customer_signature_2: data.customer_signature_2 || undefined,
+          customer_email_2: data.customer_email_2 || undefined,
+          customer_signature_date_2: data.customer_signature_date_2 || undefined,
           custom_intro_content: data.custom_intro_content || undefined,
           custom_scope_content: data.custom_scope_content || undefined,
           custom_roles_content: data.custom_roles_content || undefined,
@@ -166,6 +176,12 @@ export default function PublicSOWPage() {
           clientName={sow.clientName}
           clientLogo={sow.companyLogo}
           clientSignature={sow.clientSignature}
+          clientSignature2={sow.customer_signature_name_2 ? {
+            name: sow.customer_signature_name_2,
+            title: sow.customer_signature_2 || '',
+            email: sow.customer_signature_2 || '',
+            date: sow.customer_signature_date_2 || ''
+          } : undefined}
           leandataSignature={{
             name: 'Agam Vasani',
             title: 'VP Customer Success',

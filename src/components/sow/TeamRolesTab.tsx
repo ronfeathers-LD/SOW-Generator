@@ -290,6 +290,56 @@ export default function TeamRolesTab({
             </div>
           )}
         </div>
+
+        {/* Second Customer Signer - Optional */}
+        <div className="bg-white shadow rounded-lg p-6">
+          <h3 className="text-lg font-semibold mb-4 text-blue-800">Second Customer Signer</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Optional - Add a second signer if required
+          </p>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Second Signer Name</label>
+              <input
+                type="text"
+                value={formData.template?.customer_signature_name_2 || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  template: { ...formData.template!, customer_signature_name_2: e.target.value }
+                })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                placeholder="Enter second signer name (optional)"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Second Signer Title</label>
+              <input
+                type="text"
+                value={formData.template?.customer_signature_2 || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  template: { ...formData.template!, customer_signature_2: e.target.value }
+                })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                placeholder="Enter second signer title (optional)"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Second Signer Email</label>
+              <input
+                type="email"
+                value={formData.template?.customer_email_2 || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  template: { ...formData.template!, customer_email_2: e.target.value }
+                })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                placeholder="Enter second signer email (optional)"
+              />
+            </div>
+          </div>
+        </div>
       </div>
       
       {/* Client Roles */}

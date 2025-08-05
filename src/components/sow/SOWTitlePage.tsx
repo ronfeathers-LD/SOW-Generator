@@ -9,6 +9,12 @@ interface SOWTitlePageProps {
     email: string;
     date?: string;
   };
+  clientSignature2?: {
+    name: string;
+    title: string;
+    email: string;
+    date?: string;
+  };
   leandataSignature?: {
     name: string;
     title: string;
@@ -21,6 +27,7 @@ export default function SOWTitlePage({
   clientName,
   clientLogo,
   clientSignature,
+  clientSignature2,
   leandataSignature
 }: SOWTitlePageProps) {
   return (
@@ -85,6 +92,31 @@ export default function SOWTitlePage({
               </div>
             </div>
           </div>
+          
+          {/* Second Client Signature (if provided) */}
+          {clientSignature2 && clientSignature2.name && clientSignature2.name.trim() && (
+            <div>
+              <div className="grid grid-cols-2 gap-8 items-end">
+                {/* Signature Line */}
+                <div className="flex flex-col items-start">
+                  <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
+                  <div className="text-sm mt-2 text-left">
+                    {[
+                      (clientSignature2.name || '<FIRSTNAME LASTNAME>'),
+                      (clientSignature2.title || '<TITLE>')
+                    ].filter(Boolean).join(', ')}
+                    <br />
+                    {clientSignature2.email || '<EMAIL>'}
+                  </div>
+                </div>
+                {/* Date Line */}
+                <div className="flex flex-col items-center">
+                  <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
+                  <div className="text-sm mt-2 text-center">DATE<br /><br /></div>
+                </div>
+              </div>
+            </div>
+          )}
           {/* LeanData Signature */}
           <div>
             <p className="mb-2">This SOW is accepted by LeanData, Inc.:</p>
