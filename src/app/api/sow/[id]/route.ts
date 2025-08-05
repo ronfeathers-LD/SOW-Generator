@@ -97,14 +97,6 @@ export async function GET(
       project_phases_content_edited: sow.project_phases_content_edited || false,
     };
 
-    // Debug logging for retrieved SOW
-    console.log('🔍 SOW retrieved:', {
-      id: sow.id,
-      project_phases_content_length: sow.custom_project_phases_content?.length || 0,
-      project_phases_content_edited: sow.project_phases_content_edited,
-      has_project_phases_content: !!sow.custom_project_phases_content
-    });
-
     return NextResponse.json(transformedSow);
   } catch (error) {
     console.error('Error fetching SOW:', error);
