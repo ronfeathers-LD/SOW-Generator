@@ -115,6 +115,11 @@ export async function PUT(
           if (data.template.customer_signature_name !== undefined) updateData.client_signer_name = data.template.customer_signature_name;
           if (data.template.customer_email !== undefined) updateData.client_email = data.template.customer_email;
           if (data.template.customer_signature !== undefined) updateData.client_title = data.template.customer_signature;
+          // Second signer information
+          if (data.template.customer_signature_name_2 !== undefined) updateData.customer_signature_name_2 = data.template.customer_signature_name_2;
+          if (data.template.customer_signature_2 !== undefined) updateData.customer_signature_2 = data.template.customer_signature_2;
+          if (data.template.customer_email_2 !== undefined) updateData.customer_email_2 = data.template.customer_email_2;
+          if (data.template.customer_signature_date_2 !== undefined) updateData.customer_signature_date_2 = data.template.customer_signature_date_2;
         }
         if (data.roles?.client_roles !== undefined) updateData.client_roles = data.roles.client_roles;
         if (data.pricing?.roles !== undefined) updateData.pricing_roles = data.pricing.roles;
