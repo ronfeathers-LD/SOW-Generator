@@ -69,6 +69,11 @@ export async function GET(
         opportunity_amount: sow.opportunity_amount || undefined,
         opportunity_stage: sow.opportunity_stage || '',
         opportunity_close_date: sow.opportunity_close_date || undefined,
+        // Second signer information
+        customer_signature_name_2: sow.customer_signature_name_2 || '',
+        customer_signature_2: sow.customer_signature_2 || '',
+        customer_email_2: sow.customer_email_2 || '',
+        customer_signature_date_2: sow.customer_signature_date_2 || null,
       },
       header: {
         company_logo: sow.company_logo || '',

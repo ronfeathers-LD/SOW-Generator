@@ -348,6 +348,20 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         
         setSelectedBillingContact(billingContactData);
       }
+      
+      // Set form data for second signer if it exists
+      if (initialData.template?.customer_signature_name_2) {
+        setFormData(prevData => ({
+          ...prevData,
+          template: {
+            ...prevData.template!,
+            customer_signature_name_2: initialData.template?.customer_signature_name_2 || '',
+            customer_signature_2: initialData.template?.customer_signature_2 || '',
+            customer_email_2: initialData.template?.customer_email_2 || '',
+            customer_signature_date_2: initialData.template?.customer_signature_date_2 || null,
+          }
+        }));
+      }
     }
   }, [initialData]);
 
