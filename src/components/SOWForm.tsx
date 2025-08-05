@@ -261,10 +261,15 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       
       // Set selected contact if contact information exists
       if (initialData.template?.customer_signature_name || initialData.client_signer_name) {
+        const fullName = initialData.template?.customer_signature_name || initialData.client_signer_name || '';
+        const nameParts = fullName.trim().split(' ');
+        const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : '';
+        const lastName = nameParts.length > 0 ? nameParts[nameParts.length - 1] : fullName;
+        
         setSelectedContact({
           Id: '', // We don't have the Salesforce ID when loading from database
-          FirstName: '',
-          LastName: initialData.template?.customer_signature_name || initialData.client_signer_name || '',
+          FirstName: firstName,
+          LastName: lastName,
           Email: initialData.template?.customer_email || initialData.client_signature?.email || '',
           Title: initialData.template?.customer_signature || initialData.client_signature?.title || '',
           AccountId: '',
