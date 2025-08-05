@@ -30,6 +30,15 @@ export default function SOWTitlePage({
   clientSignature2,
   leandataSignature
 }: SOWTitlePageProps) {
+  // Debug logging
+  console.log('SOWTitlePage props:', {
+    clientName,
+    clientSignature,
+    clientSignature2,
+    hasClientSignature2: !!clientSignature2,
+    hasClientSignature2Name: !!(clientSignature2 && clientSignature2.name),
+    clientSignature2Name: clientSignature2?.name
+  });
   return (
     <div className="max-w-7xl mx-auto">
       <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-white">

@@ -229,6 +229,11 @@ export default function SOWDetailsPage() {
           clientSignerName: data.template?.customer_signature_name || data.client_signer_name || undefined,
           clientTitle: data.template?.customer_signature || data.client_title || '',
           clientEmail: data.template?.customer_email || data.client_email || '',
+          // Second Customer Signer (optional)
+          customer_signature_name_2: data.template?.customer_signature_name_2 || undefined,
+          customer_signature_2: data.template?.customer_signature_2 || undefined,
+          customer_email_2: data.template?.customer_email_2 || undefined,
+          customer_signature_date_2: data.template?.customer_signature_date_2 || undefined,
           salesforceAccountId: data.salesforce_account_id || undefined,
           custom_intro_content: data.custom_intro_content || undefined,
           custom_scope_content: data.custom_scope_content || undefined,
@@ -529,6 +534,16 @@ export default function SOWDetailsPage() {
               <div className="border-2 border-blue-300 rounded-lg p-4 mb-8">
                 <h3 className="text-lg font-bold text-blue-800 mb-4 text-center">📄 TITLE PAGE SECTION</h3>
                 <div id="title-page" className="mb-12">
+                  {(() => {
+                    // Debug logging
+                    console.log('SOW data for title page:', {
+                      customer_signature_name_2: sow.customer_signature_name_2,
+                      customer_signature_2: sow.customer_signature_2,
+                      customer_email_2: sow.customer_email_2,
+                      hasSecondSigner: !!sow.customer_signature_name_2
+                    });
+                    return null;
+                  })()}
                   <SOWTitlePage
                     clientName={salesforceData?.account_data?.name || sow.clientName}
                     clientLogo={sow.companyLogo}
