@@ -31,6 +31,7 @@ export default function TeamRolesTab({
   const [availableContacts, setAvailableContacts] = useState<SalesforceContact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [showSignerContactSelection, setShowSignerContactSelection] = useState<boolean>(false);
+  const [showSecondSignerContactSelection, setShowSecondSignerContactSelection] = useState<boolean>(false);
   const [showRoleContactSelection, setShowRoleContactSelection] = useState<number | null>(null);
 
   // Load contacts when account is selected and set initial contact selection state
@@ -83,6 +84,19 @@ export default function TeamRolesTab({
     if (contact) {
       setShowSignerContactSelection(false);
     }
+  };
+
+  const handleSecondSignerContactSelected = (contact: SalesforceContact) => {
+    setFormData({
+      ...formData,
+      template: {
+        ...formData.template!,
+        customer_signature_name_2: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
+        customer_email_2: contact.Email || '',
+        customer_signature_2: contact.Title || '',
+      }
+    });
+    setShowSecondSignerContactSelection(false);
   };
 
   const handleContactSelectedForRole = (contact: SalesforceContact, roleIndex: number) => {
@@ -295,50 +309,112 @@ export default function TeamRolesTab({
         <div className="bg-white shadow rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-4 text-blue-800">Second Customer Signer</h3>
           <p className="text-sm text-gray-600 mb-4">
-            Optional - Add a second signer if required
+            Optional - Select a second customer contact who will sign this SOW
           </p>
           
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Second Signer Name</label>
-              <input
-                type="text"
-                value={formData.template?.customer_signature_name_2 || ''}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  template: { ...formData.template!, customer_signature_name_2: e.target.value }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="Enter second signer name (optional)"
-              />
+          {!selectedAccount ? (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+              <p className="text-sm text-yellow-800">
+                Please select a customer account first in the Customer Information tab.
+              </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Second Signer Title</label>
-              <input
-                type="text"
-                value={formData.template?.customer_signature_2 || ''}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  template: { ...formData.template!, customer_signature_2: e.target.value }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="Enter second signer title (optional)"
-              />
+          ) : (
+            <div className="space-y-4">
+              {/* Current Second Signer Display */}
+              <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium text-gray-900">Current Second Signer</h4>
+                    <p className="text-sm text-gray-600">
+                      {formData.template?.customer_signature_name_2 || 'No second signer selected'}
+                    </p>
+                    {formData.template?.customer_signature_name_2 && (
+                      <div className="text-xs text-gray-600 space-y-1 mt-2">
+                        {formData.template?.customer_email_2 && (
+                          <div className="flex items-center">
+                            <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span>Email: {formData.template.customer_email_2}</span>
+                          </div>
+                        )}
+                        {formData.template?.customer_signature_2 && (
+                          <div className="flex items-center">
+                            <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span>Title: {formData.template.customer_signature_2}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setShowSecondSignerContactSelection(true)}
+                    className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                  >
+                    {formData.template?.customer_signature_name_2 ? 'Change Signer' : 'Select Signer'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Second Signer Contact Selection */}
+              {showSecondSignerContactSelection && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                  <h4 className="text-lg font-semibold mb-4 text-blue-800">Select Second Customer Signer</h4>
+                  
+                  <div className="space-y-4">
+                    {isLoadingContacts ? (
+                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <p className="text-sm text-yellow-800">Loading contacts...</p>
+                      </div>
+                    ) : availableContacts.length > 0 ? (
+                      <>
+                        <div className="flex justify-between items-center mb-4">
+                          <p className="text-sm text-gray-600">
+                            Found {availableContacts.length} contact{availableContacts.length !== 1 ? 's' : ''} for {selectedAccount.name}
+                          </p>
+                          <button
+                            onClick={refreshContacts}
+                            disabled={isLoadingContacts}
+                            className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                          >
+                            <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Refresh
+                          </button>
+                        </div>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {availableContacts.map((contact) => (
+                            <div
+                              key={contact.Id}
+                              className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                              onClick={() => handleSecondSignerContactSelected(contact)}
+                            >
+                              <div className="font-medium text-gray-900">{contact.FirstName} {contact.LastName}</div>
+                              <div className="text-sm text-gray-600 mt-1">
+                                <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium mr-2">
+                                  {contact.Title}
+                                </span>
+                                <span>{contact.Email}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <p className="text-sm text-yellow-800">
+                          No contacts found for {selectedAccount.name}. Please ensure contacts exist in Salesforce.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Second Signer Email</label>
-              <input
-                type="email"
-                value={formData.template?.customer_email_2 || ''}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  template: { ...formData.template!, customer_email_2: e.target.value }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="Enter second signer email (optional)"
-              />
-            </div>
-          </div>
+          )}
         </div>
       </div>
       
