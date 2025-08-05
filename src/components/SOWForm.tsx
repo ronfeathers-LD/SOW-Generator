@@ -203,6 +203,13 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   const [logoPreview, setLogoPreview] = useState<string | null>(initialData?.header?.company_logo || null);
   const [activeTab, setActiveTab] = useState('Project Overview');
   const router = useRouter();
+
+  const handleTabChange = (tabKey: string) => {
+    setActiveTab(tabKey);
+    // Update URL hash
+    const hash = tabKey.toLowerCase().replace(/\s+/g, '-');
+    window.location.hash = hash;
+  };
   const [leanDataSignatories, setLeanDataSignatories] = useState<LeanDataSignatory[]>([]);
   const [selectedLeanDataSignatory, setSelectedLeanDataSignatory] = useState<string>('');
   const [selectedAccount, setSelectedAccount] = useState<{ id: string; name: string } | null>(null);
@@ -716,6 +723,36 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     { key: 'Addendums', label: 'Addendums' },
   ];
 
+  // Tab navigation with URL hash persistence
+  useEffect(() => {
+    // Get tab from URL hash on component mount
+    const hash = window.location.hash.replace('#', '');
+    if (hash) {
+      const tabKey = tabs.find(tab => tab.key.toLowerCase().replace(/\s+/g, '-') === hash);
+      if (tabKey) {
+        setActiveTab(tabKey.key);
+      }
+    } else {
+      // Set default hash for first tab if no hash is present
+      const defaultHash = tabs[0].key.toLowerCase().replace(/\s+/g, '-');
+      window.location.hash = defaultHash;
+    }
+
+    // Listen for hash changes (browser back/forward buttons)
+    const handleHashChange = () => {
+      const newHash = window.location.hash.replace('#', '');
+      if (newHash) {
+        const tabKey = tabs.find(tab => tab.key.toLowerCase().replace(/\s+/g, '-') === newHash);
+        if (tabKey) {
+          setActiveTab(tabKey.key);
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [tabs]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
@@ -784,21 +821,22 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       <div className="mb-8 border-b border-gray-200">
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
           {tabs.map((tab) => (
-            <button
+            <a
               key={tab.key}
-              type="button"
-              onClick={() => {
-                setActiveTab(tab.key);
+              href={`#${tab.key.toLowerCase().replace(/\s+/g, '-')}`}
+              onClick={(e) => {
+                e.preventDefault();
+                handleTabChange(tab.key);
               }}
               className={
                 (activeTab === tab.key
                   ? 'border-indigo-500 text-indigo-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300') +
-                ' whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none'
+                ' whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none cursor-pointer'
               }
             >
               {tab.label}
-            </button>
+            </a>
           ))}
         </nav>
       </div>
