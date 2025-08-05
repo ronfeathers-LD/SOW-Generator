@@ -29,14 +29,16 @@ export default function TeamRolesTab({
 }: TeamRolesTabProps) {
   const [availableContacts, setAvailableContacts] = useState<SalesforceContact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
-  const [currentStep, setCurrentStep] = useState<'signer' | 'leanData' | 'clientRoles' | 'leanDataRoles'>('signer');
+  const [showContactSelection, setShowContactSelection] = useState(false);
 
-  // Load contacts when account is selected
+  // Load contacts when account is selected and set initial contact selection state
   useEffect(() => {
     if (selectedAccount?.id) {
       loadContacts(selectedAccount.id);
+      // Show contact selection if no contact is currently selected
+      setShowContactSelection(!selectedContact);
     }
-  }, [selectedAccount?.id]);
+  }, [selectedAccount?.id, selectedContact]);
 
   const loadContacts = async (accountId: string) => {
     setIsLoadingContacts(true);
@@ -70,13 +72,14 @@ export default function TeamRolesTab({
   const handleContactSelected = (contact: SalesforceContact | null) => {
     onContactSelectedFromSalesforce(contact);
     if (contact) {
-      setCurrentStep('leanData');
+      setShowContactSelection(false);
     }
   };
 
   const handleAccountSelected = (customerData: { account: any; contacts: any[]; opportunities: any[] }) => {
     setAvailableContacts(customerData.contacts || []);
-    setCurrentStep('signer');
+    // Only show contact selection if no contact is currently selected
+    setShowContactSelection(!selectedContact);
   };
 
   return (
@@ -157,7 +160,7 @@ export default function TeamRolesTab({
                     )}
                   </div>
                   <button
-                    onClick={() => setCurrentStep('signer')}
+                    onClick={() => setShowContactSelection(true)}
                     className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
                   >
                     Change Signer
@@ -166,7 +169,7 @@ export default function TeamRolesTab({
               </div>
 
               {/* Contact Selection */}
-              {currentStep === 'signer' && (
+              {showContactSelection && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                   <h4 className="text-lg font-semibold mb-4 text-blue-800">Select Customer Signer</h4>
                   
