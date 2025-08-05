@@ -34,7 +34,7 @@ export default function TeamRolesTab({
   });
   const [availableContacts, setAvailableContacts] = useState<SalesforceContact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
-  const [showContactSelection, setShowContactSelection] = useState(false);
+  const [showContactSelection, setShowContactSelection] = useState<number | null>(null);
 
   // Load contacts when account is selected and set initial contact selection state
   useEffect(() => {
@@ -48,7 +48,7 @@ export default function TeamRolesTab({
                            formData.salesforce_contact_id;
       
       const shouldShowSelection = !hasContactInfo;
-      setShowContactSelection(shouldShowSelection);
+      setShowContactSelection(shouldShowSelection ? 0 : null);
     }
   }, [selectedAccount?.id, selectedContact, formData.template?.customer_signature_name, formData.salesforce_contact_id]);
 
@@ -84,14 +84,28 @@ export default function TeamRolesTab({
   const handleContactSelected = (contact: SalesforceContact | null) => {
     onContactSelectedFromSalesforce(contact);
     if (contact) {
-      setShowContactSelection(false);
+      setShowContactSelection(null);
     }
+  };
+
+  const handleContactSelectedForRole = (contact: SalesforceContact, roleIndex: number) => {
+    const newRoles = [...(formData.roles?.client_roles || [])];
+    newRoles[roleIndex] = { 
+      ...newRoles[roleIndex], 
+      name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
+      email: contact.Email || ''
+    };
+    setFormData({
+      ...formData,
+      roles: { ...formData.roles!, client_roles: newRoles }
+    });
+    setShowContactSelection(null);
   };
 
   const handleAccountSelected = (customerData: { account: any; contacts: any[]; opportunities: any[] }) => {
     setAvailableContacts(customerData.contacts || []);
     // Only show contact selection if no contact is currently selected
-    setShowContactSelection(!selectedContact);
+    setShowContactSelection(!selectedContact ? 0 : null);
   };
 
   return (
@@ -179,10 +193,10 @@ export default function TeamRolesTab({
                       </div>
                     )}
                   </div>
-                  <button
-                    onClick={() => setShowContactSelection(true)}
-                    className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
-                  >
+                                          <button
+                          onClick={() => setShowContactSelection(0)}
+                          className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                        >
                     Change Signer
                   </button>
                 </div>
@@ -287,90 +301,150 @@ export default function TeamRolesTab({
         </p>
         {formData.roles?.client_roles?.map((role, index) => (
           <div key={index} className="border border-gray-200 rounded-md p-4 mb-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Role</label>
-                <input
-                  type="text"
-                  value={role.role}
-                  onChange={(e) => {
-                    const newRoles = [...(formData.roles?.client_roles || [])];
-                    newRoles[index] = { ...role, role: e.target.value };
-                    setFormData({
-                      ...formData,
-                      roles: { ...formData.roles!, client_roles: newRoles }
-                    });
-                  }}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="e.g., Project Manager"
-                />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Contact Selection - Left Side (30%) */}
+              <div className="lg:col-span-1">
+                <h4 className="text-md font-semibold mb-3 text-blue-800">Select Contact</h4>
+                {!selectedAccount ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                    <p className="text-sm text-yellow-800">
+                      Please select a customer account first.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Current Contact Display */}
+                    <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h5 className="font-medium text-gray-900">Current Contact</h5>
+                          <p className="text-sm text-gray-600">
+                            {role.name || 'No contact selected'}
+                          </p>
+                          {role.email && (
+                            <p className="text-xs text-gray-500">{role.email}</p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => setShowContactSelection(index)}
+                          className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Contact Selection */}
+                    {showContactSelection === index && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h5 className="text-sm font-semibold mb-3 text-blue-800">Select Contact</h5>
+                        
+                        <div className="space-y-2">
+                          {isLoadingContacts ? (
+                            <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                              <p className="text-xs text-yellow-800">Loading contacts...</p>
+                            </div>
+                          ) : availableContacts.length > 0 ? (
+                            <>
+                              <div className="flex justify-between items-center mb-2">
+                                <p className="text-xs text-gray-600">
+                                  {availableContacts.length} contact{availableContacts.length !== 1 ? 's' : ''} available
+                                </p>
+                                <button
+                                  onClick={refreshContacts}
+                                  disabled={isLoadingContacts}
+                                  className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Refresh
+                                </button>
+                              </div>
+                              <div className="space-y-1 max-h-40 overflow-y-auto">
+                                {availableContacts.map((contact) => (
+                                  <div
+                                    key={contact.Id}
+                                    className="p-2 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                                    onClick={() => handleContactSelectedForRole(contact, index)}
+                                  >
+                                    <div className="font-medium text-sm text-gray-900">{contact.FirstName} {contact.LastName}</div>
+                                    <div className="text-xs text-gray-600 mt-1">
+                                      <span className="inline-block px-1 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium mr-1">
+                                        {contact.Title}
+                                      </span>
+                                      <span>{contact.Email}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                              <p className="text-xs text-yellow-800">
+                                No contacts found. Please ensure contacts exist in Salesforce.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Name</label>
-                <input
-                  type="text"
-                  value={role.name}
-                  onChange={(e) => {
-                                    const newRoles = [...(formData.roles?.client_roles || [])];
-                newRoles[index] = { ...role, name: e.target.value };
-                setFormData({
-                  ...formData,
-                  roles: { ...formData.roles!, client_roles: newRoles }
-                });
-                  }}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="Full name"
-                />
+
+              {/* Role Details - Right Side (70%) */}
+              <div className="lg:col-span-2">
+                <h4 className="text-md font-semibold mb-3 text-gray-800">Role Details</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Role</label>
+                    <input
+                      type="text"
+                      value={role.role}
+                      onChange={(e) => {
+                        const newRoles = [...(formData.roles?.client_roles || [])];
+                        newRoles[index] = { ...role, role: e.target.value };
+                        setFormData({
+                          ...formData,
+                          roles: { ...formData.roles!, client_roles: newRoles }
+                        });
+                      }}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                      placeholder="e.g., Project Manager"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Responsibilities</label>
+                    <textarea
+                      value={role.responsibilities}
+                      onChange={(e) => {
+                        const newRoles = [...(formData.roles?.client_roles || [])];
+                        newRoles[index] = { ...role, responsibilities: e.target.value };
+                        setFormData({
+                          ...formData,
+                          roles: { ...formData.roles!, client_roles: newRoles }
+                        });
+                      }}
+                      rows={4}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                      placeholder="Describe the responsibilities for this role..."
+                    />
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newRoles = formData.roles?.client_roles.filter((_, i) => i !== index) || [];
+                        setFormData({
+                          ...formData,
+                          roles: { ...formData.roles!, client_roles: newRoles }
+                        });
+                      }}
+                      className="text-red-600 hover:text-red-800 text-sm font-medium"
+                    >
+                      Remove Role
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <input
-                type="email"
-                value={role.email}
-                onChange={(e) => {
-                  const newRoles = [...(formData.roles?.client_roles || [])];
-                  newRoles[index] = { ...role, email: e.target.value };
-                  setFormData({
-                    ...formData,
-                    roles: { ...formData.roles!, client_roles: newRoles }
-                  });
-                }}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="email@company.com"
-              />
-            </div>
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700">Responsibilities</label>
-              <textarea
-                value={role.responsibilities}
-                onChange={(e) => {
-                  const newRoles = [...(formData.roles?.client_roles || [])];
-                  newRoles[index] = { ...role, responsibilities: e.target.value };
-                  setFormData({
-                    ...formData,
-                    roles: { ...formData.roles!, client_roles: newRoles }
-                  });
-                }}
-                rows={3}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="Describe the responsibilities for this role..."
-              />
-            </div>
-            <div className="mt-4 flex justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  const newRoles = formData.roles?.client_roles.filter((_, i) => i !== index) || [];
-                  setFormData({
-                    ...formData,
-                    roles: { ...formData.roles!, client_roles: newRoles }
-                  });
-                }}
-                className="text-red-600 hover:text-red-800 text-sm font-medium"
-              >
-                Remove Role
-              </button>
             </div>
           </div>
         ))}
