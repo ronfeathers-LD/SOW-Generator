@@ -260,13 +260,21 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       }
       
       // Set selected contact if contact information exists
+      console.log('🔍 Loading contact data from initialData:', {
+        customer_signature_name: initialData.template?.customer_signature_name,
+        client_signer_name: initialData.client_signer_name,
+        customer_email: initialData.template?.customer_email,
+        customer_signature: initialData.template?.customer_signature,
+        client_signature: initialData.client_signature
+      });
+      
       if (initialData.template?.customer_signature_name || initialData.client_signer_name) {
         const fullName = initialData.template?.customer_signature_name || initialData.client_signer_name || '';
         const nameParts = fullName.trim().split(' ');
         const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : '';
         const lastName = nameParts.length > 0 ? nameParts[nameParts.length - 1] : fullName;
         
-        setSelectedContact({
+        const contactData = {
           Id: '', // We don't have the Salesforce ID when loading from database
           FirstName: firstName,
           LastName: lastName,
@@ -274,7 +282,12 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           Title: initialData.template?.customer_signature || initialData.client_signature?.title || '',
           AccountId: '',
           Account: { Name: '' }
-        });
+        };
+        
+        console.log('🔍 Setting selectedContact with:', contactData);
+        setSelectedContact(contactData);
+      } else {
+        console.log('🔍 No contact data found in initialData');
       }
       
       // Set selected opportunity if opportunity data exists

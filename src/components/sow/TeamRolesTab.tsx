@@ -27,16 +27,24 @@ export default function TeamRolesTab({
   onContactSelectedFromSalesforce,
   getSalesforceLink,
 }: TeamRolesTabProps) {
+  console.log('🔍 TeamRolesTab received props:', {
+    selectedContact,
+    formDataTemplate: formData.template,
+    selectedAccount
+  });
   const [availableContacts, setAvailableContacts] = useState<SalesforceContact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [showContactSelection, setShowContactSelection] = useState(false);
 
   // Load contacts when account is selected and set initial contact selection state
   useEffect(() => {
+    console.log('🔍 TeamRolesTab useEffect - selectedAccount:', selectedAccount?.id, 'selectedContact:', selectedContact);
     if (selectedAccount?.id) {
       loadContacts(selectedAccount.id);
       // Show contact selection if no contact is currently selected
-      setShowContactSelection(!selectedContact);
+      const shouldShowSelection = !selectedContact;
+      console.log('🔍 Setting showContactSelection to:', shouldShowSelection);
+      setShowContactSelection(shouldShowSelection);
     }
   }, [selectedAccount?.id, selectedContact]);
 
@@ -109,12 +117,19 @@ export default function TeamRolesTab({
                   <div>
                     <h4 className="font-medium text-gray-900">Current Signer</h4>
                     <p className="text-sm text-gray-600">
-                      {selectedContact 
-                        ? `${selectedContact.FirstName || ''} ${selectedContact.LastName}`.trim()
-                        : formData.template?.customer_signature_name
-                        ? `${formData.template.customer_signature_name} (manual entry)`
-                        : 'No signer selected'
-                      }
+                      {(() => {
+                        const contactDisplay = selectedContact 
+                          ? `${selectedContact.FirstName || ''} ${selectedContact.LastName}`.trim()
+                          : formData.template?.customer_signature_name
+                          ? `${formData.template.customer_signature_name} (manual entry)`
+                          : 'No signer selected';
+                        console.log('🔍 Current signer display:', {
+                          selectedContact,
+                          customer_signature_name: formData.template?.customer_signature_name,
+                          contactDisplay
+                        });
+                        return contactDisplay;
+                      })()}
                     </p>
                     {(selectedContact || formData.template?.customer_signature_name) && (
                       <div className="text-xs text-gray-600 space-y-1 mt-2">
