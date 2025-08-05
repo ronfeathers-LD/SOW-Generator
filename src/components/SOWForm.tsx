@@ -669,11 +669,13 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             custom_objectives_disclosure_content: formData.custom_objectives_disclosure_content,
             custom_assumptions_content: formData.custom_assumptions_content,
             custom_project_phases_content: formData.custom_project_phases_content,
+            custom_roles_content: formData.custom_roles_content,
             intro_content_edited: formData.intro_content_edited,
             scope_content_edited: formData.scope_content_edited,
             objectives_disclosure_content_edited: formData.objectives_disclosure_content_edited,
             assumptions_content_edited: formData.assumptions_content_edited,
             project_phases_content_edited: formData.project_phases_content_edited,
+            roles_content_edited: formData.roles_content_edited,
           };
           break;
 
