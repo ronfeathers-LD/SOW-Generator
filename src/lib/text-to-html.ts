@@ -38,7 +38,7 @@ export function textToHtml(text: string): string {
     
     // Preserve placeholders (like {clientName}) - don't process them as formatting
     // This ensures they can be replaced later
-    processedLine = processedLine.replace(/\{([^}]+)\}/g, 'PLACEHOLDER_START$1PLACEHOLDER_END');
+    // Note: We keep the original {clientName} format for consistency with other processing functions
     
     // Regular paragraph
     return `<p class="mb-4">${processedLine}</p>`;

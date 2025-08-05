@@ -24,7 +24,7 @@ export default function SOWScopePage({ deliverables, projectDescription, customC
         const deliverablesHtml = deliverables
           .map((deliverable, index) => `<div class="mb-4"><div>${deliverable}</div></div>`)
           .join('\n');
-        processedContent = processedContent.replace(/PLACEHOLDER_STARTdeliverablesPLACEHOLDER_END/g, deliverablesHtml);
+        processedContent = processedContent.replace(/{deliverables}/g, deliverablesHtml);
         setContent(processedContent);
         setLoading(false);
         return;

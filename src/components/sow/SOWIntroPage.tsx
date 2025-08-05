@@ -21,10 +21,10 @@ export default function SOWIntroPage({ clientName, customContent, isEdited }: SO
         // Convert text to HTML and replace the client name placeholder
         let processedContent = textToHtml(customContent);
         if (clientName) {
-          processedContent = processedContent.replace(/PLACEHOLDER_STARTclientNamePLACEHOLDER_END/g, `<span class="font-bold">${clientName}</span>`);
+          processedContent = processedContent.replace(/{clientName}/g, `<span class="font-bold">${clientName}</span>`);
         } else {
           // If no client name, replace with a placeholder
-          processedContent = processedContent.replace(/PLACEHOLDER_STARTclientNamePLACEHOLDER_END/g, '<span class="font-bold">[Client Name]</span>');
+          processedContent = processedContent.replace(/{clientName}/g, '<span class="font-bold">[Client Name]</span>');
         }
         setContent(processedContent);
         setLoading(false);
