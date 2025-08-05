@@ -8,9 +8,10 @@ import WYSIWYGEditor from '../WYSIWYGEditor';
 interface ContentEditingTabProps {
   formData: Partial<SOWData>;
   setFormData: (data: Partial<SOWData>) => void;
+  onUnsavedChanges?: (hasUnsavedChanges: boolean) => void;
 }
 
-export default function ContentEditingTab({ formData, setFormData }: ContentEditingTabProps) {
+export default function ContentEditingTab({ formData, setFormData, onUnsavedChanges }: ContentEditingTabProps) {
   const [introTemplate, setIntroTemplate] = useState<string>('');
   const [scopeTemplate, setScopeTemplate] = useState<string>('');
   const [objectivesDisclosureTemplate, setObjectivesDisclosureTemplate] = useState<string>('');
@@ -21,6 +22,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
   const [activeSection, setActiveSection] = useState('intro');
   const [saving, setSaving] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<{ [key: string]: 'success' | 'error' | null }>({});
+  const [unsavedChanges, setUnsavedChanges] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     async function loadTemplates() {
@@ -65,6 +67,21 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
     loadTemplates();
   }, []); // Only run once when component mounts
 
+  // Function to check if a section has unsaved changes
+  const checkUnsavedChanges = (sectionName: string, currentContent: string, templateContent: string) => {
+    const hasUnsavedChanges = currentContent !== templateContent && currentContent.trim() !== '';
+    setUnsavedChanges(prev => ({
+      ...prev,
+      [sectionName]: hasUnsavedChanges
+    }));
+    
+    // Notify parent component about overall unsaved changes
+    if (onUnsavedChanges) {
+      const anyUnsavedChanges = Object.values({ ...unsavedChanges, [sectionName]: hasUnsavedChanges }).some(Boolean);
+      onUnsavedChanges(anyUnsavedChanges);
+    }
+  };
+
   const handleIntroContentChange = (content: string) => {
     // Check if content has been edited from the original template
     const isEdited = content !== introTemplate && content.trim() !== '';
@@ -73,6 +90,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
       custom_intro_content: content,
       intro_content_edited: isEdited
     });
+    checkUnsavedChanges('intro', content, introTemplate);
   };
 
   const handleScopeContentChange = (content: string) => {
@@ -83,6 +101,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
       custom_scope_content: content,
       scope_content_edited: isEdited
     });
+    checkUnsavedChanges('scope', content, scopeTemplate);
   };
 
   const handleObjectivesDisclosureContentChange = (content: string) => {
@@ -93,6 +112,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
       custom_objectives_disclosure_content: content,
       objectives_disclosure_content_edited: isEdited
     });
+    checkUnsavedChanges('objectives-disclosure', content, objectivesDisclosureTemplate);
   };
 
   const resetIntroContent = () => {
@@ -101,6 +121,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
       custom_intro_content: introTemplate,
       intro_content_edited: false
     });
+    setUnsavedChanges(prev => ({ ...prev, intro: false }));
   };
 
   const resetScopeContent = () => {
@@ -109,6 +130,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
       custom_scope_content: scopeTemplate,
       scope_content_edited: false
     });
+    setUnsavedChanges(prev => ({ ...prev, scope: false }));
   };
 
   const resetObjectivesDisclosureContent = () => {
@@ -117,6 +139,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
       custom_objectives_disclosure_content: objectivesDisclosureTemplate,
       objectives_disclosure_content_edited: false
     });
+    setUnsavedChanges(prev => ({ ...prev, 'objectives-disclosure': false }));
   };
 
   const handleAssumptionsContentChange = (content: string) => {
@@ -127,6 +150,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
       custom_assumptions_content: content,
       assumptions_content_edited: isEdited
     });
+    checkUnsavedChanges('assumptions', content, assumptionsTemplate);
   };
 
   const resetAssumptionsContent = () => {
@@ -135,6 +159,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
       custom_assumptions_content: assumptionsTemplate,
       assumptions_content_edited: false
     });
+    setUnsavedChanges(prev => ({ ...prev, assumptions: false }));
   };
 
   const handleProjectPhasesContentChange = (content: string) => {
@@ -145,6 +170,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
       custom_project_phases_content: content,
       project_phases_content_edited: isEdited
     });
+    checkUnsavedChanges('project-phases', content, projectPhasesTemplate);
   };
 
   const resetProjectPhasesContent = () => {
@@ -153,6 +179,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
       custom_project_phases_content: projectPhasesTemplate,
       project_phases_content_edited: false
     });
+    setUnsavedChanges(prev => ({ ...prev, 'project-phases': false }));
   };
 
   const handleRolesContentChange = (content: string) => {
@@ -163,6 +190,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
       custom_roles_content: content,
       roles_content_edited: isEdited
     });
+    checkUnsavedChanges('roles', content, rolesTemplate);
   };
 
   const resetRolesContent = () => {
@@ -171,6 +199,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
       custom_roles_content: rolesTemplate,
       roles_content_edited: false
     });
+    setUnsavedChanges(prev => ({ ...prev, roles: false }));
   };
 
   const saveSection = async (sectionName: string) => {
@@ -181,22 +210,63 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
 
     setSaving(sectionName);
     try {
+      const requestData = {
+        tab: 'Content Editing',
+        data: {
+          custom_intro_content: formData.custom_intro_content,
+          custom_scope_content: formData.custom_scope_content,
+          custom_objectives_disclosure_content: formData.custom_objectives_disclosure_content,
+          custom_assumptions_content: formData.custom_assumptions_content,
+          custom_project_phases_content: formData.custom_project_phases_content,
+          custom_roles_content: formData.custom_roles_content,
+          intro_content_edited: formData.intro_content_edited,
+          scope_content_edited: formData.scope_content_edited,
+          objectives_disclosure_content_edited: formData.objectives_disclosure_content_edited,
+          assumptions_content_edited: formData.assumptions_content_edited,
+          project_phases_content_edited: formData.project_phases_content_edited,
+          roles_content_edited: formData.roles_content_edited,
+        }
+      };
+      
+
+      
       const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          tab: 'Content Editing',
-          data: {
-            [`custom_${sectionName}_content`]: formData[`custom_${sectionName}_content` as keyof SOWData],
-            [`${sectionName}_content_edited`]: formData[`${sectionName}_content_edited` as keyof SOWData],
-          }
-        }),
+        body: JSON.stringify(requestData),
       });
 
       if (response.ok) {
         setSaveStatus({ ...saveStatus, [sectionName]: 'success' });
+        // Clear unsaved changes for this section
+        setUnsavedChanges(prev => ({
+          ...prev,
+          [sectionName]: false
+        }));
+        // Update the template to match the saved content
+        const savedContent = formData[`custom_${sectionName}_content` as keyof SOWData] as string;
+        switch (sectionName) {
+          case 'intro':
+            setIntroTemplate(savedContent);
+            break;
+          case 'scope':
+            setScopeTemplate(savedContent);
+            break;
+          case 'objectives-disclosure':
+            setObjectivesDisclosureTemplate(savedContent);
+            break;
+          case 'assumptions':
+            setAssumptionsTemplate(savedContent);
+            break;
+          case 'project-phases':
+            setProjectPhasesTemplate(savedContent);
+            break;
+          case 'roles':
+            setRolesTemplate(savedContent);
+            break;
+        }
         setTimeout(() => {
           setSaveStatus({ ...saveStatus, [sectionName]: null });
         }, 3000);
@@ -622,6 +692,11 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
                       Edited
                     </span>
                   )}
+                  {unsavedChanges[section.id] && (
+                    <span className="ml-auto px-2 py-0.5 text-xs bg-red-100 text-red-800 rounded-full">
+                      Unsaved
+                    </span>
+                  )}
                 </div>
               </button>
             ))}
@@ -641,7 +716,7 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
             <li>• Any changes to the default content will be flagged during approval</li>
             <li>• Use placeholders like {'{clientName}'} and {'{deliverables}'} for dynamic content</li>
             <li>• You can reset to the default template at any time</li>
-            <li>• Each section can be saved individually using the Save button</li>
+            <li>• <strong>Save each section individually using the Save button in each section header</strong></li>
           </ul>
         </div>
       </div>

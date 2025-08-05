@@ -21,8 +21,6 @@ export default function EditSOWPage() {
         if (response.ok) {
           const data = await response.json();
           // SOW data loaded for edit
-          console.log('SOW Edit - Raw API data:', data);
-          console.log('SOW Edit - objectives data:', data.objectives);
           
           // Transform the data to match the form structure
           const transformedData: SOWData = {
@@ -156,13 +154,6 @@ export default function EditSOWPage() {
           };
           
           setSOW(transformedData);
-          
-          // Debug logging for project phases content
-          console.log('🔍 SOW Edit - Project phases content loaded:', {
-            custom_project_phases_content_length: data.custom_project_phases_content?.length || 0,
-            project_phases_content_edited: data.project_phases_content_edited,
-            has_project_phases_content: !!data.custom_project_phases_content
-          });
         } else {
           console.error('Failed to fetch SOW');
         }

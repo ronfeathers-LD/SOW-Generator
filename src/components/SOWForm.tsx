@@ -189,6 +189,16 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   const router = useRouter();
 
   const handleTabChange = (tabKey: string) => {
+    // Check for unsaved changes when switching from Content Editing tab
+    if (activeTab === 'Content Editing' && hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        'You have unsaved changes in the Content Editing tab. Are you sure you want to switch tabs? Your changes will be lost.'
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+    
     setActiveTab(tabKey);
     // Update URL hash
     const hash = tabKey.toLowerCase().replace(/\s+/g, '-');
@@ -202,6 +212,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   const [availableOpportunities, setAvailableOpportunities] = useState<SalesforceOpportunity[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [salesforceInstanceUrl, setSalesforceInstanceUrl] = useState<string>('https://na1.salesforce.com');
 
   // Wrapper function to update form data
@@ -677,6 +688,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             project_phases_content_edited: formData.project_phases_content_edited,
             roles_content_edited: formData.roles_content_edited,
           };
+          
+
           break;
 
         default:
@@ -924,29 +937,32 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         <ContentEditingTab
           formData={formData}
           setFormData={updateFormData}
+          onUnsavedChanges={setHasUnsavedChanges}
         />
       )}
 
-      {/* Submit Button */}
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={isSaving}
-          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSaving ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Saving...
-            </>
-          ) : (
-            `Save ${activeTab}`
-          )}
-        </button>
-      </div>
+      {/* Submit Button - Hidden for Content Editing tab since each section has its own save button */}
+      {activeTab !== 'Content Editing' && (
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Saving...
+              </>
+            ) : (
+              `Save ${activeTab}`
+            )}
+          </button>
+        </div>
+      )}
     </form>
     </div>
   );

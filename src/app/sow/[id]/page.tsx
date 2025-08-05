@@ -210,8 +210,15 @@ export default function SOWDetailsPage() {
           },
 
           companyLogo: data.header?.company_logo || data.companyLogo || '',
-          clientSignature: data.clientSignature || undefined,
-          clientSignerName: data.clientSignerName || undefined,
+          clientSignature: data.template?.customer_signature_name ? {
+            name: data.template.customer_signature_name,
+            title: data.template.customer_signature || data.client_title || '',
+            email: data.template.customer_email || data.client_email || '',
+            date: data.signature_date || new Date().toISOString()
+          } : undefined,
+          clientSignerName: data.template?.customer_signature_name || data.client_signer_name || undefined,
+          clientTitle: data.template?.customer_signature || data.client_title || '',
+          clientEmail: data.template?.customer_email || data.client_email || '',
           salesforceAccountId: data.salesforce_account_id || undefined,
           custom_intro_content: data.custom_intro_content || undefined,
           custom_scope_content: data.custom_scope_content || undefined,
@@ -226,6 +233,20 @@ export default function SOWDetailsPage() {
         };
         
         setSOW(parsedData);
+        
+        // Debug logging for signer data
+        console.log('🔍 SOW View - Signer data mapping:', {
+          template_customer_signature_name: data.template?.customer_signature_name,
+          template_customer_signature: data.template?.customer_signature,
+          template_customer_email: data.template?.customer_email,
+          client_signer_name: data.client_signer_name,
+          client_title: data.client_title,
+          client_email: data.client_email,
+          mapped_clientSignerName: parsedData.clientSignerName,
+          mapped_clientTitle: parsedData.clientTitle,
+          mapped_clientEmail: parsedData.clientEmail,
+          mapped_clientSignature: parsedData.clientSignature
+        });
 
         // Fetch Salesforce data if available
         if (parsedData.salesforceAccountId) {
