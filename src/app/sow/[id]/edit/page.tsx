@@ -23,6 +23,7 @@ export default function EditSOWPage() {
           // SOW data loaded for edit
           console.log('SOW Edit - Raw API data:', data);
           console.log('SOW Edit - objectives data:', data.objectives);
+          console.log('SOW Edit - salesforce_contact_id:', data.salesforce_contact_id);
           
           // Transform the data to match the form structure
           const transformedData: SOWData = {
@@ -31,6 +32,8 @@ export default function EditSOWPage() {
             updated_at: new Date(data.updated_at),
             // Include salesforce_account_id
             salesforce_account_id: data.salesforce_account_id,
+            // Include salesforce_contact_id
+            salesforce_contact_id: data.salesforce_contact_id,
             // Include selected account information if available
             selectedAccount: data.salesforce_account_id ? {
               id: data.salesforce_account_id,
