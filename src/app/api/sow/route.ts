@@ -59,10 +59,21 @@ export async function POST(request: Request) {
       }
       
       const projectPhasesTemplate = await getContentTemplate('project-phases');
+      console.log('🔍 Project phases template loading:', {
+        found: !!projectPhasesTemplate,
+        template: projectPhasesTemplate ? {
+          section_name: projectPhasesTemplate.section_name,
+          is_active: projectPhasesTemplate.is_active,
+          content_length: projectPhasesTemplate.default_content?.length
+        } : null
+      });
       // Project phases template loaded
       if (projectPhasesTemplate) {
         defaultProjectPhasesContent = projectPhasesTemplate.default_content;
+        console.log('✅ Project phases content loaded, length:', defaultProjectPhasesContent?.length);
         // Project phases content processed
+      } else {
+        console.log('❌ Project phases template not found');
       }
       
       const rolesTemplate = await getContentTemplate('roles');
@@ -162,6 +173,14 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
+    // Debug logging for saved SOW
+    console.log('🔍 SOW created successfully:', {
+      id: sow.id,
+      project_phases_content_length: sow.custom_project_phases_content?.length || 0,
+      project_phases_content_edited: sow.project_phases_content_edited,
+      has_project_phases_content: !!sow.custom_project_phases_content
+    });
 
     // SOW created successfully
 

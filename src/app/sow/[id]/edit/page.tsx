@@ -155,13 +155,24 @@ export default function EditSOWPage() {
             custom_scope_content: data.custom_scope_content || null,
             custom_objectives_disclosure_content: data.custom_objectives_disclosure_content || null,
             custom_assumptions_content: data.custom_assumptions_content || null,
+            custom_project_phases_content: data.custom_project_phases_content || null,
+            custom_roles_content: data.custom_roles_content || null,
             intro_content_edited: data.intro_content_edited || false,
             scope_content_edited: data.scope_content_edited || false,
             objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false,
             assumptions_content_edited: data.assumptions_content_edited || false,
+            project_phases_content_edited: data.project_phases_content_edited || false,
+            roles_content_edited: data.roles_content_edited || false,
           };
           
           setSOW(transformedData);
+          
+          // Debug logging for project phases content
+          console.log('🔍 SOW Edit - Project phases content loaded:', {
+            custom_project_phases_content_length: data.custom_project_phases_content?.length || 0,
+            project_phases_content_edited: data.project_phases_content_edited,
+            has_project_phases_content: !!data.custom_project_phases_content
+          });
         } else {
           console.error('Failed to fetch SOW');
         }
