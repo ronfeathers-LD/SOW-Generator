@@ -69,7 +69,7 @@ export default function SOWObjectivesDisclosurePage({
   }
 
   return (
-    <div className="text-base leading-relaxed">
+    <div className="max-w-none text-left">
       {isEdited && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
           <p className="text-sm text-yellow-800">
@@ -82,8 +82,6 @@ export default function SOWObjectivesDisclosurePage({
         className="text-base leading-relaxed"
         dangerouslySetInnerHTML={{ __html: content }}
       />
-      
-
     </div>
   );
 } 

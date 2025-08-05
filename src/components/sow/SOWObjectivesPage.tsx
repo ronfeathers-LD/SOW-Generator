@@ -76,7 +76,7 @@ export default function SOWObjectivesPage({
   }, [customContent]);
 
   return (
-    <div className="prose max-w-none text-left">
+    <div className="max-w-none text-left">
       {/* Project Description */}
       {projectDescription && projectDescription.trim() && (
         <div className="mb-6">

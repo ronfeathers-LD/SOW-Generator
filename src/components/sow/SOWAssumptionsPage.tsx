@@ -73,18 +73,18 @@ export default function SOWAssumptionsPage({
   }
 
   return (
-    <div className="prose max-w-none">
-      <div 
-        className="text-gray-700"
-        dangerouslySetInnerHTML={{ __html: content }}
-      />
+    <div className="max-w-none text-left">
       {isEdited && (
-        <div className="mt-4 p-2 bg-blue-50 border border-blue-200 rounded-md">
-          <p className="text-sm text-blue-700">
-            <strong>Note:</strong> This content has been customized for this SOW.
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+          <p className="text-sm text-yellow-800">
+            <strong>Note:</strong> This content has been customized from the default template.
           </p>
         </div>
       )}
+      <div 
+        className="text-base leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: content }}
+      />
     </div>
   );
 } 
