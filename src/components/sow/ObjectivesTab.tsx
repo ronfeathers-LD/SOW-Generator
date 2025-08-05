@@ -20,13 +20,6 @@ export default function ObjectivesTab({
 
   // Get customer name from selected account or form data
   const customerName = selectedAccount?.name || formData.template?.customer_name || formData.header?.client_name || '';
-  
-  // Debug logging for Avoma URL
-  console.log('ObjectivesTab - formData.objectives:', formData.objectives);
-  console.log('ObjectivesTab - avoma_url:', formData.objectives?.avoma_url);
-  console.log('ObjectivesTab - customerName:', customerName);
-  console.log('ObjectivesTab - selectedAccount:', selectedAccount);
-  console.log('ObjectivesTab - formData.template?.customer_name:', formData.template?.customer_name);
 
   const handleProjectDescriptionChange = (description: string) => {
     setFormData({
@@ -227,11 +220,9 @@ export default function ObjectivesTab({
 
       // Show success message for deliverables generation
       if (generatedDeliverables.length > 0) {
-        console.log('✅ Generated deliverables:', generatedDeliverables);
+        // Deliverables generated successfully
       }
       
-      console.log('Updated form data:', updatedFormData);
-      console.log('Final objectives being set:', finalObjectives);
       setFormData(updatedFormData);
 
     } catch (error) {
