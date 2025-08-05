@@ -218,13 +218,14 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   const [availableOpportunities, setAvailableOpportunities] = useState<SalesforceOpportunity[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [salesforceInstanceUrl, setSalesforceInstanceUrl] = useState<string>('https://na1.salesforce.com');
 
   // Wrapper function to update form data
   const updateFormData = (newData: Partial<SOWData>) => {
     setFormData(newData);
   };
 
-  // Fetch LeanData signatories on component mount
+  // Fetch LeanData signatories and Salesforce instance URL on component mount
   useEffect(() => {
     const fetchLeanDataSignatories = async () => {
       try {
@@ -242,7 +243,24 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       }
     };
 
+    const fetchSalesforceInstanceUrl = async () => {
+      try {
+        const response = await fetch('/api/salesforce/instance-url');
+        if (response.ok) {
+          const data = await response.json();
+          setSalesforceInstanceUrl(data.instanceUrl);
+        } else {
+          console.error('Failed to fetch Salesforce instance URL:', response.status, response.statusText);
+          // Keep default URL
+        }
+      } catch (error) {
+        console.error('Error fetching Salesforce instance URL:', error);
+        // Keep default URL
+      }
+    };
+
     fetchLeanDataSignatories();
+    fetchSalesforceInstanceUrl();
   }, []);
 
   // Load existing data when editing
@@ -265,7 +283,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         client_signer_name: initialData.client_signer_name,
         customer_email: initialData.template?.customer_email,
         customer_signature: initialData.template?.customer_signature,
-        client_signature: initialData.client_signature
+        client_signature: initialData.client_signature,
+        salesforce_contact_id: initialData.salesforce_contact_id
       });
       
       if (initialData.template?.customer_signature_name || initialData.client_signer_name) {
@@ -275,13 +294,13 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         const lastName = nameParts.length > 0 ? nameParts[nameParts.length - 1] : fullName;
         
         const contactData = {
-          Id: '', // We don't have the Salesforce ID when loading from database
+          Id: initialData.salesforce_contact_id || '', // Use the stored Salesforce contact ID
           FirstName: firstName,
           LastName: lastName,
           Email: initialData.template?.customer_email || initialData.client_signature?.email || '',
           Title: initialData.template?.customer_signature || initialData.client_signature?.title || '',
-          AccountId: '',
-          Account: { Name: '' }
+          AccountId: initialData.salesforce_account_id || '',
+          Account: { Name: initialData.template?.customer_name || initialData.header?.client_name || '' }
         };
         
         console.log('🔍 Setting selectedContact with:', contactData);
@@ -474,10 +493,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
   // Helper function to generate Salesforce record links
   const getSalesforceLink = (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => {
-    // For now, we'll use a generic Salesforce URL pattern
-    // In a real implementation, you'd get the instance URL from the Salesforce connection
-    const baseUrl = process.env.NEXT_PUBLIC_SALESFORCE_INSTANCE_URL || 'https://na1.salesforce.com';
-    return `${baseUrl}/${recordId}`;
+    return `${salesforceInstanceUrl}/${recordId}`;
   };
 
   const handleOpportunitySelectedFromSalesforce = async (opportunity: SalesforceOpportunity | null) => {
@@ -643,7 +659,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               customer_signature_name: formData.template?.customer_signature_name,
               customer_email: formData.template?.customer_email,
               customer_signature: formData.template?.customer_signature,
-            }
+            },
+            // Save Salesforce contact ID
+            salesforce_contact_id: selectedContact?.Id || null
           };
           break;
 

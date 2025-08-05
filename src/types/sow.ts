@@ -156,6 +156,7 @@ export interface SOWData {
   
   // Salesforce Information
   salesforce_account_id?: string;
+  salesforce_contact_id?: string;
   selectedAccount?: {
     id: string;
     name: string;
