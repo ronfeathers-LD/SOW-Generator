@@ -113,9 +113,16 @@ export async function PUT(
         // Handle team and roles data
         if (data.template) {
           if (data.template.customer_signature_name !== undefined) updateData.client_signer_name = data.template.customer_signature_name;
+          if (data.template.customer_email !== undefined) updateData.client_email = data.template.customer_email;
+          if (data.template.customer_signature !== undefined) updateData.client_title = data.template.customer_signature;
         }
         if (data.roles?.client_roles !== undefined) updateData.client_roles = data.roles.client_roles;
         if (data.pricing?.roles !== undefined) updateData.pricing_roles = data.pricing.roles;
+
+        // Handle Salesforce contact ID
+        if (data.salesforce_contact_id !== undefined) {
+          updateData.salesforce_contact_id = data.salesforce_contact_id;
+        }
 
         // Handle LeanData signatory ID
         if (data.leandata_signatory_id !== undefined) {
