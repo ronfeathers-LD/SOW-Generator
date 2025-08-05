@@ -210,6 +210,7 @@ export default function SOWDetailsPage() {
           },
 
           companyLogo: data.header?.company_logo || data.companyLogo || '',
+          clientName: data.template?.customer_name || data.client_name || data.header?.client_name || '',
           clientSignature: data.template?.customer_signature_name ? {
             name: data.template.customer_signature_name,
             title: data.template.customer_signature || data.client_title || '',
@@ -246,6 +247,15 @@ export default function SOWDetailsPage() {
           mapped_clientTitle: parsedData.clientTitle,
           mapped_clientEmail: parsedData.clientEmail,
           mapped_clientSignature: parsedData.clientSignature
+        });
+        
+        // Debug logging for client name data
+        console.log('🔍 SOW View - Client name data:', {
+          data_client_name: data.client_name,
+          data_template_customer_name: data.template?.customer_name,
+          data_header_client_name: data.header?.client_name,
+          parsedData_clientName: parsedData.clientName,
+          hasSalesforceAccountId: !!parsedData.salesforceAccountId
         });
 
         // Fetch Salesforce data if available
@@ -550,6 +560,14 @@ export default function SOWDetailsPage() {
                     customContent={sow.custom_intro_content}
                     isEdited={sow.intro_content_edited}
                   />
+                  {/* Debug logging for client name */}
+                  {console.log('🔍 SOW View - Client name for Intro:', {
+                    salesforceAccountName: salesforceData?.account_data?.name,
+                    sowClientName: sow.clientName,
+                    finalClientName: salesforceData?.account_data?.name || sow.clientName,
+                    hasSalesforceData: !!salesforceData,
+                    hasAccountData: !!salesforceData?.account_data
+                  })}
                 </div>
               </div>
 
