@@ -33,9 +33,7 @@ export async function PUT(
           if (data.template.number_of_units !== undefined) updateData.number_of_units = data.template.number_of_units;
           if (data.template.regions !== undefined) updateData.regions = data.template.regions;
           if (data.template.salesforce_tenants !== undefined) updateData.salesforce_tenants = data.template.salesforce_tenants;
-          if (data.template.timeline_weeks !== undefined) updateData.timeline_weeks = data.template.timeline_weeks;
-          if (data.template.start_date !== undefined) updateData.project_start_date = data.template.start_date ? new Date(data.template.start_date).toISOString() : null;
-          if (data.template.end_date !== undefined) updateData.project_end_date = data.template.end_date ? new Date(data.template.end_date).toISOString() : null;
+
           if (data.template.units_consumption !== undefined) updateData.units_consumption = data.template.units_consumption;
         }
         if (data.scope?.timeline) {
@@ -86,7 +84,6 @@ export async function PUT(
         // Handle customer information data
         if (data.template) {
           if (data.template.customer_name !== undefined) updateData.client_name = data.template.customer_name;
-          if (data.template.customer_signature_name !== undefined) updateData.client_signer_name = data.template.customer_signature_name;
           if (data.template.customer_email !== undefined) updateData.client_email = data.template.customer_email;
           if (data.template.lean_data_name !== undefined) updateData.leandata_name = data.template.lean_data_name;
           if (data.template.lean_data_title !== undefined) updateData.leandata_title = data.template.lean_data_title;
@@ -99,11 +96,6 @@ export async function PUT(
         }
         if (data.header) {
           if (data.header.company_logo !== undefined) updateData.company_logo = data.header.company_logo;
-        }
-        if (data.client_signature) {
-          if (data.client_signature.title !== undefined) updateData.client_title = data.client_signature.title;
-          if (data.client_signature.email !== undefined) updateData.client_email = data.client_signature.email;
-          if (data.client_signature.signature_date !== undefined) updateData.signature_date = new Date(data.client_signature.signature_date).toISOString();
         }
         break;
 
@@ -119,8 +111,16 @@ export async function PUT(
 
       case 'Team & Roles':
         // Handle team and roles data
+        if (data.template) {
+          if (data.template.customer_signature_name !== undefined) updateData.client_signer_name = data.template.customer_signature_name;
+        }
         if (data.roles?.client_roles !== undefined) updateData.client_roles = data.roles.client_roles;
         if (data.pricing?.roles !== undefined) updateData.pricing_roles = data.pricing.roles;
+
+        // Handle LeanData signatory ID
+        if (data.leandata_signatory_id !== undefined) {
+          updateData.leandata_signatory_id = data.leandata_signatory_id;
+        }
         break;
 
       case 'Billing & Payment':
@@ -176,7 +176,7 @@ export async function PUT(
     return NextResponse.json({ 
       success: true, 
       message: `${tab} updated successfully`,
-      data: updatedSOW 
+      sowId: sowId
     });
 
   } catch (error) {

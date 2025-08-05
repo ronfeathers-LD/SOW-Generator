@@ -81,6 +81,11 @@ class SalesforceClient {
     // Remove trailing slashes and spaces
     let cleanUrl = loginUrl.trim().replace(/\/$/, '');
     
+    // Ensure the URL has a protocol
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = 'https://' + cleanUrl;
+    }
+    
     // Handle common URL formats
     if (cleanUrl.includes('lightning.force.com')) {
       // Convert lightning.force.com to login.salesforce.com

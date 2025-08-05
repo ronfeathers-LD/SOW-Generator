@@ -231,7 +231,7 @@ export default function ProjectOverviewTab({
               value={formData.template?.number_of_units || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                template: { ...formData.template!, number_of_units: e.target.value || null }
+                template: { ...formData.template!, number_of_units: e.target.value || '' }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               placeholder="Enter number of units"
@@ -244,7 +244,7 @@ export default function ProjectOverviewTab({
               value={formData.template?.regions || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                template: { ...formData.template!, regions: e.target.value || null }
+                template: { ...formData.template!, regions: e.target.value || '' }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               placeholder="Enter regions/business units"
@@ -257,7 +257,7 @@ export default function ProjectOverviewTab({
               value={formData.template?.salesforce_tenants || ''}
               onChange={(e) => setFormData({
                 ...formData,
-                template: { ...formData.template!, salesforce_tenants: e.target.value || null }
+                template: { ...formData.template!, salesforce_tenants: e.target.value || '' }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               placeholder="Enter number of Salesforce tenants"
