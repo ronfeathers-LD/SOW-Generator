@@ -14,6 +14,7 @@ export default function BillingPaymentTab({
 }: BillingPaymentTabProps) {
   const [isLoadingBilling, setIsLoadingBilling] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
+  const [billingSuccess, setBillingSuccess] = useState<string | null>(null);
 
   const fetchBillingFromSalesforce = async () => {
     if (!selectedAccountId) {
@@ -38,7 +39,7 @@ export default function BillingPaymentTab({
         ...formData,
         template: {
           ...formData.template!,
-          billing_company_name: formData.template?.customer_name || '',
+          billing_company_name: billingInfo.companyName || formData.template?.customer_name || '',
           billing_contact_name: billingInfo.billingContact || '',
           billing_address: billingInfo.billingAddress || '',
           billing_email: billingInfo.billingEmail || '',
@@ -47,20 +48,18 @@ export default function BillingPaymentTab({
           ...formData.pricing!,
           billing: {
             ...formData.pricing?.billing!,
-            company_name: formData.template?.customer_name || '',
+            company_name: billingInfo.companyName || formData.template?.customer_name || '',
             billing_contact: billingInfo.billingContact || '',
             billing_address: billingInfo.billingAddress || '',
             billing_email: billingInfo.billingEmail || '',
-            payment_terms: billingInfo.paymentTerms || '',
-            currency: billingInfo.currency || 'USD',
-            tax_exempt: billingInfo.taxExempt || false,
-            tax_exemption_number: billingInfo.taxExemptionNumber || '',
-            credit_rating: billingInfo.creditRating || '',
           }
         }
       });
 
+      setBillingSuccess('Billing information loaded from Salesforce successfully!');
+
       setBillingError(null);
+      setBillingSuccess(null);
     } catch (error) {
       console.error('Error fetching billing info:', error);
       setBillingError('Failed to fetch billing information from Salesforce');
@@ -109,9 +108,15 @@ export default function BillingPaymentTab({
           </div>
         )}
         
+        {billingSuccess && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+            <p className="text-sm text-green-600">{billingSuccess}</p>
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Billing Company Name</label>
+            <label className="block text-sm font-medium text-gray-700">Company Name</label>
             <input
               type="text"
               value={formData.template?.billing_company_name || ''}
@@ -188,148 +193,13 @@ export default function BillingPaymentTab({
                 }
               })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Payment Terms</label>
-            <input
-              type="text"
-              value={formData.pricing?.billing?.payment_terms || ''}
-              onChange={(e) => setFormData({
-                ...formData,
-                pricing: {
-                  ...formData.pricing!,
-                  billing: { ...formData.pricing?.billing!, payment_terms: e.target.value }
-                }
-              })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Currency</label>
-            <input
-              type="text"
-              value={formData.pricing?.billing?.currency || ''}
-              onChange={(e) => setFormData({
-                ...formData,
-                pricing: {
-                  ...formData.pricing!,
-                  billing: { ...formData.pricing?.billing!, currency: e.target.value }
-                }
-              })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Tax Exempt</label>
-            <select
-              value={formData.pricing?.billing?.tax_exempt ? 'yes' : 'no'}
-              onChange={(e) => setFormData({
-                ...formData,
-                pricing: {
-                  ...formData.pricing!,
-                  billing: { ...formData.pricing?.billing!, tax_exempt: e.target.value === 'yes' }
-                }
-              })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            >
-              <option value="no">No</option>
-              <option value="yes">Yes</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Tax Exemption Number</label>
-            <input
-              type="text"
-              value={formData.pricing?.billing?.tax_exemption_number || ''}
-              onChange={(e) => setFormData({
-                ...formData,
-                pricing: {
-                  ...formData.pricing!,
-                  billing: { ...formData.pricing?.billing!, tax_exemption_number: e.target.value }
-                }
-              })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="Enter tax exemption number if applicable"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Credit Rating</label>
-            <input
-              type="text"
-              value={formData.pricing?.billing?.credit_rating || ''}
-              onChange={(e) => setFormData({
-                ...formData,
-                pricing: {
-                  ...formData.pricing!,
-                  billing: { ...formData.pricing?.billing!, credit_rating: e.target.value }
-                }
-              })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="e.g., A, B, C, etc."
+              placeholder="N/A"
             />
           </div>
         </div>
       </div>
 
-      {/* Project Assumptions */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-4">Project Assumptions</h3>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Access Requirements</label>
-            <textarea
-              value={formData.assumptions?.access_requirements || ''}
-              onChange={(e) => setFormData({
-                ...formData,
-                assumptions: { ...formData.assumptions!, access_requirements: e.target.value }
-              })}
-              rows={3}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="Describe any access requirements for the project..."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Travel Requirements</label>
-            <textarea
-              value={formData.assumptions?.travel_requirements || ''}
-              onChange={(e) => setFormData({
-                ...formData,
-                assumptions: { ...formData.assumptions!, travel_requirements: e.target.value }
-              })}
-              rows={3}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="Describe any travel requirements for the project..."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Working Hours</label>
-            <textarea
-              value={formData.assumptions?.working_hours || ''}
-              onChange={(e) => setFormData({
-                ...formData,
-                assumptions: { ...formData.assumptions!, working_hours: e.target.value }
-              })}
-              rows={3}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="Describe working hours and timezone considerations..."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Testing Responsibilities</label>
-            <textarea
-              value={formData.assumptions?.testing_responsibilities || ''}
-              onChange={(e) => setFormData({
-                ...formData,
-                assumptions: { ...formData.assumptions!, testing_responsibilities: e.target.value }
-              })}
-              rows={3}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="Describe testing responsibilities and expectations..."
-            />
-          </div>
-        </div>
-      </div>
+
     </section>
   );
 } 

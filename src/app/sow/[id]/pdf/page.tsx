@@ -5,6 +5,7 @@ import SOWIntroPage from '@/components/sow/SOWIntroPage';
 import SOWScopePage from '@/components/sow/SOWScopePage';
 import SOWObjectivesPage from '@/components/sow/SOWObjectivesPage';
 import SOWAssumptionsPage from '@/components/sow/SOWAssumptionsPage';
+import SOWRolesPage from '@/components/sow/SOWRolesPage';
 
 interface ClientRole {
   role: string;
@@ -67,10 +68,12 @@ interface SOW {
   custom_scope_content?: string;
   custom_objectives_disclosure_content?: string;
   custom_assumptions_content?: string;
+  custom_roles_content?: string;
   intro_content_edited?: boolean;
   scope_content_edited?: boolean;
   objectives_disclosure_content_edited?: boolean;
   assumptions_content_edited?: boolean;
+  roles_content_edited?: boolean;
 }
 
 export default async function SOWPDFPage({ params }: { params: Promise<{ id: string }> }) {
@@ -84,6 +87,19 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
   if (error || !sow) {
     notFound();
   }
+
+  // Fetch products for this SOW
+  const { data: sowProducts, error: productsError } = await supabase
+    .from('sow_products')
+    .select(`
+      product_id,
+      products (
+        name
+      )
+    `)
+    .eq('sow_id', sow.id);
+
+  const productNames = sowProducts?.map(sp => (sp.products as any)?.name).filter(Boolean) || [];
 
   // Parse/transform fields as needed
   const deliverables = typeof sow.deliverables === 'string'
@@ -140,7 +156,7 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
             customContent={sow.custom_objectives_disclosure_content}
             isEdited={sow.objectives_disclosure_content_edited}
             projectDetails={{
-              products: sow.products || [],
+              products: productNames,
               number_of_units: sow.number_of_units || '',
               regions: sow.regions || '',
               salesforce_tenants: sow.salesforce_tenants || '',
@@ -166,31 +182,10 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
         {/* Roles and Responsibilities */}
         <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
           <h2 className="text-3xl font-bold text-center mb-6">ROLES AND RESPONSIBILITIES</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/3">Responsibilities</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {/* Example static rows, replace with dynamic if needed */}
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Account Executive</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">Point of contact for account-level needs and services expansion. Liaison to facilitate meetings and project manage services/artifacts</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Project Manager</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">Manage timelines, project risk and communications, track and resolve issues</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Solution Engineer</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">Develop custom code, if any, to fulfill the requirements. Certified LeanData Consultant.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <SOWRolesPage 
+            customContent={sow.custom_roles_content}
+            isEdited={sow.roles_content_edited}
+          />
         </div>
 
         {/* Pricing */}

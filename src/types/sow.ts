@@ -4,11 +4,6 @@ export interface BillingInfo {
   billing_address: string;
   billing_email: string;
   po_number: string;
-  payment_terms: string;
-  currency: string;
-  tax_exempt?: boolean;
-  tax_exemption_number?: string;
-  credit_rating?: string;
 }
 
 export interface ClientRole {

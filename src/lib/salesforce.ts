@@ -13,6 +13,9 @@ export interface SalesforceAccount {
   Industry?: string;
   Type?: string;
   Description?: string;
+  AnnualRevenue?: number;
+  NumberOfEmployees?: number;
+  CurrencyIsoCode?: string;
   // Additional billing fields
   BillingAddress?: {
     street?: string;
@@ -25,15 +28,15 @@ export interface SalesforceAccount {
   Payment_Terms__c?: string;
   Tax_Exempt__c?: boolean;
   Tax_Exemption_Number__c?: string;
+  Tax_ID__c?: string;
   Credit_Limit__c?: number;
   Credit_Rating__c?: string;
   Billing_Contact__c?: string;
   Billing_Email__c?: string;
+  Billing_Phone__c?: string;
   Purchase_Order_Required__c?: boolean;
   Invoice_Delivery_Preference__c?: string;
-  CurrencyIsoCode?: string;
-  AnnualRevenue?: number;
-  NumberOfEmployees?: number;
+  Payment_Method__c?: string;
 }
 
 export interface SalesforceContact {
@@ -43,6 +46,8 @@ export interface SalesforceContact {
   Email?: string;
   Phone?: string;
   Title?: string;
+  Department?: string;
+  Description?: string;
   AccountId?: string;
   Account?: {
     Name: string;
@@ -251,9 +256,10 @@ class SalesforceClient {
    */
   async getAccount(accountId: string): Promise<SalesforceAccount> {
     try {
+      // Use a simple query with just standard fields first
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
-               BillingPostalCode, BillingCountry, Industry
+               BillingPostalCode, BillingCountry
         FROM Account 
         WHERE Id = '${accountId}'
       `;
@@ -369,18 +375,10 @@ class SalesforceClient {
    * Get billing information for an account
    */
   async getAccountBillingInfo(accountId: string): Promise<{
-    billingAddress: string;
-    paymentTerms: string;
-    taxExempt: boolean;
-    taxExemptionNumber: string;
-    creditLimit: number;
-    creditRating: string;
+    companyName: string;
     billingContact: string;
+    billingAddress: string;
     billingEmail: string;
-    purchaseOrderRequired: boolean;
-    invoiceDeliveryPreference: string;
-    currency: string;
-    annualRevenue: number;
   }> {
     try {
       const account = await this.getAccount(accountId);
@@ -397,18 +395,10 @@ class SalesforceClient {
       const billingAddress = addressParts.join(', ');
       
       return {
+        companyName: account.Name || '',
+        billingContact: account.Billing_Contact__c || '',
         billingAddress,
-        paymentTerms: '', // Custom field not available
-        taxExempt: false, // Custom field not available
-        taxExemptionNumber: '', // Custom field not available
-        creditLimit: 0, // Custom field not available
-        creditRating: '', // Custom field not available
-        billingContact: '', // Custom field not available
-        billingEmail: '', // Custom field not available
-        purchaseOrderRequired: false, // Custom field not available
-        invoiceDeliveryPreference: '', // Custom field not available
-        currency: 'USD', // Default currency
-        annualRevenue: 0 // Default revenue
+        billingEmail: account.Billing_Email__c || ''
       };
     } catch (error) {
       console.error('Error getting account billing info:', error);

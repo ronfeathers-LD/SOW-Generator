@@ -27,11 +27,7 @@ export default function TeamRolesTab({
   onContactSelectedFromSalesforce,
   getSalesforceLink,
 }: TeamRolesTabProps) {
-  console.log('🔍 TeamRolesTab received props:', {
-    selectedContact,
-    formDataTemplate: formData.template,
-    selectedAccount
-  });
+
   const [availableContacts, setAvailableContacts] = useState<SalesforceContact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [showSignerContactSelection, setShowSignerContactSelection] = useState<boolean>(false);

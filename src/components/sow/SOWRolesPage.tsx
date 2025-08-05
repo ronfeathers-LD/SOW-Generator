@@ -17,7 +17,10 @@ export default function SOWRolesPage({ customContent, isEdited }: SOWRolesPagePr
     async function loadContent() {
       if (customContent) {
         // Use custom content if provided (edited by user)
-        const processedContent = textToHtml(customContent);
+        // Check if content is already HTML (starts with <)
+        const processedContent = customContent.trim().startsWith('<') 
+          ? customContent 
+          : textToHtml(customContent);
         setContent(processedContent);
         setLoading(false);
         return;

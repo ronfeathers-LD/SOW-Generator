@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import SOWTitlePage from '@/components/sow/SOWTitlePage';
 import SOWIntroPage from '@/components/sow/SOWIntroPage';
 import SOWScopePage from '@/components/sow/SOWScopePage';
+import SOWRolesPage from '@/components/sow/SOWRolesPage';
 
 interface ClientRole {
   role: string;
@@ -61,8 +62,10 @@ interface SOW {
   // Custom content tracking
   custom_intro_content?: string;
   custom_scope_content?: string;
+  custom_roles_content?: string;
   intro_content_edited?: boolean;
   scope_content_edited?: boolean;
+  roles_content_edited?: boolean;
 }
 
 function safeJsonParse<T>(value: any, defaultValue: T): T {
@@ -126,8 +129,10 @@ export default function PublicSOWPage() {
           clientSignerName: data.clientSignerName || undefined,
           custom_intro_content: data.custom_intro_content || undefined,
           custom_scope_content: data.custom_scope_content || undefined,
+          custom_roles_content: data.custom_roles_content || undefined,
           intro_content_edited: data.intro_content_edited || false,
-          scope_content_edited: data.scope_content_edited || false
+          scope_content_edited: data.scope_content_edited || false,
+          roles_content_edited: data.roles_content_edited || false
         };
         
         setSOW(parsedData);
@@ -178,6 +183,13 @@ export default function PublicSOWPage() {
           customContent={sow.custom_scope_content}
           isEdited={sow.scope_content_edited}
         />
+        <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+          <h2 className="text-3xl font-bold text-center mb-6">ROLES AND RESPONSIBILITIES</h2>
+          <SOWRolesPage 
+            customContent={sow.custom_roles_content}
+            isEdited={sow.roles_content_edited}
+          />
+        </div>
       </div>
     </div>
   );

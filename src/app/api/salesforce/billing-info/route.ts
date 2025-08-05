@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
     await salesforceClient.authenticate(
       config.username,
       config.password,
-      config.security_token || undefined
+      config.security_token || undefined,
+      config.login_url
     );
 
     // Get billing information
@@ -40,8 +41,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ billingInfo });
   } catch (error) {
     console.error('Error fetching billing info:', error);
+    
+    // Provide more specific error information
+    let errorMessage = 'Failed to fetch billing information';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to fetch billing information' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
