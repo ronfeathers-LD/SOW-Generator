@@ -127,9 +127,6 @@ export async function POST(request: Request) {
         working_hours: data.assumptions?.working_hours || '',
         testing_responsibilities: data.assumptions?.testing_responsibilities || '',
         
-        // Addendums
-        addendums: data.addendums || [],
-        
         // LeanData Information
         leandata_name: data.template?.lean_data_name || 'Agam Vasani',
         leandata_title: data.template?.lean_data_title || 'VP Customer Success',

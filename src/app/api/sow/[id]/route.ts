@@ -167,7 +167,6 @@ export async function PUT(
           working_hours: data.working_hours || '',
           testing_responsibilities: data.testing_responsibilities || '',
         },
-        addendums: data.addendums || [],
         template: {
           customer_name: data.client_name || '',
           customer_signature_name: data.client_signer_name || '',
@@ -258,7 +257,7 @@ export async function PUT(
       if (data.assumptions.testing_responsibilities !== undefined) updateData.testing_responsibilities = data.assumptions.testing_responsibilities;
     }
     
-    if (data.addendums !== undefined) updateData.addendums = data.addendums;
+
     
     // LeanData Information
     if (data.template) {

@@ -30,7 +30,7 @@ export interface SOW {
   travel_requirements: string;
   working_hours: string;
   testing_responsibilities: string;
-  addendums: any;
+  created_at: string;
   is_latest: boolean;
   parent_id?: string;
   version: number;

@@ -46,11 +46,7 @@ interface SOW {
   travelRequirements: string;
   workingHours: string;
   testingResponsibilities: string;
-  addendums: Array<{
-    title: string;
-    description: string;
-    date: string;
-  }>;
+
   version: number;
   companyLogo: string;
   clientSignature?: {
@@ -60,6 +56,7 @@ interface SOW {
     date: string;
   };
   clientSignerName?: string;
+  salesforceAccountId?: string;
   
   // Custom content tracking
   custom_intro_content?: string;
@@ -123,7 +120,7 @@ export default function PublicSOWPage() {
               currency: '',
             },
           },
-          addendums: safeJsonParse(data.addendums, []),
+
           companyLogo: data.companyLogo || '',
           clientSignature: data.clientSignature || undefined,
           clientSignerName: data.clientSignerName || undefined,

@@ -138,18 +138,6 @@ export interface SOWData {
     testing_responsibilities: string;
   };
 
-  // Addendums
-  addendums: Array<{
-    title: string;
-    content: string;
-    risks: string[];
-    mitigations: string[];
-    support_scope: {
-      supported: string[];
-      not_supported: string[];
-    };
-  }>;
-
   client_signer_name?: string;
   deliverables?: string;
   

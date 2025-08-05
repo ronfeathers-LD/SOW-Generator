@@ -54,11 +54,7 @@ interface SOW {
   travelRequirements: string;
   workingHours: string;
   testingResponsibilities: string;
-  addendums: Array<{
-    title: string;
-    description: string;
-    date: string;
-  }>;
+
   version: number;
   companyLogo: string;
   clientSignature?: {
@@ -212,7 +208,7 @@ export default function SOWDetailsPage() {
               currency: '',
             },
           },
-          addendums: safeJsonParse(data.addendums, []),
+
           companyLogo: data.header?.company_logo || data.companyLogo || '',
           clientSignature: data.clientSignature || undefined,
           clientSignerName: data.clientSignerName || undefined,
@@ -323,8 +319,7 @@ export default function SOWDetailsPage() {
           }
         },
         deliverables: sow!.deliverables,
-        clientRoles: sow!.clientRoles,
-        addendums: sow!.addendums
+        clientRoles: sow!.clientRoles
       });
     } catch (err) {
       console.error('Error updating status:', err);

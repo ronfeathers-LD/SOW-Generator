@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -15,7 +15,6 @@ import CustomerInformationTab from './sow/CustomerInformationTab';
 import ObjectivesTab from './sow/ObjectivesTab';
 import TeamRolesTab from './sow/TeamRolesTab';
 import BillingPaymentTab from './sow/BillingPaymentTab';
-import AddendumsTab from './sow/AddendumsTab';
 import ContentEditingTab from './sow/ContentEditingTab';
 import { createSalesforceAccountData, createSalesforceContactData, createSalesforceOpportunityData } from '@/types/salesforce';
 
@@ -182,16 +181,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             working_hours: '',
             testing_responsibilities: '',
           },
-          addendums: [{
-            title: '',
-            content: '',
-            risks: [''],
-            mitigations: [''],
-            support_scope: {
-              supported: [''],
-              not_supported: [''],
-            },
-          }],
         }
   );
 
@@ -688,12 +677,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           };
           break;
 
-        case 'Addendums':
-          tabData = {
-            addendums: formData.addendums,
-          };
-          break;
-
         default:
           setNotification({
             type: 'error',
@@ -756,7 +739,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     { key: 'Team & Roles', label: 'Team & Roles' },
     { key: 'Billing & Payment', label: 'Billing & Payment' },
     { key: 'Content Editing', label: 'Content Editing' },
-    { key: 'Addendums', label: 'Addendums' },
   ];
 
   // Tab navigation with URL hash persistence
@@ -938,14 +920,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       {/* Content Editing Section */}
       {activeTab === 'Content Editing' && (
         <ContentEditingTab
-          formData={formData}
-          setFormData={updateFormData}
-        />
-      )}
-
-      {/* Addendums Section */}
-      {activeTab === 'Addendums' && (
-        <AddendumsTab
           formData={formData}
           setFormData={updateFormData}
         />

@@ -45,11 +45,7 @@ interface SOW {
   travelRequirements: string;
   workingHours: string;
   testingResponsibilities: string;
-  addendums: Array<{
-    title: string;
-    description: string;
-    date: string;
-  }>;
+
   version: number;
   companyLogo: string;
   leandata_name: string;

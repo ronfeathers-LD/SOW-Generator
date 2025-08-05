@@ -157,11 +157,6 @@ export async function PUT(
         if (data.roles_content_edited !== undefined) updateData.roles_content_edited = data.roles_content_edited;
         break;
 
-      case 'Addendums':
-        // Handle addendums data
-        if (data.addendums !== undefined) updateData.addendums = data.addendums;
-        break;
-
       default:
         return NextResponse.json({ error: 'Invalid tab specified' }, { status: 400 });
     }

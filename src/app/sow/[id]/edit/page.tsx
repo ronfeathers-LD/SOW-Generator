@@ -137,16 +137,6 @@ export default function EditSOWPage() {
               working_hours: data.working_hours || '',
               testing_responsibilities: data.testing_responsibilities || '',
             },
-            addendums: data.addendums || [{
-              title: '',
-              content: '',
-              risks: [''],
-              mitigations: [''],
-              supportScope: {
-                supported: [''],
-                notSupported: [''],
-              },
-            }],
             deliverables: data.deliverables || '',
             client_signer_name: data.client_signer_name || '',
             
