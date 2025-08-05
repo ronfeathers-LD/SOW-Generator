@@ -637,6 +637,12 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             },
             pricing: {
               roles: formData.pricing?.roles,
+            },
+            // Also save contact information
+            template: {
+              customer_signature_name: formData.template?.customer_signature_name,
+              customer_email: formData.template?.customer_email,
+              customer_signature: formData.template?.customer_signature,
             }
           };
           break;
