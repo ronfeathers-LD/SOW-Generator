@@ -61,13 +61,13 @@ export default function EditSOWPage() {
               
               // Project Details
               products: data.template?.products || [],
-              number_of_units: data.template?.number_of_units || '125',
-              regions: data.template?.regions || '1',
-              salesforce_tenants: data.template?.salesforce_tenants || '2',
-              timeline_weeks: data.template?.timeline_weeks || '8',
+              number_of_units: data.template?.number_of_units || '',
+              regions: data.template?.regions || '',
+              salesforce_tenants: data.template?.salesforce_tenants || '',
+              timeline_weeks: data.template?.timeline_weeks || '',
               start_date: data.template?.start_date || null,
               end_date: data.template?.end_date || null,
-              units_consumption: data.template?.units_consumption || 'All units immediately',
+              units_consumption: data.template?.units_consumption || '',
               
               // Billing Information
               billing_company_name: data.template?.billing_company_name || '',
@@ -104,7 +104,6 @@ export default function EditSOWPage() {
               project_description: data.project_description || '',
               deliverables: data.deliverables || '',
               timeline: {
-                start_date: new Date(data.start_date),
                 duration: data.duration || '',
               },
             },

@@ -145,13 +145,13 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
             isEdited={sow.objectives_disclosure_content_edited}
             projectDetails={{
               products: sow.products || [],
-              number_of_units: sow.number_of_units || '125',
-              regions: sow.regions || '1',
-              salesforce_tenants: sow.salesforce_tenants || '2',
-              timeline_weeks: sow.timeline_weeks || '8',
+              number_of_units: sow.number_of_units || '',
+              regions: sow.regions || '',
+              salesforce_tenants: sow.salesforce_tenants || '',
+              timeline_weeks: sow.timeline_weeks || '',
               start_date: sow.project_start_date ? new Date(sow.project_start_date) : new Date(sow.start_date),
               end_date: sow.project_end_date ? new Date(sow.project_end_date) : null,
-              units_consumption: sow.units_consumption || 'All units immediately'
+              units_consumption: sow.units_consumption || ''
             }}
           />
         </div>

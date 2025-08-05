@@ -34,7 +34,8 @@ export default function TeamRolesTab({
   });
   const [availableContacts, setAvailableContacts] = useState<SalesforceContact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
-  const [showContactSelection, setShowContactSelection] = useState<number | null>(null);
+  const [showSignerContactSelection, setShowSignerContactSelection] = useState<boolean>(false);
+  const [showRoleContactSelection, setShowRoleContactSelection] = useState<number | null>(null);
 
   // Load contacts when account is selected and set initial contact selection state
   useEffect(() => {
@@ -48,7 +49,7 @@ export default function TeamRolesTab({
                            formData.salesforce_contact_id;
       
       const shouldShowSelection = !hasContactInfo;
-      setShowContactSelection(shouldShowSelection ? 0 : null);
+      setShowSignerContactSelection(shouldShowSelection);
     }
   }, [selectedAccount?.id, selectedContact, formData.template?.customer_signature_name, formData.salesforce_contact_id]);
 
@@ -84,7 +85,7 @@ export default function TeamRolesTab({
   const handleContactSelected = (contact: SalesforceContact | null) => {
     onContactSelectedFromSalesforce(contact);
     if (contact) {
-      setShowContactSelection(null);
+      setShowSignerContactSelection(false);
     }
   };
 
@@ -100,14 +101,14 @@ export default function TeamRolesTab({
     setFormData({
       ...formData,
       roles: { ...formData.roles!, client_roles: newRoles }
-    });
-    setShowContactSelection(null);
+          });
+      setShowRoleContactSelection(null);
   };
 
   const handleAccountSelected = (customerData: { account: any; contacts: any[]; opportunities: any[] }) => {
-    setAvailableContacts(customerData.contacts || []);
-    // Only show contact selection if no contact is currently selected
-    setShowContactSelection(!selectedContact ? 0 : null);
+          setAvailableContacts(customerData.contacts || []);
+      // Only show contact selection if no contact is currently selected
+      setShowSignerContactSelection(!selectedContact);
   };
 
   return (
@@ -195,17 +196,17 @@ export default function TeamRolesTab({
                       </div>
                     )}
                   </div>
-                                          <button
-                          onClick={() => setShowContactSelection(0)}
-                          className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
-                        >
+                  <button
+                    onClick={() => setShowSignerContactSelection(true)}
+                    className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                  >
                     Change Signer
                   </button>
                 </div>
               </div>
 
               {/* Contact Selection */}
-              {showContactSelection && (
+              {showSignerContactSelection && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                   <h4 className="text-lg font-semibold mb-4 text-blue-800">Select Customer Signer</h4>
                   
@@ -303,9 +304,9 @@ export default function TeamRolesTab({
         </p>
         {formData.roles?.client_roles?.map((role, index) => (
           <div key={index} className="border border-gray-200 rounded-md p-4 mb-4">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Contact Selection - Left Side (30%) */}
-              <div className="lg:col-span-1">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+              {/* Contact Selection - Left Side (40%) */}
+              <div className="lg:col-span-2">
                 <h4 className="text-md font-semibold mb-3 text-blue-800">Select Contact</h4>
                 {!selectedAccount ? (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
@@ -319,7 +320,6 @@ export default function TeamRolesTab({
                     <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h5 className="font-medium text-gray-900">Current Contact</h5>
                           <p className="text-sm text-gray-600">
                             {role.name || 'No contact selected'}
                           </p>
@@ -369,7 +369,7 @@ export default function TeamRolesTab({
                           )}
                         </div>
                         <button
-                          onClick={() => setShowContactSelection(index)}
+                          onClick={() => setShowRoleContactSelection(index)}
                           className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
                         >
                           Change Contact
@@ -378,7 +378,7 @@ export default function TeamRolesTab({
                     </div>
 
                     {/* Contact Selection */}
-                    {showContactSelection === index && (
+                    {showRoleContactSelection === index && (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <h5 className="text-sm font-semibold mb-3 text-blue-800">Select Contact</h5>
                         
@@ -433,8 +433,8 @@ export default function TeamRolesTab({
                 )}
               </div>
 
-              {/* Role Details - Right Side (70%) */}
-              <div className="lg:col-span-2">
+              {/* Role Details - Right Side (60%) */}
+              <div className="lg:col-span-3">
                 <h4 className="text-md font-semibold mb-3 text-gray-800">Role Details</h4>
                 <div className="space-y-4">
                   <div>

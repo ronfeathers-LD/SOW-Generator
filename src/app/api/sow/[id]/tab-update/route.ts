@@ -148,11 +148,13 @@ export async function PUT(
         if (data.custom_objectives_disclosure_content !== undefined) updateData.custom_objectives_disclosure_content = data.custom_objectives_disclosure_content;
         if (data.custom_assumptions_content !== undefined) updateData.custom_assumptions_content = data.custom_assumptions_content;
         if (data.custom_project_phases_content !== undefined) updateData.custom_project_phases_content = data.custom_project_phases_content;
+        if (data.custom_roles_content !== undefined) updateData.custom_roles_content = data.custom_roles_content;
         if (data.intro_content_edited !== undefined) updateData.intro_content_edited = data.intro_content_edited;
         if (data.scope_content_edited !== undefined) updateData.scope_content_edited = data.scope_content_edited;
         if (data.objectives_disclosure_content_edited !== undefined) updateData.objectives_disclosure_content_edited = data.objectives_disclosure_content_edited;
         if (data.assumptions_content_edited !== undefined) updateData.assumptions_content_edited = data.assumptions_content_edited;
         if (data.project_phases_content_edited !== undefined) updateData.project_phases_content_edited = data.project_phases_content_edited;
+        if (data.roles_content_edited !== undefined) updateData.roles_content_edited = data.roles_content_edited;
         break;
 
       case 'Addendums':

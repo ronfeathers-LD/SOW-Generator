@@ -15,6 +15,7 @@ export async function POST(request: Request) {
     let defaultObjectivesDisclosureContent = '';
     let defaultAssumptionsContent = '';
     let defaultProjectPhasesContent = '';
+    let defaultRolesContent = '';
     
     try {
       const introTemplate = await getContentTemplate('intro');
@@ -63,6 +64,13 @@ export async function POST(request: Request) {
         defaultProjectPhasesContent = projectPhasesTemplate.default_content;
         // Project phases content processed
       }
+      
+      const rolesTemplate = await getContentTemplate('roles');
+      // Roles template loaded
+      if (rolesTemplate) {
+        defaultRolesContent = rolesTemplate.default_content;
+        // Roles content processed
+      }
     } catch (templateError) {
       console.warn('Failed to fetch content templates:', templateError);
       // Continue with empty content if templates fail to load
@@ -73,7 +81,6 @@ export async function POST(request: Request) {
       .insert({
         // Required fields
         title: data.header?.sowTitle || 'Untitled SOW',
-        content: '',
         status: 'draft',
         
         // Header Information
@@ -133,11 +140,13 @@ export async function POST(request: Request) {
         custom_objectives_disclosure_content: data.custom_objectives_disclosure_content || defaultObjectivesDisclosureContent,
         custom_assumptions_content: data.custom_assumptions_content || defaultAssumptionsContent,
         custom_project_phases_content: data.custom_project_phases_content || defaultProjectPhasesContent,
+        custom_roles_content: data.custom_roles_content || defaultRolesContent,
         intro_content_edited: data.intro_content_edited || false,
         scope_content_edited: data.scope_content_edited || false,
         objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false,
         assumptions_content_edited: data.assumptions_content_edited || false,
         project_phases_content_edited: data.project_phases_content_edited || false,
+        roles_content_edited: data.roles_content_edited || false,
       })
       .select()
       .single();

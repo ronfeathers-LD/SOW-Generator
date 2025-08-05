@@ -61,69 +61,6 @@ export default function ProjectOverviewTab({
     <section className="space-y-6">
       <h2 className="text-2xl font-bold">Project Overview</h2>
       
-      {/* SOW Title and Project Timeline - Side by Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* SOW Title */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4">SOW Title</h3>
-          <input
-            type="text"
-            value={formData.template?.sow_title || formData.header?.sow_title || ''}
-            onChange={(e) => setFormData({
-              ...formData,
-              template: { ...formData.template!, sow_title: e.target.value },
-              header: { ...formData.header!, sow_title: e.target.value }
-            })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            placeholder="Enter SOW title"
-          />
-        </div>
-
-        {/* Project Timeline */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4">Project Timeline</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Start Date</label>
-              <input
-                type="date"
-                value={formData.scope?.timeline?.start_date ? new Date(formData.scope.timeline.start_date).toISOString().split('T')[0] : ''}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  scope: { 
-                    ...formData.scope!, 
-                    timeline: {
-                      ...formData.scope?.timeline!,
-                      start_date: new Date(e.target.value)
-                    } 
-                  }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Duration</label>
-              <input
-                type="text"
-                value={formData.scope?.timeline?.duration || ''}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  scope: { 
-                    ...formData.scope!, 
-                    timeline: { 
-                      ...formData.scope?.timeline!, 
-                      duration: e.target.value 
-                    } 
-                  }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="e.g., 8 weeks, 3 months"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Project Details */}
       <div className="bg-white shadow rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-4">Project Details</h3>
@@ -274,61 +211,8 @@ export default function ProjectOverviewTab({
                   ...formData,
                   template: { ...formData.template!, timeline_weeks: weeks }
                 });
-                
-                // Calculate end date if start date exists
-                if (formData.template?.start_date && weeks) {
-                  const startDate = new Date(formData.template.start_date);
-                  const endDate = new Date(startDate);
-                  endDate.setDate(startDate.getDate() + (parseInt(weeks) * 7));
-                  setFormData({
-                    ...formData,
-                    template: { 
-                      ...formData.template!, 
-                      timeline_weeks: weeks,
-                      end_date: endDate
-                    }
-                  });
-                }
               }}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Start Date</label>
-            <input
-              type="date"
-              value={formData.template?.start_date ? new Date(formData.template.start_date).toISOString().split('T')[0] : ''}
-              onChange={(e) => {
-                const startDate = new Date(e.target.value);
-                setFormData({
-                  ...formData,
-                  template: { ...formData.template!, start_date: startDate }
-                });
-                
-                // Calculate end date if timeline weeks exists
-                if (formData.template?.timeline_weeks) {
-                  const endDate = new Date(startDate);
-                  endDate.setDate(startDate.getDate() + (parseInt(formData.template.timeline_weeks) * 7));
-                  setFormData({
-                    ...formData,
-                    template: { 
-                      ...formData.template!, 
-                      start_date: startDate,
-                      end_date: endDate
-                    }
-                  });
-                }
-              }}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">End Date (Calculated)</label>
-            <input
-              type="date"
-              value={formData.template?.end_date ? new Date(formData.template.end_date).toISOString().split('T')[0] : ''}
-              disabled
-              className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
             />
           </div>
           <div className="md:col-span-2">

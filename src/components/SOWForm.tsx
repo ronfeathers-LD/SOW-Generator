@@ -60,8 +60,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             regions: initialData.template?.regions || '',
             salesforce_tenants: initialData.template?.salesforce_tenants || '',
             timeline_weeks: initialData.template?.timeline_weeks || '8',
-            start_date: initialData.template?.start_date || (initialData.project_start_date ? new Date(initialData.project_start_date) : null),
-            end_date: initialData.template?.end_date || (initialData.project_end_date ? new Date(initialData.project_end_date) : null),
             units_consumption: initialData.template?.units_consumption || 'All units immediately',
             billing_company_name: initialData.template?.billing_company_name || '',
             billing_contact_name: initialData.template?.billing_contact_name || '',
@@ -114,8 +112,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             regions: '',
             salesforce_tenants: '',
             timeline_weeks: '8',
-            start_date: null,
-            end_date: null,
             units_consumption: 'All units immediately',
             
             // Billing Information
@@ -153,7 +149,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             project_description: '',
             deliverables: '',
             timeline: {
-              start_date: new Date(),
               duration: '',
             },
           },
@@ -579,15 +574,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       return;
     }
 
-    // Tab-specific validation
-    if (activeTab === 'Customer Information' && !formData.template?.customer_signature_name?.trim()) {
-      setNotification({
-        type: 'error',
-        message: 'Please enter the customer signature name'
-      });
-      setTimeout(() => setNotification(null), 5000);
-      return;
-    }
+
 
     try {
       setIsSaving(true);
@@ -600,19 +587,15 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         case 'Project Overview':
           tabData = {
             template: {
-              sow_title: formData.template?.sow_title,
               products: formData.template?.products || [],
               number_of_units: formData.template?.number_of_units,
               regions: formData.template?.regions,
               salesforce_tenants: formData.template?.salesforce_tenants,
               timeline_weeks: formData.template?.timeline_weeks,
-              start_date: formData.template?.start_date,
-              end_date: formData.template?.end_date,
               units_consumption: formData.template?.units_consumption,
             },
             scope: {
               timeline: {
-                start_date: formData.scope?.timeline?.start_date,
                 duration: formData.scope?.timeline?.duration,
               }
             }

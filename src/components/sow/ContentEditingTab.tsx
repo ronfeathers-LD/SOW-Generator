@@ -16,7 +16,11 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
   const [objectivesDisclosureTemplate, setObjectivesDisclosureTemplate] = useState<string>('');
   const [assumptionsTemplate, setAssumptionsTemplate] = useState<string>('');
   const [projectPhasesTemplate, setProjectPhasesTemplate] = useState<string>('');
+  const [rolesTemplate, setRolesTemplate] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState('intro');
+  const [saving, setSaving] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<{ [key: string]: 'success' | 'error' | null }>({});
 
   useEffect(() => {
     async function loadTemplates() {
@@ -45,6 +49,11 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
         const projectPhases = await getContentTemplate('project-phases');
         if (projectPhases) {
           setProjectPhasesTemplate(projectPhases.default_content);
+        }
+
+        const roles = await getContentTemplate('roles');
+        if (roles) {
+          setRolesTemplate(roles.default_content);
         }
       } catch (error) {
         console.error('Error loading templates:', error);
@@ -146,6 +155,62 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
     });
   };
 
+  const handleRolesContentChange = (content: string) => {
+    // Check if content has been edited from the original template
+    const isEdited = content !== rolesTemplate && content.trim() !== '';
+    setFormData({
+      ...formData,
+      custom_roles_content: content,
+      roles_content_edited: isEdited
+    });
+  };
+
+  const resetRolesContent = () => {
+    setFormData({
+      ...formData,
+      custom_roles_content: rolesTemplate,
+      roles_content_edited: false
+    });
+  };
+
+  const saveSection = async (sectionName: string) => {
+    if (!formData.id) {
+      setSaveStatus({ ...saveStatus, [sectionName]: 'error' });
+      return;
+    }
+
+    setSaving(sectionName);
+    try {
+      const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tab: 'Content Editing',
+          data: {
+            [`custom_${sectionName}_content`]: formData[`custom_${sectionName}_content` as keyof SOWData],
+            [`${sectionName}_content_edited`]: formData[`${sectionName}_content_edited` as keyof SOWData],
+          }
+        }),
+      });
+
+      if (response.ok) {
+        setSaveStatus({ ...saveStatus, [sectionName]: 'success' });
+        setTimeout(() => {
+          setSaveStatus({ ...saveStatus, [sectionName]: null });
+        }, 3000);
+      } else {
+        setSaveStatus({ ...saveStatus, [sectionName]: 'error' });
+      }
+    } catch (error) {
+      console.error(`Error saving ${sectionName} content:`, error);
+      setSaveStatus({ ...saveStatus, [sectionName]: 'error' });
+    } finally {
+      setSaving(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -157,233 +222,430 @@ export default function ContentEditingTab({ formData, setFormData }: ContentEdit
     );
   }
 
+  const sections = [
+    { id: 'intro', name: 'Introduction', icon: '📝' },
+    { id: 'scope', name: 'Scope', icon: '🎯' },
+    { id: 'objectives-disclosure', name: 'Objectives Disclosure', icon: '📋' },
+    { id: 'assumptions', name: 'Assumptions', icon: '⚠️' },
+    { id: 'project-phases', name: 'Project Phases', icon: '📅' },
+    { id: 'roles', name: 'Roles & Responsibilities', icon: '👥' },
+  ];
+
+  const renderSection = (sectionId: string) => {
+    switch (sectionId) {
+      case 'intro':
+        return (
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Introduction Section</h3>
+              <div className="flex items-center space-x-2">
+                {formData.intro_content_edited && (
+                  <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                    Customized
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => saveSection('intro')}
+                  disabled={saving === 'intro'}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving === 'intro' ? 'Saving...' : 'Save'}
+                </button>
+                {saveStatus.intro === 'success' && (
+                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
+                )}
+                {saveStatus.intro === 'error' && (
+                  <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Error</span>
+                )}
+                <button
+                  type="button"
+                  onClick={resetIntroContent}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Reset to Default
+                </button>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Introduction Content
+              </label>
+              <WYSIWYGEditor
+                value={formData.custom_intro_content || ''}
+                onChange={handleIntroContentChange}
+                placeholder="Enter the introduction content for this SOW..."
+              />
+              <p className="mt-2 text-sm text-gray-500">
+                Use {'{clientName}'} as a placeholder that will be replaced with the actual client name.
+              </p>
+            </div>
+
+            {formData.intro_content_edited && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> This content has been customized from the default template and will be flagged during approval.
+                </p>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'scope':
+        return (
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Scope Section</h3>
+              <div className="flex items-center space-x-2">
+                {formData.scope_content_edited && (
+                  <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                    Customized
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => saveSection('scope')}
+                  disabled={saving === 'scope'}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving === 'scope' ? 'Saving...' : 'Save'}
+                </button>
+                {saveStatus.scope === 'success' && (
+                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
+                )}
+                {saveStatus.scope === 'error' && (
+                  <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Error</span>
+                )}
+                <button
+                  type="button"
+                  onClick={resetScopeContent}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Reset to Default
+                </button>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Scope Content
+              </label>
+              <WYSIWYGEditor
+                value={formData.custom_scope_content || ''}
+                onChange={handleScopeContentChange}
+                placeholder="Enter the scope content for this SOW..."
+              />
+              <p className="mt-2 text-sm text-gray-500">
+                Use {'{deliverables}'} as a placeholder that will be replaced with the actual deliverables list.
+              </p>
+            </div>
+
+            {formData.scope_content_edited && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> This content has been customized from the default template and will be flagged during approval.
+                </p>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'objectives-disclosure':
+        return (
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Objectives Disclosure Section</h3>
+              <div className="flex items-center space-x-2">
+                {formData.objectives_disclosure_content_edited && (
+                  <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                    Customized
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => saveSection('objectives-disclosure')}
+                  disabled={saving === 'objectives-disclosure'}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving === 'objectives-disclosure' ? 'Saving...' : 'Save'}
+                </button>
+                {saveStatus['objectives-disclosure'] === 'success' && (
+                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
+                )}
+                {saveStatus['objectives-disclosure'] === 'error' && (
+                  <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Error</span>
+                )}
+                <button
+                  type="button"
+                  onClick={resetObjectivesDisclosureContent}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Reset to Default
+                </button>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Objectives Disclosure Content
+              </label>
+              <WYSIWYGEditor
+                value={formData.custom_objectives_disclosure_content || ''}
+                onChange={handleObjectivesDisclosureContentChange}
+                placeholder="Enter the objectives disclosure content for this SOW..."
+              />
+              <p className="mt-2 text-sm text-gray-500">
+                This content outlines the objectives and disclosure information for the project.
+              </p>
+            </div>
+
+            {formData.objectives_disclosure_content_edited && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> This content has been customized from the default template and will be flagged during approval.
+                </p>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'assumptions':
+        return (
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Assumptions Section</h3>
+              <div className="flex items-center space-x-2">
+                {formData.assumptions_content_edited && (
+                  <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                    Customized
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => saveSection('assumptions')}
+                  disabled={saving === 'assumptions'}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving === 'assumptions' ? 'Saving...' : 'Save'}
+                </button>
+                {saveStatus.assumptions === 'success' && (
+                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
+                )}
+                {saveStatus.assumptions === 'error' && (
+                  <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Error</span>
+                )}
+                <button
+                  type="button"
+                  onClick={resetAssumptionsContent}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Reset to Default
+                </button>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Assumptions Content
+              </label>
+              <WYSIWYGEditor
+                value={formData.custom_assumptions_content || ''}
+                onChange={handleAssumptionsContentChange}
+                placeholder="Enter the assumptions content for this SOW..."
+              />
+              <p className="mt-2 text-sm text-gray-500">
+                This content outlines the assumptions and requirements for the project.
+              </p>
+            </div>
+
+            {formData.assumptions_content_edited && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> This content has been customized from the default template and will be flagged during approval.
+                </p>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'project-phases':
+        return (
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Project Phases Section</h3>
+              <div className="flex items-center space-x-2">
+                {formData.project_phases_content_edited && (
+                  <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                    Customized
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => saveSection('project-phases')}
+                  disabled={saving === 'project-phases'}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving === 'project-phases' ? 'Saving...' : 'Save'}
+                </button>
+                {saveStatus['project-phases'] === 'success' && (
+                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
+                )}
+                {saveStatus['project-phases'] === 'error' && (
+                  <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Error</span>
+                )}
+                <button
+                  type="button"
+                  onClick={resetProjectPhasesContent}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Reset to Default
+                </button>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Project Phases Content
+              </label>
+              <WYSIWYGEditor
+                value={formData.custom_project_phases_content || ''}
+                onChange={handleProjectPhasesContentChange}
+                placeholder="Enter the project phases content for this SOW..."
+              />
+              <p className="mt-2 text-sm text-gray-500">
+                This content displays the project phases, activities, and artifacts table.
+              </p>
+            </div>
+
+            {formData.project_phases_content_edited && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> This content has been customized from the default template and will be flagged during approval.
+                </p>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'roles':
+        return (
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Roles and Responsibilities Section</h3>
+              <div className="flex items-center space-x-2">
+                {formData.roles_content_edited && (
+                  <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                    Customized
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => saveSection('roles')}
+                  disabled={saving === 'roles'}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving === 'roles' ? 'Saving...' : 'Save'}
+                </button>
+                {saveStatus.roles === 'success' && (
+                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
+                )}
+                {saveStatus.roles === 'error' && (
+                  <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Error</span>
+                )}
+                <button
+                  type="button"
+                  onClick={resetRolesContent}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Reset to Default
+                </button>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Roles and Responsibilities Content
+              </label>
+              <WYSIWYGEditor
+                value={formData.custom_roles_content || ''}
+                onChange={handleRolesContentChange}
+                placeholder="Enter the roles and responsibilities content for this SOW..."
+              />
+              <p className="mt-2 text-sm text-gray-500">
+                This content outlines the roles and responsibilities for both Customer and LeanData teams.
+              </p>
+            </div>
+
+            {formData.roles_content_edited && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> This content has been customized from the default template and will be flagged during approval.
+                </p>
+              </div>
+            )}
+          </div>
+        );
+
+      default:
+        return <div>Section not found</div>;
+    }
+  };
+
   return (
-    <div className="space-y-8">
-      {/* Introduction Section */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Introduction Section</h3>
-          {formData.intro_content_edited && (
-            <div className="flex items-center space-x-2">
-              <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                Customized
-              </span>
+    <div className="flex gap-6">
+      {/* Left Navigation */}
+      <div className="w-64 flex-shrink-0">
+        <div className="bg-white shadow rounded-lg p-4">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Content Sections</h3>
+          <div className="space-y-1">
+            {sections.map((section) => (
               <button
+                key={section.id}
                 type="button"
-                onClick={resetIntroContent}
-                className="text-sm text-gray-500 hover:text-gray-700"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setActiveSection(section.id);
+                }}
+                className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeSection === section.id
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
               >
-                Reset to Default
+                <div className="flex items-center">
+                  <span className="mr-2">{section.icon}</span>
+                  <span>{section.name}</span>
+                  {formData[`${section.id}_content_edited` as keyof SOWData] && (
+                    <span className="ml-auto px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                      Edited
+                    </span>
+                  )}
+                </div>
               </button>
-            </div>
-          )}
-        </div>
-        
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Introduction Content
-          </label>
-          <WYSIWYGEditor
-            value={formData.custom_intro_content || ''}
-            onChange={handleIntroContentChange}
-            placeholder="Enter the introduction content for this SOW..."
-          />
-          <p className="mt-2 text-sm text-gray-500">
-            Use {'{clientName}'} as a placeholder that will be replaced with the actual client name.
-          </p>
-        </div>
-
-        {formData.intro_content_edited && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-            <p className="text-sm text-yellow-800">
-              <strong>Note:</strong> This content has been customized from the default template and will be flagged during approval.
-            </p>
+            ))}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Scope Section */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Scope Section</h3>
-          {formData.scope_content_edited && (
-            <div className="flex items-center space-x-2">
-              <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                Customized
-              </span>
-              <button
-                type="button"
-                onClick={resetScopeContent}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                Reset to Default
-              </button>
-            </div>
-          )}
-        </div>
+      {/* Main Content Area */}
+      <div className="flex-1">
+        {renderSection(activeSection)}
         
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Scope Content
-          </label>
-          <WYSIWYGEditor
-            value={formData.custom_scope_content || ''}
-            onChange={handleScopeContentChange}
-            placeholder="Enter the scope content for this SOW..."
-          />
-          <p className="mt-2 text-sm text-gray-500">
-            Use {'{deliverables}'} as a placeholder that will be replaced with the actual deliverables list.
-          </p>
+        {/* Information Panel */}
+        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-blue-900 mb-2">About Content Editing</h4>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>• Default content is loaded from admin-managed templates</li>
+            <li>• Any changes to the default content will be flagged during approval</li>
+            <li>• Use placeholders like {'{clientName}'} and {'{deliverables}'} for dynamic content</li>
+            <li>• You can reset to the default template at any time</li>
+            <li>• Each section can be saved individually using the Save button</li>
+          </ul>
         </div>
-
-        {formData.scope_content_edited && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-            <p className="text-sm text-yellow-800">
-              <strong>Note:</strong> This content has been customized from the default template and will be flagged during approval.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Objectives Disclosure Section */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Objectives Disclosure Section</h3>
-          {formData.objectives_disclosure_content_edited && (
-            <div className="flex items-center space-x-2">
-              <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                Customized
-              </span>
-              <button
-                type="button"
-                onClick={resetObjectivesDisclosureContent}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                Reset to Default
-              </button>
-            </div>
-          )}
-        </div>
-        
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Objectives Disclosure Content
-          </label>
-          <WYSIWYGEditor
-            value={formData.custom_objectives_disclosure_content || ''}
-            onChange={handleObjectivesDisclosureContentChange}
-            placeholder="Enter the objectives disclosure content for this SOW..."
-          />
-          <p className="mt-2 text-sm text-gray-500">
-            This content explains responsibilities and assumptions for the project.
-          </p>
-        </div>
-
-        {formData.objectives_disclosure_content_edited && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-            <p className="text-sm text-yellow-800">
-              <strong>Note:</strong> This content has been customized from the default template and will be flagged during approval.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Assumptions Section */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Assumptions Section</h3>
-          {formData.assumptions_content_edited && (
-            <div className="flex items-center space-x-2">
-              <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                Customized
-              </span>
-              <button
-                type="button"
-                onClick={resetAssumptionsContent}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                Reset to Default
-              </button>
-            </div>
-          )}
-        </div>
-        
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Assumptions Content
-          </label>
-          <WYSIWYGEditor
-            value={formData.custom_assumptions_content || ''}
-            onChange={handleAssumptionsContentChange}
-            placeholder="Enter the assumptions content for this SOW..."
-          />
-          <p className="mt-2 text-sm text-gray-500">
-            This content outlines the assumptions and requirements for the project.
-          </p>
-        </div>
-
-        {formData.assumptions_content_edited && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-            <p className="text-sm text-yellow-800">
-              <strong>Note:</strong> This content has been customized from the default template and will be flagged during approval.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Project Phases Section */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Project Phases Section</h3>
-          {formData.project_phases_content_edited && (
-            <div className="flex items-center space-x-2">
-              <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                Customized
-              </span>
-              <button
-                type="button"
-                onClick={resetProjectPhasesContent}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                Reset to Default
-              </button>
-            </div>
-          )}
-        </div>
-        
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Project Phases Content
-          </label>
-          <WYSIWYGEditor
-            value={formData.custom_project_phases_content || ''}
-            onChange={handleProjectPhasesContentChange}
-            placeholder="Enter the project phases content for this SOW..."
-          />
-          <p className="mt-2 text-sm text-gray-500">
-            This content displays the project phases, activities, and artifacts table.
-          </p>
-        </div>
-
-        {formData.project_phases_content_edited && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-            <p className="text-sm text-yellow-800">
-              <strong>Note:</strong> This content has been customized from the default template and will be flagged during approval.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Information Panel */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-blue-900 mb-2">About Content Editing</h4>
-        <ul className="text-sm text-blue-800 space-y-1">
-          <li>• Default content is loaded from admin-managed templates</li>
-          <li>• Any changes to the default content will be flagged during approval</li>
-          <li>• Use placeholders like {'{clientName}'} and {'{deliverables}'} for dynamic content</li>
-          <li>• You can reset to the default template at any time</li>
-        </ul>
       </div>
     </div>
   );
-} 
+}
+           
