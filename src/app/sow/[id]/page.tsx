@@ -534,16 +534,6 @@ export default function SOWDetailsPage() {
               <div className="border-2 border-blue-300 rounded-lg p-4 mb-8">
                 <h3 className="text-lg font-bold text-blue-800 mb-4 text-center">📄 TITLE PAGE SECTION</h3>
                 <div id="title-page" className="mb-12">
-                  {(() => {
-                    // Debug logging
-                    console.log('SOW data for title page:', {
-                      customer_signature_name_2: sow.customer_signature_name_2,
-                      customer_signature_2: sow.customer_signature_2,
-                      customer_email_2: sow.customer_email_2,
-                      hasSecondSigner: !!sow.customer_signature_name_2
-                    });
-                    return null;
-                  })()}
                   <SOWTitlePage
                     clientName={salesforceData?.account_data?.name || sow.clientName}
                     clientLogo={sow.companyLogo}
