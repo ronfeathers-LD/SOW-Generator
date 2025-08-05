@@ -16,6 +16,8 @@ export interface ClientRole {
   name: string;
   email: string;
   responsibilities: string;
+  salesforce_contact_id?: string;
+  contact_title?: string;
 }
 
 export interface SOWTemplate {

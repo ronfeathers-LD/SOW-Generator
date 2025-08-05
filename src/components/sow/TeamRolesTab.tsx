@@ -93,7 +93,9 @@ export default function TeamRolesTab({
     newRoles[roleIndex] = { 
       ...newRoles[roleIndex], 
       name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
-      email: contact.Email || ''
+      email: contact.Email || '',
+      salesforce_contact_id: contact.Id,
+      contact_title: contact.Title
     };
     setFormData({
       ...formData,
@@ -314,22 +316,63 @@ export default function TeamRolesTab({
                 ) : (
                   <div className="space-y-3">
                     {/* Current Contact Display */}
-                    <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+                    <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
                       <div className="flex items-center justify-between">
                         <div>
                           <h5 className="font-medium text-gray-900">Current Contact</h5>
                           <p className="text-sm text-gray-600">
                             {role.name || 'No contact selected'}
                           </p>
-                          {role.email && (
-                            <p className="text-xs text-gray-500">{role.email}</p>
+                          {role.name && (
+                            <div className="text-xs text-gray-600 space-y-1 mt-2">
+                              {/* Show "Contact verified in Salesforce" if we have a Salesforce contact ID */}
+                              {role.salesforce_contact_id && (
+                                <div className="flex items-center">
+                                  <svg className="h-3 w-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                  </svg>
+                                  <span>Contact verified in Salesforce</span>
+                                </div>
+                              )}
+                              {role.email && (
+                                <div className="flex items-center">
+                                  <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                  </svg>
+                                  <span>Email: {role.email}</span>
+                                </div>
+                              )}
+                              {role.contact_title && (
+                                <div className="flex items-center">
+                                  <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                  </svg>
+                                  <span>Title: {role.contact_title}</span>
+                                </div>
+                              )}
+                              {/* Show "View in Salesforce" link if we have a Salesforce contact ID */}
+                              {role.salesforce_contact_id && (
+                                <a
+                                  href={getSalesforceLink(role.salesforce_contact_id, 'Contact')}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 underline flex items-center"
+                                >
+                                  <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                                    <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                                  </svg>
+                                  View in Salesforce
+                                </a>
+                              )}
+                            </div>
                           )}
                         </div>
                         <button
                           onClick={() => setShowContactSelection(index)}
-                          className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                          className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
                         >
-                          Change
+                          Change Contact
                         </button>
                       </div>
                     </div>
