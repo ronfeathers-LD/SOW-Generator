@@ -4,12 +4,6 @@ interface SOWProjectPhasesPageProps {
 }
 
 export default function SOWProjectPhasesPage({ customContent, isEdited }: SOWProjectPhasesPageProps) {
-  // Debug logging
-  console.log('🔍 SOWProjectPhasesPage received:', {
-    customContent_length: customContent?.length || 0,
-    isEdited,
-    has_content: !!customContent
-  });
 
   return (
     <div className="max-w-none text-left">
