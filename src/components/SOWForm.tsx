@@ -287,7 +287,13 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         salesforce_contact_id: initialData.salesforce_contact_id
       });
       
-      if (initialData.template?.customer_signature_name || initialData.client_signer_name) {
+      // Check if we have any contact information (either from template or legacy fields)
+      const hasContactInfo = initialData.template?.customer_signature_name || 
+                           initialData.client_signer_name || 
+                           initialData.template?.customer_email ||
+                           initialData.client_signature?.email;
+      
+      if (hasContactInfo) {
         const fullName = initialData.template?.customer_signature_name || initialData.client_signer_name || '';
         const nameParts = fullName.trim().split(' ');
         const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : '';
@@ -305,6 +311,18 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         
         console.log('🔍 Setting selectedContact with:', contactData);
         setSelectedContact(contactData);
+        
+        // Also ensure the form data is properly set
+        setFormData(prevData => ({
+          ...prevData,
+          template: {
+            ...prevData.template!,
+            customer_signature_name: fullName,
+            customer_email: contactData.Email,
+            customer_signature: contactData.Title,
+          },
+          salesforce_contact_id: contactData.Id,
+        }));
       } else {
         console.log('🔍 No contact data found in initialData');
       }

@@ -41,12 +41,18 @@ export default function TeamRolesTab({
     console.log('🔍 TeamRolesTab useEffect - selectedAccount:', selectedAccount?.id, 'selectedContact:', selectedContact);
     if (selectedAccount?.id) {
       loadContacts(selectedAccount.id);
+      
       // Show contact selection if no contact is currently selected
-      const shouldShowSelection = !selectedContact;
-      console.log('🔍 Setting showContactSelection to:', shouldShowSelection);
+      // Check both selectedContact and formData for contact information
+      const hasContactInfo = selectedContact || 
+                           formData.template?.customer_signature_name || 
+                           formData.salesforce_contact_id;
+      
+      const shouldShowSelection = !hasContactInfo;
+      console.log('🔍 Setting showContactSelection to:', shouldShowSelection, 'hasContactInfo:', hasContactInfo);
       setShowContactSelection(shouldShowSelection);
     }
-  }, [selectedAccount?.id, selectedContact]);
+  }, [selectedAccount?.id, selectedContact, formData.template?.customer_signature_name, formData.salesforce_contact_id]);
 
   const loadContacts = async (accountId: string) => {
     setIsLoadingContacts(true);
@@ -118,11 +124,15 @@ export default function TeamRolesTab({
                     <h4 className="font-medium text-gray-900">Current Signer</h4>
                     <p className="text-sm text-gray-600">
                       {(() => {
-                        const contactDisplay = selectedContact 
-                          ? `${selectedContact.FirstName || ''} ${selectedContact.LastName}`.trim()
-                          : formData.template?.customer_signature_name
-                          ? `${formData.template.customer_signature_name} (manual entry)`
-                          : 'No signer selected';
+                        // Determine the contact name to display
+                        let contactDisplay = 'No signer selected';
+                        
+                        if (selectedContact?.FirstName || selectedContact?.LastName) {
+                          contactDisplay = `${selectedContact.FirstName || ''} ${selectedContact.LastName}`.trim();
+                        } else if (formData.template?.customer_signature_name) {
+                          contactDisplay = formData.template.customer_signature_name;
+                        }
+                        
                         console.log('🔍 Current signer display:', {
                           selectedContact,
                           customer_signature_name: formData.template?.customer_signature_name,
@@ -131,7 +141,7 @@ export default function TeamRolesTab({
                         return contactDisplay;
                       })()}
                     </p>
-                    {(selectedContact || formData.template?.customer_signature_name) && (
+                    {(selectedContact || formData.template?.customer_signature_name || formData.salesforce_contact_id) && (
                       <div className="text-xs text-gray-600 space-y-1 mt-2">
                         {/* Show "Contact verified in Salesforce" if we have a Salesforce contact ID */}
                         {(selectedContact?.Id || formData.salesforce_contact_id) && (
@@ -142,20 +152,20 @@ export default function TeamRolesTab({
                             <span>Contact verified in Salesforce</span>
                           </div>
                         )}
-                        {formData.template?.customer_email && (
+                        {(selectedContact?.Email || formData.template?.customer_email) && (
                           <div className="flex items-center">
                             <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
-                            <span>Email: {formData.template.customer_email}</span>
+                            <span>Email: {selectedContact?.Email || formData.template?.customer_email}</span>
                           </div>
                         )}
-                        {formData.template?.customer_signature && (
+                        {(selectedContact?.Title || formData.template?.customer_signature) && (
                           <div className="flex items-center">
                             <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
-                            <span>Title: {formData.template.customer_signature}</span>
+                            <span>Title: {selectedContact?.Title || formData.template?.customer_signature}</span>
                           </div>
                         )}
                         {/* Show "View in Salesforce" link if we have a Salesforce contact ID */}
