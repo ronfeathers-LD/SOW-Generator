@@ -171,8 +171,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               billing_address: '',
               billing_email: '',
               po_number: '',
-              payment_terms: '',
-              currency: '',
             },
           },
           assumptions: {
@@ -208,6 +206,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   const [selectedLeanDataSignatory, setSelectedLeanDataSignatory] = useState<string>('');
   const [selectedAccount, setSelectedAccount] = useState<{ id: string; name: string } | null>(null);
   const [selectedContact, setSelectedContact] = useState<SalesforceContact | null>(null);
+  const [selectedBillingContact, setSelectedBillingContact] = useState<SalesforceContact | null>(null);
   const [selectedOpportunity, setSelectedOpportunity] = useState<SalesforceOpportunity | null>(null);
   const [availableOpportunities, setAvailableOpportunities] = useState<SalesforceOpportunity[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
@@ -323,6 +322,31 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           AccountId: '',
           Account: { Name: '' }
         });
+      }
+
+      // Set selected billing contact if billing contact information exists
+      const hasBillingContactInfo = initialData.template?.billing_contact_name || 
+                                   initialData.pricing?.billing?.billing_contact ||
+                                   initialData.template?.billing_email ||
+                                   initialData.pricing?.billing?.billing_email;
+      
+      if (hasBillingContactInfo) {
+        const fullName = initialData.pricing?.billing?.billing_contact || initialData.template?.billing_contact_name || '';
+        const nameParts = fullName.trim().split(' ');
+        const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : '';
+        const lastName = nameParts.length > 0 ? nameParts[nameParts.length - 1] : fullName;
+        
+        const billingContactData = {
+          Id: '', // We don't store billing contact ID, so leave empty
+          FirstName: firstName,
+          LastName: lastName,
+          Email: initialData.pricing?.billing?.billing_email || initialData.template?.billing_email || '',
+          Title: '',
+          AccountId: initialData.salesforce_account_id || '',
+          Account: { Name: initialData.template?.customer_name || initialData.header?.client_name || '' }
+        };
+        
+        setSelectedBillingContact(billingContactData);
       }
     }
   }, [initialData]);
@@ -497,6 +521,48 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     }
   };
 
+  const handleBillingContactSelectedFromSalesforce = async (contact: SalesforceContact | null) => {
+    setSelectedBillingContact(contact);
+    
+    if (contact) {
+      // Auto-populate billing contact information
+      setFormData({
+        ...formData,
+        template: {
+          ...formData.template!,
+          billing_contact_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
+          billing_email: contact.Email || '',
+        },
+        pricing: {
+          ...formData.pricing!,
+          billing: {
+            ...formData.pricing?.billing!,
+            billing_contact: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
+            billing_email: contact.Email || '',
+          }
+        }
+      });
+    } else {
+      // Clear billing contact information when deselected
+      setFormData({
+        ...formData,
+        template: {
+          ...formData.template!,
+          billing_contact_name: '',
+          billing_email: '',
+        },
+        pricing: {
+          ...formData.pricing!,
+          billing: {
+            ...formData.pricing?.billing!,
+            billing_contact: '',
+            billing_email: '',
+          }
+        }
+      });
+    }
+  };
+
   // Helper function to generate Salesforce record links
   const getSalesforceLink = (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => {
     return `${salesforceInstanceUrl}/${recordId}`;
@@ -661,6 +727,13 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
         case 'Billing & Payment':
           tabData = {
+            template: {
+              billing_company_name: formData.template?.billing_company_name,
+              billing_contact_name: formData.template?.billing_contact_name,
+              billing_address: formData.template?.billing_address,
+              billing_email: formData.template?.billing_email,
+              purchase_order_number: formData.template?.purchase_order_number,
+            },
             pricing: {
               billing: formData.pricing?.billing,
             },
@@ -929,6 +1002,10 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           formData={formData}
           setFormData={updateFormData}
           selectedAccountId={selectedAccount?.id}
+          selectedAccount={selectedAccount}
+          selectedBillingContact={selectedBillingContact}
+          onBillingContactSelectedFromSalesforce={handleBillingContactSelectedFromSalesforce}
+          getSalesforceLink={getSalesforceLink}
         />
       )}
 
