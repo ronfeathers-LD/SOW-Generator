@@ -539,9 +539,9 @@ export default function SOWDetailsPage() {
                     clientLogo={sow.companyLogo}
                     clientSignature={{
                           name: findSignatory(salesforceData?.contacts_data)?.name || sow.clientSignerName || sow.clientSignature?.name || 'Not Entered',
-    title: findSignatory(salesforceData?.contacts_data)?.title || sow.clientSignature?.title || sow.clientTitle || 'Not Entered',
-    email: findSignatory(salesforceData?.contacts_data)?.email || sow.clientSignature?.email || sow.clientEmail || 'Not Entered',
-                      date: sow.signatureDate || 'Not Entered'
+    title: findSignatory(salesforceData?.contacts_data)?.title || sow.clientSignature?.title || sow.clientTitle || 'Title Not Entered',
+    email: findSignatory(salesforceData?.contacts_data)?.email || sow.clientSignature?.email || sow.clientEmail || 'EmailNot Entered',
+                      date: sow.signatureDate || ''
                     }}
                     clientSignature2={sow.customer_signature_name_2 ? {
                       name: sow.customer_signature_name_2,
