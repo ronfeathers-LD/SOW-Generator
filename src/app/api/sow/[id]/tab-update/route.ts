@@ -33,7 +33,7 @@ export async function PUT(
           if (data.template.number_of_units !== undefined) updateData.number_of_units = data.template.number_of_units;
           if (data.template.regions !== undefined) updateData.regions = data.template.regions;
           if (data.template.salesforce_tenants !== undefined) updateData.salesforce_tenants = data.template.salesforce_tenants;
-
+          if (data.template.timeline_weeks !== undefined) updateData.timeline_weeks = data.template.timeline_weeks;
           if (data.template.units_consumption !== undefined) updateData.units_consumption = data.template.units_consumption;
         }
         if (data.scope?.timeline) {
