@@ -344,11 +344,23 @@ export default function ObjectivesTab({
 
       
       // Update the form with the generated objective and scope
-      // Process scope items into deliverables format
+      // Process scope items into deliverables format with proper formatting
       const allScopeItems: string[] = [];
       Object.entries(scopeItems).forEach(([category, items]) => {
         if (Array.isArray(items) && items.length > 0) {
-          allScopeItems.push(`${category.toUpperCase()}\n${items.map(item => `• ${item}`).join('\n')}`);
+          const formattedItems = items.map(item => {
+            // Split the item into main objective and target
+            const targetMatch = item.match(/\.\s*Target:\s*(.+)$/);
+            if (targetMatch) {
+              const mainObjective = item.replace(/\.\s*Target:\s*.+$/, '.');
+              const target = targetMatch[1];
+              return `• ${mainObjective} Target: ${target}`;
+            } else {
+              // If no target found, just format as a regular bullet point
+              return `• ${item}`;
+            }
+          });
+          allScopeItems.push(`${category.toUpperCase()}\n${formattedItems.join('\n')}`);
         }
       });
       
