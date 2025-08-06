@@ -428,7 +428,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
         return (
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Scope Section</h3>
+              <h3 className="text-lg font-medium text-gray-900">Scope</h3>
               <div className="flex items-center space-x-2">
                 {formData.scope_content_edited && (
                   <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
@@ -548,7 +548,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
         return (
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Assumptions Section</h3>
+              <h3 className="text-lg font-medium text-gray-900">Assumptions</h3>
               <div className="flex items-center space-x-2">
                 {formData.assumptions_content_edited && (
                   <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
@@ -608,7 +608,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
         return (
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Project Phases Section</h3>
+              <h3 className="text-lg font-medium text-gray-900">Project Phases</h3>
               <div className="flex items-center space-x-2">
                 {formData.project_phases_content_edited && (
                   <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
@@ -668,7 +668,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
         return (
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Roles and Responsibilities Section</h3>
+              <h3 className="text-lg font-medium text-gray-900">Roles and Responsibilities</h3>
               <div className="flex items-center space-x-2">
                 {formData.roles_content_edited && (
                   <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
