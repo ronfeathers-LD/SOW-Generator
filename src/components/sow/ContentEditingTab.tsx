@@ -400,18 +400,15 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
             </div>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Introduction Content
-              </label>
+              <p className="mt-2 text-sm text-gray-500">
+                NOTE: the variable {'{clientName}'} will be replaced with the actual client name.
+              </p>
               <TipTapEditor
                 value={formData.custom_intro_content || ''}
                 onChange={handleIntroContentChange}
                 placeholder="Enter the introduction content for this SOW..."
                 initializing={initializing}
               />
-              <p className="mt-2 text-sm text-gray-500">
-                Use {'{clientName}'} as a placeholder that will be replaced with the actual client name.
-              </p>
             </div>
 
             {formData.intro_content_edited && (
@@ -460,18 +457,15 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
             </div>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Scope Content
-              </label>
+              <p className="mt-2 text-sm text-gray-500">
+                NOTE: {'{deliverables}'} is a placeholder which will be replaced with the actual deliverables list.
+              </p>
               <TipTapEditor
                 value={formData.custom_scope_content || ''}
                 onChange={handleScopeContentChange}
                 placeholder="Enter the scope content for this SOW..."
                 initializing={initializing}
               />
-              <p className="mt-2 text-sm text-gray-500">
-                Use {'{deliverables}'} as a placeholder that will be replaced with the actual deliverables list.
-              </p>
             </div>
 
             {formData.scope_content_edited && (
@@ -520,9 +514,6 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
             </div>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Objectives Disclosure Content
-              </label>
               <TipTapEditor
                 value={formData.custom_objectives_disclosure_content || ''}
                 onChange={handleObjectivesDisclosureContentChange}
@@ -580,9 +571,6 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
             </div>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Assumptions Content
-              </label>
               <TipTapEditor
                 value={formData.custom_assumptions_content || ''}
                 onChange={handleAssumptionsContentChange}
@@ -640,9 +628,6 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
             </div>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Project Phases Content
-              </label>
               <TipTapEditor
                 value={formData.custom_project_phases_content || ''}
                 onChange={handleProjectPhasesContentChange}
@@ -700,9 +685,6 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
             </div>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Roles and Responsibilities Content
-              </label>
               <TipTapEditor
                 value={formData.custom_roles_content || ''}
                 onChange={handleRolesContentChange}
