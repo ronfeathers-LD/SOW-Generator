@@ -11,21 +11,7 @@ interface GeminiGenerationResponse {
   summary: string;
 }
 
-interface ObjectivesGenerationRequest {
-  customerName: string;
-  projectDescription: string;
-  products: string;
-}
 
-interface ObjectivesGenerationResponse {
-  objective: string;
-  scope: {
-    "Lead Routing": string[];
-    "Account Matching": string[];
-    "BookIt": string[];
-    "Integrations": string[];
-  };
-}
 
 interface TranscriptionAnalysisResponse {
   objective: string;
@@ -595,115 +581,9 @@ Customer: ${customerName}
     }
   }
 
-  /**
-   * Generate project objectives based on customer and project information
-   */
-  async generateObjectives(
-    request: ObjectivesGenerationRequest
-  ): Promise<ObjectivesGenerationResponse> {
-    const { customerName, projectDescription, products } = request;
-    
-    const prompt = `
-You are an expert at creating professional project objectives for Statement of Work (SOW) documents for LeanData implementations.
-
-Based on the following information, generate a comprehensive project objective description and scope items for ${customerName}:
-
-Customer: ${customerName}
-Products/Services: ${products}
-${projectDescription ? `Project Description: ${projectDescription}` : ''}
-
-Please provide your response in the following JSON format:
-{
-  "objective": "A clear, professional objective statement that captures the main goal of the project (3-5 sentences). The intro paragraph should utilize the customerName: {customerName} seeks to implement LeanData as part of their initiative to automate and improve their go to market processes by leveraging LeanData's Orchestration and BookIt platforms. (where the products listed are included in the project)",
-  "scope": {
-    "Lead Routing": [
-      "Specific scope item 1 related to Lead Routing",
-      "Specific scope item 2 related to Lead Routing"
-    ],
-    "Account Matching": [
-      "Specific scope item 1 related to Account Matching",
-      "Specific scope item 2 related to Account Matching"
-    ],
-    "BookIt": [
-      "Specific scope item 1 related to BookIt",
-      "Specific scope item 2 related to BookIt"
-    ],
-    "Integrations": [
-      "Specific scope item 1 related to Integrations",
-      "Specific scope item 2 related to Integrations"
-    ]
-  }
 }
 
-The objective should be professional and business-focused, following the pattern shown above. The scope items should be specific, measurable, and aligned with typical LeanData implementation goals. Include scope items related to lead/contact management, automation, data quality, and operational efficiency.
-
-Use these example scope items as a reference but adapt them to the specific customer and project context:
-- Lead Routing: Accurate lead assignment based on territory and revenue segmentation
-- Account Matching: Deduplication of leads and contacts across Salesforce objects
-- BookIt: Automated meeting scheduling and calendar integration
-- Integrations: Seamless data flow between Salesforce and external systems
-`;
-
-    try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const content = response.text();
-
-      if (!content) {
-        throw new Error('No content received from Gemini');
-      }
-
-      // Try to parse the JSON response
-      try {
-        const parsed = JSON.parse(content);
-        return {
-          objective: parsed.objective || 'Project objective could not be generated',
-          scope: parsed.scope || {
-            "Lead Routing": ['Lead routing scope could not be generated'],
-            "Account Matching": ['Account matching scope could not be generated'],
-            "BookIt": ['BookIt scope could not be generated'],
-            "Integrations": ['Integrations scope could not be generated']
-          }
-        };
-      } catch (parseError) {
-        // If JSON parsing fails, create a fallback response
-        return {
-          objective: 'Project objective could not be generated due to formatting issues',
-          scope: {
-            "Lead Routing": ['Improve lead management and routing processes'],
-            "Account Matching": ['Automate account matching and deduplication'],
-            "BookIt": ['Enhance sales team efficiency through better lead distribution'],
-            "Integrations": ['Reduce manual data entry and processing time']
-          }
-        };
-      }
-    } catch (error) {
-      console.error('Error generating objectives:', error);
-      return {
-        objective: 'Project objective could not be generated due to an error',
-        scope: {
-          "Lead Routing": ['Improve lead management and routing processes'],
-          "Account Matching": ['Automate account matching and deduplication'],
-          "BookIt": ['Enhance sales team efficiency through better lead distribution'],
-          "Integrations": ['Reduce manual data entry and processing time']
-        }
-      };
-    }
-  }
-}
-
-export { GeminiClient, type GeminiBulletPoint, type GeminiGenerationResponse, type ObjectivesGenerationResponse, type TranscriptionAnalysisResponse };
-
-// Helper function to generate objectives
-export async function generateObjectives(request: ObjectivesGenerationRequest): Promise<ObjectivesGenerationResponse> {
-  const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('GOOGLE_GEMINI_API_KEY environment variable is not set');
-  }
-
-  const client = new GeminiClient(apiKey);
-  return await client.generateObjectives(request);
-}
+export { GeminiClient, type GeminiBulletPoint, type GeminiGenerationResponse, type TranscriptionAnalysisResponse };
 
 // Helper function to analyze transcription
 export async function analyzeTranscription(
