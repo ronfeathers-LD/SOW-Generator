@@ -96,12 +96,14 @@ export async function GET(
       custom_assumptions_content: sow.custom_assumptions_content || null,
       custom_project_phases_content: sow.custom_project_phases_content || null,
       custom_roles_content: sow.custom_roles_content || null,
+      custom_deliverables_content: sow.custom_deliverables_content || null,
       intro_content_edited: sow.intro_content_edited || false,
       scope_content_edited: sow.scope_content_edited || false,
       objectives_disclosure_content_edited: sow.objectives_disclosure_content_edited || false,
       assumptions_content_edited: sow.assumptions_content_edited || false,
       project_phases_content_edited: sow.project_phases_content_edited || false,
       roles_content_edited: sow.roles_content_edited || false,
+      deliverables_content_edited: sow.deliverables_content_edited || false,
     };
 
     return NextResponse.json(transformedSow);

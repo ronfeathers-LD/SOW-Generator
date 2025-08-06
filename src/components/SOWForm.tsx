@@ -82,6 +82,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             project_description: initialData.scope?.project_description || '',
             deliverables: initialData.deliverables || '',
           },
+          custom_deliverables_content: initialData.custom_deliverables_content || '',
+          deliverables_content_edited: initialData.deliverables_content_edited || false,
         }
       : {
           // Template Variables
@@ -179,6 +181,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             working_hours: '',
             testing_responsibilities: '',
           },
+          custom_deliverables_content: '',
+          deliverables_content_edited: false,
         }
   );
 

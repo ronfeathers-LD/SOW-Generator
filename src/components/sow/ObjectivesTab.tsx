@@ -218,7 +218,9 @@ export default function ObjectivesTab({
         scope: {
           ...formData.scope!,
           deliverables: generatedDeliverables.join('\n\n')
-        }
+        },
+        custom_deliverables_content: generatedDeliverables.join('\n\n'),
+        deliverables_content_edited: true
       };
       
       // Show fallback warning if applicable
