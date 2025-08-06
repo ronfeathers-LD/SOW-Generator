@@ -182,39 +182,68 @@ export default function ObjectivesTab({
         if (!deliverables || deliverables.length === 0) return '';
         
         let html = '';
-        let currentProduct = '';
         
-        deliverables.forEach(item => {
-          const trimmedItem = item.trim();
+        // Handle case where deliverables might be a single string with embedded content
+        if (deliverables.length === 1 && deliverables[0].includes('•')) {
+          const content = deliverables[0];
           
-          // Check if this is a product header (all caps, no bullet)
-          if (trimmedItem.match(/^[A-Z\s]+$/) && !trimmedItem.includes('•')) {
-            if (currentProduct !== trimmedItem) {
-              if (currentProduct !== '') {
-                html += '</ul>\n';
-              }
-              currentProduct = trimmedItem;
-              html += `<h4><strong>${trimmedItem}</strong></h4>\n<ul>\n`;
-            }
-          } else {
-            // This is a deliverable item
-            if (currentProduct === '') {
-              // If no product header found, create a default one
-              html += '<h4><strong>DELIVERABLES</strong></h4>\n<ul>\n';
-              currentProduct = 'DELIVERABLES';
-            }
+          // Split by product headers (all caps words)
+          const sections = content.split(/([A-Z\s]+(?=\s•))/);
+          
+          sections.forEach((section, index) => {
+            const trimmedSection = section.trim();
+            if (!trimmedSection) return;
             
-            // Remove bullet points and clean up the text
-            const cleanItem = trimmedItem.replace(/^[•\-\*]\s*/, '').trim();
-            if (cleanItem) {
-              html += `<li>${cleanItem}</li>\n`;
+            // Check if this is a product header
+            if (trimmedSection.match(/^[A-Z\s]+$/) && !trimmedSection.includes('•')) {
+              html += `<h4><strong>${trimmedSection}</strong></h4>\n<ul>\n`;
+            } else if (trimmedSection.includes('•')) {
+              // This section contains bullet points
+              const items = trimmedSection.split('•').map(item => item.trim()).filter(item => item);
+              items.forEach(item => {
+                if (item) {
+                  html += `<li>${item}</li>\n`;
+                }
+              });
+              html += '</ul>\n';
             }
+          });
+        } else {
+          // Handle array format (original logic)
+          let currentProduct = '';
+          
+          deliverables.forEach(item => {
+            const trimmedItem = item.trim();
+            
+            // Check if this is a product header (all caps, no bullet)
+            if (trimmedItem.match(/^[A-Z\s]+$/) && !trimmedItem.includes('•')) {
+              if (currentProduct !== trimmedItem) {
+                if (currentProduct !== '') {
+                  html += '</ul>\n';
+                }
+                currentProduct = trimmedItem;
+                html += `<h4><strong>${trimmedItem}</strong></h4>\n<ul>\n`;
+              }
+            } else {
+              // This is a deliverable item
+              if (currentProduct === '') {
+                // If no product header found, create a default one
+                html += '<h4><strong>DELIVERABLES</strong></h4>\n<ul>\n';
+                currentProduct = 'DELIVERABLES';
+              }
+              
+              // Remove bullet points and clean up the text
+              const cleanItem = trimmedItem.replace(/^[•\-\*]\s*/, '').trim();
+              if (cleanItem) {
+                html += `<li>${cleanItem}</li>\n`;
+              }
+            }
+          });
+          
+          // Close the last list
+          if (currentProduct !== '') {
+            html += '</ul>';
           }
-        });
-        
-        // Close the last list
-        if (currentProduct !== '') {
-          html += '</ul>';
         }
         
         return html;
