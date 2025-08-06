@@ -84,6 +84,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           },
           custom_deliverables_content: initialData.custom_deliverables_content || '',
           deliverables_content_edited: initialData.deliverables_content_edited || false,
+          custom_objective_overview_content: initialData.custom_objective_overview_content || '',
+          objective_overview_content_edited: initialData.objective_overview_content_edited || false,
         }
       : {
           // Template Variables
@@ -183,6 +185,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           },
           custom_deliverables_content: '',
           deliverables_content_edited: false,
+          custom_objective_overview_content: '',
+          objective_overview_content_edited: false,
         }
   );
 
@@ -726,6 +730,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             },
             custom_deliverables_content: formData.custom_deliverables_content,
             deliverables_content_edited: formData.deliverables_content_edited,
+            custom_objective_overview_content: formData.custom_objective_overview_content,
+            objective_overview_content_edited: formData.objective_overview_content_edited,
           };
           break;
 
@@ -783,6 +789,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             custom_project_phases_content: formData.custom_project_phases_content,
             custom_roles_content: formData.custom_roles_content,
             custom_deliverables_content: formData.custom_deliverables_content,
+            custom_objective_overview_content: formData.custom_objective_overview_content,
             intro_content_edited: formData.intro_content_edited,
             scope_content_edited: formData.scope_content_edited,
             objectives_disclosure_content_edited: formData.objectives_disclosure_content_edited,
@@ -790,6 +797,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             project_phases_content_edited: formData.project_phases_content_edited,
             roles_content_edited: formData.roles_content_edited,
             deliverables_content_edited: formData.deliverables_content_edited,
+            objective_overview_content_edited: formData.objective_overview_content_edited,
           };
           
 

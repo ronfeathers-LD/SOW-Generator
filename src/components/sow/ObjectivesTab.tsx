@@ -82,6 +82,14 @@ export default function ObjectivesTab({
     });
   };
 
+  const handleCustomObjectiveOverviewChange = (content: string) => {
+    setFormData({
+      ...formData,
+      custom_objective_overview_content: content,
+      objective_overview_content_edited: true
+    });
+  };
+
   const handleFetchTranscription = async () => {
     const currentAvomaUrl = formData.objectives?.avoma_url || '';
     if (!currentAvomaUrl.trim()) {
@@ -292,7 +300,9 @@ export default function ObjectivesTab({
           deliverables: generatedDeliverables.join('\n\n')
         },
         custom_deliverables_content: convertDeliverablesToHTML(generatedDeliverables),
-        deliverables_content_edited: true
+        deliverables_content_edited: true,
+        custom_objective_overview_content: result.objectiveOverview,
+        objective_overview_content_edited: true
       };
       
       // Show fallback warning if applicable
@@ -607,11 +617,9 @@ export default function ObjectivesTab({
             {/* Objective Overview */}
             <div className="bg-white border border-gray-200 rounded-lg p-6">
               <h3 className="text-lg font-semibold mb-4 text-gray-900">Objective Overview</h3>
-              <textarea
-                value={formData.objectives?.description || ''}
-                onChange={(e) => handleProjectDescriptionChange(e.target.value)}
-                rows={4}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              <WYSIWYGEditor
+                value={formData.custom_objective_overview_content || formData.objectives?.description || ''}
+                onChange={handleCustomObjectiveOverviewChange}
                 placeholder="Provide a high-level overview of what the project will entail..."
               />
               <p className="mt-1 text-sm text-gray-500">

@@ -114,6 +114,9 @@ export async function PUT(
         // Handle custom deliverables content
         if (data.custom_deliverables_content !== undefined) updateData.custom_deliverables_content = data.custom_deliverables_content;
         if (data.deliverables_content_edited !== undefined) updateData.deliverables_content_edited = data.deliverables_content_edited;
+        // Handle custom objective overview content
+        if (data.custom_objective_overview_content !== undefined) updateData.custom_objective_overview_content = data.custom_objective_overview_content;
+        if (data.objective_overview_content_edited !== undefined) updateData.objective_overview_content_edited = data.objective_overview_content_edited;
         break;
 
       case 'Team & Roles':
@@ -162,6 +165,7 @@ export async function PUT(
         if (data.custom_project_phases_content !== undefined) updateData.custom_project_phases_content = data.custom_project_phases_content;
         if (data.custom_roles_content !== undefined) updateData.custom_roles_content = data.custom_roles_content;
         if (data.custom_deliverables_content !== undefined) updateData.custom_deliverables_content = data.custom_deliverables_content;
+        if (data.custom_objective_overview_content !== undefined) updateData.custom_objective_overview_content = data.custom_objective_overview_content;
         if (data.intro_content_edited !== undefined) updateData.intro_content_edited = data.intro_content_edited;
         if (data.scope_content_edited !== undefined) updateData.scope_content_edited = data.scope_content_edited;
         if (data.objectives_disclosure_content_edited !== undefined) updateData.objectives_disclosure_content_edited = data.objectives_disclosure_content_edited;
@@ -169,6 +173,7 @@ export async function PUT(
         if (data.project_phases_content_edited !== undefined) updateData.project_phases_content_edited = data.project_phases_content_edited;
         if (data.roles_content_edited !== undefined) updateData.roles_content_edited = data.roles_content_edited;
         if (data.deliverables_content_edited !== undefined) updateData.deliverables_content_edited = data.deliverables_content_edited;
+        if (data.objective_overview_content_edited !== undefined) updateData.objective_overview_content_edited = data.objective_overview_content_edited;
         break;
 
       default:
