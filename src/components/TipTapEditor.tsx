@@ -6,15 +6,18 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface TipTapEditorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  initializing?: boolean;
 }
 
-export default function TipTapEditor({ value, onChange, placeholder }: TipTapEditorProps) {
+export default function TipTapEditor({ value, onChange, placeholder, initializing = false }: TipTapEditorProps) {
+  const isSettingContent = useRef(false);
+  
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -38,7 +41,9 @@ export default function TipTapEditor({ value, onChange, placeholder }: TipTapEdi
     ],
     content: value,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      if (!initializing && !isSettingContent.current) {
+        onChange(editor.getHTML());
+      }
     },
     editorProps: {
       attributes: {
@@ -52,7 +57,12 @@ export default function TipTapEditor({ value, onChange, placeholder }: TipTapEdi
   // Update editor content when value prop changes
   useEffect(() => {
     if (editor && value !== editor.getHTML()) {
+      isSettingContent.current = true;
       editor.commands.setContent(value);
+      // Reset the flag after a short delay to allow the setContent to complete
+      setTimeout(() => {
+        isSettingContent.current = false;
+      }, 0);
     }
   }, [editor, value]);
 

@@ -28,14 +28,18 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   const [projectPhasesTemplate, setProjectPhasesTemplate] = useState<string>('');
   const [rolesTemplate, setRolesTemplate] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [initializing, setInitializing] = useState(true);
   const [activeSection, setActiveSection] = useState('intro');
   const [saving, setSaving] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<{ [key: string]: 'success' | 'error' | null }>({});
   const [unsavedChanges, setUnsavedChanges] = useState<{ [key: string]: boolean }>({});
+  const [initializedSections, setInitializedSections] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function loadTemplates() {
       try {
+
+
         // Load templates for reference and reset functionality only
         const intro = await getContentTemplate('intro');
         if (intro) {
@@ -76,11 +80,24 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
         console.error('Error loading templates:', error);
       } finally {
         setLoading(false);
+        setInitializing(false);
       }
     }
 
     loadTemplates();
   }, []); // Only run once when component mounts
+
+  // Mark section as initialized when it becomes active
+  useEffect(() => {
+    if (!loading && !initializing && activeSection) {
+      setInitializedSections(prev => {
+        const newSet = new Set(prev);
+        newSet.add(activeSection);
+        return newSet;
+      });
+    }
+  }, [activeSection, loading, initializing]);
+
 
   // Function to normalize content for comparison (removes HTML tags and normalizes whitespace)
   const normalizeContent = (content: string): string => {
@@ -107,6 +124,11 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   };
 
   const handleIntroContentChange = (content: string) => {
+    // Don't process changes during initialization or if section hasn't been initialized yet
+    if (initializing || !initializedSections.has('intro')) {
+      return;
+    }
+    
     // Check if content has been edited from the original template
     const normalizedCurrent = normalizeContent(content);
     const normalizedTemplate = normalizeContent(originalIntroTemplate);
@@ -120,6 +142,11 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   };
 
   const handleScopeContentChange = (content: string) => {
+    // Don't process changes during initialization or if section hasn't been initialized yet
+    if (initializing || !initializedSections.has('scope')) {
+      return;
+    }
+    
     // Check if content has been edited from the original template
     const normalizedCurrent = normalizeContent(content);
     const normalizedTemplate = normalizeContent(originalScopeTemplate);
@@ -133,6 +160,11 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   };
 
   const handleObjectivesDisclosureContentChange = (content: string) => {
+    // Don't process changes during initialization or if section hasn't been initialized yet
+    if (initializing || !initializedSections.has('objectives-disclosure')) {
+      return;
+    }
+    
     // Check if content has been edited from the original template
     const normalizedCurrent = normalizeContent(content);
     const normalizedTemplate = normalizeContent(originalObjectivesDisclosureTemplate);
@@ -173,6 +205,11 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   };
 
   const handleAssumptionsContentChange = (content: string) => {
+    // Don't process changes during initialization or if section hasn't been initialized yet
+    if (initializing || !initializedSections.has('assumptions')) {
+      return;
+    }
+    
     // Check if content has been edited from the original template
     const normalizedCurrent = normalizeContent(content);
     const normalizedTemplate = normalizeContent(originalAssumptionsTemplate);
@@ -195,6 +232,11 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   };
 
   const handleProjectPhasesContentChange = (content: string) => {
+    // Don't process changes during initialization or if section hasn't been initialized yet
+    if (initializing || !initializedSections.has('project-phases')) {
+      return;
+    }
+    
     // Check if content has been edited from the original template
     const normalizedCurrent = normalizeContent(content);
     const normalizedTemplate = normalizeContent(originalProjectPhasesTemplate);
@@ -217,6 +259,11 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   };
 
   const handleRolesContentChange = (content: string) => {
+    // Don't process changes during initialization or if section hasn't been initialized yet
+    if (initializing || !initializedSections.has('roles')) {
+      return;
+    }
+    
     // Check if content has been edited from the original template
     const normalizedCurrent = normalizeContent(content);
     const normalizedTemplate = normalizeContent(originalRolesTemplate);
@@ -321,7 +368,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
         return (
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Introduction Section</h3>
+              <h3 className="text-lg font-medium text-gray-900">Introduction</h3>
               <div className="flex items-center space-x-2">
                 {formData.intro_content_edited && (
                   <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
@@ -360,6 +407,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
                 value={formData.custom_intro_content || ''}
                 onChange={handleIntroContentChange}
                 placeholder="Enter the introduction content for this SOW..."
+                initializing={initializing}
               />
               <p className="mt-2 text-sm text-gray-500">
                 Use {'{clientName}'} as a placeholder that will be replaced with the actual client name.
@@ -419,6 +467,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
                 value={formData.custom_scope_content || ''}
                 onChange={handleScopeContentChange}
                 placeholder="Enter the scope content for this SOW..."
+                initializing={initializing}
               />
               <p className="mt-2 text-sm text-gray-500">
                 Use {'{deliverables}'} as a placeholder that will be replaced with the actual deliverables list.
@@ -439,7 +488,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
         return (
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Objectives Disclosure Section</h3>
+              <h3 className="text-lg font-medium text-gray-900">Objectives</h3>
               <div className="flex items-center space-x-2">
                 {formData.objectives_disclosure_content_edited && (
                   <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
@@ -478,6 +527,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
                 value={formData.custom_objectives_disclosure_content || ''}
                 onChange={handleObjectivesDisclosureContentChange}
                 placeholder="Enter the objectives disclosure content for this SOW..."
+                initializing={initializing}
               />
               <p className="mt-2 text-sm text-gray-500">
                 This content outlines the objectives and disclosure information for the project.
@@ -537,6 +587,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
                 value={formData.custom_assumptions_content || ''}
                 onChange={handleAssumptionsContentChange}
                 placeholder="Enter the assumptions content for this SOW..."
+                initializing={initializing}
               />
               <p className="mt-2 text-sm text-gray-500">
                 This content outlines the assumptions and requirements for the project.
@@ -596,6 +647,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
                 value={formData.custom_project_phases_content || ''}
                 onChange={handleProjectPhasesContentChange}
                 placeholder="Enter the project phases content for this SOW..."
+                initializing={initializing}
               />
               <p className="mt-2 text-sm text-gray-500">
                 This content displays the project phases, activities, and artifacts table.
@@ -655,6 +707,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
                 value={formData.custom_roles_content || ''}
                 onChange={handleRolesContentChange}
                 placeholder="Enter the roles and responsibilities content for this SOW..."
+                initializing={initializing}
               />
               <p className="mt-2 text-sm text-gray-500">
                 This content outlines the roles and responsibilities for both Customer and LeanData teams.
