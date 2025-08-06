@@ -18,11 +18,7 @@ export default function WYSIWYGEditor({ value, onChange, placeholder }: WYSIWYGE
   // Update editor content when value prop changes
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
-      // Clear and set content to avoid any potential issues
-      editorRef.current.innerHTML = '';
-      if (value) {
-        editorRef.current.innerHTML = value;
-      }
+      editorRef.current.innerHTML = value || '';
     }
     setHtmlValue(value);
   }, [value]);
@@ -503,9 +499,7 @@ export default function WYSIWYGEditor({ value, onChange, placeholder }: WYSIWYGE
           className="w-full min-h-[250px] p-3 focus:outline-none wysiwyg-content"
           style={{
             lineHeight: '1.6',
-            fontSize: '14px',
-            direction: 'ltr',
-            textAlign: 'left'
+            fontSize: '14px'
           }}
           data-placeholder={placeholder}
         />

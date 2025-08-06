@@ -9,6 +9,10 @@ interface SOWObjectivesPageProps {
   keyObjectives: string[];
   projectDescription?: string;
   customContent?: string;
+  customKeyObjectivesContent?: string;
+  customDeliverablesContent?: string;
+  deliverablesEdited?: boolean;
+  keyObjectivesEdited?: boolean;
   isEdited?: boolean;
   projectDetails?: {
     products?: string[];
@@ -27,6 +31,10 @@ export default function SOWObjectivesPage({
   keyObjectives, 
   projectDescription,
   customContent,
+  customKeyObjectivesContent,
+  customDeliverablesContent,
+  deliverablesEdited = false,
+  keyObjectivesEdited = false,
   isEdited = false,
   projectDetails 
 }: SOWObjectivesPageProps) {
@@ -81,55 +89,63 @@ export default function SOWObjectivesPage({
       {projectDescription && projectDescription.trim() && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-4">Project Description:</h3>
-          <p className="text-gray-700 leading-relaxed">
-            {projectDescription}
-          </p>
+          <div 
+            className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
+            dangerouslySetInnerHTML={{ __html: projectDescription }}
+          />
         </div>
       )}
 
-      {/* Key Objectives from table */}
-      {keyObjectives && keyObjectives.length > 0 && (
+      {/* Key Objectives */}
+      {(customKeyObjectivesContent || (keyObjectives && keyObjectives.length > 0)) && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-4">Key Objectives:</h3>
-          <div className="space-y-4 text-gray-700">
-            {keyObjectives.map((objective, index) => {
-              const trimmedObjective = objective.trim();
-              
-              // Skip empty lines
-              if (trimmedObjective.length === 0) {
-                return null;
-              }
-              
-              // Check if this is a product header (ends with :)
-              if (trimmedObjective.endsWith(':')) {
-                return (
-                  <div key={index}>
-                    <h4 className="font-semibold text-gray-900 mt-4 mb-2">
-                      {trimmedObjective.slice(0, -1)} {/* Remove the trailing colon */}
-                    </h4>
-                  </div>
-                );
-              }
-              
-              // Check if this is a bullet point (starts with •)
-              if (trimmedObjective.startsWith('• ')) {
+          {customKeyObjectivesContent ? (
+            <div 
+              className="text-base leading-relaxed text-gray-700 prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: customKeyObjectivesContent }}
+            />
+          ) : (
+            <div className="space-y-4 text-gray-700">
+              {keyObjectives.map((objective, index) => {
+                const trimmedObjective = objective.trim();
+                
+                // Skip empty lines
+                if (trimmedObjective.length === 0) {
+                  return null;
+                }
+                
+                // Check if this is a product header (ends with :)
+                if (trimmedObjective.endsWith(':')) {
+                  return (
+                    <div key={index}>
+                      <h4 className="font-semibold text-gray-900 mt-4 mb-2">
+                        {trimmedObjective.slice(0, -1)} {/* Remove the trailing colon */}
+                      </h4>
+                    </div>
+                  );
+                }
+                
+                // Check if this is a bullet point (starts with •)
+                if (trimmedObjective.startsWith('• ')) {
+                  return (
+                    <div key={index} className="flex items-start">
+                      <span className="text-gray-400 mr-2 mt-1">•</span>
+                      <span className="flex-1">{trimmedObjective.substring(2)}</span>
+                    </div>
+                  );
+                }
+                
+                // Regular item (fallback)
                 return (
                   <div key={index} className="flex items-start">
                     <span className="text-gray-400 mr-2 mt-1">•</span>
-                    <span className="flex-1">{trimmedObjective.substring(2)}</span>
+                    <span className="flex-1">{trimmedObjective}</span>
                   </div>
                 );
-              }
-              
-              // Regular item (fallback)
-              return (
-                <div key={index} className="flex items-start">
-                  <span className="text-gray-400 mr-2 mt-1">•</span>
-                  <span className="flex-1">{trimmedObjective}</span>
-                </div>
-              );
-            })}
-          </div>
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -166,14 +182,24 @@ export default function SOWObjectivesPage({
         </div>
       )}
 
-      {/* Scope from table */}
-      <div className="mb-6">
-        <ul className="list-disc pl-6 space-y-2 text-gray-700">
-          {deliverables.map((deliverable, index) => (
-            <li key={index}>{deliverable}</li>
-          ))}
-        </ul>
-      </div>
+      {/* Deliverables */}
+      {(customDeliverablesContent || (deliverables && deliverables.length > 0)) && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-4">Deliverables:</h3>
+          {customDeliverablesContent ? (
+            <div 
+              className="text-base leading-relaxed text-gray-700 prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: customDeliverablesContent }}
+            />
+          ) : (
+            <ul className="list-disc pl-6 space-y-2 text-gray-700">
+              {deliverables.map((deliverable, index) => (
+                <li key={index}>{deliverable}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* Objectives Disclosure Content */}
       {isEdited && (

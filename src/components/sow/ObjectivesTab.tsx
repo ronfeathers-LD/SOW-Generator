@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SOWData } from '@/types/sow';
-import WYSIWYGEditor from '../WYSIWYGEditor';
+import TipTapEditor from '../TipTapEditor';
 
 interface ObjectivesTabProps {
   formData: Partial<SOWData>;
@@ -77,6 +77,10 @@ export default function ObjectivesTab({
   const handleCustomDeliverablesChange = (content: string) => {
     setFormData({
       ...formData,
+      scope: {
+        ...formData.scope!,
+        deliverables: content
+      },
       custom_deliverables_content: content,
       deliverables_content_edited: true
     });
@@ -85,8 +89,24 @@ export default function ObjectivesTab({
   const handleCustomObjectiveOverviewChange = (content: string) => {
     setFormData({
       ...formData,
+      objectives: {
+        ...formData.objectives!,
+        description: content
+      },
       custom_objective_overview_content: content,
       objective_overview_content_edited: true
+    });
+  };
+
+  const handleCustomKeyObjectivesChange = (content: string) => {
+    setFormData({
+      ...formData,
+      objectives: {
+        ...formData.objectives!,
+        key_objectives: [content] // Save as single item for now, will be converted by onChange
+      },
+      custom_key_objectives_content: content,
+      key_objectives_content_edited: true
     });
   };
 
@@ -184,6 +204,63 @@ export default function ObjectivesTab({
       if (result.deliverables && Array.isArray(result.deliverables)) {
         generatedDeliverables = result.deliverables;
       }
+
+      // Convert key objectives array to HTML format for TipTap editor
+      const convertKeyObjectivesToHTML = (objectives: string[]): string => {
+        if (!objectives || objectives.length === 0) return '';
+        
+        let htmlValue = '';
+        let currentList = '';
+        
+        objectives.forEach(obj => {
+          if (!obj || typeof obj !== 'string') return;
+          
+          const trimmedObj = obj.trim();
+          if (trimmedObj.length === 0) return;
+          
+          // Check if this is a product header (ends with :)
+          if (trimmedObj.endsWith(':')) {
+            // Close any existing list
+            if (currentList) {
+              htmlValue += `<ul>${currentList}</ul>`;
+              currentList = '';
+            }
+            // Add the product header
+            const headerText = trimmedObj.slice(0, -1); // Remove the trailing colon
+            htmlValue += `<h4>${headerText}</h4>`;
+          }
+          // Check if this is a bullet point (starts with •)
+          else if (trimmedObj.startsWith('• ')) {
+            const itemText = trimmedObj.substring(2); // Remove the • and space
+            currentList += `<li>${itemText}</li>`;
+          }
+          // Check if this is an empty line
+          else if (trimmedObj === '') {
+            // Close any existing list
+            if (currentList) {
+              htmlValue += `<ul>${currentList}</ul>`;
+              currentList = '';
+            }
+          }
+          // Regular item (fallback)
+          else {
+            // Close any existing list first
+            if (currentList) {
+              htmlValue += `<ul>${currentList}</ul>`;
+              currentList = '';
+            }
+            // Add as a paragraph
+            htmlValue += `<p>${trimmedObj}</p>`;
+          }
+        });
+        
+        // Close any remaining list
+        if (currentList) {
+          htmlValue += `<ul>${currentList}</ul>`;
+        }
+        
+        return htmlValue;
+      };
 
       // Convert deliverables to HTML format for WYSIWYG editor
       const convertDeliverablesToHTML = (deliverables: string[]): string => {
@@ -302,7 +379,9 @@ export default function ObjectivesTab({
         custom_deliverables_content: convertDeliverablesToHTML(generatedDeliverables),
         deliverables_content_edited: true,
         custom_objective_overview_content: result.objectiveOverview,
-        objective_overview_content_edited: true
+        objective_overview_content_edited: true,
+        custom_key_objectives_content: convertKeyObjectivesToHTML(finalObjectives),
+        key_objectives_content_edited: true
       };
       
       // Show fallback warning if applicable
@@ -617,7 +696,7 @@ export default function ObjectivesTab({
             {/* Objective Overview */}
             <div className="bg-white border border-gray-200 rounded-lg p-6">
               <h3 className="text-lg font-semibold mb-4 text-gray-900">Objective Overview</h3>
-              <WYSIWYGEditor
+              <TipTapEditor
                 value={formData.custom_objective_overview_content || formData.objectives?.description || ''}
                 onChange={handleCustomObjectiveOverviewChange}
                 placeholder="Provide a high-level overview of what the project will entail..."
@@ -634,8 +713,8 @@ export default function ObjectivesTab({
                 Pain points that the customer has outlined for us to solve. Use the toolbar to format with bullet points, numbered lists, and emphasis.
               </p>
               
-              <WYSIWYGEditor
-                value={(() => {
+              <TipTapEditor
+                value={formData.custom_key_objectives_content || (() => {
                   const objectives = formData.objectives?.key_objectives || [];
                   
                   if (!Array.isArray(objectives) || objectives.length === 0) {
@@ -689,7 +768,13 @@ export default function ObjectivesTab({
                     }
                     // Regular item (fallback)
                     else {
-                      currentList += `<li>${trimmedObj}</li>`;
+                      // Close any existing list first
+                      if (currentList) {
+                        htmlValue += `<ul>${currentList}</ul>`;
+                        currentList = '';
+                      }
+                      // Add as a paragraph
+                      htmlValue += `<p>${trimmedObj}</p>`;
                     }
                   });
                   
@@ -698,84 +783,18 @@ export default function ObjectivesTab({
                     htmlValue += `<ul>${currentList}</ul>`;
                   }
                   
-                  // If no structured content was found, fall back to simple list
+                  // If no structured content was found, fall back to simple paragraphs
                   if (htmlValue === '') {
-                    const listItems = objectives
+                    const paragraphs = objectives
                       .map(obj => obj && typeof obj === 'string' ? obj.trim() : '')
                       .filter(obj => obj.length > 0)
-                      .map(obj => `<li>${obj}</li>`)
+                      .map(obj => `<p>${obj}</p>`)
                       .join('');
-                    htmlValue = `<ul>${listItems}</ul>`;
+                    htmlValue = paragraphs;
                   }
                   return htmlValue;
                 })()}
-                onChange={(value) => {
-                  // Convert the rich text content back to an array of objectives
-                  const tempDiv = document.createElement('div');
-                  tempDiv.innerHTML = value;
-                  
-                  const objectives: string[] = [];
-                  
-                  // Process all child nodes to maintain structure
-                  Array.from(tempDiv.childNodes).forEach(node => {
-                    if (node.nodeType === Node.ELEMENT_NODE) {
-                      const element = node as Element;
-                      
-                      if (element.tagName === 'H4') {
-                        // This is a product header
-                        let headerText = element.textContent?.trim() || '';
-                        // Strip any markdown that might have been re-introduced
-                        headerText = headerText.replace(/^\*\*(.*?)\*\*$/, '$1').trim();
-                        if (headerText) {
-                          objectives.push(`${headerText}:`);
-                        }
-                      } else if (element.tagName === 'UL') {
-                        // This is a list of items
-                        const listItems = Array.from(element.querySelectorAll('li'))
-                          .map(li => li.textContent?.trim() || '')
-                          .filter(text => text.length > 0)
-                          .map(text => `• ${text}`);
-                        
-                        objectives.push(...listItems);
-                        
-                        // Add empty line after list for spacing
-                        if (listItems.length > 0) {
-                          objectives.push('');
-                        }
-                      }
-                    }
-                  });
-                  
-                  // Remove trailing empty line
-                  if (objectives.length > 0 && objectives[objectives.length - 1] === '') {
-                    objectives.pop();
-                  }
-                  
-                  // Fallback: if no structured content found, try simple list parsing
-                  if (objectives.length === 0) {
-                    const listItems = Array.from(tempDiv.querySelectorAll('li'))
-                      .map(li => li.textContent?.trim() || '')
-                      .filter(text => text.length > 0);
-                    
-                    const fallbackItems = value
-                      .split(/\n/)
-                      .map(line => line.trim())
-                      .filter(line => line.length > 0 && !line.startsWith('<'))
-                      .map(line => line.replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, '').trim())
-                      .filter(line => line.length > 0);
-                    
-                    const fallbackObjectives = listItems.length > 0 ? listItems : fallbackItems;
-                    objectives.push(...fallbackObjectives);
-                  }
-                  
-                  setFormData({
-                    ...formData,
-                    objectives: {
-                      ...formData.objectives!,
-                      key_objectives: objectives.length > 0 ? objectives : ['']
-                    }
-                  });
-                }}
+                onChange={handleCustomKeyObjectivesChange}
                 placeholder="Enter project objectives here. Use bullet points or numbered lists for better organization..."
               />
             </div>
@@ -787,7 +806,7 @@ export default function ObjectivesTab({
                 Define the specific deliverables that will be provided as part of this project. These will be used in the Scope section of the SOW.
               </p>
               
-              <WYSIWYGEditor
+              <TipTapEditor
                 value={formData.custom_deliverables_content || formData.scope?.deliverables || ''}
                 onChange={handleCustomDeliverablesChange}
                 placeholder={`Enter deliverables organized by product/category, for example:

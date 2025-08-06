@@ -732,6 +732,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             deliverables_content_edited: formData.deliverables_content_edited,
             custom_objective_overview_content: formData.custom_objective_overview_content,
             objective_overview_content_edited: formData.objective_overview_content_edited,
+            custom_key_objectives_content: formData.custom_key_objectives_content,
+            key_objectives_content_edited: formData.key_objectives_content_edited,
           };
           break;
 
@@ -798,6 +800,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             roles_content_edited: formData.roles_content_edited,
             deliverables_content_edited: formData.deliverables_content_edited,
             objective_overview_content_edited: formData.objective_overview_content_edited,
+            custom_key_objectives_content: formData.custom_key_objectives_content,
+            key_objectives_content_edited: formData.key_objectives_content_edited,
           };
           
 

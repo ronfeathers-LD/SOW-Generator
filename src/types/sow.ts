@@ -166,6 +166,7 @@ export interface SOWData {
   custom_roles_content?: string;
   custom_deliverables_content?: string;
   custom_objective_overview_content?: string;
+  custom_key_objectives_content?: string;
   intro_content_edited?: boolean;
   scope_content_edited?: boolean;
   objectives_disclosure_content_edited?: boolean;
@@ -174,6 +175,7 @@ export interface SOWData {
   roles_content_edited?: boolean;
   deliverables_content_edited?: boolean;
   objective_overview_content_edited?: boolean;
+  key_objectives_content_edited?: boolean;
   
   // Database date fields
   project_start_date?: string;

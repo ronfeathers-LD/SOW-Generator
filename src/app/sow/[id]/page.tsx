@@ -89,12 +89,18 @@ interface SOW {
   custom_assumptions_content?: string;
   custom_project_phases_content?: string;
   custom_roles_content?: string;
+  custom_deliverables_content?: string;
+  custom_objective_overview_content?: string;
+  custom_key_objectives_content?: string;
   intro_content_edited?: boolean;
   scope_content_edited?: boolean;
   objectives_disclosure_content_edited?: boolean;
   assumptions_content_edited?: boolean;
   project_phases_content_edited?: boolean;
   roles_content_edited?: boolean;
+  deliverables_content_edited?: boolean;
+  objective_overview_content_edited?: boolean;
+  key_objectives_content_edited?: boolean;
 }
 
 interface SOWVersion {
@@ -194,7 +200,7 @@ export default function SOWDetailsPage() {
           ...data,
           deliverables: data.deliverables ? data.deliverables.split('\n').filter(Boolean) : [],
           projectDescription: data.objectives?.description || data.scope?.project_description || data.project_description || '',
-          keyObjectives: data.objectives?.key_objectives || [],
+          keyObjectives: Array.isArray(data.objectives?.key_objectives) ? data.objectives.key_objectives : [],
           clientRoles: Array.isArray(data.clientRoles) ? data.clientRoles.map((role: any) => ({
             role: role.role || '',
             name: role.name || '',
@@ -241,6 +247,9 @@ export default function SOWDetailsPage() {
           custom_assumptions_content: data.custom_assumptions_content || undefined,
           custom_project_phases_content: data.custom_project_phases_content || undefined,
           custom_roles_content: data.custom_roles_content || undefined,
+          custom_deliverables_content: data.custom_deliverables_content || undefined,
+          custom_objective_overview_content: data.custom_objective_overview_content || undefined,
+          custom_key_objectives_content: data.custom_key_objectives_content || undefined,
           // Project Details
           products: data.template?.products || [],
           number_of_units: data.template?.number_of_units || data.number_of_units || '',
@@ -255,7 +264,10 @@ export default function SOWDetailsPage() {
           objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false,
           assumptions_content_edited: data.assumptions_content_edited || false,
           project_phases_content_edited: data.project_phases_content_edited || false,
-          roles_content_edited: data.roles_content_edited || false
+          roles_content_edited: data.roles_content_edited || false,
+          deliverables_content_edited: data.deliverables_content_edited || false,
+          objective_overview_content_edited: data.objective_overview_content_edited || false,
+          key_objectives_content_edited: data.key_objectives_content_edited || false
         };
         
         setSOW(parsedData);
@@ -581,6 +593,10 @@ export default function SOWDetailsPage() {
                     keyObjectives={sow.keyObjectives}
                     projectDescription={sow.projectDescription}
                     customContent={sow.custom_objectives_disclosure_content}
+                    customKeyObjectivesContent={sow.custom_key_objectives_content}
+                    customDeliverablesContent={sow.custom_deliverables_content}
+                    deliverablesEdited={sow.deliverables_content_edited}
+                    keyObjectivesEdited={sow.key_objectives_content_edited}
                     isEdited={sow.objectives_disclosure_content_edited}
                     projectDetails={{
                       products: sow.products || [],

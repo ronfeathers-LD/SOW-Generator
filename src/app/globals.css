@@ -53,12 +53,6 @@
   list-style-type: lower-roman;
 }
 
-/* Ensure proper text direction for WYSIWYG editor */
-.wysiwyg-content {
-  direction: ltr !important;
-  text-align: left !important;
-}
-
 .prose-editor .ProseMirror strong {
   font-weight: bold;
 }

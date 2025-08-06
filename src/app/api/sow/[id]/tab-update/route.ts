@@ -117,6 +117,9 @@ export async function PUT(
         // Handle custom objective overview content
         if (data.custom_objective_overview_content !== undefined) updateData.custom_objective_overview_content = data.custom_objective_overview_content;
         if (data.objective_overview_content_edited !== undefined) updateData.objective_overview_content_edited = data.objective_overview_content_edited;
+        // Handle custom key objectives content
+        if (data.custom_key_objectives_content !== undefined) updateData.custom_key_objectives_content = data.custom_key_objectives_content;
+        if (data.key_objectives_content_edited !== undefined) updateData.key_objectives_content_edited = data.key_objectives_content_edited;
         break;
 
       case 'Team & Roles':
@@ -174,6 +177,8 @@ export async function PUT(
         if (data.roles_content_edited !== undefined) updateData.roles_content_edited = data.roles_content_edited;
         if (data.deliverables_content_edited !== undefined) updateData.deliverables_content_edited = data.deliverables_content_edited;
         if (data.objective_overview_content_edited !== undefined) updateData.objective_overview_content_edited = data.objective_overview_content_edited;
+        if (data.custom_key_objectives_content !== undefined) updateData.custom_key_objectives_content = data.custom_key_objectives_content;
+        if (data.key_objectives_content_edited !== undefined) updateData.key_objectives_content_edited = data.key_objectives_content_edited;
         break;
 
       default:

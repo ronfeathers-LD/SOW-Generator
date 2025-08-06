@@ -154,6 +154,10 @@ export default async function SOWPDFPage({ params }: { params: Promise<{ id: str
             keyObjectives={sow.key_objectives || []}
             projectDescription={objectivesDescription}
             customContent={sow.custom_objectives_disclosure_content}
+            customKeyObjectivesContent={sow.custom_key_objectives_content}
+            customDeliverablesContent={sow.custom_deliverables_content}
+            deliverablesEdited={sow.deliverables_content_edited}
+            keyObjectivesEdited={sow.key_objectives_content_edited}
             isEdited={sow.objectives_disclosure_content_edited}
             projectDetails={{
               products: productNames,
