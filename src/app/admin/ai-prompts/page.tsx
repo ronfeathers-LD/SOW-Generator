@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import WYSIWYGEditor from '@/components/WYSIWYGEditor';
+import TipTapEditor from '@/components/TipTapEditor';
 
 interface AIPrompt {
   id: string;
@@ -236,7 +236,7 @@ export default function AIPromptsAdminPage() {
                       Prompt Content
                     </label>
                     <div className="border border-gray-300 rounded-md">
-                      <WYSIWYGEditor
+                      <TipTapEditor
                         value={formData.prompt_content}
                         onChange={(value) => setFormData({ ...formData, prompt_content: value })}
                         placeholder="Enter the AI prompt content here. Use {customerName} and {transcription} as placeholders..."

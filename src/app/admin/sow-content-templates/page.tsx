@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { SOWContentTemplate } from '@/types/sow';
-import WYSIWYGEditor from '@/components/WYSIWYGEditor';
+import TipTapEditor from '@/components/TipTapEditor';
 
 export default function SOWContentTemplatesPage() {
   const [templates, setTemplates] = useState<SOWContentTemplate[]>([]);
@@ -243,7 +243,7 @@ function TemplateForm({ template, onSave, onCancel }: TemplateFormProps) {
             Default Content
           </label>
           <div className="mt-1">
-            <WYSIWYGEditor
+            <TipTapEditor
               value={formData.default_content}
               onChange={(value) => setFormData({ ...formData, default_content: value })}
               placeholder="Enter the default content for this section..."
