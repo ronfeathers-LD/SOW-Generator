@@ -106,13 +106,14 @@ export default function TeamRolesTab({
       name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
       email: contact.Email || '',
       salesforce_contact_id: contact.Id,
-      contact_title: contact.Title
+      contact_title: contact.Title,
+      role: contact.Title || '' // Auto-populate role with contact title
     };
     setFormData({
       ...formData,
       roles: { ...formData.roles!, client_roles: newRoles }
-          });
-      setShowRoleContactSelection(null);
+    });
+    setShowRoleContactSelection(null);
   };
 
   const handleAccountSelected = (customerData: { account: any; contacts: any[]; opportunities: any[] }) => {
@@ -560,21 +561,17 @@ export default function TeamRolesTab({
                 <h4 className="text-md font-semibold mb-3 text-gray-800">Role Details</h4>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Role</label>
+                    <label className="block text-sm font-medium text-gray-700">Role (from Salesforce Contact Title)</label>
                     <input
                       type="text"
-                      value={role.role}
-                      onChange={(e) => {
-                        const newRoles = [...(formData.roles?.client_roles || [])];
-                        newRoles[index] = { ...role, role: e.target.value };
-                        setFormData({
-                          ...formData,
-                          roles: { ...formData.roles!, client_roles: newRoles }
-                        });
-                      }}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                      placeholder="e.g., Project Manager"
+                      value={role.role || role.contact_title || ''}
+                      readOnly
+                      className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm text-gray-600"
+                      placeholder="Role will be populated from selected contact's title"
                     />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Role is automatically set from the selected contact's Salesforce title
+                    </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Responsibilities</label>

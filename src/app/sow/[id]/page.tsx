@@ -17,6 +17,8 @@ interface ClientRole {
   responsibilities: string[];
   name: string;
   email: string;
+  salesforce_contact_id?: string;
+  contact_title?: string;
 }
 
 interface SOW {
@@ -529,8 +531,6 @@ export default function SOWDetailsPage() {
             {/* Main SOW Content to Export */}
             <div id="sow-content-to-export">
               {/* Title Page Section */}
-              <div className="border-2 border-blue-300 rounded-lg p-4 mb-8">
-                <h3 className="text-lg font-bold text-blue-800 mb-4 text-center">📄 TITLE PAGE SECTION</h3>
                 <div id="title-page" className="mb-12">
                   <SOWTitlePage
                     clientName={salesforceData?.account_data?.name || sow.clientName}
@@ -554,11 +554,9 @@ export default function SOWDetailsPage() {
                     }}
                   />
                 </div>
-              </div>
+
 
               {/* SOW Intro Page Section */}
-              <div className="border-2 border-green-300 rounded-lg p-4 mb-8">
-                <h3 className="text-lg font-bold text-green-800 mb-4 text-center">📋 INTRODUCTION SECTION</h3>
                 <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold text-center mb-6">LEANDATA, INC. STATEMENT OF WORK</h2>
                   <SOWIntroPage 
@@ -567,13 +565,11 @@ export default function SOWDetailsPage() {
                     isEdited={sow.intro_content_edited}
                   />
                 </div>
-              </div>
+
 
               {/* SOW Objectives Page Section */}
-              <div className="border-2 border-indigo-300 rounded-lg p-4 mb-8">
-                <h3 className="text-lg font-bold text-indigo-800 mb-4 text-center">🎯 OBJECTIVES SECTION</h3>
                 <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
-                  <h2 className="text-3xl font-bold text-center mb-6">OBJECTIVES</h2>
+                  <h2 className="text-3xl font-bold  mb-6">1. OBJECTIVE</h2>
                   <SOWObjectivesPage 
                     deliverables={sow.deliverables} 
                     keyObjectives={sow.keyObjectives}
@@ -596,15 +592,12 @@ export default function SOWDetailsPage() {
                     }}
                   />
                 </div>
-              </div>
 
 
 
               {/* SOW Scope Page Section */}
-              <div className="border-2 border-purple-300 rounded-lg p-4 mb-8">
-                <h3 className="text-lg font-bold text-purple-800 mb-4 text-center">🎯 SCOPE SECTION</h3>
                 <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
-                  <h2 className="text-3xl font-bold text-center mb-6">SCOPE</h2>
+                  <h2 className="text-3xl font-bold mb-6">2. SCOPE</h2>
                   <SOWScopePage 
                     deliverables={sow.deliverables} 
                     projectDescription={sow.projectDescription}
@@ -612,30 +605,61 @@ export default function SOWDetailsPage() {
                     isEdited={sow.scope_content_edited}
                   />
                 </div>
-              </div>
 
               {/* SOW Project Phases Page Section */}
-              <div className="border-2 border-teal-300 rounded-lg p-4 mb-8">
-                <h3 className="text-lg font-bold text-teal-800 mb-4 text-center">📋 PROJECT PHASES SECTION</h3>
                 <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                  <h2 className="text-3xl font-bold mb-6">3. PROJECT PHASES, ACTIVITIES AND ARTIFACTS</h2>
+                  <div className="formatSOWTable">
                   <SOWProjectPhasesPage 
                     customContent={sow.custom_project_phases_content}
                     isEdited={sow.project_phases_content_edited}
                   />
+                  </div>
                 </div>
-              </div>
 
               {/* Roles and Responsibilities Section */}
-              <div className="border-2 border-orange-300 rounded-lg p-4 mb-8">
-                <h3 className="text-lg font-bold text-orange-800 mb-4 text-center">👥 ROLES & RESPONSIBILITIES SECTION</h3>
                 <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold text-center mb-6">ROLES AND RESPONSIBILITIES</h2>
+                  <div className="formatSOWTable">
                   <SOWRolesPage 
                     customContent={sow.custom_roles_content}
                     isEdited={sow.roles_content_edited}
                   />
+                  </div>
+                  
+                  {/* Client Roles Table */}
+                  {Array.isArray(sow.clientRoles) && sow.clientRoles.length > 0 && (
+                    <div className="mt-8">
+                      <h3 className="text-xl font-bold mb-4">Client Team Roles</h3>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 border">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Name</th>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Role (Title)</th>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Email</th>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Responsibilities</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {sow.clientRoles.map((role, idx) => (
+                              <tr key={idx}>
+                                <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{role.name || 'N/A'}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-gray-700">{role.role || role.contact_title || 'N/A'}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-gray-700">{role.email || 'N/A'}</td>
+                                <td className="px-6 py-4 text-gray-700">
+                                  <div className="whitespace-pre-wrap max-w-md">
+                                    {role.responsibilities || 'N/A'}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
 
               {/* Pricing Section */}
               <div className="border-2 border-red-300 rounded-lg p-4 mb-8">

@@ -88,3 +88,24 @@ p {
   color: #9ca3af;
   pointer-events: none;
 } 
+
+.formatSOWTable table{
+  border:1px solid #000;
+  border-collapse: collapse;
+}
+
+.formatSOWTable table td{
+  border:1px solid #000;
+  padding: 10px;
+}
+
+.formatSOWTable table th{
+  background-color: #6fa8dc ;
+  border:1px solid #000;
+  font-weight: bold;
+  padding: 10px;
+}
+
+.formatSOWTable table td{
+  padding: 10px;
+}
