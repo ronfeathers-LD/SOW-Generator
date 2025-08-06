@@ -67,9 +67,18 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     loadTemplates();
   }, []); // Only run once when component mounts
 
+  // Function to normalize content for comparison (removes HTML tags and normalizes whitespace)
+  const normalizeContent = (content: string): string => {
+    if (!content) return '';
+    // Remove HTML tags and normalize whitespace
+    return content.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  };
+
   // Function to check if a section has unsaved changes
   const checkUnsavedChanges = (sectionName: string, currentContent: string, templateContent: string) => {
-    const hasUnsavedChanges = currentContent !== templateContent && currentContent.trim() !== '';
+    const normalizedCurrent = normalizeContent(currentContent);
+    const normalizedTemplate = normalizeContent(templateContent);
+    const hasUnsavedChanges = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
     setUnsavedChanges(prev => ({
       ...prev,
       [sectionName]: hasUnsavedChanges
@@ -84,7 +93,9 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
 
   const handleIntroContentChange = (content: string) => {
     // Check if content has been edited from the original template
-    const isEdited = content !== introTemplate && content.trim() !== '';
+    const normalizedCurrent = normalizeContent(content);
+    const normalizedTemplate = normalizeContent(introTemplate);
+    const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
     setFormData({
       ...formData,
       custom_intro_content: content,
@@ -95,7 +106,9 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
 
   const handleScopeContentChange = (content: string) => {
     // Check if content has been edited from the original template
-    const isEdited = content !== scopeTemplate && content.trim() !== '';
+    const normalizedCurrent = normalizeContent(content);
+    const normalizedTemplate = normalizeContent(scopeTemplate);
+    const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
     setFormData({
       ...formData,
       custom_scope_content: content,
@@ -106,7 +119,9 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
 
   const handleObjectivesDisclosureContentChange = (content: string) => {
     // Check if content has been edited from the original template
-    const isEdited = content !== objectivesDisclosureTemplate && content.trim() !== '';
+    const normalizedCurrent = normalizeContent(content);
+    const normalizedTemplate = normalizeContent(objectivesDisclosureTemplate);
+    const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
     setFormData({
       ...formData,
       custom_objectives_disclosure_content: content,
@@ -144,7 +159,9 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
 
   const handleAssumptionsContentChange = (content: string) => {
     // Check if content has been edited from the original template
-    const isEdited = content !== assumptionsTemplate && content.trim() !== '';
+    const normalizedCurrent = normalizeContent(content);
+    const normalizedTemplate = normalizeContent(assumptionsTemplate);
+    const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
     setFormData({
       ...formData,
       custom_assumptions_content: content,
@@ -164,7 +181,9 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
 
   const handleProjectPhasesContentChange = (content: string) => {
     // Check if content has been edited from the original template
-    const isEdited = content !== projectPhasesTemplate && content.trim() !== '';
+    const normalizedCurrent = normalizeContent(content);
+    const normalizedTemplate = normalizeContent(projectPhasesTemplate);
+    const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
     setFormData({
       ...formData,
       custom_project_phases_content: content,
@@ -184,7 +203,9 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
 
   const handleRolesContentChange = (content: string) => {
     // Check if content has been edited from the original template
-    const isEdited = content !== rolesTemplate && content.trim() !== '';
+    const normalizedCurrent = normalizeContent(content);
+    const normalizedTemplate = normalizeContent(rolesTemplate);
+    const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
     setFormData({
       ...formData,
       custom_roles_content: content,
