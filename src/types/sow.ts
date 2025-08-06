@@ -164,12 +164,14 @@ export interface SOWData {
   custom_assumptions_content?: string;
   custom_project_phases_content?: string;
   custom_roles_content?: string;
+  custom_deliverables_content?: string;
   intro_content_edited?: boolean;
   scope_content_edited?: boolean;
   objectives_disclosure_content_edited?: boolean;
   assumptions_content_edited?: boolean;
   project_phases_content_edited?: boolean;
   roles_content_edited?: boolean;
+  deliverables_content_edited?: boolean;
   
   // Database date fields
   project_start_date?: string;

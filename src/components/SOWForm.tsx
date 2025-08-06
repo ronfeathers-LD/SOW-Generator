@@ -716,7 +716,12 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               key_objectives: formData.objectives?.key_objectives,
               avoma_transcription: formData.objectives?.avoma_transcription,
               avoma_url: formData.objectives?.avoma_url,
-            }
+            },
+            scope: {
+              deliverables: formData.scope?.deliverables,
+            },
+            custom_deliverables_content: formData.custom_deliverables_content,
+            deliverables_content_edited: formData.deliverables_content_edited,
           };
           break;
 
@@ -773,12 +778,14 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             custom_assumptions_content: formData.custom_assumptions_content,
             custom_project_phases_content: formData.custom_project_phases_content,
             custom_roles_content: formData.custom_roles_content,
+            custom_deliverables_content: formData.custom_deliverables_content,
             intro_content_edited: formData.intro_content_edited,
             scope_content_edited: formData.scope_content_edited,
             objectives_disclosure_content_edited: formData.objectives_disclosure_content_edited,
             assumptions_content_edited: formData.assumptions_content_edited,
             project_phases_content_edited: formData.project_phases_content_edited,
             roles_content_edited: formData.roles_content_edited,
+            deliverables_content_edited: formData.deliverables_content_edited,
           };
           
 

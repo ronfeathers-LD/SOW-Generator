@@ -107,6 +107,13 @@ export async function PUT(
           if (data.objectives.avoma_transcription !== undefined) updateData.avoma_transcription = data.objectives.avoma_transcription;
           if (data.objectives.avoma_url !== undefined) updateData.avoma_url = data.objectives.avoma_url;
         }
+        // Handle scope data (deliverables)
+        if (data.scope) {
+          if (data.scope.deliverables !== undefined) updateData.deliverables = data.scope.deliverables;
+        }
+        // Handle custom deliverables content
+        if (data.custom_deliverables_content !== undefined) updateData.custom_deliverables_content = data.custom_deliverables_content;
+        if (data.deliverables_content_edited !== undefined) updateData.deliverables_content_edited = data.deliverables_content_edited;
         break;
 
       case 'Team & Roles':
@@ -154,12 +161,14 @@ export async function PUT(
         if (data.custom_assumptions_content !== undefined) updateData.custom_assumptions_content = data.custom_assumptions_content;
         if (data.custom_project_phases_content !== undefined) updateData.custom_project_phases_content = data.custom_project_phases_content;
         if (data.custom_roles_content !== undefined) updateData.custom_roles_content = data.custom_roles_content;
+        if (data.custom_deliverables_content !== undefined) updateData.custom_deliverables_content = data.custom_deliverables_content;
         if (data.intro_content_edited !== undefined) updateData.intro_content_edited = data.intro_content_edited;
         if (data.scope_content_edited !== undefined) updateData.scope_content_edited = data.scope_content_edited;
         if (data.objectives_disclosure_content_edited !== undefined) updateData.objectives_disclosure_content_edited = data.objectives_disclosure_content_edited;
         if (data.assumptions_content_edited !== undefined) updateData.assumptions_content_edited = data.assumptions_content_edited;
         if (data.project_phases_content_edited !== undefined) updateData.project_phases_content_edited = data.project_phases_content_edited;
         if (data.roles_content_edited !== undefined) updateData.roles_content_edited = data.roles_content_edited;
+        if (data.deliverables_content_edited !== undefined) updateData.deliverables_content_edited = data.deliverables_content_edited;
         break;
 
       default:

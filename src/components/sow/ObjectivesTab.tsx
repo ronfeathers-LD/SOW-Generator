@@ -74,6 +74,14 @@ export default function ObjectivesTab({
     });
   };
 
+  const handleCustomDeliverablesChange = (content: string) => {
+    setFormData({
+      ...formData,
+      custom_deliverables_content: content,
+      deliverables_content_edited: true
+    });
+  };
+
   const handleFetchTranscription = async () => {
     const currentAvomaUrl = formData.objectives?.avoma_url || '';
     if (!currentAvomaUrl.trim()) {
@@ -697,11 +705,9 @@ export default function ObjectivesTab({
                 Define the specific deliverables that will be provided as part of this project. These will be used in the Scope section of the SOW.
               </p>
               
-              <textarea
-                value={formData.scope?.deliverables || ''}
-                onChange={(e) => handleDeliverablesChange(e.target.value)}
-                rows={8}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-mono text-sm"
+              <WYSIWYGEditor
+                value={formData.custom_deliverables_content || formData.scope?.deliverables || ''}
+                onChange={handleCustomDeliverablesChange}
                 placeholder={`Enter deliverables organized by product/category, for example:
 
 LEANDATA ROUTING
