@@ -153,10 +153,10 @@ export default function SOWObjectivesPage({
       {/* Project Details Section */}
       {projectDetails && (
         <div className="mb-6">
-          <p className="mb-4 text-gray-700">
+          <p className="mb-4">
             The following are the high-level details as part of the implementation:
           </p>
-          <ul className="list-disc pl-6 space-y-2 text-gray-700">
+          <ul className="list-disc pl-6 prose prose-md max-w-none">
             <li>
               Products: {projectDetails.products?.join(', ') || 'N/A'}
             </li>
