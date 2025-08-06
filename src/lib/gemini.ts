@@ -18,14 +18,23 @@ interface ObjectivesGenerationRequest {
 }
 
 interface ObjectivesGenerationResponse {
-  description: string;
-  objectives: string[];
+  objective: string;
+  scope: {
+    "Lead Routing": string[];
+    "Account Matching": string[];
+    "BookIt": string[];
+    "Integrations": string[];
+  };
 }
 
 interface TranscriptionAnalysisResponse {
-  objectiveOverview: string;
-  keyObjectives: string[];
-  deliverables: string[];
+  objective: string;
+  scope: {
+    "Lead Routing": string[];
+    "Account Matching": string[];
+    "BookIt": string[];
+    "Integrations": string[];
+  };
   isFallback?: boolean;
 }
 
@@ -244,11 +253,7 @@ Please provide a professional, 2-3 sentence project description that captures th
       const fallbackPrompt = `
 You are an expert at analyzing sales call transcripts and extracting key information for Statement of Work (SOW) documents.
 
-Please analyze the following call transcript between LeanData and ${customerName} and provide three distinct sections:
-
-1. **Objective Overview** - A high-level overview of what the project will entail (2-3 sentences)
-2. **Key Objectives** - Pain points that the customer has outlined for us to solve (discovered through AI analysis)
-3. **Deliverables** - Solutions to the pain points, utilizing LeanData products (organized by product/category)
+Please analyze the following call transcript between LeanData and ${customerName} and provide a comprehensive project objective and scope items.
 
 ${existingDescription ? `Existing Project Description: ${existingDescription}` : ''}
 ${existingObjectives && existingObjectives.length > 0 ? `Existing Objectives: ${existingObjectives.join(', ')}` : ''}
@@ -261,26 +266,31 @@ CRITICAL: You must respond with ONLY valid JSON. Do not include any explanatory 
 
 Required JSON format:
 {
-  "objectiveOverview": "A clear, professional high-level overview of what the project will entail",
-  "keyObjectives": [
-    "Pain point 1: Description of the business problem or challenge",
-    "Pain point 2: Description of the business problem or challenge",
-    "Pain point 3: Description of the business problem or challenge",
-    "Pain point 4: Description of the business problem or challenge",
-    "Pain point 5: Description of the business problem or challenge"
-  ],
-  "deliverables": [
-    "LEANDATA ROUTING\\n• Solution 1: Specific LeanData Routing implementation\\n• Solution 2: Specific LeanData Routing implementation\\n• Solution 3: Specific LeanData Routing implementation",
-    "LEANDATA BOOKIT\\n• Solution 1: Specific LeanData BookIt implementation\\n• Solution 2: Specific LeanData BookIt implementation",
-    "INTEGRATIONS\\n• Teams integration for notifications\\n• ZoomInfo integration for data enrichment"
-  ]
+  "objective": "A clear, professional objective statement that captures the main goal of the project (3-5 sentences). The intro paragraph should utilize the customerName: {customerName} seeks to implement LeanData as part of their initiative to automate and improve their go to market processes by leveraging LeanData's Orchestration and BookIt platforms. (where the products listed are included in the project)",
+  "scope": {
+    "Lead Routing": [
+      "Specific scope item 1 related to Lead Routing",
+      "Specific scope item 2 related to Lead Routing"
+    ],
+    "Account Matching": [
+      "Specific scope item 1 related to Account Matching",
+      "Specific scope item 2 related to Account Matching"
+    ],
+    "BookIt": [
+      "Specific scope item 1 related to BookIt",
+      "Specific scope item 2 related to BookIt"
+    ],
+    "Integrations": [
+      "Specific scope item 1 related to Integrations",
+      "Specific scope item 2 related to Integrations"
+    ]
+  }
 }
 
 Guidelines:
-- The objective overview should be business-focused and capture the high-level project scope
-- Key objectives should focus on PAIN POINTS and business challenges the customer is facing
-- Deliverables should be SOLUTIONS to those pain points, organized by LeanData product/category
-- Each deliverable category should contain specific, actionable solutions using LeanData products
+- The objective should be business-focused and capture the main goal of the project
+- Scope items should be specific, measurable, and aligned with typical LeanData implementation goals
+- Include scope items related to lead/contact management, automation, data quality, and operational efficiency
 - Focus on LeanData products and services mentioned in the call
 - Be professional and suitable for a formal SOW document
 - Avoid generic statements - be specific to what was discussed
@@ -382,18 +392,18 @@ Please consider the existing content and selected products above and enhance or 
         
         const parsed = JSON.parse(cleanedContent);
         
-        if (!parsed.objectiveOverview || !parsed.keyObjectives) {
+        if (!parsed.objective || !parsed.scope) {
           throw new Error('Missing required fields in parsed response');
         }
         
         return {
-          objectiveOverview: parsed.objectiveOverview,
-          keyObjectives: Array.isArray(parsed.keyObjectives) ? parsed.keyObjectives : ['Key objectives could not be generated'],
-          deliverables: Array.isArray(parsed.deliverables) ? parsed.deliverables : [
-            'LEANDATA ROUTING\n• Lead routing based on employee size, geography, and account tiering\n• Lead-to-lead matching and account matching to reduce duplicates\n• Contact routing that mirrors lead routing logic\n• Round robin and individual assignment logic',
-            'LEANDATA BOOKIT\n• Notification workflows for sales and support teams\n• SLA notifications via Microsoft Teams and/or Outreach',
-            'INTEGRATIONS\n• Teams integration for notifications\n• ZoomInfo integration for data enrichment'
-          ],
+          objective: parsed.objective,
+          scope: {
+            "Lead Routing": Array.isArray(parsed.scope["Lead Routing"]) ? parsed.scope["Lead Routing"] : ['Lead routing scope could not be generated'],
+            "Account Matching": Array.isArray(parsed.scope["Account Matching"]) ? parsed.scope["Account Matching"] : ['Account matching scope could not be generated'],
+            "BookIt": Array.isArray(parsed.scope["BookIt"]) ? parsed.scope["BookIt"] : ['BookIt scope could not be generated'],
+            "Integrations": Array.isArray(parsed.scope["Integrations"]) ? parsed.scope["Integrations"] : ['Integrations scope could not be generated']
+          },
           isFallback: false
         };
             } catch (parseError) {
@@ -406,8 +416,13 @@ Please consider the existing content and selected products above and enhance or 
           const simplePrompt = `
 Analyze this call transcript and return ONLY valid JSON:
 {
-  "objectiveOverview": "brief project overview",
-  "keyObjectives": ["pain point 1", "pain point 2", "pain point 3", "pain point 4", "pain point 5"]
+  "objective": "brief project overview",
+  "scope": {
+    "Lead Routing": ["scope item 1", "scope item 2"],
+    "Account Matching": ["scope item 1", "scope item 2"],
+    "BookIt": ["scope item 1", "scope item 2"],
+    "Integrations": ["scope item 1", "scope item 2"]
+  }
 }
 
 Transcript: ${transcript}
@@ -424,16 +439,16 @@ Customer: ${customerName}
             const finalContent = jsonMatch ? jsonMatch[0] : cleanedContent;
             
             const parsed = JSON.parse(finalContent);
-            if (parsed.objectiveOverview && parsed.keyObjectives) {
+            if (parsed.objective && parsed.scope) {
               // Second attempt successful
               return {
-                objectiveOverview: parsed.objectiveOverview,
-                keyObjectives: Array.isArray(parsed.keyObjectives) ? parsed.keyObjectives : ['Key objectives could not be generated'],
-                deliverables: Array.isArray(parsed.deliverables) ? parsed.deliverables : [
-                  'LEANDATA ROUTING\n• Lead routing based on employee size, geography, and account tiering\n• Lead-to-lead matching and account matching to reduce duplicates\n• Contact routing that mirrors lead routing logic\n• Round robin and individual assignment logic',
-                  'LEANDATA BOOKIT\n• Notification workflows for sales and support teams\n• SLA notifications via Microsoft Teams and/or Outreach',
-                  'INTEGRATIONS\n• Teams integration for notifications\n• ZoomInfo integration for data enrichment'
-                ],
+                objective: parsed.objective,
+                scope: {
+                  "Lead Routing": Array.isArray(parsed.scope["Lead Routing"]) ? parsed.scope["Lead Routing"] : ['Lead routing scope could not be generated'],
+                  "Account Matching": Array.isArray(parsed.scope["Account Matching"]) ? parsed.scope["Account Matching"] : ['Account matching scope could not be generated'],
+                  "BookIt": Array.isArray(parsed.scope["BookIt"]) ? parsed.scope["BookIt"] : ['BookIt scope could not be generated'],
+                  "Integrations": Array.isArray(parsed.scope["Integrations"]) ? parsed.scope["Integrations"] : ['Integrations scope could not be generated']
+                },
                 isFallback: false
               };
             }
@@ -538,19 +553,13 @@ Customer: ${customerName}
         }
         
         return {
-          objectiveOverview: objective.replace(/^.*?:\s*/, '').trim(),
-          keyObjectives: scopeItems.length > 0 ? scopeItems : [
-            'Manual lead routing and assignment processes',
-            'Duplicate leads and contacts in Salesforce',
-            'Inconsistent data quality across objects',
-            'Lack of automated territory-based assignment',
-            'Manual management and distribution by operations'
-          ],
-          deliverables: [
-            'LEANDATA ROUTING\n• Lead routing based on employee size, geography, and account tiering\n• Lead-to-lead matching and account matching to reduce duplicates\n• Contact routing that mirrors lead routing logic\n• Round robin and individual assignment logic',
-            'LEANDATA BOOKIT\n• Notification workflows for sales and support teams\n• SLA notifications via Microsoft Teams and/or Outreach',
-            'INTEGRATIONS\n• Teams integration for notifications\n• ZoomInfo integration for data enrichment'
-          ],
+          objective: objective.replace(/^.*?:\s*/, '').trim(),
+          scope: {
+            "Lead Routing": scopeItems.length > 0 ? scopeItems.slice(0, 2) : ['Manual lead routing and assignment processes'],
+            "Account Matching": scopeItems.length > 2 ? scopeItems.slice(2, 4) : ['Duplicate leads and contacts in Salesforce'],
+            "BookIt": scopeItems.length > 4 ? scopeItems.slice(4, 6) : ['Inconsistent data quality across objects'],
+            "Integrations": scopeItems.length > 6 ? scopeItems.slice(6, 8) : ['Lack of automated territory-based assignment']
+          },
           isFallback: true
         };
       }
@@ -575,19 +584,13 @@ Customer: ${customerName}
       }
       
       return {
-        objectiveOverview: errorMessage,
-        keyObjectives: [
-          'Manual lead routing and assignment processes',
-          'Duplicate leads and contacts in Salesforce',
-          'Inconsistent data quality across objects',
-          'Lack of automated territory-based assignment',
-          'Manual management and distribution by operations'
-        ],
-        deliverables: [
-          'LEANDATA ROUTING\n• Lead routing based on employee size, geography, and account tiering\n• Lead-to-lead matching and account matching to reduce duplicates\n• Contact routing that mirrors lead routing logic\n• Round robin and individual assignment logic',
-          'LEANDATA BOOKIT\n• Notification workflows for sales and support teams\n• SLA notifications via Microsoft Teams and/or Outreach',
-          'INTEGRATIONS\n• Teams integration for notifications\n• ZoomInfo integration for data enrichment'
-        ]
+        objective: errorMessage,
+        scope: {
+          "Lead Routing": ['Manual lead routing and assignment processes'],
+          "Account Matching": ['Duplicate leads and contacts in Salesforce'],
+          "BookIt": ['Inconsistent data quality across objects'],
+          "Integrations": ['Lack of automated territory-based assignment']
+        }
       };
     }
   }
@@ -603,7 +606,7 @@ Customer: ${customerName}
     const prompt = `
 You are an expert at creating professional project objectives for Statement of Work (SOW) documents for LeanData implementations.
 
-Based on the following information, generate a comprehensive project objective description and 5-7 specific key objectives for ${customerName}:
+Based on the following information, generate a comprehensive project objective description and scope items for ${customerName}:
 
 Customer: ${customerName}
 Products/Services: ${products}
@@ -611,26 +614,34 @@ ${projectDescription ? `Project Description: ${projectDescription}` : ''}
 
 Please provide your response in the following JSON format:
 {
-  "description": "A comprehensive paragraph describing the overall project objective, similar to: '[Customer] seeks to implement LeanData as part of their initiative to automate and improve their go to market processes by leveraging LeanData's Orchestration and BookIt platforms.'",
-  "objectives": [
-    "Accurate Lead to Account matching",
-    "Deduplication of Leads and Contacts", 
-    "Automate Lead and Contact routing",
-    "Ensure accurate assignment to correct seller by assigning leads based on account size and territory segmentation",
-    "Reduce manual management and distribution by operations and sales leadership",
-    "Improve data quality and consistency across Salesforce objects",
-    "Streamline lead qualification and routing processes"
-  ]
+  "objective": "A clear, professional objective statement that captures the main goal of the project (3-5 sentences). The intro paragraph should utilize the customerName: {customerName} seeks to implement LeanData as part of their initiative to automate and improve their go to market processes by leveraging LeanData's Orchestration and BookIt platforms. (where the products listed are included in the project)",
+  "scope": {
+    "Lead Routing": [
+      "Specific scope item 1 related to Lead Routing",
+      "Specific scope item 2 related to Lead Routing"
+    ],
+    "Account Matching": [
+      "Specific scope item 1 related to Account Matching",
+      "Specific scope item 2 related to Account Matching"
+    ],
+    "BookIt": [
+      "Specific scope item 1 related to BookIt",
+      "Specific scope item 2 related to BookIt"
+    ],
+    "Integrations": [
+      "Specific scope item 1 related to Integrations",
+      "Specific scope item 2 related to Integrations"
+    ]
+  }
 }
 
-The description should be professional and business-focused, following the pattern shown above. The objectives should be specific, measurable, and aligned with typical LeanData implementation goals. Include objectives related to lead/contact management, automation, data quality, and operational efficiency.
+The objective should be professional and business-focused, following the pattern shown above. The scope items should be specific, measurable, and aligned with typical LeanData implementation goals. Include scope items related to lead/contact management, automation, data quality, and operational efficiency.
 
-Use these example objectives as a reference but adapt them to the specific customer and project context:
-- Accurate Lead to Account matching
-- Deduplication of Leads and Contacts
-- Automate Lead and Contact routing
-- Ensure accurate assignment to correct seller by assigning leads based on account size and territory segmentation
-- Reduce manual management and distribution by operations and sales leadership
+Use these example scope items as a reference but adapt them to the specific customer and project context:
+- Lead Routing: Accurate lead assignment based on territory and revenue segmentation
+- Account Matching: Deduplication of leads and contacts across Salesforce objects
+- BookIt: Automated meeting scheduling and calendar integration
+- Integrations: Seamless data flow between Salesforce and external systems
 `;
 
     try {
@@ -646,33 +657,36 @@ Use these example objectives as a reference but adapt them to the specific custo
       try {
         const parsed = JSON.parse(content);
         return {
-          description: parsed.description || 'Project objectives could not be generated',
-          objectives: parsed.objectives || ['Objective could not be generated']
+          objective: parsed.objective || 'Project objective could not be generated',
+          scope: parsed.scope || {
+            "Lead Routing": ['Lead routing scope could not be generated'],
+            "Account Matching": ['Account matching scope could not be generated'],
+            "BookIt": ['BookIt scope could not be generated'],
+            "Integrations": ['Integrations scope could not be generated']
+          }
         };
       } catch (parseError) {
         // If JSON parsing fails, create a fallback response
         return {
-          description: 'Project objectives could not be generated due to formatting issues',
-          objectives: [
-            'Improve lead management and routing processes',
-            'Automate account matching and deduplication',
-            'Enhance sales team efficiency through better lead distribution',
-            'Reduce manual data entry and processing time',
-            'Implement scalable lead routing based on territory and revenue'
-          ]
+          objective: 'Project objective could not be generated due to formatting issues',
+          scope: {
+            "Lead Routing": ['Improve lead management and routing processes'],
+            "Account Matching": ['Automate account matching and deduplication'],
+            "BookIt": ['Enhance sales team efficiency through better lead distribution'],
+            "Integrations": ['Reduce manual data entry and processing time']
+          }
         };
       }
     } catch (error) {
       console.error('Error generating objectives:', error);
       return {
-        description: 'Project objectives could not be generated due to an error',
-        objectives: [
-          'Improve lead management and routing processes',
-          'Automate account matching and deduplication',
-          'Enhance sales team efficiency through better lead distribution',
-          'Reduce manual data entry and processing time',
-          'Implement scalable lead routing based on territory and revenue'
-        ]
+        objective: 'Project objective could not be generated due to an error',
+        scope: {
+          "Lead Routing": ['Improve lead management and routing processes'],
+          "Account Matching": ['Automate account matching and deduplication'],
+          "BookIt": ['Enhance sales team efficiency through better lead distribution'],
+          "Integrations": ['Reduce manual data entry and processing time']
+        }
       };
     }
   }

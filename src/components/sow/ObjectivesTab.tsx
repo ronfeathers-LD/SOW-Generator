@@ -195,15 +195,12 @@ export default function ObjectivesTab({
       }
 
       // Validate the response structure
-      if (!result.objectiveOverview || !result.keyObjectives || !Array.isArray(result.keyObjectives)) {
+      if (!result.objective || !result.scope) {
         throw new Error('Invalid response format from AI analysis');
       }
 
-      // Process deliverables if available
-      let generatedDeliverables: string[] = [];
-      if (result.deliverables && Array.isArray(result.deliverables)) {
-        generatedDeliverables = result.deliverables;
-      }
+      // Process scope items
+      const scopeItems = result.scope;
 
       // Convert key objectives array to HTML format for TipTap editor
       const convertKeyObjectivesToHTML = (objectives: string[]): string => {
@@ -335,32 +332,33 @@ export default function ObjectivesTab({
       };
 
       // Check for Gemini API overload errors
-      if (result.objectiveOverview.includes('model is overloaded') || result.objectiveOverview.includes('Service Unavailable')) {
+      if (result.objective.includes('model is overloaded') || result.objective.includes('Service Unavailable')) {
         throw new Error('AI service is currently overloaded. Please wait a few minutes and try again.');
       }
 
       // Check for other Gemini API errors
-      if (result.objectiveOverview.includes('could not be generated')) {
+      if (result.objective.includes('could not be generated')) {
         throw new Error('AI analysis failed. Please try again in a few minutes.');
       }
 
 
       
       // Update the form with the generated objective and scope
-      // Process key objectives (pain points)
-      let generatedKeyObjectives: string[] = [];
+      // Process scope items into deliverables format
+      const allScopeItems: string[] = [];
+      Object.entries(scopeItems).forEach(([category, items]) => {
+        if (Array.isArray(items) && items.length > 0) {
+          allScopeItems.push(`${category.toUpperCase()}\n${items.map(item => `• ${item}`).join('\n')}`);
+        }
+      });
       
-      if (Array.isArray(result.keyObjectives)) {
-        generatedKeyObjectives = result.keyObjectives
-          .filter((item: any) => typeof item === 'string' && item.trim().length > 0)
-          .map((item: string, index: number) => {
-            // Remove any existing numbering and convert to bullet point format
-            const cleanItem = item.replace(/^\d+\.\s*/, '').trim();
-            return cleanItem;
-          });
-      }
-      
-
+      // Convert scope items to key objectives format (flatten all items)
+      const generatedKeyObjectives: string[] = [];
+      Object.values(scopeItems).forEach(items => {
+        if (Array.isArray(items)) {
+          generatedKeyObjectives.push(...items.filter(item => typeof item === 'string' && item.trim().length > 0));
+        }
+      });
       
       // Ensure we have valid objectives
       const finalObjectives = generatedKeyObjectives.length > 0 ? generatedKeyObjectives : [''];
@@ -369,16 +367,16 @@ export default function ObjectivesTab({
         ...formData,
         objectives: {
           ...formData.objectives!,
-          description: result.objectiveOverview,
+          description: result.objective,
           key_objectives: finalObjectives
         },
         scope: {
           ...formData.scope!,
-          deliverables: generatedDeliverables.join('\n\n')
+          deliverables: allScopeItems.join('\n\n')
         },
-        custom_deliverables_content: convertDeliverablesToHTML(generatedDeliverables),
+        custom_deliverables_content: convertDeliverablesToHTML(allScopeItems),
         deliverables_content_edited: true,
-        custom_objective_overview_content: result.objectiveOverview,
+        custom_objective_overview_content: result.objective,
         objective_overview_content_edited: true,
         custom_key_objectives_content: convertKeyObjectivesToHTML(finalObjectives),
         key_objectives_content_edited: true
@@ -389,9 +387,9 @@ export default function ObjectivesTab({
         setAnalysisError('Note: AI response was generated using fallback parsing due to formatting issues. Please review the content carefully.');
       }
 
-      // Show success message for deliverables generation
-      if (generatedDeliverables.length > 0) {
-        // Deliverables generated successfully
+      // Show success message for scope generation
+      if (allScopeItems.length > 0) {
+        // Scope items generated successfully
       }
       
       setFormData(updatedFormData);

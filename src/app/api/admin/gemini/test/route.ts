@@ -90,9 +90,9 @@ export async function POST(request: NextRequest) {
         success: true,
         message: 'Gemini API connection successful!',
         testResult: {
-          objectiveOverview: result.objectiveOverview,
-          keyObjectivesCount: result.keyObjectives.length,
-          deliverablesCount: result.deliverables.length
+          objective: result.objective,
+          scopeCategories: Object.keys(result.scope).length,
+          totalScopeItems: Object.values(result.scope).reduce((total: number, items: string[]) => total + items.length, 0)
         }
       });
 
