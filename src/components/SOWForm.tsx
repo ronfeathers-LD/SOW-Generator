@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { GeminiBulletPoint } from '@/lib/gemini';
 import { SalesforceOpportunity, SalesforceContact } from '@/lib/salesforce';
 import AvomaIntegration from './AvomaIntegration';
-import WYSIWYGEditor from './WYSIWYGEditor';
+
 import SalesforceIntegration from './SalesforceIntegration';
 import OpportunityLookup from './OpportunityLookup';
 import ProjectOverviewTab from './sow/ProjectOverviewTab';

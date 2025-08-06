@@ -46,7 +46,7 @@ export default function SOWObjectivesPage({
       try {
         if (customContent) {
           // Use custom content if provided (edited by user)
-          let processedContent = textToHtml(customContent);
+          const processedContent = textToHtml(customContent);
           setObjectivesDisclosureContent(processedContent);
           setLoading(false);
           return;
@@ -55,7 +55,7 @@ export default function SOWObjectivesPage({
         // Fallback to template content
         const template = await getContentTemplate('objectives-disclosure');
         if (template) {
-          let processedContent = textToHtml(template.default_content);
+          const processedContent = textToHtml(template.default_content);
           setObjectivesDisclosureContent(processedContent);
         } else {
           // Fallback to generic message if no template found
