@@ -17,7 +17,18 @@ interface TipTapEditorProps {
 export default function TipTapEditor({ value, onChange, placeholder }: TipTapEditorProps) {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        listItem: {
+          HTMLAttributes: {
+            class: 'list-item',
+          },
+        },
+        paragraph: {
+          HTMLAttributes: {
+            class: 'paragraph',
+          },
+        },
+      }),
       Table.configure({
         resizable: true,
       }),
@@ -289,6 +300,16 @@ export default function TipTapEditor({ value, onChange, placeholder }: TipTapEdi
         
         .ProseMirror table p {
           margin: 0;
+        }
+        
+        /* Fix list item paragraph wrapping */
+        .ProseMirror li p {
+          margin: 0;
+          display: inline;
+        }
+        
+        .ProseMirror li {
+          margin: 0.25em 0;
         }
       `}</style>
     </div>

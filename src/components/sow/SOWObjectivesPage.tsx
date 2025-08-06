@@ -88,7 +88,7 @@ export default function SOWObjectivesPage({
       {/* Project Description */}
       {projectDescription && projectDescription.trim() && (
         <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-4">Project Description:</h3>
+          <h3 className="text-lg font-semibold mb-4">Objective:</h3>
           <div 
             className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
             dangerouslySetInnerHTML={{ __html: projectDescription }}
@@ -99,7 +99,8 @@ export default function SOWObjectivesPage({
       {/* Key Objectives */}
       {(customKeyObjectivesContent || (keyObjectives && keyObjectives.length > 0)) && (
         <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-4">Key Objectives:</h3>
+          <p>The Key Objectives for the program include:
+          </p>
           {customKeyObjectivesContent ? (
             <div 
               className="text-base leading-relaxed text-gray-700 prose prose-sm max-w-none"
@@ -152,54 +153,36 @@ export default function SOWObjectivesPage({
       {/* Project Details Section */}
       {projectDetails && (
         <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-4">Project Details:</h3>
           <p className="mb-4 text-gray-700">
             The following are the high-level details as part of the implementation:
           </p>
           <ul className="list-disc pl-6 space-y-2 text-gray-700">
             <li>
-              <strong>Products:</strong> {projectDetails.products?.join(', ') || 'N/A'}
+              Products: {projectDetails.products?.join(', ') || 'N/A'}
             </li>
             <li>
-              <strong>Number of Units:</strong> {projectDetails.number_of_units || 'N/A'}
+              Number of Units: {projectDetails.number_of_units || 'N/A'}
             </li>
             <li>
-              <strong>Regions/Business Units:</strong> {projectDetails.regions || 'N/A'}
+              Regions/Business Units: {projectDetails.regions || 'N/A'}
             </li>
             <li>
-              <strong>Salesforce Tenants:</strong> {projectDetails.salesforce_tenants || 'N/A'}
+              Salesforce Tenants: {projectDetails.salesforce_tenants || 'N/A'}
             </li>
             <li>
-              <strong>Timeline:</strong> {projectDetails.timeline_weeks || 'N/A'} weeks
+              Timeline: {projectDetails.timeline_weeks || 'N/A'} weeks
             </li>
             <li>
-              <strong>Start and End date:</strong> The start date of this SOW is one week after subscription start date and ends based on the number of weeks
+              Start and End date: The start date of this SOW is one week after subscription start date and ends based on the number of weeks
             </li>
             <li>
-              <strong>Units consumption:</strong> {projectDetails.units_consumption || 'N/A'}
+              Units consumption: {projectDetails.units_consumption || 'N/A'}
             </li>
           </ul>
         </div>
       )}
 
-      {/* Deliverables */}
-      {(customDeliverablesContent || (deliverables && deliverables.length > 0)) && (
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-4">Deliverables:</h3>
-          {customDeliverablesContent ? (
-            <div 
-              className="text-base leading-relaxed text-gray-700 prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: customDeliverablesContent }}
-            />
-          ) : (
-            <ul className="list-disc pl-6 space-y-2 text-gray-700">
-              {deliverables.map((deliverable, index) => (
-                <li key={index}>{deliverable}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+      
 
       {/* Objectives Disclosure Content */}
       {isEdited && (

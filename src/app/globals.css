@@ -7,6 +7,23 @@ p {
   margin: 1em 0;
 }
 
+/* Fix TipTap list item paragraph wrapping */
+.ProseMirror li p {
+  margin: 0;
+  display: inline;
+}
+
+.ProseMirror li {
+  margin: 0.25em 0;
+}
+
+/* Ensure list items don't have unwanted paragraph margins */
+.wysiwyg-content li p,
+.prose li p {
+  margin: 0;
+  display: inline;
+}
+
 /* TipTap Editor styles */
 .prose-editor .ProseMirror {
   outline: none;
