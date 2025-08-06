@@ -355,7 +355,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
 
   const sections = [
     { id: 'intro', name: 'Introduction', icon: '📝' },
-    { id: 'objectives-disclosure', name: 'Objectives Disclosure', icon: '📋' },
+    { id: 'objectives-disclosure', name: 'Objectives', icon: '📋' },
     { id: 'scope', name: 'Scope', icon: '🎯' },
     { id: 'project-phases', name: 'Project Phases', icon: '📅' },
     { id: 'roles', name: 'Roles & Responsibilities', icon: '👥' },
