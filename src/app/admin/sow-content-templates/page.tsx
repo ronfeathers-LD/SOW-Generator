@@ -7,13 +7,44 @@ import TipTapEditor from '@/components/TipTapEditor';
 export default function SOWContentTemplatesPage() {
   const [templates, setTemplates] = useState<SOWContentTemplate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingTemplate, setEditingTemplate] = useState<SOWContentTemplate | null>(null);
-  const [expandedTemplates, setExpandedTemplates] = useState<Set<string>>(new Set());
+  const [activeSection, setActiveSection] = useState<string>('intro');
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchTemplates();
   }, []);
+
+  // Define the desired order of sections with metadata
+  const sections = [
+    { id: 'intro', name: 'Introduction', description: 'Opening content for the SOW' },
+    { id: 'objectives-disclosure', name: 'Objectives', description: 'Disclosure about objectives' },
+    { id: 'scope', name: 'Scope', description: 'Project scope and deliverables' },
+    { id: 'project-phases', name: 'Project Phases', description: 'Detailed project phases and activities' },
+    { id: 'roles', name: 'Roles and Responsibilities', description: 'Team roles and responsibilities' },
+    { id: 'assumptions', name: 'Assumptions', description: 'Project assumptions and constraints' }
+  ];
+
+  const sectionOrder = sections.map(s => s.id);
+
+  const sortTemplates = (templates: SOWContentTemplate[]) => {
+    return templates.sort((a, b) => {
+      const aIndex = sectionOrder.indexOf(a.section_name);
+      const bIndex = sectionOrder.indexOf(b.section_name);
+      
+      // If both sections are in our defined order, sort by that
+      if (aIndex !== -1 && bIndex !== -1) {
+        return aIndex - bIndex;
+      }
+      
+      // If only one is in our defined order, prioritize it
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
+      
+      // If neither is in our defined order, sort alphabetically
+      return a.section_name.localeCompare(b.section_name);
+    });
+  };
 
   const fetchTemplates = async () => {
     try {
@@ -22,7 +53,7 @@ export default function SOWContentTemplatesPage() {
         throw new Error('Failed to fetch templates');
       }
       const data = await response.json();
-      setTemplates(data);
+      setTemplates(sortTemplates(data));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -31,12 +62,15 @@ export default function SOWContentTemplatesPage() {
   };
 
   const handleSave = async (template: Partial<SOWContentTemplate>) => {
+    setSaving(true);
+    setError(null);
+    
     try {
-      const url = editingTemplate 
-        ? `/api/admin/sow-content-templates/${editingTemplate.id}`
+      const url = template.id 
+        ? `/api/admin/sow-content-templates/${template.id}`
         : '/api/admin/sow-content-templates';
       
-      const method = editingTemplate ? 'PUT' : 'POST';
+      const method = template.id ? 'PUT' : 'POST';
       
       const response = await fetch(url, {
         method,
@@ -50,21 +84,31 @@ export default function SOWContentTemplatesPage() {
         throw new Error('Failed to save template');
       }
 
-      await fetchTemplates();
-      setEditingTemplate(null);
+      const savedTemplate = await response.json();
+
+      // Update local state immediately instead of refetching
+      setTemplates(prevTemplates => {
+        const existingIndex = prevTemplates.findIndex(t => t.id === savedTemplate.id);
+        
+        if (existingIndex >= 0) {
+          // Update existing template
+          const updated = [...prevTemplates];
+          updated[existingIndex] = savedTemplate;
+          return sortTemplates(updated);
+        } else {
+          // Add new template
+          return sortTemplates([...prevTemplates, savedTemplate]);
+        }
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const toggleExpanded = (templateId: string) => {
-    const newExpanded = new Set(expandedTemplates);
-    if (newExpanded.has(templateId)) {
-      newExpanded.delete(templateId);
-    } else {
-      newExpanded.add(templateId);
-    }
-    setExpandedTemplates(newExpanded);
+  const getCurrentTemplate = () => {
+    return templates.find(t => t.section_name === activeSection);
   };
 
 
@@ -91,99 +135,87 @@ export default function SOWContentTemplatesPage() {
         </div>
       )}
 
-      {/* Edit Form */}
-      {editingTemplate && (
-        <TemplateForm
-          template={editingTemplate}
-          onSave={handleSave}
-          onCancel={() => {
-            setEditingTemplate(null);
-          }}
-        />
-      )}
+      {/* Subnav */}
+      <div className="bg-white shadow rounded-lg">
+        <div className="border-b border-gray-200">
+          <nav className="flex space-x-8 px-6" aria-label="Tabs">
+            {sections.map((section) => {
+              const isActive = activeSection === section.id;
+              
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveSection(section.id)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                    isActive
+                      ? 'border-indigo-500 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  {section.name}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
 
-      {/* Templates List */}
+      {/* Content Editor */}
       <div className="bg-white shadow rounded-lg">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Content Templates</h2>
+          <h2 className="text-lg font-medium text-gray-900">
+            {sections.find(s => s.id === activeSection)?.name}
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            {sections.find(s => s.id === activeSection)?.description}
+          </p>
         </div>
-        <div className="divide-y divide-gray-200">
-          {templates.map((template) => (
-            <div key={template.id} className="px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3">
-                    <h3 className="text-lg font-medium text-gray-900">
-                      {template.section_title}
-                    </h3>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Section: {template.section_name}
-                  </p>
-                  {template.description && (
-                    <p className="text-sm text-gray-600 mt-1">{template.description}</p>
-                  )}
-                  
-                  {/* Collapsible Content */}
-                  <div className="mt-3">
-                    <button
-                      onClick={() => toggleExpanded(template.id)}
-                      className="flex items-center text-sm text-indigo-600 hover:text-indigo-800"
-                    >
-                      <span>{expandedTemplates.has(template.id) ? 'Hide' : 'Show'} Full Content</span>
-                      <svg
-                        className={`ml-1 h-4 w-4 transform transition-transform ${
-                          expandedTemplates.has(template.id) ? 'rotate-180' : ''
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    
-                    {expandedTemplates.has(template.id) && (
-                      <div className="mt-3 p-3 bg-gray-50 rounded-md">
-                        <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
-                          {template.default_content}
-                        </pre>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setEditingTemplate(template)}
-                    className="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200"
-                  >
-                    Edit
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+        
+        <div className="p-6">
+          <SectionEditor
+            section={sections.find(s => s.id === activeSection)!}
+            template={getCurrentTemplate()}
+            onSave={handleSave}
+            saving={saving}
+          />
         </div>
       </div>
     </div>
   );
 }
 
-interface TemplateFormProps {
-  template?: SOWContentTemplate | null;
+interface SectionEditorProps {
+  section: { id: string; name: string; description: string };
+  template?: SOWContentTemplate;
   onSave: (template: Partial<SOWContentTemplate>) => void;
-  onCancel: () => void;
+  saving: boolean;
 }
 
-function TemplateForm({ template, onSave, onCancel }: TemplateFormProps) {
-  const [formData, setFormData] = useState({
-    section_name: template?.section_name || '',
-    section_title: template?.section_title || '',
+function SectionEditor({ section, template, onSave, saving }: SectionEditorProps) {
+  const [formData, setFormData] = useState<Partial<SOWContentTemplate>>({
+    id: template?.id,
+    section_name: section.id,
+    section_title: section.name,
+    description: section.description,
     default_content: template?.default_content || '',
-    description: template?.description || '',
     sort_order: template?.sort_order || 0,
-    is_active: template?.is_active ?? true,
+    is_active: true,
   });
+
+  // Update form data when template changes, but not during save
+  useEffect(() => {
+    if (!saving) {
+      setFormData({
+        id: template?.id,
+        section_name: section.id,
+        section_title: section.name,
+        description: section.description,
+        default_content: template?.default_content || '',
+        sort_order: template?.sort_order || 0,
+        is_active: true,
+      });
+    }
+  }, [template, section, saving]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,112 +223,37 @@ function TemplateForm({ template, onSave, onCancel }: TemplateFormProps) {
   };
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">
-        {template ? 'Edit Template' : 'Create New Template'}
-      </h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Section Name
-            </label>
-            <input
-              type="text"
-              value={formData.section_name}
-              onChange={(e) => setFormData({ ...formData, section_name: e.target.value })}
-              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="e.g., intro, scope"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Section Title
-            </label>
-            <input
-              type="text"
-              value={formData.section_title}
-              onChange={(e) => setFormData({ ...formData, section_title: e.target.value })}
-              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="e.g., Introduction Section"
-              required
-            />
-          </div>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Description
-          </label>
-          <input
-            type="text"
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="Brief description of this template"
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Content
+        </label>
+        <div className="mt-1">
+          <TipTapEditor
+            value={formData.default_content || ''}
+            onChange={(value) => setFormData({ ...formData, default_content: value })}
+            placeholder={`Enter the default content for ${section.name.toLowerCase()}...`}
           />
         </div>
+        <p className="mt-2 text-sm text-gray-500">
+          You can use the toolbar above to format your content with headers, bold text, lists, tables, and more.
+        </p>
+        <p className="mt-2 text-sm text-gray-500">
+          {'{clientName}'} is resolved in the Introduction  and {'{deliverables}'} is for the Scope section.
+        </p>
+      </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Default Content
-          </label>
-          <div className="mt-1">
-            <TipTapEditor
-              value={formData.default_content}
-              onChange={(value) => setFormData({ ...formData, default_content: value })}
-              placeholder="Enter the default content for this section..."
-            />
-          </div>
-          <p className="mt-1 text-sm text-gray-500">
-            Use {'{clientName}'} and {'{deliverables}'} as placeholders that will be replaced with actual values.
-            You can use the toolbar above to format your content with headers, bold text, lists, tables, and more.
-          </p>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Sort Order
-            </label>
-            <input
-              type="number"
-              value={formData.sort_order}
-              onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) || 0 })}
-              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="is_active"
-              checked={formData.is_active}
-              onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-            />
-            <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
-              Active
-            </label>
-          </div>
-        </div>
 
-        <div className="flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-          >
-            {template ? 'Update' : 'Create'} Template
-          </button>
-        </div>
-      </form>
-    </div>
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          disabled={saving}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? 'Saving...' : (template ? 'Update' : 'Create')} Template
+        </button>
+      </div>
+    </form>
   );
 } 

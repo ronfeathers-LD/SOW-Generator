@@ -12,6 +12,15 @@ interface ContentEditingTabProps {
 }
 
 export default function ContentEditingTab({ formData, setFormData, onUnsavedChanges }: ContentEditingTabProps) {
+  // Original templates from database (never change)
+  const [originalIntroTemplate, setOriginalIntroTemplate] = useState<string>('');
+  const [originalScopeTemplate, setOriginalScopeTemplate] = useState<string>('');
+  const [originalObjectivesDisclosureTemplate, setOriginalObjectivesDisclosureTemplate] = useState<string>('');
+  const [originalAssumptionsTemplate, setOriginalAssumptionsTemplate] = useState<string>('');
+  const [originalProjectPhasesTemplate, setOriginalProjectPhasesTemplate] = useState<string>('');
+  const [originalRolesTemplate, setOriginalRolesTemplate] = useState<string>('');
+  
+  // Current templates (can be updated after saving)
   const [introTemplate, setIntroTemplate] = useState<string>('');
   const [scopeTemplate, setScopeTemplate] = useState<string>('');
   const [objectivesDisclosureTemplate, setObjectivesDisclosureTemplate] = useState<string>('');
@@ -30,31 +39,37 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
         // Load templates for reference and reset functionality only
         const intro = await getContentTemplate('intro');
         if (intro) {
+          setOriginalIntroTemplate(intro.default_content);
           setIntroTemplate(intro.default_content);
         }
 
         const scope = await getContentTemplate('scope');
         if (scope) {
+          setOriginalScopeTemplate(scope.default_content);
           setScopeTemplate(scope.default_content);
         }
 
         const objectivesDisclosure = await getContentTemplate('objectives-disclosure');
         if (objectivesDisclosure) {
+          setOriginalObjectivesDisclosureTemplate(objectivesDisclosure.default_content);
           setObjectivesDisclosureTemplate(objectivesDisclosure.default_content);
         }
 
         const assumptions = await getContentTemplate('assumptions');
         if (assumptions) {
+          setOriginalAssumptionsTemplate(assumptions.default_content);
           setAssumptionsTemplate(assumptions.default_content);
         }
 
         const projectPhases = await getContentTemplate('project-phases');
         if (projectPhases) {
+          setOriginalProjectPhasesTemplate(projectPhases.default_content);
           setProjectPhasesTemplate(projectPhases.default_content);
         }
 
         const roles = await getContentTemplate('roles');
         if (roles) {
+          setOriginalRolesTemplate(roles.default_content);
           setRolesTemplate(roles.default_content);
         }
       } catch (error) {
@@ -94,46 +109,46 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   const handleIntroContentChange = (content: string) => {
     // Check if content has been edited from the original template
     const normalizedCurrent = normalizeContent(content);
-    const normalizedTemplate = normalizeContent(introTemplate);
+    const normalizedTemplate = normalizeContent(originalIntroTemplate);
     const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
     setFormData({
       ...formData,
       custom_intro_content: content,
       intro_content_edited: isEdited
     });
-    checkUnsavedChanges('intro', content, introTemplate);
+    checkUnsavedChanges('intro', content, originalIntroTemplate);
   };
 
   const handleScopeContentChange = (content: string) => {
     // Check if content has been edited from the original template
     const normalizedCurrent = normalizeContent(content);
-    const normalizedTemplate = normalizeContent(scopeTemplate);
+    const normalizedTemplate = normalizeContent(originalScopeTemplate);
     const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
     setFormData({
       ...formData,
       custom_scope_content: content,
       scope_content_edited: isEdited
     });
-    checkUnsavedChanges('scope', content, scopeTemplate);
+    checkUnsavedChanges('scope', content, originalScopeTemplate);
   };
 
   const handleObjectivesDisclosureContentChange = (content: string) => {
     // Check if content has been edited from the original template
     const normalizedCurrent = normalizeContent(content);
-    const normalizedTemplate = normalizeContent(objectivesDisclosureTemplate);
+    const normalizedTemplate = normalizeContent(originalObjectivesDisclosureTemplate);
     const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
     setFormData({
       ...formData,
       custom_objectives_disclosure_content: content,
       objectives_disclosure_content_edited: isEdited
     });
-    checkUnsavedChanges('objectives-disclosure', content, objectivesDisclosureTemplate);
+    checkUnsavedChanges('objectives-disclosure', content, originalObjectivesDisclosureTemplate);
   };
 
   const resetIntroContent = () => {
     setFormData({
       ...formData,
-      custom_intro_content: introTemplate,
+      custom_intro_content: originalIntroTemplate,
       intro_content_edited: false
     });
     setUnsavedChanges(prev => ({ ...prev, intro: false }));
@@ -142,7 +157,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   const resetScopeContent = () => {
     setFormData({
       ...formData,
-      custom_scope_content: scopeTemplate,
+      custom_scope_content: originalScopeTemplate,
       scope_content_edited: false
     });
     setUnsavedChanges(prev => ({ ...prev, scope: false }));
@@ -151,7 +166,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   const resetObjectivesDisclosureContent = () => {
     setFormData({
       ...formData,
-      custom_objectives_disclosure_content: objectivesDisclosureTemplate,
+      custom_objectives_disclosure_content: originalObjectivesDisclosureTemplate,
       objectives_disclosure_content_edited: false
     });
     setUnsavedChanges(prev => ({ ...prev, 'objectives-disclosure': false }));
@@ -160,20 +175,20 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   const handleAssumptionsContentChange = (content: string) => {
     // Check if content has been edited from the original template
     const normalizedCurrent = normalizeContent(content);
-    const normalizedTemplate = normalizeContent(assumptionsTemplate);
+    const normalizedTemplate = normalizeContent(originalAssumptionsTemplate);
     const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
     setFormData({
       ...formData,
       custom_assumptions_content: content,
       assumptions_content_edited: isEdited
     });
-    checkUnsavedChanges('assumptions', content, assumptionsTemplate);
+    checkUnsavedChanges('assumptions', content, originalAssumptionsTemplate);
   };
 
   const resetAssumptionsContent = () => {
     setFormData({
       ...formData,
-      custom_assumptions_content: assumptionsTemplate,
+      custom_assumptions_content: originalAssumptionsTemplate,
       assumptions_content_edited: false
     });
     setUnsavedChanges(prev => ({ ...prev, assumptions: false }));
@@ -182,20 +197,20 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   const handleProjectPhasesContentChange = (content: string) => {
     // Check if content has been edited from the original template
     const normalizedCurrent = normalizeContent(content);
-    const normalizedTemplate = normalizeContent(projectPhasesTemplate);
+    const normalizedTemplate = normalizeContent(originalProjectPhasesTemplate);
     const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
     setFormData({
       ...formData,
       custom_project_phases_content: content,
       project_phases_content_edited: isEdited
     });
-    checkUnsavedChanges('project-phases', content, projectPhasesTemplate);
+    checkUnsavedChanges('project-phases', content, originalProjectPhasesTemplate);
   };
 
   const resetProjectPhasesContent = () => {
     setFormData({
       ...formData,
-      custom_project_phases_content: projectPhasesTemplate,
+      custom_project_phases_content: originalProjectPhasesTemplate,
       project_phases_content_edited: false
     });
     setUnsavedChanges(prev => ({ ...prev, 'project-phases': false }));
@@ -204,20 +219,20 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   const handleRolesContentChange = (content: string) => {
     // Check if content has been edited from the original template
     const normalizedCurrent = normalizeContent(content);
-    const normalizedTemplate = normalizeContent(rolesTemplate);
+    const normalizedTemplate = normalizeContent(originalRolesTemplate);
     const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
     setFormData({
       ...formData,
       custom_roles_content: content,
       roles_content_edited: isEdited
     });
-    checkUnsavedChanges('roles', content, rolesTemplate);
+    checkUnsavedChanges('roles', content, originalRolesTemplate);
   };
 
   const resetRolesContent = () => {
     setFormData({
       ...formData,
-      custom_roles_content: rolesTemplate,
+      custom_roles_content: originalRolesTemplate,
       roles_content_edited: false
     });
     setUnsavedChanges(prev => ({ ...prev, roles: false }));
@@ -266,28 +281,6 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
           ...prev,
           [sectionName]: false
         }));
-        // Update the template to match the saved content
-        const savedContent = formData[`custom_${sectionName}_content` as keyof SOWData] as string;
-        switch (sectionName) {
-          case 'intro':
-            setIntroTemplate(savedContent);
-            break;
-          case 'scope':
-            setScopeTemplate(savedContent);
-            break;
-          case 'objectives-disclosure':
-            setObjectivesDisclosureTemplate(savedContent);
-            break;
-          case 'assumptions':
-            setAssumptionsTemplate(savedContent);
-            break;
-          case 'project-phases':
-            setProjectPhasesTemplate(savedContent);
-            break;
-          case 'roles':
-            setRolesTemplate(savedContent);
-            break;
-        }
         setTimeout(() => {
           setSaveStatus({ ...saveStatus, [sectionName]: null });
         }, 3000);
@@ -315,11 +308,11 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
 
   const sections = [
     { id: 'intro', name: 'Introduction', icon: '📝' },
-    { id: 'scope', name: 'Scope', icon: '🎯' },
     { id: 'objectives-disclosure', name: 'Objectives Disclosure', icon: '📋' },
-    { id: 'assumptions', name: 'Assumptions', icon: '⚠️' },
+    { id: 'scope', name: 'Scope', icon: '🎯' },
     { id: 'project-phases', name: 'Project Phases', icon: '📅' },
     { id: 'roles', name: 'Roles & Responsibilities', icon: '👥' },
+    { id: 'assumptions', name: 'Assumptions', icon: '⚠️' },
   ];
 
   const renderSection = (sectionId: string) => {

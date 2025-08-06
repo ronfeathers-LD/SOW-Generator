@@ -51,7 +51,7 @@ export default function SOWTitlePage({
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold mb-2">Statement of Work</h1>
           <div className="text-2xl">
-            prepared for <span className="font-bold">{clientName}</span>
+            prepared for <span className={`font-bold ${!clientName || clientName === 'Not Entered' ? 'text-red-600 font-bold' : ''}`}>{clientName || 'Not Entered'}</span>
           </div>
         </div>
         {/* Client Logo */}
@@ -71,24 +71,38 @@ export default function SOWTitlePage({
         <div className="w-full max-w-3xl mt-16 space-y-16">
           {/* Client Signature */}
           <div>
-            <p className="mb-2">This SOW is accepted by {clientName}:</p>
+            <p className="my-2">This SOW is accepted by {clientName}:</p>
             <div className="grid grid-cols-2 gap-8 items-end">
               {/* Signature Line */}
               <div className="flex flex-col items-start">
                 <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
                 <div className="text-sm mt-2 text-left">
                   {[
-                    (clientSignature?.name || '<FIRSTNAME LASTNAME>'),
-                    (clientSignature?.title || '<TITLE>')
-                  ].filter(Boolean).join(', ')}
+                    <span key="name" className={!clientSignature?.name || clientSignature.name === 'Not Entered' ? 'text-red-600 font-bold' : ''}>
+                      {clientSignature?.name || '<FIRSTNAME LASTNAME>'}
+                    </span>,
+                    <span key="title" className={!clientSignature?.title || clientSignature?.title === 'Title Not Entered' ? 'text-red-600 font-bold' : ''}>
+                      {clientSignature?.title || '<TITLE>'}
+                    </span>
+                  ].filter(Boolean).map((item, index) => (
+                    <span key={index}>
+                      {item}
+                      {index < 1 && clientSignature?.name && clientSignature?.title && ', '}
+                    </span>
+                  ))}
                   <br />
-                  {clientSignature?.email || '<EMAIL>'}
+                  <span className={!clientSignature?.email || clientSignature?.email === 'EmailNot Entered' ? 'text-red-600 font-bold' : ''}>
+                    {clientSignature?.email || '<EMAIL>'}
+                  </span>
                 </div>
               </div>
               {/* Date Line */}
               <div className="flex flex-col items-center">
                 <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                <div className="text-sm mt-2 text-center">DATE<br /><br /></div>
+                <div className="text-sm mt-2 text-center">
+                  {clientSignature?.date || 'DATE'}
+                  <br /><br />
+                </div>
               </div>
             </div>
           </div>
@@ -102,11 +116,22 @@ export default function SOWTitlePage({
                   <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
                   <div className="text-sm mt-2 text-left">
                     {[
-                      (clientSignature2.name || '<FIRSTNAME LASTNAME>'),
-                      (clientSignature2.title || '<TITLE>')
-                    ].filter(Boolean).join(', ')}
+                      <span key="name" className={!clientSignature2.name || clientSignature2.name === 'Not Entered' ? 'text-red-600 font-bold' : ''}>
+                        {clientSignature2.name || '<FIRSTNAME LASTNAME>'}
+                      </span>,
+                      <span key="title" className={!clientSignature2.title || clientSignature2.title === 'Title Not Entered' ? 'text-red-600 font-bold' : ''}>
+                        {clientSignature2.title || '<TITLE>'}
+                      </span>
+                    ].filter(Boolean).map((item, index) => (
+                      <span key={index}>
+                        {item}
+                        {index < 1 && clientSignature2.name && clientSignature2.title && ', '}
+                      </span>
+                    ))}
                     <br />
-                    {clientSignature2.email || '<EMAIL>'}
+                    <span className={!clientSignature2.email || clientSignature2.email === 'EmailNot Entered' ? 'text-red-600 font-bold' : ''}>
+                      {clientSignature2.email || '<EMAIL>'}
+                    </span>
                   </div>
                 </div>
                 {/* Date Line */}
@@ -119,7 +144,7 @@ export default function SOWTitlePage({
           )}
           {/* LeanData Signature */}
           <div>
-            <p className="mb-2">This SOW is accepted by LeanData, Inc.:</p>
+            <p className="my-2">This SOW is accepted by LeanData, Inc.:</p>
             <div className="grid grid-cols-2 gap-8 items-end">
               {/* Signature Line */}
               <div className="flex flex-col items-start">
