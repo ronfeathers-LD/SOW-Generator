@@ -22,10 +22,7 @@ export default function SOWListPage() {
   useEffect(() => {
     const fetchSOWs = async () => {
       try {
-        console.log('Fetching SOWs...');
         const response = await fetch('/api/sow');
-        console.log('Response status:', response.status);
-        console.log('Response ok:', response.ok);
         
         if (!response.ok) {
           const errorText = await response.text();
@@ -34,14 +31,11 @@ export default function SOWListPage() {
         }
         
         const data = await response.json();
-        console.log('SOWs data received:', data);
-        console.log('Data length:', data.length);
         setSows(data);
       } catch (err) {
         console.error('Error fetching SOWs:', err);
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
-        console.log('Setting loading to false');
         setLoading(false);
       }
     };
@@ -73,7 +67,7 @@ export default function SOWListPage() {
     }
   };
 
-  console.log('Component render - loading:', loading, 'error:', error, 'sows length:', sows?.length);
+
   
   if (loading) {
     return (

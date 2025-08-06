@@ -123,9 +123,6 @@ export default function SalesforceIntegration({ onCustomerSelected, onContactSel
       }
 
       const data = await response.json();
-      console.log('Customer info response:', data);
-      console.log('Contacts found:', data.customerInfo.contacts?.length || 0);
-      console.log('Opportunities found:', data.customerInfo.opportunities?.length || 0);
       
       setContacts(data.customerInfo.contacts || []);
       

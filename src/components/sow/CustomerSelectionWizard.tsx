@@ -37,10 +37,7 @@ export default function CustomerSelectionWizard({ onComplete }: CustomerSelectio
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('Accounts state changed:', accounts);
-  }, [accounts]);
+
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -52,7 +49,6 @@ export default function CustomerSelectionWizard({ onComplete }: CustomerSelectio
     setError(null);
 
     try {
-      console.log('Searching for:', searchQuery);
       const response = await fetch('/api/salesforce/search-accounts', {
         method: 'POST',
         headers: {
@@ -68,11 +64,9 @@ export default function CustomerSelectionWizard({ onComplete }: CustomerSelectio
       }
 
       const data = await response.json();
-      console.log('Search response:', data);
       setAccounts(data.accounts || []);
       
       if (data.accounts && data.accounts.length > 0) {
-        console.log('Found accounts:', data.accounts);
         setStep('select');
       } else {
         setError('No accounts found in Salesforce. Please try a different search term.');
@@ -103,7 +97,6 @@ export default function CustomerSelectionWizard({ onComplete }: CustomerSelectio
     setError(null);
 
     try {
-      console.log('Loading opportunities for account:', accountId);
       const response = await fetch('/api/salesforce/account-opportunities', {
         method: 'POST',
         headers: {
@@ -119,7 +112,6 @@ export default function CustomerSelectionWizard({ onComplete }: CustomerSelectio
       }
 
       const data = await response.json();
-      console.log('Opportunities response:', data);
       setOpportunities(data.opportunities || []);
       
       if (!data.opportunities || data.opportunities.length === 0) {
