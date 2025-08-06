@@ -177,6 +177,49 @@ export default function ObjectivesTab({
         generatedDeliverables = result.deliverables;
       }
 
+      // Convert deliverables to HTML format for WYSIWYG editor
+      const convertDeliverablesToHTML = (deliverables: string[]): string => {
+        if (!deliverables || deliverables.length === 0) return '';
+        
+        let html = '';
+        let currentProduct = '';
+        
+        deliverables.forEach(item => {
+          const trimmedItem = item.trim();
+          
+          // Check if this is a product header (all caps, no bullet)
+          if (trimmedItem.match(/^[A-Z\s]+$/) && !trimmedItem.includes('•')) {
+            if (currentProduct !== trimmedItem) {
+              if (currentProduct !== '') {
+                html += '</ul>\n';
+              }
+              currentProduct = trimmedItem;
+              html += `<h4><strong>${trimmedItem}</strong></h4>\n<ul>\n`;
+            }
+          } else {
+            // This is a deliverable item
+            if (currentProduct === '') {
+              // If no product header found, create a default one
+              html += '<h4><strong>DELIVERABLES</strong></h4>\n<ul>\n';
+              currentProduct = 'DELIVERABLES';
+            }
+            
+            // Remove bullet points and clean up the text
+            const cleanItem = trimmedItem.replace(/^[•\-\*]\s*/, '').trim();
+            if (cleanItem) {
+              html += `<li>${cleanItem}</li>\n`;
+            }
+          }
+        });
+        
+        // Close the last list
+        if (currentProduct !== '') {
+          html += '</ul>';
+        }
+        
+        return html;
+      };
+
       // Check for Gemini API overload errors
       if (result.objectiveOverview.includes('model is overloaded') || result.objectiveOverview.includes('Service Unavailable')) {
         throw new Error('AI service is currently overloaded. Please wait a few minutes and try again.');
@@ -219,7 +262,7 @@ export default function ObjectivesTab({
           ...formData.scope!,
           deliverables: generatedDeliverables.join('\n\n')
         },
-        custom_deliverables_content: generatedDeliverables.join('\n\n'),
+        custom_deliverables_content: convertDeliverablesToHTML(generatedDeliverables),
         deliverables_content_edited: true
       };
       
