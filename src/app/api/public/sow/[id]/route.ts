@@ -64,6 +64,8 @@ export async function GET(
           duration: sow.duration || '',
         },
       },
+      // Include client roles
+      clientRoles: sow.client_roles || [],
     };
 
     return NextResponse.json(transformedSow);

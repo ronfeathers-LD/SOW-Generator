@@ -14,7 +14,7 @@ import { useSession } from 'next-auth/react';
 
 interface ClientRole {
   role: string;
-  responsibilities: string[];
+  responsibilities: string;
   name: string;
   email: string;
   salesforce_contact_id?: string;
@@ -619,7 +619,7 @@ export default function SOWDetailsPage() {
 
               {/* Roles and Responsibilities Section */}
                 <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
-                  <h2 className="text-3xl font-bold text-center mb-6">ROLES AND RESPONSIBILITIES</h2>
+                  <h2 className="text-3xl font-bold mb-6">4. ROLES AND RESPONSIBILITIES</h2>
                   <div className="formatSOWTable">
                   <SOWRolesPage 
                     customContent={sow.custom_roles_content}
@@ -629,43 +629,40 @@ export default function SOWDetailsPage() {
                   
                   {/* Client Roles Table */}
                   {Array.isArray(sow.clientRoles) && sow.clientRoles.length > 0 && (
-                    <div className="mt-8">
-                      <h3 className="text-xl font-bold mb-4">Client Team Roles</h3>
                       <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200 border">
+                        <div className="formatSOWTable">
+                        <table className="min-w-full divide-y border">
                           <thead className="bg-gray-50">
                             <tr>
-                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Name</th>
-                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Role (Title)</th>
-                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Email</th>
-                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Responsibilities</th>
+                              <th className="uppercase tracking-wider">Role (Title)</th>
+                              <th className="uppercase tracking-wider">Name</th>
+                              <th className="uppercase tracking-wider">Email</th>
+                              <th className="uppercase tracking-wider">Responsibilities</th>
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
                             {sow.clientRoles.map((role, idx) => (
                               <tr key={idx}>
-                                <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{role.name || 'N/A'}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-gray-700">{role.role || role.contact_title || 'N/A'}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-700">{role.email || 'N/A'}</td>
-                                <td className="px-6 py-4 text-gray-700">
+                                <td>{role.name || 'N/A'}</td>
+                                <td>{role.email || 'N/A'}</td>
+                                <td>
                                   <div className="whitespace-pre-wrap max-w-md">
-                                    {role.responsibilities || 'N/A'}
+                                    {role.responsibilities || ''}
                                   </div>
                                 </td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
-                      </div>
-                    </div>
+                        </div>
+                        </div>
                   )}
                 </div>
 
               {/* Pricing Section */}
-              <div className="border-2 border-red-300 rounded-lg p-4 mb-8">
-                <h3 className="text-lg font-bold text-red-800 mb-4 text-center">💰 PRICING SECTION</h3>
                 <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
-                  <h2 className="text-3xl font-bold text-center mb-6">PRICING</h2>
+                  <h2 className="text-3xl font-bold  mb-6">5. PRICING</h2>
                   <p className="mb-4 text-center">
                     The tasks above will be completed on a time and material basis, using the LeanData standard workday of 8 hours for a duration of {sow.duration || 'N/A'}.
                   </p>
@@ -719,17 +716,14 @@ export default function SOWDetailsPage() {
               </div>
 
               {/* Assumptions Section */}
-              <div className="border-2 border-teal-300 rounded-lg p-4 mb-8">
-                <h3 className="text-lg font-bold text-teal-800 mb-4 text-center">📝 ASSUMPTIONS SECTION</h3>
                 <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
-                  <h2 className="text-3xl font-bold text-center mb-6">ASSUMPTIONS</h2>
+                  <h2 className="text-3xl font-bold mb-6">6. ASSUMPTIONS</h2>
                   <SOWAssumptionsPage 
                     customContent={sow.custom_assumptions_content}
                     isEdited={sow.assumptions_content_edited}
                   />
                 </div>
-              </div>
-            </div>
+            
 
             {/* SOW Content */}
             <div id="sow-content" className="mt-12">

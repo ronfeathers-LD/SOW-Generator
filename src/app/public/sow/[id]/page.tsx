@@ -9,7 +9,7 @@ import SOWRolesPage from '@/components/sow/SOWRolesPage';
 
 interface ClientRole {
   role: string;
-  responsibilities: string[];
+  responsibilities: string;
   name: string;
   email: string;
 }
@@ -205,6 +205,39 @@ export default function PublicSOWPage() {
             customContent={sow.custom_roles_content}
             isEdited={sow.roles_content_edited}
           />
+          
+          {/* Client Roles Table */}
+          {Array.isArray(sow.clientRoles) && sow.clientRoles.length > 0 && (
+            <div className="mt-8">
+              <h3 className="text-xl font-bold mb-4">Client Team Roles</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 border">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Role (Title)</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Email</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Responsibilities</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {sow.clientRoles.map((role, idx) => (
+                      <tr key={idx}>
+                        <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{role.name || 'N/A'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-700">{role.role || 'N/A'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-700">{role.email || 'N/A'}</td>
+                        <td className="px-6 py-4 text-gray-700">
+                          <div className="whitespace-pre-wrap max-w-md">
+                            {role.responsibilities || 'N/A'}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

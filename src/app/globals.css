@@ -109,3 +109,48 @@ p {
 .formatSOWTable table td{
   padding: 10px;
 }
+
+/* TipTap Table Resize Handles - Global Styles */
+.ProseMirror table .column-resize-handle {
+  background-color: #3b82f6 !important;
+  color: white !important;
+  position: absolute !important;
+  right: -4px !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 8px !important;
+  z-index: 1000 !important;
+  cursor: col-resize !important;
+  border-radius: 2px !important;
+  opacity: 0 !important;
+  transition: opacity 0.2s ease !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure table cells can have relative positioning for resize handles */
+.ProseMirror table td,
+.ProseMirror table th {
+  position: relative !important;
+}
+
+/* Show resize handles on hover */
+.ProseMirror table:hover .column-resize-handle {
+  opacity: 1 !important;
+}
+
+.ProseMirror table .column-resize-handle:hover {
+  background-color: #1d4ed8 !important;
+  opacity: 1 !important;
+}
+
+/* Make sure the handles are visible even with Tailwind conflicts */
+.ProseMirror table .column-resize-handle * {
+  color: white !important;
+  background: none !important;
+}
+
+/* Ensure proper positioning for resize handles */
+.ProseMirror table td,
+.ProseMirror table th {
+  position: relative !important;
+}

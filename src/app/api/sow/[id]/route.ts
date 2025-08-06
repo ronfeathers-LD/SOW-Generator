@@ -108,6 +108,8 @@ export async function GET(
       deliverables_content_edited: sow.deliverables_content_edited || false,
       objective_overview_content_edited: sow.objective_overview_content_edited || false,
       key_objectives_content_edited: sow.key_objectives_content_edited || false,
+      // Include client roles
+      clientRoles: sow.client_roles || [],
     };
 
     return NextResponse.json(transformedSow);

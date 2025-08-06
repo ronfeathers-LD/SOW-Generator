@@ -1,8 +1,24 @@
 # SOW Generator
 
-A Next.js application for generating Statements of Work (SOW) with Salesforce integration.
+A comprehensive Statement of Work (SOW) generator with AI-powered content creation, Salesforce integration, and advanced document management.
 
 ## Features
+
+### Rich Text Editor with Resizable Tables
+The application includes a powerful TipTap-based rich text editor with the following table capabilities:
+
+- **Resizable Columns**: Hover over any table to see blue resize handles on the right edge of each column
+- **Table Controls**: Insert, delete, and modify tables with header rows
+- **Keyboard Shortcuts**: Use `Ctrl+T` to quickly insert a new table
+- **Smooth Interactions**: Resize handles appear on hover and provide smooth column resizing
+- **Responsive Design**: Tables adapt to different screen sizes
+
+#### How to Use Resizable Tables:
+1. Click the 📊 button in the toolbar to insert a table
+2. Hover over the table to see blue resize handles appear
+3. Click and drag the blue handles to resize columns
+4. Use the table controls to add/remove rows and columns
+5. Press `Ctrl+T` for quick table insertion
 
 - Create and edit SOW documents
 - Salesforce integration for customer and opportunity lookup
