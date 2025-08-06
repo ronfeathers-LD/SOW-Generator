@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import SOWTitlePage from '@/components/sow/SOWTitlePage';
 import SOWIntroPage from '@/components/sow/SOWIntroPage';
 import SOWObjectivesPage from '@/components/sow/SOWObjectivesPage';
@@ -10,8 +10,6 @@ import SOWScopePage from '@/components/sow/SOWScopePage';
 import SOWAssumptionsPage from '@/components/sow/SOWAssumptionsPage';
 import SOWProjectPhasesPage from '@/components/sow/SOWProjectPhasesPage';
 import SOWRolesPage from '@/components/sow/SOWRolesPage';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { useSession } from 'next-auth/react';
 
 interface ClientRole {
@@ -174,8 +172,6 @@ function safeJsonParse<T>(value: any, defaultValue: T): T {
 export default function SOWDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const isPDF = searchParams.get('pdf') === '1';
   const [sow, setSOW] = useState<SOW | null>(null);
   const [salesforceData, setSalesforceData] = useState<SalesforceData | null>(null);
   const [versions, setVersions] = useState<SOWVersion[]>([]);
@@ -402,9 +398,7 @@ export default function SOWDetailsPage() {
     }
   };
 
-  const handleDownloadPDF = () => {
-    window.open(`/api/public/sow/${params.id}/pdf`, '_blank');
-  };
+
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this SOW? This action cannot be undone.')) {
@@ -505,40 +499,32 @@ export default function SOWDetailsPage() {
             </div>
 
             {/* Action Buttons */}
-            {!isPDF && (
-              <div className="mb-8 flex justify-end space-x-4">
-                {isEditable && (
-                  <Link
-                    href={`/sow/${params.id}/edit`}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    Edit SOW
-                  </Link>
-                )}
-                {!isEditable && sow.status !== 'approved' && (
-                  <button
-                    onClick={handleCreateVersion}
-                    disabled={creatingVersion}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400"
-                  >
-                    {creatingVersion ? 'Creating...' : 'Create New Version'}
-                  </button>
-                )}
-                <button
-                  onClick={handleDownloadPDF}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            <div className="mb-8 flex justify-end space-x-4">
+              {isEditable && (
+                <Link
+                  href={`/sow/${params.id}/edit`}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
-                  Download PDF
-                </button>
+                  Edit SOW
+                </Link>
+              )}
+              {!isEditable && sow.status !== 'approved' && (
                 <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleCreateVersion}
+                  disabled={creatingVersion}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400"
                 >
-                  {deleting ? 'Deleting...' : 'Delete SOW'}
+                  {creatingVersion ? 'Creating...' : 'Create New Version'}
                 </button>
-              </div>
-            )}
+              )}
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? 'Deleting...' : 'Delete SOW'}
+              </button>
+            </div>
 
             {/* Main SOW Content to Export */}
             <div id="sow-content-to-export">
