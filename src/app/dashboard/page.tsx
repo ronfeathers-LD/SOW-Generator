@@ -20,9 +20,10 @@ async function getDashboardStats() {
 
     if (sowStats) {
       stats.total = sowStats.length;
-      sowStats.forEach((sow: any) => {
-        if (stats.hasOwnProperty(sow.status)) {
-          (stats as any)[sow.status]++;
+      sowStats.forEach((sow: unknown) => {
+        const sowObj = sow as { status: string };
+        if (stats.hasOwnProperty(sowObj.status)) {
+          (stats as Record<string, number>)[sowObj.status]++;
         }
       });
     }
@@ -292,25 +293,28 @@ export default async function Dashboard() {
               <div className="p-6">
                 {dashboardData.recentSOWs.length > 0 ? (
                   <div className="space-y-4">
-                    {dashboardData.recentSOWs.map((sow: any) => (
-                      <div key={sow.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">{sow.sow_title || 'Untitled SOW'}</h4>
-                          <p className="text-sm text-gray-500">{sow.client_name || 'No client'}</p>
+                    {dashboardData.recentSOWs.map((sow: unknown) => {
+                      const sowObj = sow as { id: string; sow_title?: string; client_name?: string; status: string };
+                      return (
+                        <div key={sowObj.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900">{sowObj.sow_title || 'Untitled SOW'}</h4>
+                            <p className="text-sm text-gray-500">{sowObj.client_name || 'No client'}</p>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(sowObj.status)}`}>
+                              {getStatusLabel(sowObj.status)}
+                            </span>
+                            <Link
+                              href={`/sow/${sowObj.id}`}
+                              className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                            >
+                              View
+                            </Link>
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-3">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(sow.status)}`}>
-                            {getStatusLabel(sow.status)}
-                          </span>
-                          <Link
-                            href={`/sow/${sow.id}`}
-                            className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
-                          >
-                            View
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-gray-500 text-center py-4">No SOWs found</p>
@@ -335,24 +339,32 @@ export default async function Dashboard() {
                 <div className="p-6">
                   {dashboardData.pendingApprovals.length > 0 ? (
                     <div className="space-y-4">
-                      {dashboardData.pendingApprovals.map((approval: any) => (
-                        <div key={approval.id} className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-900">
-                              {approval.sow?.sow_title || 'Untitled SOW'}
-                            </h4>
-                            <p className="text-sm text-gray-500">
-                              {approval.sow?.client_name || 'No client'} • {approval.stage?.name}
-                            </p>
+                      {dashboardData.pendingApprovals.map((approval: unknown) => {
+                        const approvalObj = approval as { 
+                          id: string; 
+                          sow_id: string; 
+                          sow?: { sow_title?: string; client_name?: string }; 
+                          stage?: { name: string } 
+                        };
+                                                return (
+                          <div key={approvalObj.id} className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900">
+                                {approvalObj.sow?.sow_title || 'Untitled SOW'}
+                              </h4>
+                              <p className="text-sm text-gray-500">
+                                {approvalObj.sow?.client_name || 'No client'} • {approvalObj.stage?.name}
+                              </p>
+                            </div>
+                            <Link
+                              href={`/sow/${approvalObj.sow_id}`}
+                              className="text-yellow-600 hover:text-yellow-900 text-sm font-medium"
+                            >
+                              Review
+                            </Link>
                           </div>
-                          <Link
-                            href={`/sow/${approval.sow_id}`}
-                            className="text-yellow-600 hover:text-yellow-900 text-sm font-medium"
-                          >
-                            Review
-                          </Link>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="text-gray-500 text-center py-4">No pending approvals</p>

@@ -23,7 +23,7 @@ export async function PUT(
     }
 
     // Build update data object based on the tab
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
 
     switch (tab) {
       case 'Project Overview':
@@ -186,7 +186,7 @@ export async function PUT(
     }
 
     // Update the SOW with the tab-specific data
-    const { data: updatedSOW, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from('sows')
       .update(updateData)
       .eq('id', sowId)

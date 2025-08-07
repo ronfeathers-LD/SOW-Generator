@@ -51,7 +51,7 @@ export async function PATCH(
     }
 
     // Update the approval record
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       status: action,
       approver_id: user.id,
       comments: comments?.trim() || null

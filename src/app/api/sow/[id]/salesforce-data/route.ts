@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { SOWSalesforceData, SalesforceDataResponse } from '@/types/salesforce';
+import { SOWSalesforceData } from '@/types/salesforce';
 
 // GET: Retrieve Salesforce data for a SOW
 export async function GET(
@@ -145,7 +145,7 @@ export async function PATCH(
     }
 
     // Prepare update data
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       updated_at: new Date().toISOString()
     };
 

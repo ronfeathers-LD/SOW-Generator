@@ -68,7 +68,7 @@ export async function GET(
     // Organize comments into a threaded structure
     const comments = allComments || [];
     const commentMap = new Map();
-    const topLevelComments: any[] = [];
+    const topLevelComments: unknown[] = [];
 
     // First pass: create a map of all comments
     comments.forEach(comment => {
@@ -90,7 +90,11 @@ export async function GET(
     });
 
     // Sort top-level comments by creation date
-    topLevelComments.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    topLevelComments.sort((a, b) => {
+      const aObj = a as { created_at: string };
+      const bObj = b as { created_at: string };
+      return new Date(aObj.created_at).getTime() - new Date(bObj.created_at).getTime();
+    });
 
     // Debug logging
     console.log('Approvals API - All comments:', allComments);
