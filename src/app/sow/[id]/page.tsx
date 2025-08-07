@@ -176,9 +176,18 @@ export default function SOWDetailsPage() {
   useEffect(() => {
     const fetchSOW = async () => {
       try {
+        if (!params.id) {
+          setError('SOW ID is required');
+          setLoading(false);
+          return;
+        }
+
         const response = await fetch(`/api/sow/${params.id}`);
         if (!response.ok) {
-          throw new Error('Failed to fetch SOW');
+          if (response.status === 404) {
+            throw new Error('SOW not found');
+          }
+          throw new Error(`Failed to fetch SOW: ${response.status}`);
         }
         const data = await response.json();
         
@@ -440,11 +449,60 @@ export default function SOWDetailsPage() {
     );
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading SOW...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="bg-red-50 border border-red-200 rounded-md p-4">
+              <h3 className="text-lg font-medium text-red-800">Error Loading SOW</h3>
+              <p className="mt-2 text-red-700">{error}</p>
+              <div className="mt-4">
+                <Link
+                  href="/sow"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200"
+                >
+                  Back to SOWs
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!sow) {
     return (
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">SOW not found</div>
+          <div className="text-center">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+              <h3 className="text-lg font-medium text-yellow-800">SOW Not Found</h3>
+              <p className="mt-2 text-yellow-700">The requested SOW could not be found.</p>
+              <div className="mt-4">
+                <Link
+                  href="/sow"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
+                >
+                  Back to SOWs
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
