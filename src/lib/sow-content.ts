@@ -72,7 +72,7 @@ export function processScopeContent(
   // Process deliverables - they should come as strings that can be formatted
   // Each deliverable might be a category with items, or individual items
   const deliverablesHtml = deliverables
-    .map((deliverable, index) => {
+    .map((deliverable) => {
       // Check if this is a category with items (contains newlines)
       if (deliverable.includes('\n')) {
         const lines = deliverable.split('\n').map(line => line.trim()).filter(line => line.length > 0);

@@ -20,13 +20,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   const [originalProjectPhasesTemplate, setOriginalProjectPhasesTemplate] = useState<string>('');
   const [originalRolesTemplate, setOriginalRolesTemplate] = useState<string>('');
   
-  // Current templates (can be updated after saving)
-  const [introTemplate, setIntroTemplate] = useState<string>('');
-  const [scopeTemplate, setScopeTemplate] = useState<string>('');
-  const [objectivesDisclosureTemplate, setObjectivesDisclosureTemplate] = useState<string>('');
-  const [assumptionsTemplate, setAssumptionsTemplate] = useState<string>('');
-  const [projectPhasesTemplate, setProjectPhasesTemplate] = useState<string>('');
-  const [rolesTemplate, setRolesTemplate] = useState<string>('');
+
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(true);
   const [activeSection, setActiveSection] = useState('intro');
@@ -44,37 +38,31 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
         const intro = await getContentTemplate('intro');
         if (intro) {
           setOriginalIntroTemplate(intro.default_content);
-          setIntroTemplate(intro.default_content);
         }
 
         const scope = await getContentTemplate('scope');
         if (scope) {
           setOriginalScopeTemplate(scope.default_content);
-          setScopeTemplate(scope.default_content);
         }
 
         const objectivesDisclosure = await getContentTemplate('objectives-disclosure');
         if (objectivesDisclosure) {
           setOriginalObjectivesDisclosureTemplate(objectivesDisclosure.default_content);
-          setObjectivesDisclosureTemplate(objectivesDisclosure.default_content);
         }
 
         const assumptions = await getContentTemplate('assumptions');
         if (assumptions) {
           setOriginalAssumptionsTemplate(assumptions.default_content);
-          setAssumptionsTemplate(assumptions.default_content);
         }
 
         const projectPhases = await getContentTemplate('project-phases');
         if (projectPhases) {
           setOriginalProjectPhasesTemplate(projectPhases.default_content);
-          setProjectPhasesTemplate(projectPhases.default_content);
         }
 
         const roles = await getContentTemplate('roles');
         if (roles) {
           setOriginalRolesTemplate(roles.default_content);
-          setRolesTemplate(roles.default_content);
         }
       } catch (error) {
         console.error('Error loading templates:', error);

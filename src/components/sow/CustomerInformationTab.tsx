@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { SOWData } from '@/types/sow';
 import { SalesforceOpportunity } from '@/lib/salesforce';
 import SalesforceIntegration from '../SalesforceIntegration';
@@ -21,7 +22,6 @@ type SelectionStep = 'account' | 'opportunity' | 'logo' | null;
 
 export default function CustomerInformationTab({
   formData,
-  setFormData: _setFormData,
   initialData,
   selectedAccount,
   selectedOpportunity,
@@ -452,9 +452,11 @@ export default function CustomerInformationTab({
                    {(formData.template?.company_logo || formData.header?.company_logo) && (
                      <div className="bg-white border border-gray-200 rounded-md p-4">
                        <h5 className="text-sm font-medium text-gray-900 mb-2">Logo Preview</h5>
-                       <img
-                         src={formData.template?.company_logo || formData.header?.company_logo}
+                       <Image
+                         src={formData.template?.company_logo || formData.header?.company_logo || ''}
                          alt="Company Logo"
+                         width={128}
+                         height={128}
                          className="max-h-32 max-w-full object-contain border border-gray-200 rounded"
                        />
                      </div>
@@ -483,7 +485,7 @@ export default function CustomerInformationTab({
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
                 <h4 className="text-lg font-semibold mb-4 text-gray-800">Selection Instructions</h4>
                 <p className="text-gray-600">
-                  Click on any of the cards on the left to begin the selection process. You'll need to select an account first, then an opportunity.
+                  Click on any of the cards on the left to begin the selection process. You&apos;ll need to select an account first, then an opportunity.
                 </p>
               </div>
             )}

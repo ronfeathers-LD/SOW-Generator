@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface ApprovalStage {
   id: string;
@@ -194,11 +194,7 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange }: A
     }
   }, [workflow?.comments]);
 
-  useEffect(() => {
-    fetchWorkflow();
-  }, [sowId]);
-
-  const fetchWorkflow = async () => {
+  const fetchWorkflow = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/sow/${sowId}/approvals`);
@@ -215,7 +211,11 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange }: A
     } finally {
       setLoading(false);
     }
-  };
+  }, [sowId]);
+
+  useEffect(() => {
+    fetchWorkflow();
+  }, [fetchWorkflow]);
 
   const handleSubmitForApproval = async () => {
     try {

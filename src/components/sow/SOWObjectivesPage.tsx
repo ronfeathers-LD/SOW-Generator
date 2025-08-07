@@ -27,15 +27,10 @@ interface SOWObjectivesPageProps {
 }
 
 export default function SOWObjectivesPage({ 
-  deliverables, 
   keyObjectives, 
   projectDescription,
   customContent,
   customKeyObjectivesContent,
-  customDeliverablesContent,
-  deliverablesEdited = false,
-  keyObjectivesEdited = false,
-  isEdited = false,
   projectDetails 
 }: SOWObjectivesPageProps) {
   const [objectivesDisclosureContent, setObjectivesDisclosureContent] = useState<string>('');
@@ -184,14 +179,7 @@ export default function SOWObjectivesPage({
 
       
 
-      {/* Objectives Disclosure Content */}
-      {isEdited && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-          <p className="text-sm text-yellow-800">
-            <strong>Note:</strong> This content has been customized from the default template.
-          </p>
-        </div>
-      )}
+
       
       {loading ? (
         <div className="animate-pulse">

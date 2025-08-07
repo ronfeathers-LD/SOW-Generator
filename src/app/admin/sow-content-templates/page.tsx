@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SOWContentTemplate } from '@/types/sow';
 import TipTapEditor from '@/components/TipTapEditor';
 
@@ -10,10 +10,6 @@ export default function SOWContentTemplatesPage() {
   const [activeSection, setActiveSection] = useState<string>('intro');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    fetchTemplates();
-  }, []);
 
   // Define the desired order of sections with metadata
   const sections = [
@@ -27,7 +23,7 @@ export default function SOWContentTemplatesPage() {
 
   const sectionOrder = sections.map(s => s.id);
 
-  const sortTemplates = (templates: SOWContentTemplate[]) => {
+  const sortTemplates = useCallback((templates: SOWContentTemplate[]) => {
     return templates.sort((a, b) => {
       const aIndex = sectionOrder.indexOf(a.section_name);
       const bIndex = sectionOrder.indexOf(b.section_name);
@@ -44,9 +40,9 @@ export default function SOWContentTemplatesPage() {
       // If neither is in our defined order, sort alphabetically
       return a.section_name.localeCompare(b.section_name);
     });
-  };
+  }, [sectionOrder]);
 
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/sow-content-templates');
       if (!response.ok) {
@@ -59,7 +55,11 @@ export default function SOWContentTemplatesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sortTemplates]);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
 
   const handleSave = async (template: Partial<SOWContentTemplate>) => {
     setSaving(true);

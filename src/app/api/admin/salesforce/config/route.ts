@@ -38,7 +38,8 @@ export async function GET() {
     }
 
     // Don't return the password in the response
-    const { password: _password, ...safeConfig } = config;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _, ...safeConfig } = config;
     
     // Return snake_case data directly
     return NextResponse.json({ config: safeConfig });
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
       .eq('is_active', true);
 
     // Create new configuration
-    const { data: config, error } = await supabase
+    const { data: config } = await supabase
       .from('salesforce_configs')
       .insert({
         username,
@@ -89,7 +90,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     // Don't return the password in the response
-    const { password: _password, ...safeConfig } = config;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _, ...safeConfig } = config;
     
     // Return snake_case data directly
     return NextResponse.json({ config: safeConfig }, { status: 201 });
@@ -137,7 +139,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update the configuration
-    const { data: config, error } = await supabase
+    const { data: config } = await supabase
       .from('salesforce_configs')
       .update({
         username,
@@ -151,6 +153,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     // Don't return the password in the response
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...safeConfig } = config;
     
     // Return snake_case data directly

@@ -12,7 +12,7 @@ interface AvomaCall {
     email: string;
     role: string;
   }>;
-  organization?: any;
+  organization?: Record<string, unknown>;
   state?: string;
   frm?: string;
   frm_name?: string;
@@ -22,7 +22,7 @@ interface AvomaCall {
   direction?: string;
   answered?: boolean;
   additional_details?: string;
-  meeting?: any;
+  meeting?: Record<string, unknown>;
   is_voicemail?: boolean;
   source?: string;
   user_email?: string;
@@ -39,10 +39,10 @@ interface AvomaCall {
   is_internal?: boolean;
   is_private?: boolean;
   is_call?: boolean;
-  type?: any;
-  outcome?: any;
+  type?: Record<string, unknown>;
+  outcome?: Record<string, unknown>;
   transcription_uuid?: string;
-  attendees?: Array<any>;
+  attendees?: Array<Record<string, unknown>>;
   audio_ready?: boolean;
   video_ready?: boolean;
   transcript_ready?: boolean;
@@ -50,13 +50,14 @@ interface AvomaCall {
   processing_status?: string;
   url?: string;
   recording_uuid?: string;
-  purpose?: any;
+  purpose?: Record<string, unknown>;
 }
 
 interface AvomaTranscript {
   id: string;
   call_id: string;
   content: string;
+  transcript?: Array<Record<string, unknown>>;
   speakers: Array<{
     name: string;
     text: string;
@@ -182,7 +183,7 @@ class AvomaClient {
   /**
    * Search meetings for specific keywords/account names
    */
-  async searchMeetings(query: string, limit: number = 20): Promise<any> {
+  async searchMeetings(query: string, limit: number = 20): Promise<AvomaSearchResponse> {
     // Searching meetings for query
     
     const params = new URLSearchParams({
@@ -204,7 +205,7 @@ class AvomaClient {
   /**
    * Get the transcript for a specific meeting using the transcriptions endpoint
    */
-  async getMeetingTranscript(meetingUuid: string): Promise<any> {
+  async getMeetingTranscript(meetingUuid: string): Promise<AvomaTranscript> {
     // Fetching meeting transcript
     
     // Use the transcriptions endpoint with the correct UUID
@@ -215,7 +216,7 @@ class AvomaClient {
   /**
    * Get full transcript text for a meeting with speaker information
    */
-  async getMeetingTranscriptText(meetingUuid: string): Promise<{ text: string; speakers: any[] }> {
+  async getMeetingTranscriptText(meetingUuid: string): Promise<{ text: string; speakers: Array<Record<string, unknown>> }> {
     try {
       const transcriptData = await this.getMeetingTranscript(meetingUuid);
       
@@ -223,10 +224,10 @@ class AvomaClient {
       let transcriptText = '';
       
       if (transcriptData.transcript && Array.isArray(transcriptData.transcript)) {
-        const speakerMap = new Map(speakers.map((s: any) => [s.id, s.name]));
+        const speakerMap = new Map(speakers.map((s: Record<string, unknown>) => [s.id, s.name]));
         
         transcriptText = transcriptData.transcript
-          .map((segment: any) => {
+          .map((segment: Record<string, unknown>) => {
             const speakerName = speakerMap.get(segment.speaker_id) || `Speaker ${segment.speaker_id}`;
             return `${speakerName}: ${segment.transcript}`;
           })
@@ -274,7 +275,7 @@ class AvomaClient {
         const scopingCalls = searchResults.results.filter((meeting: AvomaCall) => {
           const subject = (meeting.subject || '').toLowerCase();
           const organizerEmail = (meeting.organizer_email || '').toLowerCase();
-          const purpose = typeof meeting.purpose === 'string' ? meeting.purpose.toLowerCase() : '';
+          const purpose = (typeof meeting.purpose === 'string' ? meeting.purpose : '').toLowerCase();
           
           // Check if customer name appears anywhere
           const hasCustomerName = subject.includes(customerName.toLowerCase()) || 

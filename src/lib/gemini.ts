@@ -27,7 +27,7 @@ interface TranscriptionAnalysisResponse {
 
 class GeminiClient {
   private genAI: GoogleGenerativeAI;
-  private model: any;
+  private model: ReturnType<GoogleGenerativeAI['getGenerativeModel']>;
   private modelName: string;
 
   constructor(apiKey: string, modelName: string = 'gemini-2.5-flash') {
@@ -119,7 +119,7 @@ Focus on organizing deliverables into logical categories like LEADS, CONTACTS, I
           bulletPoints: parsed.bulletPoints || [],
           summary: parsed.summary || 'No summary available'
         };
-      } catch (parseError) {
+      } catch {
         // If JSON parsing fails, create a fallback response
         return {
           bulletPoints: [
@@ -169,16 +169,12 @@ Please provide a professional, 2-3 sentence project description that captures th
    */
   async analyzeTranscriptionWithFallback(
     transcript: string,
-    customerName: string,
-    existingDescription?: string,
-    existingObjectives?: string[],
-    selectedProducts?: string[]
+    customerName: string
   ): Promise<TranscriptionAnalysisResponse> {
     const models = GeminiClient.getAvailableModels();
     let lastError: Error | null = null;
 
     // Start with the current model (saved in database), then try others if needed
-    const currentModelIndex = models.indexOf(this.modelName);
     const orderedModels = [
       this.modelName, // Start with the saved model
       ...models.filter(m => m !== this.modelName) // Then try other models
@@ -189,7 +185,7 @@ Please provide a professional, 2-3 sentence project description that captures th
         // Trying model
         this.switchModel(modelName);
         
-        const result = await this.analyzeTranscription(transcript, customerName, existingDescription, existingObjectives, selectedProducts);
+        const result = await this.analyzeTranscription(transcript, customerName);
                   // Success with model
         return result;
         
@@ -219,10 +215,7 @@ Please provide a professional, 2-3 sentence project description that captures th
    */
   async analyzeTranscription(
     transcript: string,
-    customerName: string,
-    existingDescription?: string,
-    existingObjectives?: string[],
-    selectedProducts?: string[]
+    customerName: string
   ): Promise<TranscriptionAnalysisResponse> {
     // Fetch the AI prompt from the database
     const { supabase } = await import('@/lib/supabase');
@@ -242,10 +235,6 @@ Please provide a professional, 2-3 sentence project description that captures th
 You are an expert at analyzing sales call transcripts and extracting key information for Statement of Work (SOW) documents.
 
 Please analyze the following call transcript between LeanData and ${customerName} and provide a comprehensive project objective and scope items.
-
-${existingDescription ? `Existing Project Description: ${existingDescription}` : ''}
-${existingObjectives && existingObjectives.length > 0 ? `Existing Objectives: ${existingObjectives.join(', ')}` : ''}
-${selectedProducts && selectedProducts.length > 0 ? `Selected Products: ${selectedProducts.join(', ')}` : ''}
 
 Call Transcript:
 ${transcript}
@@ -282,17 +271,17 @@ Guidelines:
 - Focus on LeanData products and services mentioned in the call
 - Be professional and suitable for a formal SOW document
 - Avoid generic statements - be specific to what was discussed
-- ${existingDescription || existingObjectives?.length ? 'Consider the existing content and enhance or refine it based on the new transcript information.' : ''}
+
 - Use double quotes for all strings
 - Do not include any text before or after the JSON
 - Do not use markdown code blocks
 - Ensure the JSON is valid and parseable
 `;
-      return this.executePrompt(fallbackPrompt, transcript, customerName, existingDescription, existingObjectives, selectedProducts);
+      return this.executePrompt(fallbackPrompt, transcript, customerName);
     }
 
     // Use the prompt from the database, replacing placeholders
-    let prompt = aiPrompt.prompt_content
+    const prompt = aiPrompt.prompt_content
       .replace(/\{customerName\}/g, customerName)
       .replace(/\{transcription\}/g, transcript);
 
@@ -301,21 +290,9 @@ Guidelines:
     const truncatedPrompt = prompt.replace(transcript, truncatedTranscript);
     console.log('AI Prompt being sent:', truncatedPrompt);
 
-    // Add existing content context if available
-    if (existingDescription || existingObjectives?.length || selectedProducts?.length) {
-      const existingContext = `
-Existing Project Description: ${existingDescription || 'None provided'}
-Existing Objectives: ${existingObjectives?.length ? existingObjectives.join(', ') : 'None provided'}
-Selected Products: ${selectedProducts?.length ? selectedProducts.join(', ') : 'None provided'}
 
-Please consider the existing content and selected products above and enhance or refine it based on the new transcript information.`;
-      
-      // Insert the existing context before the transcription
-      prompt = prompt.replace(/\{transcription\}/g, existingContext + '\n\nCall Transcript:\n{transcription}');
-      prompt = prompt.replace(/\{transcription\}/g, transcript);
-    }
 
-    return this.executePrompt(prompt, transcript, customerName, existingDescription, existingObjectives, selectedProducts);
+    return this.executePrompt(prompt, transcript, customerName);
   }
 
   /**
@@ -324,10 +301,7 @@ Please consider the existing content and selected products above and enhance or 
   private async executePrompt(
     prompt: string,
     transcript: string,
-    customerName: string,
-    existingDescription?: string,
-    existingObjectives?: string[],
-    selectedProducts?: string[]
+    customerName: string
   ): Promise<TranscriptionAnalysisResponse> {
 
     try {
@@ -599,10 +573,7 @@ export { GeminiClient, type GeminiBulletPoint, type GeminiGenerationResponse, ty
 // Helper function to analyze transcription
 export async function analyzeTranscription(
   transcript: string, 
-  customerName: string, 
-  existingDescription?: string, 
-  existingObjectives?: string[],
-  selectedProducts?: string[]
+  customerName: string
 ): Promise<TranscriptionAnalysisResponse> {
   // Get API key from database
   const { supabase } = await import('@/lib/supabase');
@@ -627,5 +598,5 @@ export async function analyzeTranscription(
 
   // Use the primary API key with the saved model
   const client = new GeminiClient(config.api_key, config.model_name || 'gemini-2.5-flash');
-  return await client.analyzeTranscriptionWithFallback(transcript, customerName, existingDescription, existingObjectives, selectedProducts);
+  return await client.analyzeTranscriptionWithFallback(transcript, customerName);
 } 

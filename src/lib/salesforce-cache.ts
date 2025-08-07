@@ -1,5 +1,6 @@
 // Salesforce data caching system
 // Caches POC and Opportunity queries to reduce API calls and improve performance
+import { SalesforceContact } from './salesforce';
 
 interface CacheEntry<T> {
   data: T;
@@ -8,8 +9,8 @@ interface CacheEntry<T> {
 }
 
 interface SalesforceCache {
-  contacts: Map<string, CacheEntry<any[]>>;
-  opportunities: Map<string, CacheEntry<any[]>>;
+  contacts: Map<string, CacheEntry<SalesforceContact[]>>;
+  opportunities: Map<string, CacheEntry<Array<Record<string, unknown>>>>;
 }
 
 class SalesforceCacheManager {
@@ -25,7 +26,7 @@ class SalesforceCacheManager {
   }
 
   // Get cached contacts for an account
-  getCachedContacts(accountId: string): any[] | null {
+  getCachedContacts(accountId: string): SalesforceContact[] | null {
     const entry = this.cache.contacts.get(accountId);
     
     if (!entry) {
@@ -43,7 +44,7 @@ class SalesforceCacheManager {
   }
 
   // Cache contacts for an account
-  cacheContacts(accountId: string, contacts: any[]): void {
+  cacheContacts(accountId: string, contacts: SalesforceContact[]): void {
     const expiresAt = Date.now() + this.CONTACTS_CACHE_DURATION;
     
     this.cache.contacts.set(accountId, {
@@ -56,7 +57,7 @@ class SalesforceCacheManager {
   }
 
   // Get cached opportunities for an account
-  getCachedOpportunities(accountId: string): any[] | null {
+  getCachedOpportunities(accountId: string): Array<Record<string, unknown>> | null {
     const entry = this.cache.opportunities.get(accountId);
     
     if (!entry) {
@@ -74,7 +75,7 @@ class SalesforceCacheManager {
   }
 
   // Cache opportunities for an account
-  cacheOpportunities(accountId: string, opportunities: any[]): void {
+  cacheOpportunities(accountId: string, opportunities: Array<Record<string, unknown>>): void {
     const expiresAt = Date.now() + this.OPPORTUNITIES_CACHE_DURATION;
     
     this.cache.opportunities.set(accountId, {

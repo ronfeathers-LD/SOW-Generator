@@ -23,9 +23,9 @@ export interface SOW {
   deliverables: string;
   start_date: string;
   duration: string;
-  client_roles: any;
-  pricing_roles: any;
-  billing_info: any;
+  client_roles: Record<string, unknown>;
+  pricing_roles: Record<string, unknown>;
+  billing_info: Record<string, unknown>;
   access_requirements: string;
   travel_requirements: string;
   working_hours: string;
@@ -47,7 +47,7 @@ export interface SOW {
   opportunity_stage?: string;
   project_description: string;
   objectives_description: string;
-  objectives_key_objectives: any;
+  objectives_key_objectives: Record<string, unknown>;
   avoma_transcription: string;
 }
 

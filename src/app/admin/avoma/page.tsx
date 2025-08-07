@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 interface AvomaConfig {
   id: string;
@@ -294,12 +295,12 @@ export default function AvomaAdminPage() {
               {isTesting ? 'Testing...' : 'Test Search'}
             </button>
 
-            <a
+            <Link
               href="/sow"
               className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 inline-block"
             >
               Back to SOWs
-            </a>
+            </Link>
           </div>
         </form>
       </div>

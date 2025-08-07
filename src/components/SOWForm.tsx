@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { SOWData, SOWTemplate, BillingInfo } from '@/types/sow';
 import { SalesforceOpportunity, SalesforceContact } from '@/lib/salesforce';
 import ProjectOverviewTab from './sow/ProjectOverviewTab';
@@ -549,13 +549,13 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           billing_email: contact.Email || '',
         },
         pricing: {
-          ...formData.pricing!,
+          ...(formData.pricing || {}),
           billing: {
-            ...formData.pricing?.billing!,
+            ...(formData.pricing?.billing || {}),
             billing_contact: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
             billing_email: contact.Email || '',
-          }
-        }
+          } as BillingInfo
+        } as { roles: { role: string; rate_per_hour: number; total_hours: number; }[]; billing: BillingInfo }
       });
     } else {
       // Clear billing contact information when deselected
@@ -579,7 +579,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   };
 
   // Helper function to generate Salesforce record links
-  const getSalesforceLink = (recordId: string, _recordType: 'Account' | 'Contact' | 'Opportunity') => {
+  const getSalesforceLink = (recordId: string) => {
     return `${salesforceInstanceUrl}/${recordId}`;
   };
 
@@ -855,14 +855,14 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     }
   };
 
-  const tabs = [
+  const tabs = useMemo(() => [
     { key: 'Project Overview', label: 'Project Overview' },
     { key: 'Customer Information', label: 'Customer Information' },
     { key: 'Objectives', label: 'Objectives' },
     { key: 'Team & Roles', label: 'Team & Roles' },
     { key: 'Billing & Payment', label: 'Billing & Payment' },
     { key: 'Content Editing', label: 'Content Editing' },
-  ];
+  ], []);
 
   // Tab navigation with URL hash persistence
   useEffect(() => {
@@ -892,7 +892,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+  }, [tabs]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -1040,7 +1040,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           selectedAccount={selectedAccount}
           selectedBillingContact={selectedBillingContact}
           onBillingContactSelectedFromSalesforce={handleBillingContactSelectedFromSalesforce}
-          getSalesforceLink={getSalesforceLink}
         />
       )}
 

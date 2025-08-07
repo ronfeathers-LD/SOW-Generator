@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SOWData } from '@/types/sow';
+import { SOWData, SOWTemplate, BillingInfo } from '@/types/sow';
 import { SalesforceContact } from '@/lib/salesforce';
 
 interface BillingPaymentTabProps {
@@ -9,7 +9,6 @@ interface BillingPaymentTabProps {
   selectedAccount: { id: string; name: string } | null;
   selectedBillingContact: SalesforceContact | null;
   onBillingContactSelectedFromSalesforce: (contact: SalesforceContact | null) => void;
-  getSalesforceLink: (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => string;
 }
 
 export default function BillingPaymentTab({
@@ -19,7 +18,6 @@ export default function BillingPaymentTab({
   selectedAccount,
   selectedBillingContact,
   onBillingContactSelectedFromSalesforce,
-  getSalesforceLink,
 }: BillingPaymentTabProps) {
   const [isLoadingBilling, setIsLoadingBilling] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
@@ -101,22 +99,22 @@ export default function BillingPaymentTab({
       setFormData({
         ...formData,
         template: {
-          ...formData.template!,
+          ...(formData.template || {}),
           billing_company_name: billingInfo.companyName || formData.template?.customer_name || '',
           billing_contact_name: billingInfo.billingContact || '',
           billing_address: billingInfo.billingAddress || '',
           billing_email: billingInfo.billingEmail || '',
-        },
+        } as SOWTemplate,
         pricing: {
-          ...formData.pricing!,
+          ...(formData.pricing || {}),
           billing: {
-            ...formData.pricing?.billing!,
+            ...(formData.pricing?.billing || {}),
             company_name: billingInfo.companyName || formData.template?.customer_name || '',
             billing_contact: billingInfo.billingContact || '',
             billing_address: billingInfo.billingAddress || '',
             billing_email: billingInfo.billingEmail || '',
-          }
-        }
+          } as BillingInfo
+        } as { roles: { role: string; rate_per_hour: number; total_hours: number; }[]; billing: BillingInfo }
       });
 
       setBillingSuccess('Billing information loaded from Salesforce successfully!');
@@ -162,11 +160,11 @@ export default function BillingPaymentTab({
                 value={formData.pricing?.billing?.company_name || formData.template?.billing_company_name || ''}
                 onChange={(e) => setFormData({
                   ...formData,
-                  template: { ...formData.template!, billing_company_name: e.target.value },
+                  template: { ...(formData.template || {}), billing_company_name: e.target.value } as SOWTemplate,
                   pricing: {
-                    ...formData.pricing!,
-                    billing: { ...formData.pricing?.billing!, company_name: e.target.value }
-                  }
+                    ...(formData.pricing || {}),
+                    billing: { ...(formData.pricing?.billing || {}), company_name: e.target.value }
+                  } as { roles: { role: string; rate_per_hour: number; total_hours: number; }[]; billing: BillingInfo }
                 })}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               />
@@ -178,11 +176,11 @@ export default function BillingPaymentTab({
                 value={formData.pricing?.billing?.billing_address || formData.template?.billing_address || ''}
                 onChange={(e) => setFormData({
                   ...formData,
-                  template: { ...formData.template!, billing_address: e.target.value },
+                  template: { ...(formData.template || {}), billing_address: e.target.value } as SOWTemplate,
                   pricing: {
-                    ...formData.pricing!,
-                    billing: { ...formData.pricing?.billing!, billing_address: e.target.value }
-                  }
+                    ...(formData.pricing || {}),
+                    billing: { ...(formData.pricing?.billing || {}), billing_address: e.target.value }
+                  } as { roles: { role: string; rate_per_hour: number; total_hours: number; }[]; billing: BillingInfo }
                 })}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               />
@@ -194,11 +192,11 @@ export default function BillingPaymentTab({
                 value={formData.pricing?.billing?.po_number || formData.template?.purchase_order_number || ''}
                 onChange={(e) => setFormData({
                   ...formData,
-                  template: { ...formData.template!, purchase_order_number: e.target.value },
+                  template: { ...(formData.template || {}), purchase_order_number: e.target.value } as SOWTemplate,
                   pricing: {
-                    ...formData.pricing!,
-                    billing: { ...formData.pricing?.billing!, po_number: e.target.value }
-                  }
+                    ...(formData.pricing || {}),
+                    billing: { ...(formData.pricing?.billing || {}), po_number: e.target.value }
+                  } as { roles: { role: string; rate_per_hour: number; total_hours: number; }[]; billing: BillingInfo }
                 })}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 placeholder="N/A"
@@ -243,11 +241,11 @@ export default function BillingPaymentTab({
                   value={formData.pricing?.billing?.billing_contact || formData.template?.billing_contact_name || ''}
                   onChange={(e) => setFormData({
                     ...formData,
-                    template: { ...formData.template!, billing_contact_name: e.target.value },
+                    template: { ...(formData.template || {}), billing_contact_name: e.target.value } as SOWTemplate,
                     pricing: {
-                      ...formData.pricing!,
-                      billing: { ...formData.pricing?.billing!, billing_contact: e.target.value }
-                    }
+                      ...(formData.pricing || {}),
+                      billing: { ...(formData.pricing?.billing || {}), billing_contact: e.target.value }
+                    } as { roles: { role: string; rate_per_hour: number; total_hours: number; }[]; billing: BillingInfo }
                   })}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 />
@@ -281,11 +279,11 @@ export default function BillingPaymentTab({
                 value={formData.pricing?.billing?.billing_email || formData.template?.billing_email || ''}
                 onChange={(e) => setFormData({
                   ...formData,
-                  template: { ...formData.template!, billing_email: e.target.value },
+                  template: { ...(formData.template || {}), billing_email: e.target.value } as SOWTemplate,
                   pricing: {
-                    ...formData.pricing!,
-                    billing: { ...formData.pricing?.billing!, billing_email: e.target.value }
-                  }
+                    ...(formData.pricing || {}),
+                    billing: { ...(formData.pricing?.billing || {}), billing_email: e.target.value }
+                  } as { roles: { role: string; rate_per_hour: number; total_hours: number; }[]; billing: BillingInfo }
                 })}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               />

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 
 interface SalesforceConfig {
   id: string;
@@ -24,12 +25,7 @@ export default function SalesforceAdminPage() {
   const [isTesting, setIsTesting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Load config on component mount
-  useEffect(() => {
-    loadConfig();
-  }, []);
-
-  const loadConfig = async (preservePassword = false) => {
+  const loadConfig = useCallback(async (preservePassword = false) => {
     try {
       const response = await fetch('/api/admin/salesforce/config');
       if (response.ok) {
@@ -62,7 +58,12 @@ export default function SalesforceAdminPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [config]);
+
+  // Load config on component mount
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -363,12 +364,12 @@ export default function SalesforceAdminPage() {
               {isTesting ? 'Debugging...' : 'Debug Connection'}
             </button>
 
-            <a
+            <Link
               href="/sow"
               className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 inline-block"
             >
               Back to SOWs
-            </a>
+            </Link>
           </div>
         </form>
       </div>

@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 
 interface Account {
   id: string;
@@ -283,7 +282,7 @@ export default function CustomerSelectionWizard({ onComplete }: CustomerSelectio
                 </div>
 
                 <p className="text-sm text-gray-600">
-                  Found {accounts.length} account(s) matching "{searchQuery}". Select the correct customer:
+                  Found {accounts.length} account(s) matching &quot;{searchQuery}&quot;. Select the correct customer:
                 </p>
 
                 <div className="space-y-3">
@@ -362,7 +361,7 @@ export default function CustomerSelectionWizard({ onComplete }: CustomerSelectio
                 </div>
 
                 <p className="text-sm text-gray-600">
-                  Found {opportunities.length} opportunity(ies) for "{selectedAccount?.name}". Select the correct opportunity:
+                  Found {opportunities.length} opportunity(ies) for &quot;{selectedAccount?.name}&quot;. Select the correct opportunity:
                 </p>
 
                 {isLoadingOpportunities ? (

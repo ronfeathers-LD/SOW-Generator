@@ -57,8 +57,43 @@ export interface SalesforceDataResponse {
   error?: string;
 }
 
+// Salesforce API response types
+export interface SalesforceAccountResponse {
+  Id: string;
+  Name: string;
+  Website?: string;
+  Type?: string;
+  Owner?: { Name: string };
+  BillingStreet?: string;
+  BillingCity?: string;
+  BillingState?: string;
+  BillingPostalCode?: string;
+  BillingCountry?: string;
+  Industry?: string;
+  Phone?: string;
+}
+
+export interface SalesforceContactResponse {
+  Id: string;
+  FirstName?: string;
+  LastName: string;
+  Email?: string;
+  Phone?: string;
+  Title?: string;
+  Department?: string;
+}
+
+export interface SalesforceOpportunityResponse {
+  Id: string;
+  Name: string;
+  Amount?: number;
+  StageName?: string;
+  CloseDate?: string;
+  Description?: string;
+}
+
 // Helper functions for working with Salesforce data
-export const createSalesforceAccountData = (account: any): SalesforceAccountData => ({
+export const createSalesforceAccountData = (account: SalesforceAccountResponse): SalesforceAccountData => ({
   id: account.Id,
   name: account.Name,
   website: account.Website,
@@ -76,7 +111,7 @@ export const createSalesforceAccountData = (account: any): SalesforceAccountData
   selected_at: new Date().toISOString(),
 });
 
-export const createSalesforceContactData = (contact: any, role: SalesforceContactData['role'] = 'primary_poc'): SalesforceContactData => ({
+export const createSalesforceContactData = (contact: SalesforceContactResponse, role: SalesforceContactData['role'] = 'primary_poc'): SalesforceContactData => ({
   id: contact.Id,
   first_name: contact.FirstName,
   last_name: contact.LastName,
@@ -88,7 +123,7 @@ export const createSalesforceContactData = (contact: any, role: SalesforceContac
   selected_at: new Date().toISOString(),
 });
 
-export const createSalesforceOpportunityData = (opportunity: any): SalesforceOpportunityData => ({
+export const createSalesforceOpportunityData = (opportunity: SalesforceOpportunityResponse): SalesforceOpportunityData => ({
   id: opportunity.Id,
   name: opportunity.Name,
   amount: opportunity.Amount,

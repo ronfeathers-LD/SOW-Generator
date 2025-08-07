@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Don't return the actual API key in the response
-    const { api_key: _api_key, ...safeConfig } = config;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { api_key: _, ...safeConfig } = config;
     
     return NextResponse.json({ config: safeConfig });
   } catch (error) {
@@ -114,7 +115,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Don't return the actual API key in the response
-    const { api_key: _api_key, ...safeConfig } = config;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { api_key: _, ...safeConfig } = config;
     
     return NextResponse.json({ config: safeConfig });
   } catch (error) {

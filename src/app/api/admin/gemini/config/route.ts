@@ -96,7 +96,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Don't return the actual API key in the response
-    const { api_key: _api_key, ..._safeConfig } = config;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { api_key: _ } = config;
     
     return NextResponse.json({ 
       apiKey: '••••••••••••••••',
@@ -144,7 +145,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Don't return the actual API key in the response
-    const { api_key: _api_key, ..._safeConfig } = config;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { api_key: _ } = config;
     
     return NextResponse.json({ 
       apiKey: '••••••••••••••••',

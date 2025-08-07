@@ -21,25 +21,7 @@ export default function ObjectivesTab({
   // Get customer name from selected account or form data
   const customerName = selectedAccount?.name || formData.template?.customer_name || formData.header?.client_name || '';
 
-  const handleProjectDescriptionChange = (description: string) => {
-    setFormData({
-      ...formData,
-      objectives: { 
-        ...formData.objectives!, 
-        description: description 
-      }
-    });
-  };
 
-  const handleKeyObjectivesChange = (objectives: string[]) => {
-    setFormData({
-      ...formData,
-      objectives: { 
-        ...formData.objectives!, 
-        key_objectives: objectives 
-      }
-    });
-  };
 
   const handleAvomaUrlChange = (url: string) => {
     setFormData({
@@ -64,15 +46,7 @@ export default function ObjectivesTab({
     setTranscriptionError(null);
   };
 
-  const handleDeliverablesChange = (deliverables: string) => {
-    setFormData({
-      ...formData,
-      scope: {
-        ...formData.scope!,
-        deliverables: deliverables
-      }
-    });
-  };
+
 
   const handleCustomDeliverablesChange = (content: string) => {
     setFormData({
@@ -199,8 +173,7 @@ export default function ObjectivesTab({
         throw new Error('Invalid response format from AI analysis');
       }
 
-      // Process scope items
-      const scopeItems = result.scope;
+
 
       // Convert objective paragraph to bullet points for TipTap editor
       const convertObjectiveToBulletPoints = (objective: string): string => {
@@ -223,65 +196,10 @@ export default function ObjectivesTab({
         return htmlValue;
       };
 
-      // Convert key objectives array to HTML format for TipTap editor
-      const convertKeyObjectivesToHTML = (objectives: string[]): string => {
-        if (!objectives || objectives.length === 0) return '';
-        
-        let htmlValue = '';
-        let currentList = '';
-        
-        objectives.forEach(obj => {
-          if (!obj || typeof obj !== 'string') return;
-          
-          const trimmedObj = obj.trim();
-          if (trimmedObj.length === 0) return;
-          
-          // Check if this is a product header (ends with :)
-          if (trimmedObj.endsWith(':')) {
-            // Close any existing list
-            if (currentList) {
-              htmlValue += `<ul>${currentList}</ul>`;
-              currentList = '';
-            }
-            // Add the product header
-            const headerText = trimmedObj.slice(0, -1); // Remove the trailing colon
-            htmlValue += `<h4>${headerText}</h4>`;
-          }
-          // Check if this is a bullet point (starts with •)
-          else if (trimmedObj.startsWith('• ')) {
-            const itemText = trimmedObj.substring(2); // Remove the • and space
-            currentList += `<li>${itemText}</li>`;
-          }
-          // Check if this is an empty line
-          else if (trimmedObj === '') {
-            // Close any existing list
-            if (currentList) {
-              htmlValue += `<ul>${currentList}</ul>`;
-              currentList = '';
-            }
-          }
-          // Regular item (fallback)
-          else {
-            // Close any existing list first
-            if (currentList) {
-              htmlValue += `<ul>${currentList}</ul>`;
-              currentList = '';
-            }
-            // Add as a paragraph
-            htmlValue += `<p>${trimmedObj}</p>`;
-          }
-        });
-        
-        // Close any remaining list
-        if (currentList) {
-          htmlValue += `<ul>${currentList}</ul>`;
-        }
-        
-        return htmlValue;
-      };
+
 
       // Convert solutions to HTML format with proper product family groupings
-      const convertSolutionsToHTML = (solutions: any): string => {
+      const convertSolutionsToHTML = (solutions: Record<string, string[]>): string => {
         if (!solutions || typeof solutions !== 'object') return '';
         
         let html = '';
@@ -314,154 +232,7 @@ export default function ObjectivesTab({
       };
 
       // Convert deliverables to HTML format for WYSIWYG editor with nested list support
-      const convertDeliverablesToHTML = (deliverables: string[]): string => {
-        if (!deliverables || deliverables.length === 0) return '';
-        
-        let html = '';
-        
-        // Handle case where deliverables might be a single string with embedded content
-        if (deliverables.length === 1 && deliverables[0].includes('•')) {
-          const content = deliverables[0];
-          
-          // Split by product headers (all caps words)
-          const sections = content.split(/([A-Z\s]+(?=\s•))/);
-          
-          sections.forEach((section, index) => {
-            const trimmedSection = section.trim();
-            if (!trimmedSection) return;
-            
-            // Check if this is a product header
-            if (trimmedSection.match(/^[A-Z\s]+$/) && !trimmedSection.includes('•')) {
-              html += `<h4><strong>${trimmedSection}</strong></h4>\n<ul>\n`;
-            } else if (trimmedSection.includes('•')) {
-              // This section contains bullet points
-              const lines = trimmedSection.split('\n');
-              let currentMainItem = '';
-              let nestedItems: string[] = [];
-              
-              lines.forEach(line => {
-                const trimmedLine = line.trim();
-                if (!trimmedLine) return;
-                
-                // Check if this is a main bullet point (starts with • and no extra indentation)
-                if (trimmedLine.startsWith('• ') && !trimmedLine.startsWith('  •')) {
-                  // If we have a previous main item with nested items, output it
-                  if (currentMainItem && nestedItems.length > 0) {
-                    html += `<li>${currentMainItem}<ul>`;
-                    nestedItems.forEach(nestedItem => {
-                      html += `<li>${nestedItem}</li>`;
-                    });
-                    html += `</ul></li>\n`;
-                    nestedItems = [];
-                  } else if (currentMainItem) {
-                    html += `<li>${currentMainItem}</li>\n`;
-                  }
-                  
-                  // Start new main item
-                  currentMainItem = trimmedLine.substring(2); // Remove "• "
-                } else if (trimmedLine.startsWith('  •')) {
-                  // This is a nested item
-                  const nestedItem = trimmedLine.substring(3).trim(); // Remove "  • "
-                  nestedItems.push(nestedItem);
-                }
-              });
-              
-              // Handle the last item
-              if (currentMainItem && nestedItems.length > 0) {
-                html += `<li>${currentMainItem}<ul>`;
-                nestedItems.forEach(nestedItem => {
-                  html += `<li>${nestedItem}</li>`;
-                });
-                html += `</ul></li>\n`;
-              } else if (currentMainItem) {
-                html += `<li>${currentMainItem}</li>\n`;
-              }
-              
-              html += '</ul>\n';
-            }
-          });
-        } else {
-          // Handle array format (original logic)
-          let currentProduct = '';
-          
-          deliverables.forEach(item => {
-            const trimmedItem = item.trim();
-            
-            // Check if this is a product header (all caps, no bullet)
-            if (trimmedItem.match(/^[A-Z\s]+$/) && !trimmedItem.includes('•')) {
-              if (currentProduct !== trimmedItem) {
-                if (currentProduct !== '') {
-                  html += '</ul>\n';
-                }
-                currentProduct = trimmedItem;
-                html += `<h4><strong>${trimmedItem}</strong></h4>\n<ul>\n`;
-              }
-            } else {
-              // This is a deliverable item
-              if (currentProduct === '') {
-                // If no product header found, create a default one
-                html += '<h4><strong>DELIVERABLES</strong></h4>\n<ul>\n';
-                currentProduct = 'DELIVERABLES';
-              }
-              
-              // Process the item which might contain nested content
-              const lines = trimmedItem.split('\n');
-              let currentMainItem = '';
-              let nestedItems: string[] = [];
-              
-              lines.forEach(line => {
-                const trimmedLine = line.trim();
-                if (!trimmedLine) return;
-                
-                // Remove bullet points and clean up the text
-                const cleanLine = trimmedLine.replace(/^[•\-\*]\s*/, '').trim();
-                
-                // Check if this is a main bullet point (no extra indentation)
-                if (trimmedLine.startsWith('• ') && !trimmedLine.startsWith('  •')) {
-                  // If we have a previous main item with nested items, output it
-                  if (currentMainItem && nestedItems.length > 0) {
-                    html += `<li>${currentMainItem}<ul>`;
-                    nestedItems.forEach(nestedItem => {
-                      html += `<li>${nestedItem}</li>`;
-                    });
-                    html += `</ul></li>\n`;
-                    nestedItems = [];
-                  } else if (currentMainItem) {
-                    html += `<li>${currentMainItem}</li>\n`;
-                  }
-                  
-                  // Start new main item
-                  currentMainItem = cleanLine;
-                } else if (trimmedLine.startsWith('  •')) {
-                  // This is a nested item
-                  nestedItems.push(cleanLine);
-                } else if (currentMainItem) {
-                  // This might be a nested item without bullet
-                  nestedItems.push(cleanLine);
-                }
-              });
-              
-              // Handle the last item
-              if (currentMainItem && nestedItems.length > 0) {
-                html += `<li>${currentMainItem}<ul>`;
-                nestedItems.forEach(nestedItem => {
-                  html += `<li>${nestedItem}</li>`;
-                });
-                html += `</ul></li>\n`;
-              } else if (currentMainItem) {
-                html += `<li>${currentMainItem}</li>\n`;
-              }
-            }
-          });
-          
-          // Close the last list
-          if (currentProduct !== '') {
-            html += '</ul>';
-          }
-        }
-        
-        return html;
-      };
+
 
       // Check for Gemini API overload errors
       if (result.objectiveOverview.includes('model is overloaded') || result.objectiveOverview.includes('Service Unavailable')) {
@@ -619,7 +390,7 @@ export default function ObjectivesTab({
                       <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
-                      Search Avoma for "{customerName}" meetings
+                      Search Avoma for &quot;{customerName}&quot; meetings
                     </a>
                   )}
                 </div>
@@ -744,9 +515,9 @@ export default function ObjectivesTab({
                   <div className="mt-2 text-sm text-blue-700">
                     <p>To generate objectives and deliverables, you need to:</p>
                     <ol className="list-decimal list-inside mt-1 space-y-1">
-                      <li>Enter an Avoma meeting URL above and click "Fetch Transcription"</li>
+                      <li>Enter an Avoma meeting URL above and click &quot;Fetch Transcription&quot;</li>
                       <li>Or paste the meeting transcription directly into the text area below</li>
-                      <li>Then click "Generate Objectives & Deliverables"</li>
+                      <li>Then click &quot;Generate Objectives & Deliverables&quot;</li>
                     </ol>
                   </div>
                 </div>
@@ -769,7 +540,7 @@ export default function ObjectivesTab({
                     <ol className="list-decimal list-inside mt-1 space-y-1">
                       <li>Go to the <strong>Customer Information</strong> tab and select a customer</li>
                       <li>Return to this tab and add a meeting transcription</li>
-                      <li>Then click "Generate Objectives & Deliverables"</li>
+                      <li>Then click &quot;Generate Objectives & Deliverables&quot;</li>
                     </ol>
                   </div>
                 </div>

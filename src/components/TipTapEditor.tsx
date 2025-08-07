@@ -6,7 +6,7 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
 interface TipTapEditorProps {
   value: string;
@@ -26,7 +26,7 @@ export default function TipTapEditor({ value, onChange, placeholder, initializin
   };
 
   // Helper function to clean HTML content for TipTap
-  const cleanHtmlForTipTap = (html: string): string => {
+  const cleanHtmlForTipTap = useCallback((html: string): string => {
     if (!html) return '';
     
     // If it's already HTML, return as is
@@ -60,7 +60,7 @@ export default function TipTapEditor({ value, onChange, placeholder, initializin
         return `<p>${processed}</p>`;
       })
       .join('');
-  };
+  }, []);
   
   const editor = useEditor({
     extensions: [
@@ -108,7 +108,7 @@ export default function TipTapEditor({ value, onChange, placeholder, initializin
         isSettingContent.current = false;
       }, 0);
     }
-  }, [editor, value]);
+  }, [editor, value, cleanHtmlForTipTap]);
 
   if (!editor) {
     return null;

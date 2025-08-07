@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
 import { SalesforceContact } from '@/lib/salesforce';
-import SalesforceIntegration from '../SalesforceIntegration';
 
 interface TeamRolesTabProps {
   formData: Partial<SOWData>;
@@ -116,11 +115,7 @@ export default function TeamRolesTab({
     setShowRoleContactSelection(null);
   };
 
-  const handleAccountSelected = (customerData: { account: any; contacts: any[]; opportunities: any[] }) => {
-          setAvailableContacts(customerData.contacts || []);
-      // Only show contact selection if no contact is currently selected
-      setShowSignerContactSelection(!selectedContact);
-  };
+
 
   return (
     <section className="space-y-6">
@@ -570,7 +565,7 @@ export default function TeamRolesTab({
                       placeholder="Role will be populated from selected contact's title"
                     />
                     <p className="mt-1 text-xs text-gray-500">
-                      Role is automatically set from the selected contact's Salesforce title
+                      Role is automatically set from the selected contact&apos;s Salesforce title
                     </p>
                   </div>
                   <div>

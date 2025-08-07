@@ -36,7 +36,7 @@ export default function SOWScopePage({
       if (customContent) {
         let processedContent = processContent(customContent);
         const deliverablesHtml = deliverables
-          .map((deliverable, index) => `<div class="mb-4"><div>${deliverable}</div></div>`)
+          .map((deliverable) => `<div class="mb-4"><div>${deliverable}</div></div>`)
           .join('\n');
         processedContent = processedContent.replace(/{deliverables}/g, deliverablesHtml);
         setContent(processedContent);

@@ -1,4 +1,4 @@
-import NextAuth from 'next-auth';
+
 import GoogleProvider from 'next-auth/providers/google';
 import { supabase } from '@/lib/supabase';
 
@@ -19,8 +19,7 @@ const hasValidGoogleCredentials = () => {
          process.env.GOOGLE_CLIENT_SECRET !== 'your-google-client-secret-here';
 };
 
-// Log the callback URL for debugging
-const callbackUrl = `${process.env.NEXTAUTH_URL}/api/auth/callback/google`;
+
 
 export const authOptions = {
   providers: hasValidGoogleCredentials() ? [
@@ -45,6 +44,7 @@ export const authOptions = {
   },
   debug: false, // Disable debug to avoid warnings
   callbacks: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async signIn({ user }: any) {
       try {
       // Validate environment variables in production
@@ -114,6 +114,7 @@ export const authOptions = {
         return true; // Still allow sign in even if database operation fails
       }
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async session({ session, token }: any) {
       if (session.user) {
         session.user.id = token.sub;
@@ -132,7 +133,7 @@ export const authOptions = {
       }
       return token;
     },
-    async redirect({ url, baseUrl }: any) {
+    async redirect({ baseUrl }: { url?: string; baseUrl: string }) {
       // Default redirect to dashboard after login
       return `${baseUrl}/dashboard`;
     },
