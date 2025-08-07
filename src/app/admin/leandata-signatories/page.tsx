@@ -24,7 +24,7 @@ export default function LeanDataSignatoriesPage() {
   const [signatories, setSignatories] = useState<LeanDataSignatory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   
   // Form state
@@ -79,7 +79,6 @@ export default function LeanDataSignatoriesPage() {
       isActive: true
     });
     setEditingId(null);
-    setIsCreating(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -127,7 +126,6 @@ export default function LeanDataSignatoriesPage() {
               isActive: signatory.is_active
     });
     setEditingId(signatory.id);
-    setIsCreating(true);
   };
 
   const handleDelete = async (id: string) => {

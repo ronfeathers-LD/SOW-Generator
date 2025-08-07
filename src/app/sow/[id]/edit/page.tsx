@@ -1,16 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import SOWForm from '@/components/SOWForm';
 import { SOWData } from '@/types/sow';
 
 export default function EditSOWPage() {
   const params = useParams();
-  const router = useRouter();
   const [sow, setSOW] = useState<SOWData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchSOW = async () => {
@@ -177,15 +175,7 @@ export default function EditSOWPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center text-red-600">{error}</div>
-        </div>
-      </div>
-    );
-  }
+
 
   if (!sow) {
     return (

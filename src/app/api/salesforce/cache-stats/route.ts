@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import salesforceCache from '@/lib/salesforce-cache';
 
 // GET: Retrieve cache statistics
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const stats = salesforceCache.getCacheStats();
     

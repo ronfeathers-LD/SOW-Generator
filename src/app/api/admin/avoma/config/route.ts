@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Don't return the actual API key in the response
-    const { api_key, ...safeConfig } = config;
+    const { api_key: _api_key, ...safeConfig } = config;
     
     return NextResponse.json({ config: safeConfig });
   } catch (error) {
@@ -94,7 +94,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Configuration ID is required' }, { status: 400 });
     }
 
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     
     if (apiKey !== undefined) updateData.api_key = apiKey;
     if (apiUrl !== undefined) updateData.api_url = apiUrl;
@@ -114,7 +114,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Don't return the actual API key in the response
-    const { api_key, ...safeConfig } = config;
+    const { api_key: _api_key, ...safeConfig } = config;
     
     return NextResponse.json({ config: safeConfig });
   } catch (error) {

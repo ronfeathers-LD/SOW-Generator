@@ -49,7 +49,7 @@ export default function AIPromptsAdminPage() {
       } else {
         setError('Failed to fetch AI prompts');
       }
-    } catch (err) {
+    } catch {
       setError('Error fetching AI prompts');
     } finally {
       setLoading(false);
@@ -81,7 +81,7 @@ export default function AIPromptsAdminPage() {
       } else {
         setError('Failed to save AI prompt');
       }
-    } catch (err) {
+    } catch {
       setError('Error saving AI prompt');
     }
   };

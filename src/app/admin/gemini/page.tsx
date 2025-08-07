@@ -80,7 +80,7 @@ export default function GeminiAdminPage() {
         const error = await response.json();
         setTestResult({ success: false, message: error.error || 'Failed to save configuration' });
       }
-    } catch (error) {
+    } catch {
       setTestResult({ success: false, message: 'Failed to save configuration' });
     } finally {
       setIsSaving(false);
@@ -111,7 +111,7 @@ export default function GeminiAdminPage() {
                   } else {
                     setTestResult({ success: false, message: data.error || 'Failed to test Gemini API connection' });
                   }
-                } catch (error) {
+                } catch {
                   setTestResult({ success: false, message: 'Failed to test Gemini API connection' });
                 } finally {
                   setIsTesting(false);

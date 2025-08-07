@@ -126,19 +126,7 @@ interface SalesforceData {
   opportunity_data?: unknown;
 }
 
-function safeJsonParse<T>(value: unknown, defaultValue: T): T {
-  if (!value) return defaultValue;
-  if (Array.isArray(value)) return value as T;
-  if (typeof value === 'object') return value as T;
-  try {
-    return JSON.parse(String(value)) as T;
-  } catch {
-    // If parsing fails, return the value as is if it's a string
-    if (typeof value === 'string') return value as unknown as T;
-    console.warn('Failed to parse JSON:', value);
-    return defaultValue;
-  }
-}
+
 
   // Helper function to find the appropriate signatory from Salesforce contacts
   function findSignatory(contacts: SalesforceData['contacts_data']): { name: string; title: string; email: string } | null {

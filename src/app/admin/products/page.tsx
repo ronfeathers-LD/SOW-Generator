@@ -46,7 +46,7 @@ export default function ProductsAdminPage() {
       } else {
         setError('Failed to fetch products');
       }
-    } catch (err) {
+    } catch {
       setError('Error fetching products');
     } finally {
       setLoading(false);
@@ -78,7 +78,7 @@ export default function ProductsAdminPage() {
       } else {
         setError('Failed to save product');
       }
-    } catch (err) {
+    } catch {
       setError('Error saving product');
     }
   };
@@ -109,7 +109,7 @@ export default function ProductsAdminPage() {
       } else {
         setError('Failed to delete product');
       }
-    } catch (err) {
+    } catch {
       setError('Error deleting product');
     }
   };

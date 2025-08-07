@@ -25,11 +25,10 @@ interface Opportunity {
 
 export default function NewSOWPage() {
   const router = useRouter();
-  const [isCreating, setIsCreating] = useState(false);
+
   const [showWizard, setShowWizard] = useState(true);
 
   const handleCustomerSelectionComplete = async (selectedAccount: Account, selectedOpportunity: Opportunity) => {
-    setIsCreating(true);
     setShowWizard(false);
 
     try {
@@ -94,7 +93,6 @@ export default function NewSOWPage() {
       router.push(`/sow/${data.id}/edit`);
     } catch (error) {
       console.error('Error creating new SOW:', error);
-      setIsCreating(false);
       setShowWizard(true);
       // You could show an error message here
     }
