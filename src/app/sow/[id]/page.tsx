@@ -602,7 +602,8 @@ export default function SOWDetailsPage() {
                     deliverables={sow.deliverables} 
                     projectDescription={sow.projectDescription}
                     customContent={sow.custom_scope_content}
-                    isEdited={sow.scope_content_edited}
+                    customDeliverablesContent={sow.custom_deliverables_content}
+                    isEdited={sow.scope_content_edited || sow.deliverables_content_edited}
                   />
                 </div>
 

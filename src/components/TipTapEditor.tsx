@@ -18,6 +18,50 @@ interface TipTapEditorProps {
 export default function TipTapEditor({ value, onChange, placeholder, initializing = false }: TipTapEditorProps) {
   const isSettingContent = useRef(false);
   
+  // Helper function to check if content is HTML
+  const isHtmlContent = (content: string): boolean => {
+    if (!content) return false;
+    const trimmed = content.trim();
+    return trimmed.startsWith('<') && trimmed.includes('>');
+  };
+
+  // Helper function to clean HTML content for TipTap
+  const cleanHtmlForTipTap = (html: string): string => {
+    if (!html) return '';
+    
+    // If it's already HTML, return as is
+    if (isHtmlContent(html)) {
+      return html;
+    }
+    
+    // If it's plain text, convert to basic HTML
+    return html
+      .split('\n')
+      .map(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return '';
+        
+        // Handle bullet points
+        if (trimmed.startsWith('• ') || trimmed.startsWith('- ')) {
+          return `<li>${trimmed.substring(2)}</li>`;
+        }
+        
+        // Handle numbered lists
+        if (/^\d+\.\s/.test(trimmed)) {
+          return `<li>${trimmed.replace(/^\d+\.\s/, '')}</li>`;
+        }
+        
+        // Handle bold text
+        let processed = trimmed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        
+        // Handle italic text
+        processed = processed.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        
+        return `<p>${processed}</p>`;
+      })
+      .join('');
+  };
+  
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -39,7 +83,7 @@ export default function TipTapEditor({ value, onChange, placeholder, initializin
       TableHeader,
       TableCell,
     ],
-    content: value,
+    content: cleanHtmlForTipTap(value),
     onUpdate: ({ editor }) => {
       if (!initializing && !isSettingContent.current) {
         onChange(editor.getHTML());
@@ -58,7 +102,7 @@ export default function TipTapEditor({ value, onChange, placeholder, initializin
   useEffect(() => {
     if (editor && value !== editor.getHTML()) {
       isSettingContent.current = true;
-      editor.commands.setContent(value);
+      editor.commands.setContent(cleanHtmlForTipTap(value));
       // Reset the flag after a short delay to allow the setContent to complete
       setTimeout(() => {
         isSettingContent.current = false;

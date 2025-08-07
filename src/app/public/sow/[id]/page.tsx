@@ -69,9 +69,11 @@ interface SOW {
   custom_intro_content?: string;
   custom_scope_content?: string;
   custom_roles_content?: string;
+  custom_deliverables_content?: string;
   intro_content_edited?: boolean;
   scope_content_edited?: boolean;
   roles_content_edited?: boolean;
+  deliverables_content_edited?: boolean;
 }
 
 function safeJsonParse<T>(value: any, defaultValue: T): T {
@@ -140,9 +142,11 @@ export default function PublicSOWPage() {
           custom_intro_content: data.custom_intro_content || undefined,
           custom_scope_content: data.custom_scope_content || undefined,
           custom_roles_content: data.custom_roles_content || undefined,
+          custom_deliverables_content: data.custom_deliverables_content || undefined,
           intro_content_edited: data.intro_content_edited || false,
           scope_content_edited: data.scope_content_edited || false,
-          roles_content_edited: data.roles_content_edited || false
+          roles_content_edited: data.roles_content_edited || false,
+          deliverables_content_edited: data.deliverables_content_edited || false
         };
         
         setSOW(parsedData);
@@ -197,7 +201,8 @@ export default function PublicSOWPage() {
           deliverables={sow.deliverables}
           projectDescription={sow.projectDescription}
           customContent={sow.custom_scope_content}
-          isEdited={sow.scope_content_edited}
+          customDeliverablesContent={sow.custom_deliverables_content}
+          isEdited={sow.scope_content_edited || sow.deliverables_content_edited}
         />
         <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
           <h2 className="text-3xl font-bold text-center mb-6">ROLES AND RESPONSIBILITIES</h2>

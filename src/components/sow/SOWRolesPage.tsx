@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getContentTemplate } from '@/lib/sow-content';
-import { textToHtml } from '@/lib/text-to-html';
+import { processContent } from '@/lib/text-to-html';
 
 interface SOWRolesPageProps {
   customContent?: string;
@@ -17,10 +17,8 @@ export default function SOWRolesPage({ customContent, isEdited }: SOWRolesPagePr
     async function loadContent() {
       if (customContent) {
         // Use custom content if provided (edited by user)
-        // Check if content is already HTML (starts with <)
-        const processedContent = customContent.trim().startsWith('<') 
-          ? customContent 
-          : textToHtml(customContent);
+        // Process content that could be either HTML or plain text
+        const processedContent = processContent(customContent);
         setContent(processedContent);
         setLoading(false);
         return;

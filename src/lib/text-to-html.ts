@@ -1,3 +1,23 @@
+// Helper function to check if content is HTML
+export function isHtmlContent(content: string): boolean {
+  if (!content) return false;
+  const trimmed = content.trim();
+  return trimmed.startsWith('<') && trimmed.includes('>');
+}
+
+// Helper function to process content that could be either HTML or plain text
+export function processContent(content: string): string {
+  if (!content) return '';
+  
+  // If it's already HTML, return as is
+  if (isHtmlContent(content)) {
+    return content;
+  }
+  
+  // Otherwise, process as plain text
+  return textToHtml(content);
+}
+
 export function textToHtml(text: string): string {
   if (!text) return '';
   

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getContentTemplate, processIntroContent } from '@/lib/sow-content';
-import { textToHtml } from '@/lib/text-to-html';
+import { processContent } from '@/lib/text-to-html';
 
 interface SOWIntroPageProps {
   clientName: string;
@@ -18,8 +18,8 @@ export default function SOWIntroPage({ clientName, customContent, isEdited }: SO
     async function loadContent() {
       if (customContent) {
         // Use custom content if provided (edited by user)
-        // Convert text to HTML and replace the client name placeholder
-        let processedContent = textToHtml(customContent);
+        // Process content that could be either HTML or plain text
+        let processedContent = processContent(customContent);
         if (clientName) {
           processedContent = processedContent.replace(/{clientName}/g, `<span class="font-bold">${clientName}</span>`);
         } else {

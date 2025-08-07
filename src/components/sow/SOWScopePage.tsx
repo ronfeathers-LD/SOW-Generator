@@ -2,25 +2,39 @@
 
 import { useState, useEffect } from 'react';
 import { getContentTemplate, processScopeContent } from '@/lib/sow-content';
-import { textToHtml } from '@/lib/text-to-html';
+import { processContent } from '@/lib/text-to-html';
 
 interface SOWScopePageProps {
   deliverables: string[];
   projectDescription: string;
   customContent?: string;
+  customDeliverablesContent?: string;
   isEdited?: boolean;
 }
 
-export default function SOWScopePage({ deliverables, projectDescription, customContent, isEdited }: SOWScopePageProps) {
+export default function SOWScopePage({ 
+  deliverables, 
+  projectDescription, 
+  customContent, 
+  customDeliverablesContent,
+  isEdited 
+}: SOWScopePageProps) {
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadContent() {
+      // If we have custom deliverables content, use it directly
+      if (customDeliverablesContent) {
+        const processedContent = processContent(customDeliverablesContent);
+        setContent(processedContent);
+        setLoading(false);
+        return;
+      }
+
+      // If we have custom scope content, process it and replace deliverables placeholder
       if (customContent) {
-        // Use custom content if provided (edited by user)
-        // Convert text to HTML and replace the deliverables placeholder
-        let processedContent = textToHtml(customContent);
+        let processedContent = processContent(customContent);
         const deliverablesHtml = deliverables
           .map((deliverable, index) => `<div class="mb-4"><div>${deliverable}</div></div>`)
           .join('\n');
@@ -59,7 +73,7 @@ export default function SOWScopePage({ deliverables, projectDescription, customC
     }
 
     loadContent();
-  }, [deliverables, customContent]);
+  }, [deliverables, customContent, customDeliverablesContent]);
 
   if (loading) {
     return (

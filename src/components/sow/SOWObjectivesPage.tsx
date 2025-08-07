@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getContentTemplate } from '@/lib/sow-content';
-import { textToHtml } from '@/lib/text-to-html';
+import { processContent } from '@/lib/text-to-html';
 
 interface SOWObjectivesPageProps {
   deliverables: string[]; 
@@ -46,7 +46,7 @@ export default function SOWObjectivesPage({
       try {
         if (customContent) {
           // Use custom content if provided (edited by user)
-          const processedContent = textToHtml(customContent);
+          const processedContent = processContent(customContent);
           setObjectivesDisclosureContent(processedContent);
           setLoading(false);
           return;
@@ -55,7 +55,7 @@ export default function SOWObjectivesPage({
         // Fallback to template content
         const template = await getContentTemplate('objectives-disclosure');
         if (template) {
-          const processedContent = textToHtml(template.default_content);
+          const processedContent = processContent(template.default_content);
           setObjectivesDisclosureContent(processedContent);
         } else {
           // Fallback to generic message if no template found

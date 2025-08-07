@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getContentTemplate } from '@/lib/sow-content';
-import { textToHtml } from '@/lib/text-to-html';
+import { processContent } from '@/lib/text-to-html';
 
 interface SOWObjectivesDisclosurePageProps {
   customContent?: string;
@@ -21,8 +21,8 @@ export default function SOWObjectivesDisclosurePage({
       try {
         if (customContent) {
           // Use custom content if provided (edited by user)
-          // Convert text to HTML
-          const processedContent = textToHtml(customContent);
+          // Process content that could be either HTML or plain text
+          const processedContent = processContent(customContent);
           setContent(processedContent);
           setLoading(false);
           return;
@@ -31,7 +31,7 @@ export default function SOWObjectivesDisclosurePage({
         // Fallback to template content
         const template = await getContentTemplate('objectives-disclosure');
         if (template) {
-          const processedContent = textToHtml(template.default_content);
+          const processedContent = processContent(template.default_content);
           setContent(processedContent);
         } else {
           // Fallback to generic message if no template found
