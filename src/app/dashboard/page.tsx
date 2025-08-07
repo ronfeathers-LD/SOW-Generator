@@ -111,7 +111,7 @@ export default async function Dashboard() {
 
           {/* Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-            <div className="bg-white overflow-hidden shadow rounded-lg">
+            <Link href="/sow" className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow cursor-pointer">
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
@@ -129,9 +129,9 @@ export default async function Dashboard() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
 
-            <div className="bg-white overflow-hidden shadow rounded-lg">
+            <Link href="/sow?status=draft" className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow cursor-pointer">
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
@@ -149,9 +149,9 @@ export default async function Dashboard() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
 
-            <div className="bg-white overflow-hidden shadow rounded-lg">
+            <Link href="/sow?status=in_review" className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow cursor-pointer">
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
@@ -169,9 +169,9 @@ export default async function Dashboard() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
 
-            <div className="bg-white overflow-hidden shadow rounded-lg">
+            <Link href="/sow?status=approved" className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow cursor-pointer">
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
@@ -189,9 +189,9 @@ export default async function Dashboard() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
 
-            <div className="bg-white overflow-hidden shadow rounded-lg">
+            <Link href="/sow?status=rejected" className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow cursor-pointer">
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
@@ -209,7 +209,7 @@ export default async function Dashboard() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
           </div>
 
           {/* Quick Actions */}

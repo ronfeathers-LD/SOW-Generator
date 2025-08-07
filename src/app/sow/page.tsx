@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 interface SOW {
   id: string;
@@ -15,9 +16,12 @@ interface SOW {
 
 export default function SOWListPage() {
   const [sows, setSows] = useState<SOW[]>([]);
+  const [filteredSows, setFilteredSows] = useState<SOW[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const statusFilter = searchParams.get('status');
 
   useEffect(() => {
     const fetchSOWs = async () => {
@@ -43,6 +47,16 @@ export default function SOWListPage() {
     fetchSOWs();
   }, []);
 
+  // Filter SOWs based on status filter
+  useEffect(() => {
+    if (statusFilter) {
+      const filtered = sows.filter(sow => sow.status === statusFilter);
+      setFilteredSows(filtered);
+    } else {
+      setFilteredSows(sows);
+    }
+  }, [sows, statusFilter]);
+
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this SOW? This action cannot be undone.')) {
       return;
@@ -58,12 +72,33 @@ export default function SOWListPage() {
         throw new Error('Failed to delete SOW');
       }
 
-      // Remove the deleted SOW from the list
+      // Remove the deleted SOW from both lists
       setSows(sows.filter(sow => sow.id !== id));
+      setFilteredSows(filteredSows.filter(sow => sow.id !== id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete SOW');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'draft': return 'Draft';
+      case 'in_review': return 'In Review';
+      case 'approved': return 'Approved';
+      case 'rejected': return 'Rejected';
+      default: return status;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'draft': return 'bg-gray-100 text-gray-800';
+      case 'in_review': return 'bg-yellow-100 text-yellow-800';
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -94,9 +129,19 @@ export default function SOWListPage() {
       <div className="max-w-7xl mx-auto">
         <div className="sm:flex sm:items-center">
           <div className="sm:flex-auto">
-            <h1 className="text-2xl font-semibold text-gray-900">Statements of Work</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">
+              Statements of Work
+              {statusFilter && (
+                <span className="ml-2 text-lg font-normal text-gray-500">
+                  - {getStatusLabel(statusFilter)}
+                </span>
+              )}
+            </h1>
             <p className="mt-2 text-sm text-gray-700">
-              A list of all Statements of Work in the system.
+              {statusFilter 
+                ? `Showing ${getStatusLabel(statusFilter)} SOWs`
+                : 'A list of all Statements of Work in the system.'
+              }
             </p>
           </div>
           <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
@@ -108,6 +153,61 @@ export default function SOWListPage() {
             </Link>
           </div>
         </div>
+
+        {/* Filter Controls */}
+        <div className="mt-6 flex flex-wrap gap-2">
+          <Link
+            href="/sow"
+            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+              !statusFilter 
+                ? 'bg-indigo-100 text-indigo-800' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            All ({sows.length})
+          </Link>
+          <Link
+            href="/sow?status=draft"
+            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+              statusFilter === 'draft' 
+                ? 'bg-gray-100 text-gray-800' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Draft ({sows.filter(sow => sow.status === 'draft').length})
+          </Link>
+          <Link
+            href="/sow?status=in_review"
+            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+              statusFilter === 'in_review' 
+                ? 'bg-yellow-100 text-yellow-800' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            In Review ({sows.filter(sow => sow.status === 'in_review').length})
+          </Link>
+          <Link
+            href="/sow?status=approved"
+            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+              statusFilter === 'approved' 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Approved ({sows.filter(sow => sow.status === 'approved').length})
+          </Link>
+          <Link
+            href="/sow?status=rejected"
+            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+              statusFilter === 'rejected' 
+                ? 'bg-red-100 text-red-800' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Rejected ({sows.filter(sow => sow.status === 'rejected').length})
+          </Link>
+        </div>
+
         <div className="mt-8 flex flex-col">
           <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
             <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
@@ -136,8 +236,8 @@ export default function SOWListPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
-                    {sows && sows.length > 0 ? (
-                      sows.map((sow) => (
+                    {filteredSows && filteredSows.length > 0 ? (
+                      filteredSows.map((sow) => (
                         <tr key={sow.id}>
                           <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
                             {sow.client_name || 'N/A'}
@@ -159,7 +259,9 @@ export default function SOWListPage() {
                             })()}
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            {sow.status}
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(sow.status)}`}>
+                              {getStatusLabel(sow.status)}
+                            </span>
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                             {(() => {
@@ -203,7 +305,7 @@ export default function SOWListPage() {
                     ) : (
                       <tr>
                         <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
-                          No SOWs found
+                          {statusFilter ? `No ${getStatusLabel(statusFilter)} SOWs found` : 'No SOWs found'}
                         </td>
                       </tr>
                     )}
