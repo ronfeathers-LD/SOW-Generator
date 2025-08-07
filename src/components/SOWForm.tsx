@@ -1,15 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { SOWData } from '@/types/sow';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { GeminiBulletPoint } from '@/lib/gemini';
+import { SOWData, SOWTemplate, BillingInfo } from '@/types/sow';
 import { SalesforceOpportunity, SalesforceContact } from '@/lib/salesforce';
-import AvomaIntegration from './AvomaIntegration';
-
-import SalesforceIntegration from './SalesforceIntegration';
-import OpportunityLookup from './OpportunityLookup';
 import ProjectOverviewTab from './sow/ProjectOverviewTab';
 import CustomerInformationTab from './sow/CustomerInformationTab';
 import ObjectivesTab from './sow/ObjectivesTab';
@@ -27,7 +20,7 @@ interface LeanDataSignatory {
 
 declare global {
   interface Window {
-    google: any;
+    google: unknown;
   }
 }
 
@@ -190,9 +183,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         }
   );
 
-  const [logoPreview, setLogoPreview] = useState<string | null>(initialData?.header?.company_logo || null);
+  const [, setLogoPreview] = useState<string | null>(initialData?.header?.company_logo || null);
   const [activeTab, setActiveTab] = useState('Project Overview');
-  const router = useRouter();
 
   const handleTabChange = (tabKey: string) => {
     // Check for unsaved changes when switching from Content Editing tab
@@ -435,20 +427,21 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
 
   const handleCustomerSelectedFromSalesforce = async (customerData: {
-    account: any;
-    contacts: any[];
-    opportunities: any[];
+    account: unknown;
+    contacts: unknown[];
+    opportunities: unknown[];
   }) => {
     const { account, contacts, opportunities } = customerData;
+    const accountObj = account as { Id: string; Name: string };
     
     // Set the selected account for opportunity lookup
     setSelectedAccount({
-      id: account.Id,
-      name: account.Name
+      id: accountObj.Id,
+      name: accountObj.Name
     });
     
     // Store available opportunities
-    setAvailableOpportunities(opportunities || []);
+    setAvailableOpportunities((opportunities as SalesforceOpportunity[]) || []);
     
     // Reset selected opportunity when account changes
     setSelectedOpportunity(null);
@@ -457,23 +450,23 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     setFormData({
       ...formData,
       template: {
-        ...formData.template!,
-        customer_name: account.Name,
+        ...formData.template,
+        customer_name: accountObj.Name,
         // Don't auto-populate contact details until POC is selected
         customer_email: '',
         customer_signature_name: '',
         customer_signature: '',
-      },
+      } as SOWTemplate,
       header: {
-        ...formData.header!,
-        client_name: account.Name,
-      },
+        ...formData.header,
+        client_name: accountObj.Name,
+      } as { company_logo: string; client_name: string; sow_title: string },
     });
 
     // Save Salesforce data to database if we have a SOW ID
     if (initialData?.id) {
       try {
-        const accountData = createSalesforceAccountData(account);
+        const accountData = createSalesforceAccountData(accountObj);
         
         await fetch(`/api/sow/${initialData.id}/salesforce-data`, {
           method: 'POST',
@@ -482,8 +475,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           },
           body: JSON.stringify({
             account_data: accountData,
-            contacts_data: contacts.map(contact => createSalesforceContactData(contact)),
-            opportunity_data: opportunities.length > 0 ? createSalesforceOpportunityData(opportunities[0]) : undefined
+            contacts_data: contacts.map((contact: unknown) => createSalesforceContactData(contact as SalesforceContact)),
+            opportunity_data: opportunities.length > 0 ? createSalesforceOpportunityData(opportunities[0] as SalesforceOpportunity) : undefined
           }),
         });
       } catch (error) {
@@ -569,24 +562,24 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       setFormData({
         ...formData,
         template: {
-          ...formData.template!,
+          ...formData.template,
           billing_contact_name: '',
           billing_email: '',
-        },
+        } as SOWTemplate,
         pricing: {
-          ...formData.pricing!,
+          ...formData.pricing,
           billing: {
-            ...formData.pricing?.billing!,
+            ...formData.pricing?.billing,
             billing_contact: '',
             billing_email: '',
-          }
-        }
+          } as BillingInfo
+        } as { roles: { role: string; rate_per_hour: number; total_hours: number; }[]; billing: BillingInfo }
       });
     }
   };
 
   // Helper function to generate Salesforce record links
-  const getSalesforceLink = (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => {
+  const getSalesforceLink = (recordId: string, _recordType: 'Account' | 'Contact' | 'Opportunity') => {
     return `${salesforceInstanceUrl}/${recordId}`;
   };
 
@@ -598,7 +591,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       setFormData({
         ...formData,
         template: {
-          ...formData.template!,
+          ...formData.template,
           // Auto-populate SOW title with opportunity name if it's not already set
           sow_title: (!formData.template?.sow_title || formData.template.sow_title === 'Statement of Work for LeanData Implementation') 
             ? `Statement of Work for ${opportunity.Name}` 
@@ -609,7 +602,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           opportunity_amount: opportunity.Amount,
           opportunity_stage: opportunity.StageName,
           opportunity_close_date: opportunity.CloseDate,
-        },
+        } as SOWTemplate,
       });
 
       // Save opportunity data to database if we have a SOW ID
@@ -635,13 +628,13 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       setFormData({
         ...formData,
         template: {
-          ...formData.template!,
+          ...formData.template,
           opportunity_id: '',
           opportunity_name: '',
           opportunity_amount: undefined,
           opportunity_stage: '',
           opportunity_close_date: undefined,
-        },
+        } as SOWTemplate,
       });
     }
   };
@@ -669,7 +662,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       const url = `/api/sow/${initialData.id}/tab-update`;
       
       // Prepare tab-specific data
-      let tabData: any = {};
+      let tabData: Record<string, unknown> = {};
       
       switch (activeTab) {
         case 'Project Overview':
@@ -899,7 +892,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [tabs]);
+  }, []);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">

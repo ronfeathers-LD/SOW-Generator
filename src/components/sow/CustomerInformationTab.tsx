@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SOWData } from '@/types/sow';
-import { SalesforceContact, SalesforceOpportunity } from '@/lib/salesforce';
+import { SalesforceOpportunity } from '@/lib/salesforce';
 import SalesforceIntegration from '../SalesforceIntegration';
-import OpportunityLookup from '../OpportunityLookup';
 
 interface CustomerInformationTabProps {
   formData: Partial<SOWData>;
-  setFormData: (data: Partial<SOWData>) => void;
+  setFormData?: (data: Partial<SOWData>) => void;
   initialData?: SOWData;
   selectedAccount: { id: string; name: string } | null;
   selectedOpportunity: SalesforceOpportunity | null;
   availableOpportunities: SalesforceOpportunity[];
-  onCustomerSelectedFromSalesforce: (customerData: { account: any; contacts: any[]; opportunities: any[] }) => void;
+  onCustomerSelectedFromSalesforce: (customerData: { account: unknown; contacts: unknown[]; opportunities: unknown[] }) => void;
   onOpportunitySelectedFromSalesforce: (opportunity: SalesforceOpportunity | null) => void;
   onAvailableOpportunitiesUpdate: (opportunities: SalesforceOpportunity[]) => void;
   getSalesforceLink: (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => string;
@@ -22,7 +21,7 @@ type SelectionStep = 'account' | 'opportunity' | 'logo' | null;
 
 export default function CustomerInformationTab({
   formData,
-  setFormData,
+  setFormData: _setFormData,
   initialData,
   selectedAccount,
   selectedOpportunity,
@@ -34,15 +33,7 @@ export default function CustomerInformationTab({
   onLogoChange,
 }: CustomerInformationTabProps) {
   const [currentStep, setCurrentStep] = useState<SelectionStep>('account');
-  const [isLoadingOpportunities, setIsLoadingOpportunities] = useState(false);
-
-  // Determine which step to show based on current selections
-  const getNextStep = (): SelectionStep => {
-    if (!selectedAccount) return 'account';
-    if (!selectedOpportunity) return 'opportunity';
-    if (!(formData.template?.company_logo || formData.header?.company_logo)) return 'logo';
-    return null;
-  };
+  const [, setIsLoadingOpportunities] = useState(false);
 
   const handleStepButtonClick = async (step: SelectionStep) => {
     setCurrentStep(step);
@@ -73,7 +64,7 @@ export default function CustomerInformationTab({
           let errorData;
           try {
             errorData = await response.json();
-          } catch (parseError) {
+          } catch {
             errorData = { error: 'Failed to parse error response', statusText: response.statusText };
           }
           
@@ -126,7 +117,10 @@ export default function CustomerInformationTab({
         
         // If we have a selected opportunity, make sure it's still in the refreshed list
         if (selectedOpportunity && data.opportunities) {
-          const opportunityStillExists = data.opportunities.some((opportunity: any) => opportunity.Id === selectedOpportunity.Id);
+          const opportunityStillExists = data.opportunities.some((opportunity: unknown) => {
+            const opp = opportunity as { Id: string };
+            return opp.Id === selectedOpportunity.Id;
+          });
           if (!opportunityStillExists) {
             onOpportunitySelectedFromSalesforce(null);
           }
@@ -146,7 +140,7 @@ export default function CustomerInformationTab({
     }
   };
 
-  const handleAccountSelected = (customerData: { account: any; contacts: any[]; opportunities: any[] }) => {
+  const handleAccountSelected = (customerData: { account: unknown; contacts: unknown[]; opportunities: unknown[] }) => {
     onCustomerSelectedFromSalesforce(customerData);
     // Automatically proceed to opportunity selection since we already have the opportunities
     setCurrentStep('opportunity');
