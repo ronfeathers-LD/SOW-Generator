@@ -10,6 +10,7 @@ import SOWScopePage from '@/components/sow/SOWScopePage';
 import SOWAssumptionsPage from '@/components/sow/SOWAssumptionsPage';
 import SOWProjectPhasesPage from '@/components/sow/SOWProjectPhasesPage';
 import SOWRolesPage from '@/components/sow/SOWRolesPage';
+import ApprovalWorkflow from '@/components/sow/ApprovalWorkflow';
 import { useSession } from 'next-auth/react';
 
 interface ClientRole {
@@ -528,8 +529,11 @@ export default function SOWDetailsPage() {
               </button>
             </div>
 
-            {/* Main SOW Content to Export */}
-            <div id="sow-content-to-export">
+            {/* Two Column Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Main SOW Content - Left Column (2/3 width) */}
+              <div className="lg:col-span-2">
+                <div id="sow-content-to-export">
               {/* Title Page Section */}
                 <div id="title-page" className="mb-12">
                   <SOWTitlePage
@@ -726,47 +730,62 @@ export default function SOWDetailsPage() {
                 </div>
             
 
-            {/* SOW Content */}
-            <div id="sow-content" className="mt-12">
-              {/* Version History */}
-              {versions.length > 1 && (
-                <div id="version-history" className="mb-8">
-                  <h2 className="text-lg font-medium text-gray-900 mb-4">Version History</h2>
-                  <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                    <ul className="divide-y divide-gray-200">
-                      {versions.map((version) => (
-                        <li key={version.id}>
-                          <Link
-                            href={`/sow/${version.id}`}
-                            className="block hover:bg-gray-50"
-                          >
-                            <div className="px-4 py-4 sm:px-6">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  <p className="text-sm font-medium text-indigo-600 truncate">
-                                    Version {version.version}
-                                  </p>
-                                  {version.isLatest && (
-                                    <span className="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                      Latest
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="ml-2 flex-shrink-0 flex">
-                                  <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                                    {new Date(version.createdAt).toLocaleDateString()}
-                                  </p>
+                            {/* Version History */}
+                {versions.length > 1 && (
+                  <div id="version-history" className="mb-8">
+                    <h2 className="text-lg font-medium text-gray-900 mb-4">Version History</h2>
+                    <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                      <ul className="divide-y divide-gray-200">
+                        {versions.map((version) => (
+                          <li key={version.id}>
+                            <Link
+                              href={`/sow/${version.id}`}
+                              className="block hover:bg-gray-50"
+                            >
+                              <div className="px-4 py-4 sm:px-6">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center">
+                                    <p className="text-sm font-medium text-indigo-600 truncate">
+                                      Version {version.version}
+                                    </p>
+                                    {version.isLatest && (
+                                      <span className="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        Latest
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="ml-2 flex-shrink-0 flex">
+                                    <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                      {new Date(version.createdAt).toLocaleDateString()}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )} {/* Close sow-content-to-export */}
+              </div> {/* Close lg:col-span-2 */}
+
+              {/* Approval Workflow - Right Column (1/3 width) */}
+              {isAdmin && (
+                <div className="lg:col-span-1">
+                  <div className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
+                    <ApprovalWorkflow 
+                      sowId={sow.id} 
+                      sowAmount={sow.pricing?.roles?.reduce((total, role) => total + (role.ratePerHour * role.totalHours), 0)}
+                      onStatusChange={() => {
+                        // Refresh the SOW data when approval status changes
+                        window.location.reload();
+                      }}
+                    />
                   </div>
                 </div>
               )}
-            </div>
+            </div> {/* Close grid */}
           </>
         )}
       </div>
