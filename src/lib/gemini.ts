@@ -295,9 +295,10 @@ Guidelines:
       .replace(/\{customerName\}/g, customerName)
       .replace(/\{transcription\}/g, transcript);
 
-    // Debug: Log the prompt being sent to AI (transcript shown as 'sent')
-    const promptForLogging = prompt.replace(transcript, '[TRANSCRIPT SENT]');
-    console.log('AI Prompt being sent:', promptForLogging);
+    // Debug: Log the prompt being sent to AI (with truncated transcript for readability)
+    const truncatedTranscript = transcript.length > 50 ? transcript.substring(0, 50) + '...' : transcript;
+    const truncatedPrompt = prompt.replace(transcript, truncatedTranscript);
+    console.log('AI Prompt being sent:', truncatedPrompt);
 
     // Add existing content context if available
     if (existingDescription || existingObjectives?.length || selectedProducts?.length) {
