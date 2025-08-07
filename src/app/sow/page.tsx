@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
@@ -14,7 +14,7 @@ interface SOW {
   updated_at: string | Date;
 }
 
-export default function SOWListPage() {
+function SOWListContent() {
   const [sows, setSows] = useState<SOW[]>([]);
   const [filteredSows, setFilteredSows] = useState<SOW[]>([]);
   const [loading, setLoading] = useState(true);
@@ -317,5 +317,19 @@ export default function SOWListPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SOWListPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center">Loading...</div>
+        </div>
+      </div>
+    }>
+      <SOWListContent />
+    </Suspense>
   );
 } 
