@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface ApprovalStage {
   id: string;
@@ -182,7 +182,7 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange }: A
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [newComment, setNewComment] = useState('');
-  const [selectedApproval, setSelectedApproval] = useState<SOWApproval | null>(null);
+
   const [approvalComments, setApprovalComments] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
@@ -261,7 +261,6 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange }: A
       }
 
       setApprovalComments('');
-      setSelectedApproval(null);
       await fetchWorkflow();
       onStatusChange?.();
     } catch (err) {
@@ -425,31 +424,37 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange }: A
               )}
               <div className="flex flex-col space-y-2">
                 <button
-                  onClick={() => handleApprovalAction(
-                    workflow.approvals.find(a => a.stage_id === workflow.current_stage?.id)?.id!,
-                    'approve'
-                  )}
-                  disabled={submitting || (workflow.current_stage.requires_comment && !approvalComments.trim())}
+                  onClick={() => {
+                    const approvalId = workflow.approvals.find(a => a.stage_id === workflow.current_stage?.id)?.id;
+                    if (approvalId) {
+                      handleApprovalAction(approvalId, 'approve');
+                    }
+                  }}
+                  disabled={submitting || (workflow.current_stage?.requires_comment && !approvalComments.trim())}
                   className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 text-xs"
                 >
                   {submitting ? 'Processing...' : 'Approve'}
                 </button>
                 <button
-                  onClick={() => handleApprovalAction(
-                    workflow.approvals.find(a => a.stage_id === workflow.current_stage?.id)?.id!,
-                    'reject'
-                  )}
-                  disabled={submitting || (workflow.current_stage.requires_comment && !approvalComments.trim())}
+                  onClick={() => {
+                    const approvalId = workflow.approvals.find(a => a.stage_id === workflow.current_stage?.id)?.id;
+                    if (approvalId) {
+                      handleApprovalAction(approvalId, 'reject');
+                    }
+                  }}
+                  disabled={submitting || (workflow.current_stage?.requires_comment && !approvalComments.trim())}
                   className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 text-xs"
                 >
                   {submitting ? 'Processing...' : 'Reject'}
                 </button>
                 {workflow.can_skip && (
                   <button
-                    onClick={() => handleApprovalAction(
-                      workflow.approvals.find(a => a.stage_id === workflow.current_stage?.id)?.id!,
-                      'skip'
-                    )}
+                    onClick={() => {
+                      const approvalId = workflow.approvals.find(a => a.stage_id === workflow.current_stage?.id)?.id;
+                      if (approvalId) {
+                        handleApprovalAction(approvalId, 'skip');
+                      }
+                    }}
                     disabled={submitting}
                     className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50 text-xs"
                   >

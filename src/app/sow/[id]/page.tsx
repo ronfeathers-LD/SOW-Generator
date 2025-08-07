@@ -123,16 +123,16 @@ interface SalesforceData {
     title?: string;
     role: string;
   }>;
-  opportunity_data?: any;
+  opportunity_data?: unknown;
 }
 
-function safeJsonParse<T>(value: any, defaultValue: T): T {
+function safeJsonParse<T>(value: unknown, defaultValue: T): T {
   if (!value) return defaultValue;
   if (Array.isArray(value)) return value as T;
   if (typeof value === 'object') return value as T;
   try {
-    return JSON.parse(value) as T;
-  } catch (e) {
+    return JSON.parse(String(value)) as T;
+  } catch {
     // If parsing fails, return the value as is if it's a string
     if (typeof value === 'string') return value as unknown as T;
     console.warn('Failed to parse JSON:', value);
@@ -200,18 +200,24 @@ export default function SOWDetailsPage() {
           deliverables: data.deliverables ? data.deliverables.split('\n').filter(Boolean) : [],
           projectDescription: data.objectives?.description || data.scope?.project_description || data.project_description || '',
           keyObjectives: Array.isArray(data.objectives?.key_objectives) ? data.objectives.key_objectives : [],
-          clientRoles: Array.isArray(data.clientRoles) ? data.clientRoles.map((role: any) => ({
-            role: role.role || '',
-            name: role.name || '',
-            email: role.email || '',
-            responsibilities: role.responsibilities || ''
-          })) : [],
-          pricing: {
-            roles: Array.isArray(data.pricingRoles) ? data.pricingRoles.map((role: any) => ({
-              role: role.role || '',
-              ratePerHour: role.ratePerHour || role.rate || 0,
-              totalHours: role.totalHours || role.hours || 0,
-            })) : [],
+          clientRoles: Array.isArray(data.clientRoles) ? data.clientRoles.map((role: unknown) => {
+            const roleObj = role as { role?: string; name?: string; email?: string; responsibilities?: string };
+            return {
+              role: roleObj.role || '',
+              name: roleObj.name || '',
+              email: roleObj.email || '',
+              responsibilities: roleObj.responsibilities || ''
+            };
+          }) : [],
+                      pricing: {
+              roles: Array.isArray(data.pricingRoles) ? data.pricingRoles.map((role: unknown) => {
+                const roleObj = role as { role?: string; ratePerHour?: number; rate?: number; totalHours?: number; hours?: number };
+                return {
+                  role: roleObj.role || '',
+                  ratePerHour: roleObj.ratePerHour || roleObj.rate || 0,
+                  totalHours: roleObj.totalHours || roleObj.hours || 0,
+                };
+              }) : [],
             billing: data.billingInfo || {
               companyName: '',
               billingContact: '',
