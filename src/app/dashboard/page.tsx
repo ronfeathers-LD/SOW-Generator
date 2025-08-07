@@ -215,24 +215,7 @@ export default async function Dashboard() {
           {/* Quick Actions */}
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Link
-                href="/sow/new"
-                className="bg-indigo-600 text-white p-6 rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                <div className="flex items-center">
-                  <svg className="w-8 h-8 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  <div>
-                    <h4 className="font-medium text-lg">Create New SOW</h4>
-                    <p className="text-indigo-200 text-sm">Start a new Statement of Work</p>
-                  </div>
-                </div>
-              </Link>
-
-
-
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
               {isAdmin && (
                 <>
                   <Link
