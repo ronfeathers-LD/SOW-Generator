@@ -14,7 +14,8 @@ interface GeminiConfig {
 }
 
 const AVAILABLE_MODELS = [
-  { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Fastest)', description: 'Fastest model, commonly overloaded' },
+  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Latest & Fastest)', description: 'Latest model, fastest performance' },
+  { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Fast)', description: 'Fast model, commonly overloaded' },
   { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (Recommended)', description: 'More capable, often less load' },
   { value: 'gemini-1.0-pro', label: 'Gemini 1.0 Pro (Fallback)', description: 'Older model, usually available' },
   { value: 'gemini-pro', label: 'Gemini Pro (Legacy)', description: 'Legacy model, most reliable' }
@@ -29,7 +30,7 @@ export default function GeminiAdminPage() {
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [apiKey, setApiKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState('gemini-1.5-pro');
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -49,7 +50,7 @@ export default function GeminiAdminPage() {
         const data = await response.json();
         setConfig(data);
         setApiKey(data.apiKey || '');
-        setSelectedModel(data.modelName || 'gemini-1.5-pro');
+        setSelectedModel(data.modelName || 'gemini-2.5-flash');
       }
     } catch (error) {
       console.error('Error fetching Gemini config:', error);

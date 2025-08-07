@@ -30,7 +30,7 @@ class GeminiClient {
   private model: any;
   private modelName: string;
 
-  constructor(apiKey: string, modelName: string = 'gemini-1.5-flash') {
+  constructor(apiKey: string, modelName: string = 'gemini-2.5-flash') {
     this.genAI = new GoogleGenerativeAI(apiKey);
     this.modelName = modelName;
     this.model = this.genAI.getGenerativeModel({ model: this.modelName });
@@ -50,7 +50,8 @@ class GeminiClient {
    */
   static getAvailableModels(): string[] {
     return [
-      'gemini-1.5-flash',    // Fastest, most commonly overloaded
+      'gemini-2.5-flash',    // Latest and fastest model
+      'gemini-1.5-flash',    // Fast, commonly overloaded
       'gemini-1.5-pro',      // More capable, sometimes less load
       'gemini-1.0-pro',      // Older model, often less load
       'gemini-pro'           // Legacy model, usually available
@@ -625,6 +626,6 @@ export async function analyzeTranscription(
   }
 
   // Use the primary API key with the saved model
-  const client = new GeminiClient(config.api_key, config.model_name || 'gemini-1.5-flash');
+  const client = new GeminiClient(config.api_key, config.model_name || 'gemini-2.5-flash');
   return await client.analyzeTranscriptionWithFallback(transcript, customerName, existingDescription, existingObjectives, selectedProducts);
 } 
