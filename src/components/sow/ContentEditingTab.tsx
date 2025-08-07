@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
 import { getContentTemplate } from '@/lib/sow-content';
+import { createAllContentHandlers } from '@/lib/utils/contentHandlers';
 import TipTapEditor from '../TipTapEditor';
 
 interface ContentEditingTabProps {
@@ -98,180 +99,56 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   const checkUnsavedChanges = (sectionName: string, currentContent: string, templateContent: string) => {
     const normalizedCurrent = normalizeContent(currentContent);
     const normalizedTemplate = normalizeContent(templateContent);
-    const hasUnsavedChanges = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
-    setUnsavedChanges(prev => ({
-      ...prev,
-      [sectionName]: hasUnsavedChanges
-    }));
+    const hasChanges = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
+    setUnsavedChanges(prev => ({ ...prev, [sectionName]: hasChanges }));
     
-    // Notify parent component about overall unsaved changes
+    // Notify parent component about unsaved changes
     if (onUnsavedChanges) {
-      const anyUnsavedChanges = Object.values({ ...unsavedChanges, [sectionName]: hasUnsavedChanges }).some(Boolean);
+      const anyUnsavedChanges = Object.values({ ...unsavedChanges, [sectionName]: hasChanges }).some(Boolean);
       onUnsavedChanges(anyUnsavedChanges);
     }
   };
 
-  const handleIntroContentChange = (content: string) => {
-    // Don't process changes during initialization or if section hasn't been initialized yet
-    if (initializing || !initializedSections.has('intro')) {
-      return;
-    }
-    
-    // Check if content has been edited from the original template
-    const normalizedCurrent = normalizeContent(content);
-    const normalizedTemplate = normalizeContent(originalIntroTemplate);
-    const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
-    setFormData({
-      ...formData,
-      custom_intro_content: content,
-      intro_content_edited: isEdited
-    });
-    checkUnsavedChanges('intro', content, originalIntroTemplate);
+  // Create all content handlers using the factory
+  const templates = {
+    originalIntroTemplate,
+    originalScopeTemplate,
+    originalObjectivesDisclosureTemplate,
+    originalAssumptionsTemplate,
+    originalProjectPhasesTemplate,
+    originalRolesTemplate
   };
 
-  const handleScopeContentChange = (content: string) => {
-    // Don't process changes during initialization or if section hasn't been initialized yet
-    if (initializing || !initializedSections.has('scope')) {
-      return;
-    }
-    
-    // Check if content has been edited from the original template
-    const normalizedCurrent = normalizeContent(content);
-    const normalizedTemplate = normalizeContent(originalScopeTemplate);
-    const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
-    setFormData({
-      ...formData,
-      custom_scope_content: content,
-      scope_content_edited: isEdited
-    });
-    checkUnsavedChanges('scope', content, originalScopeTemplate);
+  const context = {
+    initializing,
+    initializedSections,
+    templates,
+    formData,
+    setFormData,
+    normalizeContent,
+    checkUnsavedChanges
   };
 
-  const handleObjectivesDisclosureContentChange = (content: string) => {
-    // Don't process changes during initialization or if section hasn't been initialized yet
-    if (initializing || !initializedSections.has('objectives-disclosure')) {
-      return;
-    }
-    
-    // Check if content has been edited from the original template
-    const normalizedCurrent = normalizeContent(content);
-    const normalizedTemplate = normalizeContent(originalObjectivesDisclosureTemplate);
-    const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
-    setFormData({
-      ...formData,
-      custom_objectives_disclosure_content: content,
-      objectives_disclosure_content_edited: isEdited
-    });
-    checkUnsavedChanges('objectives-disclosure', content, originalObjectivesDisclosureTemplate);
-  };
+  const { handlers, resetHandlers } = createAllContentHandlers(context);
 
-  const resetIntroContent = () => {
-    setFormData({
-      ...formData,
-      custom_intro_content: originalIntroTemplate,
-      intro_content_edited: false
-    });
-    setUnsavedChanges(prev => ({ ...prev, intro: false }));
-  };
+  // Destructure the handlers for easy access
+  const {
+    handleIntroContentChange,
+    handleScopeContentChange,
+    handleObjectivesDisclosureContentChange,
+    handleAssumptionsContentChange,
+    handleProjectPhasesContentChange,
+    handleRolesContentChange
+  } = handlers;
 
-  const resetScopeContent = () => {
-    setFormData({
-      ...formData,
-      custom_scope_content: originalScopeTemplate,
-      scope_content_edited: false
-    });
-    setUnsavedChanges(prev => ({ ...prev, scope: false }));
-  };
-
-  const resetObjectivesDisclosureContent = () => {
-    setFormData({
-      ...formData,
-      custom_objectives_disclosure_content: originalObjectivesDisclosureTemplate,
-      objectives_disclosure_content_edited: false
-    });
-    setUnsavedChanges(prev => ({ ...prev, 'objectives-disclosure': false }));
-  };
-
-  const handleAssumptionsContentChange = (content: string) => {
-    // Don't process changes during initialization or if section hasn't been initialized yet
-    if (initializing || !initializedSections.has('assumptions')) {
-      return;
-    }
-    
-    // Check if content has been edited from the original template
-    const normalizedCurrent = normalizeContent(content);
-    const normalizedTemplate = normalizeContent(originalAssumptionsTemplate);
-    const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
-    setFormData({
-      ...formData,
-      custom_assumptions_content: content,
-      assumptions_content_edited: isEdited
-    });
-    checkUnsavedChanges('assumptions', content, originalAssumptionsTemplate);
-  };
-
-  const resetAssumptionsContent = () => {
-    setFormData({
-      ...formData,
-      custom_assumptions_content: originalAssumptionsTemplate,
-      assumptions_content_edited: false
-    });
-    setUnsavedChanges(prev => ({ ...prev, assumptions: false }));
-  };
-
-  const handleProjectPhasesContentChange = (content: string) => {
-    // Don't process changes during initialization or if section hasn't been initialized yet
-    if (initializing || !initializedSections.has('project-phases')) {
-      return;
-    }
-    
-    // Check if content has been edited from the original template
-    const normalizedCurrent = normalizeContent(content);
-    const normalizedTemplate = normalizeContent(originalProjectPhasesTemplate);
-    const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
-    setFormData({
-      ...formData,
-      custom_project_phases_content: content,
-      project_phases_content_edited: isEdited
-    });
-    checkUnsavedChanges('project-phases', content, originalProjectPhasesTemplate);
-  };
-
-  const resetProjectPhasesContent = () => {
-    setFormData({
-      ...formData,
-      custom_project_phases_content: originalProjectPhasesTemplate,
-      project_phases_content_edited: false
-    });
-    setUnsavedChanges(prev => ({ ...prev, 'project-phases': false }));
-  };
-
-  const handleRolesContentChange = (content: string) => {
-    // Don't process changes during initialization or if section hasn't been initialized yet
-    if (initializing || !initializedSections.has('roles')) {
-      return;
-    }
-    
-    // Check if content has been edited from the original template
-    const normalizedCurrent = normalizeContent(content);
-    const normalizedTemplate = normalizeContent(originalRolesTemplate);
-    const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
-    setFormData({
-      ...formData,
-      custom_roles_content: content,
-      roles_content_edited: isEdited
-    });
-    checkUnsavedChanges('roles', content, originalRolesTemplate);
-  };
-
-  const resetRolesContent = () => {
-    setFormData({
-      ...formData,
-      custom_roles_content: originalRolesTemplate,
-      roles_content_edited: false
-    });
-    setUnsavedChanges(prev => ({ ...prev, roles: false }));
-  };
+  const {
+    resetIntroContent,
+    resetScopeContent,
+    resetObjectivesDisclosureContent,
+    resetAssumptionsContent,
+    resetProjectPhasesContent,
+    resetRolesContent
+  } = resetHandlers;
 
   const saveSection = async (sectionName: string) => {
     if (!formData.id) {

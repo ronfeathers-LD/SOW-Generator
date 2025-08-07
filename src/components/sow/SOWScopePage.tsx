@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { getContentTemplate, processScopeContent } from '@/lib/sow-content';
+import { useSOWContent } from '@/lib/hooks/useSOWContent';
+import { ContentSkeleton } from '@/components/ui/LoadingSkeletons';
 import { processContent } from '@/lib/text-to-html';
 
 interface SOWScopePageProps {
@@ -19,71 +19,32 @@ export default function SOWScopePage({
   customDeliverablesContent,
   isEdited 
 }: SOWScopePageProps) {
-  const [content, setContent] = useState<string>('');
-  const [loading, setLoading] = useState(true);
+  // Custom processor for scope content that handles deliverables replacement
+  const scopeProcessor = (content: string) => {
+    let processedContent = processContent(content);
+    
+    // Replace deliverables placeholder with actual deliverables
+    const deliverablesHtml = deliverables
+      .map((deliverable) => `<div class="mb-4"><div>${deliverable}</div></div>`)
+      .join('\n');
+    processedContent = processedContent.replace(/{deliverables}/g, deliverablesHtml);
+    
+    return processedContent;
+  };
 
-  useEffect(() => {
-    async function loadContent() {
-      // If we have custom deliverables content, use it directly
-      if (customDeliverablesContent) {
-        const processedContent = processContent(customDeliverablesContent);
-        setContent(processedContent);
-        setLoading(false);
-        return;
-      }
+  // Determine which content to use and how to process it
+  const contentToUse = customDeliverablesContent || customContent;
+  const processor = customDeliverablesContent ? processContent : scopeProcessor;
 
-      // If we have custom scope content, process it and replace deliverables placeholder
-      if (customContent) {
-        let processedContent = processContent(customContent);
-        const deliverablesHtml = deliverables
-          .map((deliverable) => `<div class="mb-4"><div>${deliverable}</div></div>`)
-          .join('\n');
-        processedContent = processedContent.replace(/{deliverables}/g, deliverablesHtml);
-        setContent(processedContent);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const template = await getContentTemplate('scope');
-        if (template) {
-          const processedContent = processScopeContent(template.default_content, deliverables);
-          setContent(processedContent);
-        } else {
-          // Fallback to generic message if no template found
-          const fallbackContent = `<div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
-            <p class="text-yellow-800 font-medium">⚠️ NOTE: This is fallback content</p>
-            <p class="text-yellow-700 text-sm mt-1">The Scope section template could not be loaded. Please configure the content template in the admin panel.</p>
-          </div>`;
-          
-          setContent(fallbackContent);
-        }
-      } catch (error) {
-        console.error('Error loading scope content:', error);
-        // Fallback to generic message if error occurs
-        const fallbackContent = `<div class="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
-          <p class="text-red-800 font-medium">⚠️ NOTE: This is fallback content</p>
-          <p class="text-red-700 text-sm mt-1">An error occurred while loading the Scope section template. Please check the configuration and try again.</p>
-        </div>`;
-        
-        setContent(fallbackContent);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadContent();
-  }, [deliverables, customContent, customDeliverablesContent]);
+  const { content, loading } = useSOWContent({
+    sectionName: 'scope',
+    customContent: contentToUse,
+    processor,
+    dependencies: [deliverables, customDeliverablesContent]
+  });
 
   if (loading) {
-    return (
-      <div className="prose max-w-none text-left">
-        <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
+    return <ContentSkeleton />;
   }
 
   return (

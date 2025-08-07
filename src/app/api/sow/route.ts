@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { getContentTemplate, processIntroContent, processScopeContent } from '@/lib/sow-content';
+import { processSOWTemplates } from '@/lib/utils/templateProcessor';
 
 export async function POST(request: Request) {
   try {
@@ -9,72 +9,17 @@ export async function POST(request: Request) {
     // Log the incoming data for debugging
   
     
-    // Fetch default content templates
-    let defaultIntroContent = '';
-    let defaultScopeContent = '';
-    let defaultObjectivesDisclosureContent = '';
-    let defaultAssumptionsContent = '';
-    let defaultProjectPhasesContent = '';
-    let defaultRolesContent = '';
+    // Process all templates in parallel
+    const templateResults = await processSOWTemplates(data);
     
-    try {
-      const introTemplate = await getContentTemplate('intro');
-      // Intro template loaded
-      if (introTemplate) {
-        // Process the intro template with the client name
-        const clientName = data.header?.client_name || data.template?.customer_name || '';
-        // Client name processed
-        
-        // If no client name is available yet, store the template with placeholder
-        if (!clientName) {
-          defaultIntroContent = introTemplate.default_content;
-        } else {
-          defaultIntroContent = processIntroContent(introTemplate.default_content, clientName);
-        }
-        // Intro content processed
-      }
-      
-      const scopeTemplate = await getContentTemplate('scope');
-      // Scope template loaded
-      if (scopeTemplate) {
-        // Process the scope template with deliverables
-        const deliverables = data.scope?.deliverables ? data.scope.deliverables.split('\n').filter(Boolean) : [];
-        // Deliverables processed
-        defaultScopeContent = processScopeContent(scopeTemplate.default_content, deliverables);
-        // Scope content processed
-      }
-      
-      const objectivesDisclosureTemplate = await getContentTemplate('objectives-disclosure');
-      // Objectives disclosure template loaded
-      if (objectivesDisclosureTemplate) {
-        defaultObjectivesDisclosureContent = objectivesDisclosureTemplate.default_content;
-        // Objectives disclosure content processed
-      }
-      
-      const assumptionsTemplate = await getContentTemplate('assumptions');
-      // Assumptions template loaded
-      if (assumptionsTemplate) {
-        defaultAssumptionsContent = assumptionsTemplate.default_content;
-        // Assumptions content processed
-      }
-      
-      const projectPhasesTemplate = await getContentTemplate('project-phases');
-      // Project phases template loaded
-      if (projectPhasesTemplate) {
-        defaultProjectPhasesContent = projectPhasesTemplate.default_content;
-        // Project phases content processed
-      }
-      
-      const rolesTemplate = await getContentTemplate('roles');
-      // Roles template loaded
-      if (rolesTemplate) {
-        defaultRolesContent = rolesTemplate.default_content;
-        // Roles content processed
-      }
-    } catch (templateError) {
-      console.warn('Failed to fetch content templates:', templateError);
-      // Continue with empty content if templates fail to load
-    }
+    const {
+      intro: defaultIntroContent = '',
+      scope: defaultScopeContent = '',
+      'objectives-disclosure': defaultObjectivesDisclosureContent = '',
+      assumptions: defaultAssumptionsContent = '',
+      'project-phases': defaultProjectPhasesContent = '',
+      roles: defaultRolesContent = ''
+    } = templateResults;
     
     const { data: sow, error } = await supabase
       .from('sows')
