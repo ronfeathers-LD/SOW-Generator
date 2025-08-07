@@ -34,8 +34,8 @@ export async function GET(
       .eq('sow_id', sow.id);
 
     const productNames = sowProducts?.map(sp => {
-      const product = sp.products as { name: string } | null;
-      return product?.name;
+      const products = sp.products as { name: string }[] | null;
+      return products?.[0]?.name;
     }).filter(Boolean) || [];
 
     // Return snake_case data directly with nested structure
