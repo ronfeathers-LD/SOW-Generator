@@ -14,8 +14,9 @@ interface GeminiGenerationResponse {
 
 
 interface TranscriptionAnalysisResponse {
-  objective: string;
-  scope: {
+  objectiveOverview: string;
+  painPoints: string[];
+  solutions: {
     "Lead Routing": string[];
     "Account Matching": string[];
     "BookIt": string[];
@@ -294,8 +295,9 @@ Guidelines:
       .replace(/\{customerName\}/g, customerName)
       .replace(/\{transcription\}/g, transcript);
 
-    // Debug: Log the prompt being sent to AI
-    console.log('AI Prompt being sent:', prompt);
+    // Debug: Log the prompt being sent to AI (transcript shown as 'sent')
+    const promptForLogging = prompt.replace(transcript, '[TRANSCRIPT SENT]');
+    console.log('AI Prompt being sent:', promptForLogging);
 
     // Add existing content context if available
     if (existingDescription || existingObjectives?.length || selectedProducts?.length) {
@@ -331,8 +333,9 @@ Please consider the existing content and selected products above and enhance or 
       const response = await result.response;
       const content = response.text();
 
-      // Debug: Log the raw AI response
-      console.log('Raw AI Response:', content);
+      // Debug: Log the raw AI response (truncated for readability)
+      const truncatedResponse = content.length > 200 ? content.substring(0, 200) + '...' : content;
+      console.log('Raw AI Response:', truncatedResponse);
 
       if (!content) {
         throw new Error('No content received from Gemini');
@@ -378,17 +381,18 @@ Please consider the existing content and selected products above and enhance or 
         
         const parsed = JSON.parse(cleanedContent);
         
-        if (!parsed.objective || !parsed.scope) {
+        if (!parsed.objectiveOverview || !parsed.painPoints || !parsed.solutions) {
           throw new Error('Missing required fields in parsed response');
         }
         
         return {
-          objective: parsed.objective,
-          scope: {
-            "Lead Routing": Array.isArray(parsed.scope["Lead Routing"]) ? parsed.scope["Lead Routing"] : ['Lead routing scope could not be generated'],
-            "Account Matching": Array.isArray(parsed.scope["Account Matching"]) ? parsed.scope["Account Matching"] : ['Account matching scope could not be generated'],
-            "BookIt": Array.isArray(parsed.scope["BookIt"]) ? parsed.scope["BookIt"] : ['BookIt scope could not be generated'],
-            "Integrations": Array.isArray(parsed.scope["Integrations"]) ? parsed.scope["Integrations"] : ['Integrations scope could not be generated']
+          objectiveOverview: parsed.objectiveOverview,
+          painPoints: Array.isArray(parsed.painPoints) ? parsed.painPoints : ['Pain points could not be generated'],
+          solutions: {
+            "Lead Routing": Array.isArray(parsed.solutions["Lead Routing"]) ? parsed.solutions["Lead Routing"] : ['Lead routing solutions could not be generated'],
+            "Account Matching": Array.isArray(parsed.solutions["Account Matching"]) ? parsed.solutions["Account Matching"] : ['Account matching solutions could not be generated'],
+            "BookIt": Array.isArray(parsed.solutions["BookIt"]) ? parsed.solutions["BookIt"] : ['BookIt solutions could not be generated'],
+            "Integrations": Array.isArray(parsed.solutions["Integrations"]) ? parsed.solutions["Integrations"] : ['Integrations solutions could not be generated']
           },
           isFallback: false
         };
@@ -402,12 +406,13 @@ Please consider the existing content and selected products above and enhance or 
           const simplePrompt = `
 Analyze this call transcript and return ONLY valid JSON:
 {
-  "objective": "brief project overview",
-  "scope": {
-    "Lead Routing": ["scope item 1", "scope item 2"],
-    "Account Matching": ["scope item 1", "scope item 2"],
-    "BookIt": ["scope item 1", "scope item 2"],
-    "Integrations": ["scope item 1", "scope item 2"]
+  "objectiveOverview": "brief project overview",
+  "painPoints": ["pain point 1", "pain point 2"],
+  "solutions": {
+    "Lead Routing": ["solution item 1", "solution item 2"],
+    "Account Matching": ["solution item 1", "solution item 2"],
+    "BookIt": ["solution item 1", "solution item 2"],
+    "Integrations": ["solution item 1", "solution item 2"]
   }
 }
 
@@ -425,15 +430,16 @@ Customer: ${customerName}
             const finalContent = jsonMatch ? jsonMatch[0] : cleanedContent;
             
             const parsed = JSON.parse(finalContent);
-            if (parsed.objective && parsed.scope) {
+            if (parsed.objectiveOverview && parsed.painPoints && parsed.solutions) {
               // Second attempt successful
               return {
-                objective: parsed.objective,
-                scope: {
-                  "Lead Routing": Array.isArray(parsed.scope["Lead Routing"]) ? parsed.scope["Lead Routing"] : ['Lead routing scope could not be generated'],
-                  "Account Matching": Array.isArray(parsed.scope["Account Matching"]) ? parsed.scope["Account Matching"] : ['Account matching scope could not be generated'],
-                  "BookIt": Array.isArray(parsed.scope["BookIt"]) ? parsed.scope["BookIt"] : ['BookIt scope could not be generated'],
-                  "Integrations": Array.isArray(parsed.scope["Integrations"]) ? parsed.scope["Integrations"] : ['Integrations scope could not be generated']
+                objectiveOverview: parsed.objectiveOverview,
+                painPoints: Array.isArray(parsed.painPoints) ? parsed.painPoints : ['Pain points could not be generated'],
+                solutions: {
+                  "Lead Routing": Array.isArray(parsed.solutions["Lead Routing"]) ? parsed.solutions["Lead Routing"] : ['Lead routing solutions could not be generated'],
+                  "Account Matching": Array.isArray(parsed.solutions["Account Matching"]) ? parsed.solutions["Account Matching"] : ['Account matching solutions could not be generated'],
+                  "BookIt": Array.isArray(parsed.solutions["BookIt"]) ? parsed.solutions["BookIt"] : ['BookIt solutions could not be generated'],
+                  "Integrations": Array.isArray(parsed.solutions["Integrations"]) ? parsed.solutions["Integrations"] : ['Integrations solutions could not be generated']
                 },
                 isFallback: false
               };
@@ -539,12 +545,13 @@ Customer: ${customerName}
         }
         
         return {
-          objective: objective.replace(/^.*?:\s*/, '').trim(),
-          scope: {
-            "Lead Routing": scopeItems.length > 0 ? scopeItems.slice(0, 2) : ['Manual lead routing and assignment processes'],
-            "Account Matching": scopeItems.length > 2 ? scopeItems.slice(2, 4) : ['Duplicate leads and contacts in Salesforce'],
-            "BookIt": scopeItems.length > 4 ? scopeItems.slice(4, 6) : ['Inconsistent data quality across objects'],
-            "Integrations": scopeItems.length > 6 ? scopeItems.slice(6, 8) : ['Lack of automated territory-based assignment']
+          objectiveOverview: objective.replace(/^.*?:\s*/, '').trim(),
+          painPoints: scopeItems.length > 0 ? scopeItems.slice(0, 3) : ['Manual lead routing and assignment processes', 'Duplicate leads and contacts in Salesforce', 'Inconsistent data quality across objects'],
+          solutions: {
+            "Lead Routing": scopeItems.length > 3 ? scopeItems.slice(3, 5) : ['Automate lead routing based on territory and account status'],
+            "Account Matching": scopeItems.length > 5 ? scopeItems.slice(5, 7) : ['Implement lead-to-account matching logic'],
+            "BookIt": scopeItems.length > 7 ? scopeItems.slice(7, 9) : ['Streamline meeting scheduling and calendar management'],
+            "Integrations": scopeItems.length > 9 ? scopeItems.slice(9, 11) : ['Integrate with existing marketing automation and CRM systems']
           },
           isFallback: true
         };
@@ -570,13 +577,15 @@ Customer: ${customerName}
       }
       
       return {
-        objective: errorMessage,
-        scope: {
-          "Lead Routing": ['Manual lead routing and assignment processes'],
-          "Account Matching": ['Duplicate leads and contacts in Salesforce'],
-          "BookIt": ['Inconsistent data quality across objects'],
-          "Integrations": ['Lack of automated territory-based assignment']
-        }
+        objectiveOverview: errorMessage,
+        painPoints: ['Manual lead routing and assignment processes', 'Duplicate leads and contacts in Salesforce', 'Inconsistent data quality across objects'],
+        solutions: {
+          "Lead Routing": ['Automate lead routing based on territory and account status'],
+          "Account Matching": ['Implement lead-to-account matching logic'],
+          "BookIt": ['Streamline meeting scheduling and calendar management'],
+          "Integrations": ['Integrate with existing marketing automation and CRM systems']
+        },
+        isFallback: true
       };
     }
   }

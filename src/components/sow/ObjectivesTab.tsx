@@ -195,12 +195,33 @@ export default function ObjectivesTab({
       }
 
       // Validate the response structure
-      if (!result.objective || !result.scope) {
+      if (!result.objectiveOverview || !result.painPoints || !result.solutions) {
         throw new Error('Invalid response format from AI analysis');
       }
 
       // Process scope items
       const scopeItems = result.scope;
+
+      // Convert objective paragraph to bullet points for TipTap editor
+      const convertObjectiveToBulletPoints = (objective: string): string => {
+        if (!objective || typeof objective !== 'string') return '';
+        
+        // Split the objective into sentences and convert to bullet points
+        const sentences = objective.split(/[.!?]+/).filter(sentence => sentence.trim().length > 0);
+        
+        if (sentences.length === 0) return '';
+        
+        let htmlValue = '<ul>';
+        sentences.forEach(sentence => {
+          const trimmedSentence = sentence.trim();
+          if (trimmedSentence.length > 0) {
+            htmlValue += `<li>${trimmedSentence}.</li>`;
+          }
+        });
+        htmlValue += '</ul>';
+        
+        return htmlValue;
+      };
 
       // Convert key objectives array to HTML format for TipTap editor
       const convertKeyObjectivesToHTML = (objectives: string[]): string => {
@@ -259,7 +280,40 @@ export default function ObjectivesTab({
         return htmlValue;
       };
 
-      // Convert deliverables to HTML format for WYSIWYG editor
+      // Convert solutions to HTML format with proper product family groupings
+      const convertSolutionsToHTML = (solutions: any): string => {
+        if (!solutions || typeof solutions !== 'object') return '';
+        
+        let html = '';
+        
+        Object.entries(solutions).forEach(([category, items]) => {
+          if (Array.isArray(items) && items.length > 0) {
+            // Add product family header
+            html += `<h4><strong>${category.toUpperCase()}</strong></h4>\n<ul>\n`;
+            
+            // Add items for this product family
+            items.forEach(item => {
+              if (typeof item === 'string' && item.trim()) {
+                // Check for nested content patterns (like "Target:" statements)
+                const targetMatch = item.match(/\.\s*Target:\s*(.+)$/);
+                if (targetMatch) {
+                  const mainObjective = item.replace(/\.\s*Target:\s*.+$/, '.');
+                  const target = targetMatch[1];
+                  html += `<li>${mainObjective}<ul><li>${target}</li></ul></li>\n`;
+                } else {
+                  html += `<li>${item}</li>\n`;
+                }
+              }
+            });
+            
+            html += '</ul>\n';
+          }
+        });
+        
+        return html;
+      };
+
+      // Convert deliverables to HTML format for WYSIWYG editor with nested list support
       const convertDeliverablesToHTML = (deliverables: string[]): string => {
         if (!deliverables || deliverables.length === 0) return '';
         
@@ -281,12 +335,48 @@ export default function ObjectivesTab({
               html += `<h4><strong>${trimmedSection}</strong></h4>\n<ul>\n`;
             } else if (trimmedSection.includes('•')) {
               // This section contains bullet points
-              const items = trimmedSection.split('•').map(item => item.trim()).filter(item => item);
-              items.forEach(item => {
-                if (item) {
-                  html += `<li>${item}</li>\n`;
+              const lines = trimmedSection.split('\n');
+              let currentMainItem = '';
+              let nestedItems: string[] = [];
+              
+              lines.forEach(line => {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) return;
+                
+                // Check if this is a main bullet point (starts with • and no extra indentation)
+                if (trimmedLine.startsWith('• ') && !trimmedLine.startsWith('  •')) {
+                  // If we have a previous main item with nested items, output it
+                  if (currentMainItem && nestedItems.length > 0) {
+                    html += `<li>${currentMainItem}<ul>`;
+                    nestedItems.forEach(nestedItem => {
+                      html += `<li>${nestedItem}</li>`;
+                    });
+                    html += `</ul></li>\n`;
+                    nestedItems = [];
+                  } else if (currentMainItem) {
+                    html += `<li>${currentMainItem}</li>\n`;
+                  }
+                  
+                  // Start new main item
+                  currentMainItem = trimmedLine.substring(2); // Remove "• "
+                } else if (trimmedLine.startsWith('  •')) {
+                  // This is a nested item
+                  const nestedItem = trimmedLine.substring(3).trim(); // Remove "  • "
+                  nestedItems.push(nestedItem);
                 }
               });
+              
+              // Handle the last item
+              if (currentMainItem && nestedItems.length > 0) {
+                html += `<li>${currentMainItem}<ul>`;
+                nestedItems.forEach(nestedItem => {
+                  html += `<li>${nestedItem}</li>`;
+                });
+                html += `</ul></li>\n`;
+              } else if (currentMainItem) {
+                html += `<li>${currentMainItem}</li>\n`;
+              }
+              
               html += '</ul>\n';
             }
           });
@@ -314,10 +404,52 @@ export default function ObjectivesTab({
                 currentProduct = 'DELIVERABLES';
               }
               
-              // Remove bullet points and clean up the text
-              const cleanItem = trimmedItem.replace(/^[•\-\*]\s*/, '').trim();
-              if (cleanItem) {
-                html += `<li>${cleanItem}</li>\n`;
+              // Process the item which might contain nested content
+              const lines = trimmedItem.split('\n');
+              let currentMainItem = '';
+              let nestedItems: string[] = [];
+              
+              lines.forEach(line => {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) return;
+                
+                // Remove bullet points and clean up the text
+                const cleanLine = trimmedLine.replace(/^[•\-\*]\s*/, '').trim();
+                
+                // Check if this is a main bullet point (no extra indentation)
+                if (trimmedLine.startsWith('• ') && !trimmedLine.startsWith('  •')) {
+                  // If we have a previous main item with nested items, output it
+                  if (currentMainItem && nestedItems.length > 0) {
+                    html += `<li>${currentMainItem}<ul>`;
+                    nestedItems.forEach(nestedItem => {
+                      html += `<li>${nestedItem}</li>`;
+                    });
+                    html += `</ul></li>\n`;
+                    nestedItems = [];
+                  } else if (currentMainItem) {
+                    html += `<li>${currentMainItem}</li>\n`;
+                  }
+                  
+                  // Start new main item
+                  currentMainItem = cleanLine;
+                } else if (trimmedLine.startsWith('  •')) {
+                  // This is a nested item
+                  nestedItems.push(cleanLine);
+                } else if (currentMainItem) {
+                  // This might be a nested item without bullet
+                  nestedItems.push(cleanLine);
+                }
+              });
+              
+              // Handle the last item
+              if (currentMainItem && nestedItems.length > 0) {
+                html += `<li>${currentMainItem}<ul>`;
+                nestedItems.forEach(nestedItem => {
+                  html += `<li>${nestedItem}</li>`;
+                });
+                html += `</ul></li>\n`;
+              } else if (currentMainItem) {
+                html += `<li>${currentMainItem}</li>\n`;
               }
             }
           });
@@ -332,29 +464,29 @@ export default function ObjectivesTab({
       };
 
       // Check for Gemini API overload errors
-      if (result.objective.includes('model is overloaded') || result.objective.includes('Service Unavailable')) {
+      if (result.objectiveOverview.includes('model is overloaded') || result.objectiveOverview.includes('Service Unavailable')) {
         throw new Error('AI service is currently overloaded. Please wait a few minutes and try again.');
       }
 
       // Check for other Gemini API errors
-      if (result.objective.includes('could not be generated')) {
+      if (result.objectiveOverview.includes('could not be generated')) {
         throw new Error('AI analysis failed. Please try again in a few minutes.');
       }
 
 
       
-      // Update the form with the generated objective and scope
-      // Process scope items into deliverables format with proper formatting
+      // Update the form with the generated objective overview, pain points, and solutions
+      // Process solutions into deliverables format with proper product family grouping
       const allScopeItems: string[] = [];
-      Object.entries(scopeItems).forEach(([category, items]) => {
+      Object.entries(result.solutions).forEach(([category, items]) => {
         if (Array.isArray(items) && items.length > 0) {
           const formattedItems = items.map(item => {
-            // Split the item into main objective and target
+            // Check for nested content patterns (like "Target:" statements or other sub-items)
             const targetMatch = item.match(/\.\s*Target:\s*(.+)$/);
             if (targetMatch) {
               const mainObjective = item.replace(/\.\s*Target:\s*.+$/, '.');
               const target = targetMatch[1];
-              return `• ${mainObjective} Target: ${target}`;
+              return `• ${mainObjective}\n  • ${target}`;
             } else {
               // If no target found, just format as a regular bullet point
               return `• ${item}`;
@@ -364,33 +496,28 @@ export default function ObjectivesTab({
         }
       });
       
-      // Convert scope items to key objectives format (flatten all items)
-      const generatedKeyObjectives: string[] = [];
-      Object.values(scopeItems).forEach(items => {
-        if (Array.isArray(items)) {
-          generatedKeyObjectives.push(...items.filter(item => typeof item === 'string' && item.trim().length > 0));
-        }
-      });
+      // Convert pain points to key objectives format
+      const painPoints = result.painPoints || [];
       
-      // Ensure we have valid objectives
-      const finalObjectives = generatedKeyObjectives.length > 0 ? generatedKeyObjectives : [''];
+      // Ensure we have valid pain points
+      const finalPainPoints = painPoints.length > 0 ? painPoints : [''];
       
       const updatedFormData = {
         ...formData,
         objectives: {
           ...formData.objectives!,
-          description: result.objective,
-          key_objectives: finalObjectives
+          description: result.objectiveOverview,
+          key_objectives: finalPainPoints
         },
         scope: {
           ...formData.scope!,
           deliverables: allScopeItems.join('\n\n')
         },
-        custom_deliverables_content: convertDeliverablesToHTML(allScopeItems),
+        custom_deliverables_content: convertSolutionsToHTML(result.solutions),
         deliverables_content_edited: true,
-        custom_objective_overview_content: result.objective,
+        custom_objective_overview_content: result.objectiveOverview,
         objective_overview_content_edited: true,
-        custom_key_objectives_content: convertKeyObjectivesToHTML(finalObjectives),
+        custom_key_objectives_content: convertObjectiveToBulletPoints(result.painPoints.join('. ')),
         key_objectives_content_edited: true
       };
       
