@@ -94,15 +94,15 @@ export async function POST(request: NextRequest) {
       try {
         await conn.login(username, password + (security_token || ''));
         console.log('Debug: Authentication successful with password + token');
-      } catch (error) {
+      } catch {
         console.log('Debug: Method 1 failed, trying password only...');
         try {
           // Method 2: Try with password only (in case token is already appended)
           await conn.login(username, password);
           console.log('Debug: Authentication successful with password only');
-        } catch (error2) {
+        } catch {
           console.log('Debug: Both methods failed');
-          throw error2; // Re-throw the second error
+          throw new Error('Authentication failed with both methods');
         }
       }
       

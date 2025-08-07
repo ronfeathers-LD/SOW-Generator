@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { apiKey, apiUrl, testCustomerName } = body;
+    const { apiKey, apiUrl } = body;
 
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });

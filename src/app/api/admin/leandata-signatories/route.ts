@@ -26,7 +26,7 @@ export async function GET() {
   }
 
   try {
-    const { data: signatories, error } = await supabase
+    const { data: signatories } = await supabase
       .from('lean_data_signatories')
       .select('*')
       .order('name', { ascending: true });
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: signatory, error } = await supabase
+    const { data: signatory } = await supabase
       .from('lean_data_signatories')
       .insert({
         name,

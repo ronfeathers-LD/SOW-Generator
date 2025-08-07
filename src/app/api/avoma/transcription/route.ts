@@ -1,22 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AvomaClient, getAvomaConfig } from '@/lib/avoma';
 
-interface AvomaTranscriptionResponse {
-  speakers: Array<{
-    email: string;
-    id: number;
-    is_rep: boolean;
-    name: string;
-  }>;
-  transcript: Array<{
-    speaker_id: number;
-    timestamps: number[];
-    transcript: string;
-  }>;
-  transcription_vtt_url: string;
-  uuid: string;
-}
-
 export async function POST(request: NextRequest) {
   try {
     const { meetingUuid, avomaUrl } = await request.json();
@@ -67,7 +51,7 @@ export async function POST(request: NextRequest) {
           meeting: {
             subject: meeting.subject,
             start_at: meeting.start_at,
-            attendees: meeting.attendees?.map((a: any) => a.name).join(', '),
+            attendees: meeting.attendees?.map((a: unknown) => (a as { name: string }).name).join(', '),
             transcript_ready: meeting.transcript_ready,
             duration: meeting.duration ? Math.round(meeting.duration / 60) : null
           }
@@ -76,7 +60,7 @@ export async function POST(request: NextRequest) {
 
       // Try to get the transcript content using the transcriptions endpoint
       let transcriptContent = '';
-      let speakers: any[] = [];
+      let speakers: unknown[] = [];
       
       try {
         // Check if we have a specific transcription UUID
@@ -121,7 +105,7 @@ Note: The Avoma API does not provide direct access to transcription content. You
           meeting: {
             subject: meeting.subject,
             start_at: meeting.start_at,
-            attendees: meeting.attendees?.map((a: any) => a.name).join(', '),
+            attendees: meeting.attendees?.map((a: unknown) => (a as { name: string }).name).join(', '),
             transcript_ready: meeting.transcript_ready,
             duration: meeting.duration ? Math.round(meeting.duration / 60) : null,
             url: meeting.url
@@ -136,7 +120,7 @@ Note: The Avoma API does not provide direct access to transcription content. You
         meeting: {
           subject: meeting.subject,
           start_at: meeting.start_at,
-          attendees: meeting.attendees?.map((a: any) => a.name).join(', '),
+          attendees: meeting.attendees?.map((a: unknown) => (a as { name: string }).name).join(', '),
           transcript_ready: meeting.transcript_ready,
           duration: meeting.duration ? Math.round(meeting.duration / 60) : null,
           url: meeting.url

@@ -17,7 +17,7 @@ export async function GET(
     }
 
     // Fetch products for this SOW
-    const { data: sowProducts, error: productsError } = await supabase
+    const { data: sowProducts } = await supabase
       .from('sow_products')
       .select(`
         product_id,
@@ -27,7 +27,10 @@ export async function GET(
       `)
       .eq('sow_id', sow.id);
 
-    const productNames = sowProducts?.map(sp => (sp.products as any)?.name).filter(Boolean) || [];
+    const productNames = sowProducts?.map(sp => {
+      const product = sp.products as { name: string } | null;
+      return product?.name;
+    }).filter(Boolean) || [];
 
     // Return transformed data with template structure
     const transformedSow = {

@@ -38,7 +38,7 @@ export async function GET() {
     }
 
     // Don't return the password in the response
-    const { password, ...safeConfig } = config;
+    const { password: _password, ...safeConfig } = config;
     
     // Return snake_case data directly
     return NextResponse.json({ config: safeConfig });
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     // Don't return the password in the response
-    const { password: _, ...safeConfig } = config;
+    const { password: _password, ...safeConfig } = config;
     
     // Return snake_case data directly
     return NextResponse.json({ config: safeConfig }, { status: 201 });

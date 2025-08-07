@@ -54,7 +54,7 @@ export async function PUT(
       );
     }
 
-    const { data: signatory, error } = await supabase
+    const { data: signatory } = await supabase
       .from('lean_data_signatories')
       .update({
         name,
@@ -87,7 +87,7 @@ export async function DELETE(
   }
 
   try {
-    const { error } = await supabase
+    await supabase
       .from('lean_data_signatories')
       .delete()
       .eq('id', (await params).id);

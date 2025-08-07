@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 // GET - Fetch all active LeanData signatories (public endpoint)
 export async function GET() {
   try {
-    const { data: signatories, error } = await supabase
+    const { data: signatories } = await supabase
       .from('lean_data_signatories')
       .select('id, name, email, title')
       .eq('is_active', true)
