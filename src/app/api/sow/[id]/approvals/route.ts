@@ -96,9 +96,7 @@ export async function GET(
       return new Date(aObj.created_at).getTime() - new Date(bObj.created_at).getTime();
     });
 
-    // Debug logging
-    console.log('Approvals API - All comments:', allComments);
-    console.log('Approvals API - Top level comments:', topLevelComments);
+
 
     // Get all active approval stages
     const { data: stages, error: stagesError } = await supabase

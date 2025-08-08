@@ -279,17 +279,19 @@ function SOWListContent() {
                           </td>
                           <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                             <div className="flex justify-end space-x-2">
+                              {sow.status === 'draft' && (
+                                <Link
+                                  href={`/sow/${sow.id}/edit`}
+                                  className="text-green-600 hover:text-green-900"
+                                >
+                                  Edit
+                                </Link>
+                              )}
                               <Link
                                 href={`/sow/${sow.id}`}
                                 className="text-indigo-600 hover:text-indigo-900"
                               >
                                 View
-                              </Link>
-                              <Link
-                                href={`/sow/${sow.id}/edit`}
-                                className="text-green-600 hover:text-green-900"
-                              >
-                                Edit
                               </Link>
                               <button
                                 onClick={() => handleDelete(sow.id)}

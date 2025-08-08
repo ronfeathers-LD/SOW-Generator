@@ -219,12 +219,12 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   }
 
   const sections = [
-    { id: 'intro', name: 'Introduction', icon: '📝' },
-    { id: 'objectives-disclosure', name: 'Objectives', icon: '📋' },
-    { id: 'scope', name: 'Scope', icon: '🎯' },
-    { id: 'project-phases', name: 'Project Phases', icon: '📅' },
-    { id: 'roles', name: 'Roles & Responsibilities', icon: '👥' },
-    { id: 'assumptions', name: 'Assumptions', icon: '⚠️' },
+    { id: 'intro', name: 'Introduction' },
+    { id: 'objectives-disclosure', name: 'Objectives' },
+    { id: 'scope', name: 'Scope' },
+    { id: 'project-phases', name: 'Project Phases' },
+    { id: 'roles', name: 'Roles & Responsibilities' },
+    { id: 'assumptions', name: 'Assumptions' },
   ];
 
   const renderSection = (sectionId: string) => {
@@ -599,18 +599,19 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
                 }`}
               >
                 <div className="flex items-center">
-                  <span className="mr-2">{section.icon}</span>
                   <span>{section.name}</span>
-                  {formData[`${section.id.replace(/-/g, '_')}_content_edited` as keyof SOWData] && (
-                    <span className="ml-auto px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                      Edited
-                    </span>
-                  )}
-                  {unsavedChanges[section.id] && (
-                    <span className="ml-auto px-2 py-0.5 text-xs bg-red-100 text-red-800 rounded-full">
-                      Unsaved
-                    </span>
-                  )}
+                  <div className="ml-auto flex items-center space-x-1">
+                    {formData[`${section.id.replace(/-/g, '_')}_content_edited` as keyof SOWData] && (
+                      <span className="text-yellow-600 text-xs" title="Content has been edited">
+                        ✏️
+                      </span>
+                    )}
+                    {unsavedChanges[section.id] && (
+                      <span className="text-red-600 text-xs" title="Unsaved changes">
+                        ●
+                      </span>
+                    )}
+                  </div>
                 </div>
               </button>
             ))}

@@ -58,12 +58,12 @@ export async function GET() {
       stagesError: stagesError?.message,
       assignedRoleColumn: {
         exists: !assignedRoleError,
-        error: assignedRoleError?.message,
+        error: assignedRoleError ? (assignedRoleError as Error).message : null,
         testData: assignedRoleTest
       },
       assignedUserIdColumn: {
         exists: !assignedUserIdError,
-        error: assignedUserIdError?.message,
+        error: assignedUserIdError ? (assignedUserIdError as Error).message : null,
         testData: assignedUserIdTest
       },
       migrationNeeded: !!assignedRoleError
