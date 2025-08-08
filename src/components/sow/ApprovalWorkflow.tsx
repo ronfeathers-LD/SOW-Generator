@@ -94,13 +94,7 @@ function CommentThread({
   submitting: boolean;
   isReply?: boolean;
 }) {
-  // Debug logging
-  console.log('CommentThread render:', { 
-    commentId: comment.id, 
-    isReply, 
-    hasReplies: comment.replies?.length || 0,
-    replies: comment.replies 
-  });
+  // Debug logging removed
 
     return (
     <div className="bg-white rounded-lg mb-2 w-full">
@@ -190,12 +184,7 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
 
-  // Debug logging
-  useEffect(() => {
-    if (workflow?.comments) {
-      console.log('Workflow comments:', workflow.comments);
-    }
-  }, [workflow?.comments]);
+  // Debug logging removed
 
   const fetchWorkflow = useCallback(async () => {
     try {

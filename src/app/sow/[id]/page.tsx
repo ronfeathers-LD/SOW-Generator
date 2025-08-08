@@ -869,6 +869,8 @@ export default function SOWDetailsPage() {
                   </div>
                 </div>
               )}
+              
+
             </div> {/* Close grid */}
           </>
         )}
