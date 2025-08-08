@@ -44,7 +44,7 @@ export const useSOWContent = ({
     }
 
     loadContent();
-  }, [sectionName, customContent, processor, ...dependencies]);
+  }, [sectionName, customContent, processor, dependencies]);
 
   return { content, loading };
 };

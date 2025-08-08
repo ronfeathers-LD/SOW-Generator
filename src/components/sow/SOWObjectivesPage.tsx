@@ -23,6 +23,10 @@ interface SOWObjectivesPageProps {
     start_date?: Date | null;
     end_date?: Date | null;
     units_consumption?: string;
+    orchestration_units?: string;
+    bookit_forms_units?: string;
+    bookit_links_units?: string;
+    bookit_handoff_units?: string;
   };
 }
 
@@ -156,7 +160,7 @@ export default function SOWObjectivesPage({
               Products: {projectDetails.products?.join(', ') || 'N/A'}
             </li>
             <li>
-              Number of Units: {projectDetails.number_of_units || 'N/A'}
+              Number of Units (Legacy): {projectDetails.number_of_units || 'N/A'}
             </li>
             <li>
               Regions/Business Units: {projectDetails.regions || 'N/A'}
@@ -174,6 +178,27 @@ export default function SOWObjectivesPage({
               Units consumption: {projectDetails.units_consumption || 'N/A'}
             </li>
           </ul>
+          
+          {/* BookIt Family Units */}
+          {(projectDetails.orchestration_units || projectDetails.bookit_forms_units || projectDetails.bookit_links_units || projectDetails.bookit_handoff_units) && (
+            <div className="mt-4">
+              <h4 className="text-lg font-semibold mb-2">BookIt Family Units:</h4>
+              <ul className="list-disc pl-6 prose prose-md max-w-none">
+                {projectDetails.orchestration_units && projectDetails.orchestration_units.trim() !== '' && (
+                  <li>Orchestration Units: {projectDetails.orchestration_units}</li>
+                )}
+                {projectDetails.bookit_forms_units && projectDetails.bookit_forms_units.trim() !== '' && (
+                  <li>BookIt for Forms Units: {projectDetails.bookit_forms_units}</li>
+                )}
+                {projectDetails.bookit_links_units && projectDetails.bookit_links_units.trim() !== '' && (
+                  <li>BookIt Links Units: {projectDetails.bookit_links_units}</li>
+                )}
+                {projectDetails.bookit_handoff_units && projectDetails.bookit_handoff_units.trim() !== '' && (
+                  <li>BookIt Handoff Units: {projectDetails.bookit_handoff_units}</li>
+                )}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 

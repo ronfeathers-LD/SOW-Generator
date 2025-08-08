@@ -1,6 +1,7 @@
 
 import GoogleProvider from 'next-auth/providers/google';
 import { supabase } from '@/lib/supabase';
+import type { NextAuthOptions } from 'next-auth';
 
 // Only check for required environment variables in production runtime
 const validateEnvVars = () => {
@@ -21,7 +22,7 @@ const hasValidGoogleCredentials = () => {
 
 
 
-export const authOptions = {
+export const authOptions: NextAuthOptions = {
   providers: hasValidGoogleCredentials() ? [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
@@ -44,8 +45,7 @@ export const authOptions = {
   },
   debug: false, // Disable debug to avoid warnings
   callbacks: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async signIn({ user }: any) {
+    async signIn({ user }) {
       try {
       // Validate environment variables in production
       if (process.env.NODE_ENV === 'production') {
@@ -114,8 +114,7 @@ export const authOptions = {
         return true; // Still allow sign in even if database operation fails
       }
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async session({ session, token }: any) {
+    async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub;
         session.user.image = token.picture as string;
@@ -124,7 +123,7 @@ export const authOptions = {
       }
       return session;
     },
-    async jwt({ token, user, account }: any) {
+    async jwt({ token, user, account }) {
       if (account && user) {
         token.id = user.id;
         token.picture = user.image;

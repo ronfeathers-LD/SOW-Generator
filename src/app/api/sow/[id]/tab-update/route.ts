@@ -35,48 +35,21 @@ export async function PUT(
           if (data.template.salesforce_tenants !== undefined) updateData.salesforce_tenants = data.template.salesforce_tenants;
           if (data.template.timeline_weeks !== undefined) updateData.timeline_weeks = data.template.timeline_weeks;
           if (data.template.units_consumption !== undefined) updateData.units_consumption = data.template.units_consumption;
+          
+          // Handle BookIt Family Units
+          if (data.template.orchestration_units !== undefined) updateData.orchestration_units = data.template.orchestration_units;
+          if (data.template.bookit_forms_units !== undefined) updateData.bookit_forms_units = data.template.bookit_forms_units;
+          if (data.template.bookit_links_units !== undefined) updateData.bookit_links_units = data.template.bookit_links_units;
+          if (data.template.bookit_handoff_units !== undefined) updateData.bookit_handoff_units = data.template.bookit_handoff_units;
         }
         if (data.scope?.timeline) {
           if (data.scope.timeline.start_date !== undefined) updateData.start_date = new Date(data.scope.timeline.start_date).toISOString();
           if (data.scope.timeline.duration !== undefined) updateData.duration = data.scope.timeline.duration;
         }
 
-        // Handle products
+        // Handle products - use JSONB field
         if (data.template?.products !== undefined) {
-          // Delete existing product associations
-          const { error: deleteError } = await supabase
-            .from('sow_products')
-            .delete()
-            .eq('sow_id', sowId);
-
-          if (deleteError) {
-            console.error('Error deleting existing products:', deleteError);
-          }
-
-          // Insert new product associations if products are selected
-          if (data.template.products.length > 0) {
-            const { data: productIds, error: productError } = await supabase
-              .from('products')
-              .select('id, name')
-              .in('name', data.template.products);
-
-            if (productError) {
-              console.error('Error fetching product IDs:', productError);
-            } else if (productIds && productIds.length > 0) {
-              const sowProductData = productIds.map(product => ({
-                sow_id: sowId,
-                product_id: product.id
-              }));
-
-              const { error: insertError } = await supabase
-                .from('sow_products')
-                .insert(sowProductData);
-
-              if (insertError) {
-                console.error('Error inserting product associations:', insertError);
-              }
-            }
-          }
+          updateData.products = data.template.products;
         }
         break;
 

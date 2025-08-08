@@ -76,6 +76,23 @@ export async function POST(request: Request) {
         opportunity_stage: data.template?.opportunity_stage || null,
         opportunity_close_date: data.template?.opportunity_close_date ? new Date(data.template.opportunity_close_date).toISOString() : null,
         
+        // Project Details
+        products: data.template?.products || [],
+        number_of_units: data.template?.number_of_units || '',
+        regions: data.template?.regions || '',
+        salesforce_tenants: data.template?.salesforce_tenants || '',
+        timeline_weeks: data.template?.timeline_weeks || '',
+        units_consumption: data.template?.units_consumption || '',
+        
+        // BookIt Family Units
+        orchestration_units: data.template?.orchestration_units || '',
+        bookit_forms_units: data.template?.bookit_forms_units || '',
+        bookit_links_units: data.template?.bookit_links_units || '',
+        bookit_handoff_units: data.template?.bookit_handoff_units || '',
+        
+        // Template data
+        template: data.template || {},
+        
         // Copy default content templates into the SOW
         custom_intro_content: data.custom_intro_content || defaultIntroContent,
         custom_scope_content: data.custom_scope_content || defaultScopeContent,
@@ -83,12 +100,18 @@ export async function POST(request: Request) {
         custom_assumptions_content: data.custom_assumptions_content || defaultAssumptionsContent,
         custom_project_phases_content: data.custom_project_phases_content || defaultProjectPhasesContent,
         custom_roles_content: data.custom_roles_content || defaultRolesContent,
+        custom_deliverables_content: data.custom_deliverables_content || '',
+        custom_objective_overview_content: data.custom_objective_overview_content || '',
+        custom_key_objectives_content: data.custom_key_objectives_content || '',
         intro_content_edited: data.intro_content_edited || false,
         scope_content_edited: data.scope_content_edited || false,
         objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false,
         assumptions_content_edited: data.assumptions_content_edited || false,
         project_phases_content_edited: data.project_phases_content_edited || false,
         roles_content_edited: data.roles_content_edited || false,
+        deliverables_content_edited: data.deliverables_content_edited || false,
+        objective_overview_content_edited: data.objective_overview_content_edited || false,
+        key_objectives_content_edited: data.key_objectives_content_edited || false,
       })
       .select()
       .single();
@@ -104,6 +127,8 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
+
 
     // SOW created successfully
 

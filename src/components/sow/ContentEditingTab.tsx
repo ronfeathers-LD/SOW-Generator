@@ -601,7 +601,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
                 <div className="flex items-center">
                   <span className="mr-2">{section.icon}</span>
                   <span>{section.name}</span>
-                  {formData[`${section.id.replace('-', '_')}_content_edited` as keyof SOWData] && (
+                  {formData[`${section.id.replace(/-/g, '_')}_content_edited` as keyof SOWData] && (
                     <span className="ml-auto px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded-full">
                       Edited
                     </span>

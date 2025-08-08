@@ -83,6 +83,12 @@ interface SOW {
   project_end_date?: string;
   units_consumption?: string;
   
+  // BookIt Family Units
+  orchestration_units?: string;
+  bookit_forms_units?: string;
+  bookit_links_units?: string;
+  bookit_handoff_units?: string;
+  
   // Custom content tracking
   custom_intro_content?: string;
   custom_scope_content?: string;
@@ -173,6 +179,15 @@ export default function SOWDetailsPage() {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
 
+  // Check for URL error parameter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorParam = urlParams.get('error');
+    if (errorParam === 'immutable') {
+      setError('This SOW version is immutable and cannot be edited. Please create a new version to make changes.');
+    }
+  }, []);
+
   useEffect(() => {
     const fetchSOW = async () => {
       try {
@@ -261,6 +276,12 @@ export default function SOWDetailsPage() {
           project_start_date: data.template?.start_date || data.project_start_date || '',
           project_end_date: data.template?.end_date || data.project_end_date || '',
           units_consumption: data.template?.units_consumption || data.units_consumption || '',
+          
+          // BookIt Family Units
+          orchestration_units: data.template?.orchestration_units || data.orchestration_units || '',
+          bookit_forms_units: data.template?.bookit_forms_units || data.bookit_forms_units || '',
+          bookit_links_units: data.template?.bookit_links_units || data.bookit_links_units || '',
+          bookit_handoff_units: data.template?.bookit_handoff_units || data.bookit_handoff_units || '',
           intro_content_edited: data.intro_content_edited || false,
           scope_content_edited: data.scope_content_edited || false,
           objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false,
@@ -330,7 +351,14 @@ export default function SOWDetailsPage() {
 
   const isEditable = useMemo(() => {
     if (!sow) return false;
+    // Only draft SOWs can be edited - approved/rejected versions are immutable
     return sow.status === 'draft';
+  }, [sow]);
+
+  const canCreateNewVersion = useMemo(() => {
+    if (!sow) return false;
+    // Can create new version from approved or rejected SOWs
+    return sow.status === 'approved' || sow.status === 'rejected';
   }, [sow]);
 
   const handleStatusChange = async (newStatus: SOW['status']) => {
@@ -516,38 +544,27 @@ export default function SOWDetailsPage() {
             <div className="mb-8 flex justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">{sow.sowTitle}</h1>
-                <p className="mt-1 text-sm text-gray-500">Version {sow.version}</p>
+                <div className="flex items-center space-x-2 mt-1">
+                  <p className="text-sm text-gray-500">Version {sow.version}</p>
+                  {(sow.status === 'approved' || sow.status === 'rejected') && (
+                    <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
+                      Immutable
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center space-x-4">
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(sow.status)}`}>
                   {getStatusLabel(sow.status)}
                 </span>
-                {isAdmin && (
+                {isAdmin && sow.status === 'draft' && (
                   <div className="flex space-x-2">
-                    {sow.status === 'draft' && (
-                      <button
-                        onClick={() => handleStatusChange('in_review')}
-                        className="px-3 py-1 rounded-md text-sm font-medium bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
-                      >
-                        Submit for Review
-                      </button>
-                    )}
-                    {sow.status === 'in_review' && (
-                      <>
-                        <button
-                          onClick={() => handleStatusChange('approved')}
-                          className="px-3 py-1 rounded-md text-sm font-medium bg-green-100 text-green-800 hover:bg-green-200"
-                        >
-                          Approve Version {sow.version}
-                        </button>
-                        <button
-                          onClick={() => handleStatusChange('rejected')}
-                          className="px-3 py-1 rounded-md text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200"
-                        >
-                          Reject Version {sow.version}
-                        </button>
-                      </>
-                    )}
+                    <button
+                      onClick={() => handleStatusChange('in_review')}
+                      className="px-3 py-1 rounded-md text-sm font-medium bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                    >
+                      Submit for Review
+                    </button>
                   </div>
                 )}
               </div>
@@ -563,7 +580,7 @@ export default function SOWDetailsPage() {
                   Edit SOW
                 </Link>
               )}
-              {!isEditable && sow.status !== 'approved' && (
+              {canCreateNewVersion && (
                 <button
                   onClick={handleCreateVersion}
                   disabled={creatingVersion}
@@ -571,6 +588,16 @@ export default function SOWDetailsPage() {
                 >
                   {creatingVersion ? 'Creating...' : 'Create New Version'}
                 </button>
+              )}
+              {!isEditable && !canCreateNewVersion && sow.status === 'in_review' && (
+                <div className="text-sm text-gray-600 italic">
+                  SOW is in review - use the Approval Workflow to approve or reject
+                </div>
+              )}
+              {canCreateNewVersion && (
+                <div className="text-sm text-gray-600 italic">
+                  This version is {sow.status === 'approved' ? 'approved' : 'rejected'} and cannot be modified. Create a new version to make changes.
+                </div>
               )}
               <button
                 onClick={handleDelete}
@@ -644,7 +671,11 @@ export default function SOWDetailsPage() {
                       timeline_weeks: sow.timeline_weeks || '',
                       start_date: sow.project_start_date ? new Date(sow.project_start_date) : new Date(sow.startDate),
                       end_date: sow.project_end_date ? new Date(sow.project_end_date) : null,
-                      units_consumption: sow.units_consumption || ''
+                      units_consumption: sow.units_consumption || '',
+                      orchestration_units: sow.orchestration_units || '',
+                      bookit_forms_units: sow.bookit_forms_units || '',
+                      bookit_links_units: sow.bookit_links_units || '',
+                      bookit_handoff_units: sow.bookit_handoff_units || ''
                     }}
                   />
                 </div>
@@ -823,12 +854,13 @@ export default function SOWDetailsPage() {
               </div> {/* Close lg:col-span-2 */}
 
               {/* Approval Workflow - Right Column (1/3 width) */}
-              {isAdmin && (
+              {isAdmin && sow.status === 'in_review' && (
                 <div className="lg:col-span-1">
                   <div className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
                     <ApprovalWorkflow 
                       sowId={sow.id} 
                       sowAmount={sow.pricing?.roles?.reduce((total, role) => total + (role.ratePerHour * role.totalHours), 0)}
+                      showApprovalActions={true}
                       onStatusChange={() => {
                         // Refresh the SOW data when approval status changes
                         window.location.reload();

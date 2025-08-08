@@ -108,9 +108,11 @@ export const createAllContentHandlers = (context: ContentHandlerContext) => {
 
   CONTENT_SECTIONS.forEach(config => {
     const sectionName = config.sectionName;
-    handlers[`handle${sectionName.charAt(0).toUpperCase() + sectionName.slice(1).replace('-', '')}ContentChange`] = 
+    // Convert kebab-case to camelCase properly
+    const camelCaseName = sectionName.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
+    handlers[`handle${camelCaseName.charAt(0).toUpperCase() + camelCaseName.slice(1)}ContentChange`] = 
       createContentHandler(config, context);
-    resetHandlers[`reset${sectionName.charAt(0).toUpperCase() + sectionName.slice(1).replace('-', '')}Content`] = 
+    resetHandlers[`reset${camelCaseName.charAt(0).toUpperCase() + camelCaseName.slice(1)}Content`] = 
       createResetHandler(config, context);
   });
 

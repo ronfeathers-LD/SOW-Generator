@@ -16,21 +16,8 @@ export async function GET(
       return new NextResponse('SOW not found', { status: 404 });
     }
 
-    // Fetch products for this SOW
-    const { data: sowProducts } = await supabase
-      .from('sow_products')
-      .select(`
-        product_id,
-        products (
-          name
-        )
-      `)
-      .eq('sow_id', sow.id);
-
-    const productNames = sowProducts?.map(sp => {
-      const products = sp.products as { name: string }[] | null;
-      return products?.[0]?.name;
-    }).filter(Boolean) || [];
+    // Get products from JSONB field
+    const productNames = Array.isArray(sow.products) ? sow.products : [];
 
     // Return transformed data with template structure
     const transformedSow = {

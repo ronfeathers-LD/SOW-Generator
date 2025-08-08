@@ -69,6 +69,7 @@ interface ApprovalWorkflowProps {
   sowId: string;
   sowAmount?: number;
   onStatusChange?: () => void;
+  showApprovalActions?: boolean;
 }
 
 // Recursive component for rendering threaded comments
@@ -154,7 +155,9 @@ function CommentThread({
       {/* Nested replies - all look the same */}
       {comment.replies && comment.replies.length > 0 && (
         <>
-          {comment.replies.map((reply) => (
+          {comment.replies
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .map((reply) => (
             <CommentThread
               key={reply.id}
               comment={reply}
@@ -176,7 +179,7 @@ function CommentThread({
   );
 }
 
-export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange }: ApprovalWorkflowProps) {
+export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, showApprovalActions = true }: ApprovalWorkflowProps) {
   const [workflow, setWorkflow] = useState<ApprovalWorkflow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -411,7 +414,7 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange }: A
             <p className="text-blue-700 text-xs mb-2">{workflow.current_stage.description}</p>
           )}
           
-          {workflow.can_approve && (
+          {workflow.can_approve && showApprovalActions && (
             <div className="space-y-3">
               {workflow.current_stage.requires_comment && (
                 <textarea
@@ -549,7 +552,9 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange }: A
 
         {/* Comments List */}
         <div className="space-y-2">
-          {workflow.comments.map((comment) => (
+          {workflow.comments
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .map((comment) => (
             <CommentThread
               key={comment.id}
               comment={comment}

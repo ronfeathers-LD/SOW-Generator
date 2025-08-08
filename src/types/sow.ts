@@ -49,6 +49,12 @@ export interface SOWTemplate {
   timeline_weeks: string;
   units_consumption: string;
   
+  // BookIt Family Units
+  orchestration_units: string;
+  bookit_forms_units: string;
+  bookit_links_units: string;
+  bookit_handoff_units: string;
+  
   // Billing Information
   billing_company_name: string;
   billing_contact_name: string;

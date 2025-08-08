@@ -42,7 +42,57 @@ CREATE TABLE IF NOT EXISTS sows (
   objectives_description TEXT DEFAULT '',
   objectives_key_objectives JSONB DEFAULT '[]',
   avoma_transcription TEXT DEFAULT '',
-  avoma_url TEXT DEFAULT ''
+  avoma_url TEXT DEFAULT '',
+  
+  -- Project Details (existing)
+  products JSONB DEFAULT '[]',
+  number_of_units TEXT DEFAULT '',
+  regions TEXT DEFAULT '',
+  salesforce_tenants TEXT DEFAULT '',
+  timeline_weeks TEXT DEFAULT '',
+  project_start_date TIMESTAMP WITH TIME ZONE,
+  project_end_date TIMESTAMP WITH TIME ZONE,
+  units_consumption TEXT DEFAULT '',
+  
+  -- BookIt Family Units (new)
+  orchestration_units TEXT DEFAULT '',
+  bookit_forms_units TEXT DEFAULT '',
+  bookit_links_units TEXT DEFAULT '',
+  bookit_handoff_units TEXT DEFAULT '',
+  
+  -- Template data
+  template JSONB DEFAULT '{}',
+  
+  -- Custom content fields
+  custom_intro_content TEXT DEFAULT '',
+  custom_scope_content TEXT DEFAULT '',
+  custom_objectives_disclosure_content TEXT DEFAULT '',
+  custom_assumptions_content TEXT DEFAULT '',
+  custom_project_phases_content TEXT DEFAULT '',
+  custom_roles_content TEXT DEFAULT '',
+  custom_deliverables_content TEXT DEFAULT '',
+  custom_objective_overview_content TEXT DEFAULT '',
+  custom_key_objectives_content TEXT DEFAULT '',
+  
+  -- Content edit tracking
+  intro_content_edited BOOLEAN DEFAULT false,
+  scope_content_edited BOOLEAN DEFAULT false,
+  objectives_disclosure_content_edited BOOLEAN DEFAULT false,
+  assumptions_content_edited BOOLEAN DEFAULT false,
+  project_phases_content_edited BOOLEAN DEFAULT false,
+  roles_content_edited BOOLEAN DEFAULT false,
+  deliverables_content_edited BOOLEAN DEFAULT false,
+  objective_overview_content_edited BOOLEAN DEFAULT false,
+  key_objectives_content_edited BOOLEAN DEFAULT false,
+  
+  -- Customer signature fields
+  customer_signature_name_2 TEXT DEFAULT '',
+  customer_signature_2 TEXT DEFAULT '',
+  customer_email_2 TEXT DEFAULT '',
+  customer_signature_date_2 TIMESTAMP WITH TIME ZONE,
+  
+  -- Salesforce fields
+  salesforce_account_id TEXT DEFAULT ''
 );
 
 -- Create users table
@@ -52,6 +102,26 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT,
   role TEXT DEFAULT 'user',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create products table
+CREATE TABLE IF NOT EXISTS products (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  name TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  is_active BOOLEAN DEFAULT true,
+  sort_order INTEGER DEFAULT 0
+);
+
+-- Create sow_products junction table
+CREATE TABLE IF NOT EXISTS sow_products (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  sow_id UUID REFERENCES sows(id) ON DELETE CASCADE,
+  product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+  UNIQUE(sow_id, product_id)
 );
 
 -- Create comments table

@@ -53,6 +53,12 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             salesforce_tenants: initialData.template?.salesforce_tenants || '',
             timeline_weeks: initialData.template?.timeline_weeks || '8',
             units_consumption: initialData.template?.units_consumption || 'All units immediately',
+            
+            // BookIt Family Units
+            orchestration_units: initialData.template?.orchestration_units || '',
+            bookit_forms_units: initialData.template?.bookit_forms_units || '',
+            bookit_links_units: initialData.template?.bookit_links_units || '',
+            bookit_handoff_units: initialData.template?.bookit_handoff_units || '',
             billing_company_name: initialData.template?.billing_company_name || '',
             billing_contact_name: initialData.template?.billing_contact_name || '',
             billing_address: initialData.template?.billing_address || '',
@@ -109,6 +115,12 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             salesforce_tenants: '',
             timeline_weeks: '8',
             units_consumption: 'All units immediately',
+            
+            // BookIt Family Units
+            orchestration_units: '',
+            bookit_forms_units: '',
+            bookit_links_units: '',
+            bookit_handoff_units: '',
             
             // Billing Information
             billing_company_name: '',
@@ -674,6 +686,11 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               salesforce_tenants: formData.template?.salesforce_tenants,
               timeline_weeks: formData.template?.timeline_weeks,
               units_consumption: formData.template?.units_consumption,
+              // BookIt Family Units
+              orchestration_units: formData.template?.orchestration_units,
+              bookit_forms_units: formData.template?.bookit_forms_units,
+              bookit_links_units: formData.template?.bookit_links_units,
+              bookit_handoff_units: formData.template?.bookit_handoff_units,
             },
             scope: {
               timeline: {

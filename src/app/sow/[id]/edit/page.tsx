@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import SOWForm from '@/components/SOWForm';
 import { SOWData } from '@/types/sow';
 
 export default function EditSOWPage() {
   const params = useParams();
+  const router = useRouter();
   const [sow, setSOW] = useState<SOWData | null>(null);
   const [loading, setLoading] = useState(true);
+
 
   useEffect(() => {
     const fetchSOW = async () => {
@@ -18,6 +20,16 @@ export default function EditSOWPage() {
         
         if (response.ok) {
           const data = await response.json();
+          
+          // Check if SOW is editable
+          const status = data.status;
+          
+          if (status === 'approved' || status === 'rejected') {
+            // Redirect to view page with error message
+            router.push(`/sow/${params.id}?error=immutable`);
+            return;
+          }
+          
           // SOW data loaded for edit
           
           // Transform the data to match the form structure
@@ -64,6 +76,12 @@ export default function EditSOWPage() {
               start_date: data.template?.start_date || null,
               end_date: data.template?.end_date || null,
               units_consumption: data.template?.units_consumption || '',
+              
+              // BookIt Family Units
+              orchestration_units: data.orchestration_units || '',
+              bookit_forms_units: data.bookit_forms_units || '',
+              bookit_links_units: data.bookit_links_units || '',
+              bookit_handoff_units: data.bookit_handoff_units || '',
               
               // Billing Information
               billing_company_name: data.template?.billing_company_name || '',
@@ -163,7 +181,7 @@ export default function EditSOWPage() {
     };
 
     fetchSOW();
-  }, [params.id]);
+  }, [params.id, router]);
 
   if (loading) {
     return (

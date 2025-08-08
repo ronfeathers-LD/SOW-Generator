@@ -10,12 +10,12 @@ import { useEffect, useRef, useCallback } from 'react';
 
 interface TipTapEditorProps {
   value: string;
-  onChange: (value: string) => void;
+  onChange?: (value: string) => void;
   placeholder?: string;
   initializing?: boolean;
 }
 
-export default function TipTapEditor({ value, onChange, placeholder, initializing = false }: TipTapEditorProps) {
+export default function TipTapEditor({ value, onChange = () => {}, placeholder, initializing = false }: TipTapEditorProps) {
   const isSettingContent = useRef(false);
   
   // Helper function to check if content is HTML
@@ -85,7 +85,7 @@ export default function TipTapEditor({ value, onChange, placeholder, initializin
     ],
     content: cleanHtmlForTipTap(value),
     onUpdate: ({ editor }) => {
-      if (!initializing && !isSettingContent.current) {
+      if (!initializing && !isSettingContent.current && onChange) {
         onChange(editor.getHTML());
       }
     },

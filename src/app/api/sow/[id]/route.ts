@@ -22,21 +22,8 @@ export async function GET(
     // Debug logging for Avoma URL
 
 
-    // Fetch products for this SOW
-    const { data: sowProducts } = await supabase
-      .from('sow_products')
-      .select(`
-        product_id,
-        products (
-          name
-        )
-      `)
-      .eq('sow_id', sow.id);
-
-    const productNames = sowProducts?.map(sp => {
-      const products = sp.products as { name: string }[] | null;
-      return products?.[0]?.name;
-    }).filter(Boolean) || [];
+    // Get products from JSONB field
+    const productNames = Array.isArray(sow.products) ? sow.products : [];
 
     // Return snake_case data directly with nested structure
     const transformedSow = {
@@ -67,6 +54,11 @@ export async function GET(
         salesforce_tenants: sow.salesforce_tenants || '999',
         timeline_weeks: sow.timeline_weeks || '999',
         units_consumption: sow.units_consumption || 'All units immediately',
+        // BookIt Family Units
+        orchestration_units: sow.orchestration_units || '',
+        bookit_forms_units: sow.bookit_forms_units || '',
+        bookit_links_units: sow.bookit_links_units || '',
+        bookit_handoff_units: sow.bookit_handoff_units || '',
         opportunity_id: sow.opportunity_id || '',
         opportunity_name: sow.opportunity_name || '',
         opportunity_amount: sow.opportunity_amount || undefined,
@@ -329,56 +321,9 @@ export async function PUT(
       );
     }
 
-    // Handle products if provided
+    // Handle products if provided - use JSONB field
     if (data.template?.products !== undefined) {
-      const sowId = (await params).id;
-      
-      // Processing products
-      
-      // Delete existing product associations
-      const { error: deleteError } = await supabase
-        .from('sow_products')
-        .delete()
-        .eq('sow_id', sowId);
-
-      if (deleteError) {
-        console.error('Error deleting existing products:', deleteError);
-      }
-
-      // Get product IDs for the provided product names
-      if (data.template.products.length > 0) {
-        const { data: productIds, error: productError } = await supabase
-          .from('products')
-          .select('id, name')
-          .in('name', data.template.products);
-
-        if (productError) {
-          console.error('Error fetching product IDs:', productError);
-          console.error('Requested product names:', data.template.products);
-        } else {
-          // Found product IDs
-          
-          if (productIds && productIds.length > 0) {
-            // Insert new product associations
-            const sowProductData = productIds.map(product => ({
-              sow_id: sowId,
-              product_id: product.id
-            }));
-
-            const { error: insertError } = await supabase
-              .from('sow_products')
-              .insert(sowProductData);
-
-            if (insertError) {
-              console.error('Error inserting product associations:', insertError);
-            } else {
-              // Successfully inserted product associations
-            }
-          } else {
-            // No product IDs found for names
-          }
-        }
-      }
+      updateData.products = data.template.products;
     }
 
     // Updated SOW response
