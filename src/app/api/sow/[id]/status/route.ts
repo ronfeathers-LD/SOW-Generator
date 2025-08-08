@@ -72,9 +72,10 @@ export async function PATCH(
           .order('sort_order', { ascending: true });
 
         if (stages && stages.length > 0) {
+          const sowId = (await params).id;
           // Create approval records for each stage
           const approvalRecords = stages.map(stage => ({
-            sow_id: (await params).id,
+            sow_id: sowId,
             stage_id: stage.id,
             status: 'pending',
             version: 1

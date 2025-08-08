@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabase } from '@/lib/supabase';
 
-// GET - Fetch all approval stages with assigned users
 export async function GET() {
   try {
     const session = await getServerSession();
@@ -20,24 +19,23 @@ export async function GET() {
       return new NextResponse('Admin access required', { status: 403 });
     }
 
-    const { data: stages, error } = await supabase
-      .from('approval_stages')
-      .select('*')
-      .order('sort_order', { ascending: true });
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('id, name, email, role')
+      .order('name', { ascending: true });
 
     if (error) {
-      console.error('Error fetching approval stages:', error);
-      return new NextResponse('Failed to fetch approval stages', { status: 500 });
+      console.error('Error fetching users:', error);
+      return new NextResponse('Failed to fetch users', { status: 500 });
     }
 
-    return NextResponse.json(stages);
+    return NextResponse.json(users || []);
   } catch (error) {
-    console.error('Error in approval stages API:', error);
+    console.error('Error in admin users API:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
 
-// PATCH - Update approval stage assignments
 export async function PATCH(request: Request) {
   try {
     const session = await getServerSession();
@@ -55,23 +53,33 @@ export async function PATCH(request: Request) {
       return new NextResponse('Admin access required', { status: 403 });
     }
 
-    const { stageId, assignedRole } = await request.json();
+    const { userId, role } = await request.json();
 
-    const { data: updatedStage, error } = await supabase
-      .from('approval_stages')
-      .update({ assigned_role: assignedRole })
-      .eq('id', stageId)
-      .select('*')
+    if (!userId || !role) {
+      return new NextResponse('Missing userId or role', { status: 400 });
+    }
+
+    // Validate role
+    const validRoles = ['user', 'admin', 'manager', 'director', 'vp'];
+    if (!validRoles.includes(role)) {
+      return new NextResponse('Invalid role', { status: 400 });
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .update({ role })
+      .eq('id', userId)
+      .select('id, name, email, role')
       .single();
 
     if (error) {
-      console.error('Error updating approval stage:', error);
-      return new NextResponse('Failed to update approval stage', { status: 500 });
+      console.error('Error updating user role:', error);
+      return new NextResponse('Failed to update user role', { status: 500 });
     }
 
-    return NextResponse.json(updatedStage);
+    return NextResponse.json(data);
   } catch (error) {
-    console.error('Error in approval stages API:', error);
+    console.error('Error in admin users PATCH API:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

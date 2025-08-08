@@ -19,8 +19,10 @@ export async function PATCH(
       .eq('email', session.user.email!)
       .single();
 
-    if (user?.role !== 'admin') {
-      return new NextResponse('Admin access required', { status: 403 });
+    // Check if user has appropriate role for approval
+    const allowedRoles = ['admin', 'manager', 'director', 'vp'];
+    if (!allowedRoles.includes(user?.role || '')) {
+      return new NextResponse('Insufficient permissions for approval', { status: 403 });
     }
 
     const { id: sowId, approvalId } = await params;
@@ -43,6 +45,40 @@ export async function PATCH(
 
     if (approvalError || !approval) {
       return new NextResponse('Approval not found', { status: 404 });
+    }
+
+    // Check if user can approve this stage based on hierarchical permissions
+    const canApprove = user?.role === 'admin' || approval.stage?.assigned_role === user?.role;
+    if (!canApprove) {
+      return new NextResponse('You are not assigned to this approval stage', { status: 403 });
+    }
+
+    // Check hierarchical override permissions
+    const userRole = user?.role;
+    const stageName = approval.stage?.name;
+    
+    // VP can approve any stage and bypass all others
+    if (userRole === 'vp') {
+      // VP can approve any stage
+    }
+    // Director can approve Director stage (which bypasses Manager)
+    else if (userRole === 'director') {
+      if (stageName === 'VP Approval') {
+        return new NextResponse('Director cannot approve VP stage', { status: 403 });
+      }
+    }
+    // Manager can only approve Manager stage
+    else if (userRole === 'manager') {
+      if (stageName !== 'Manager Approval') {
+        return new NextResponse('Manager can only approve Manager stage', { status: 403 });
+      }
+    }
+    // Admin can approve any stage
+    else if (userRole === 'admin') {
+      // Admin can approve any stage
+    }
+    else {
+      return new NextResponse('Insufficient permissions for approval', { status: 403 });
     }
 
     // Check if approval requires comments
@@ -88,24 +124,47 @@ export async function PATCH(
         return new NextResponse('Failed to update SOW status', { status: 500 });
       }
     } else {
-      // Check if workflow is complete (all stages approved/skipped)
+      // Check if workflow is complete based on sequential flow
       const { data: allApprovals } = await supabase
         .from('sow_approvals')
-        .select('status')
+        .select(`
+          status,
+          stage:approval_stages(name)
+        `)
         .eq('sow_id', sowId);
 
-      const isComplete = allApprovals?.every(a => ['approved', 'skipped'].includes(a.status));
+      if (allApprovals) {
+        // Check if VP approved (bypasses all)
+        const vpApproved = allApprovals.find(a => 
+          (a.stage as any)?.name === 'VP Approval' && a.status === 'approved'
+        );
+        
+        // Check if Director approved (after Manager)
+        const directorApproved = allApprovals.find(a => 
+          (a.stage as any)?.name === 'Director Approval' && a.status === 'approved'
+        );
+        
+        // Check if Manager approved
+        const managerApproved = allApprovals.find(a => 
+          (a.stage as any)?.name === 'Manager Approval' && a.status === 'approved'
+        );
 
-      if (isComplete) {
-        // Update SOW status to approved
-        const { error: sowUpdateError } = await supabase
-          .from('sows')
-          .update({ status: 'approved' })
-          .eq('id', sowId);
+        // Workflow is complete if:
+        // 1. VP approved (bypasses all), OR
+        // 2. Director approved after Manager approved
+        const isComplete = vpApproved || (managerApproved && directorApproved);
 
-        if (sowUpdateError) {
-          console.error('Error updating SOW status:', sowUpdateError);
-          return new NextResponse('Failed to update SOW status', { status: 500 });
+        if (isComplete) {
+          // Update SOW status to approved
+          const { error: sowUpdateError } = await supabase
+            .from('sows')
+            .update({ status: 'approved' })
+            .eq('id', sowId);
+
+          if (sowUpdateError) {
+            console.error('Error updating SOW status:', sowUpdateError);
+            return new NextResponse('Failed to update SOW status', { status: 500 });
+          }
         }
       }
     }

@@ -202,7 +202,6 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
       }
       
       const data = await response.json();
-      console.log('Workflow data loaded:', data);
       setWorkflow(data);
     } catch (err) {
       console.error('Error fetching workflow:', err);
@@ -429,15 +428,9 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
               <div className="flex flex-col space-y-2">
                 <button
                   onClick={() => {
-                    console.log('Approve button clicked');
-                    console.log('Current stage:', workflow.current_stage);
-                    console.log('Approvals:', workflow.approvals);
                     const approvalId = workflow.approvals.find(a => a.stage_id === workflow.current_stage?.id)?.id;
-                    console.log('Found approvalId:', approvalId);
                     if (approvalId) {
                       handleApprovalAction(approvalId, 'approve');
-                    } else {
-                      console.error('No approval ID found for current stage');
                     }
                   }}
                   disabled={submitting || (workflow.current_stage?.requires_comment && !approvalComments.trim())}

@@ -6,171 +6,255 @@ import { useRouter } from 'next/navigation';
 
 interface User {
   id: string;
+  name: string;
   email: string;
-  name?: string;
   role: string;
-  created_at: string;
 }
 
-export default function UserManagement() {
+export default function UserManagementPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [updatingUser, setUpdatingUser] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'loading') return;
     
-    if (!session || session.user?.role !== 'admin') {
+    if (!session) {
       router.push('/');
       return;
     }
 
-    loadUsers();
+    if (session.user?.role !== 'admin') {
+      router.push('/');
+      return;
+    }
+
+    fetchUsers();
   }, [session, status, router]);
 
-  const loadUsers = async () => {
+  const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/users');
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data);
-      } else {
-        console.error('Failed to load users');
+      setLoading(true);
+      const response = await fetch('/api/admin/users');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
       }
+
+      const data = await response.json();
+      setUsers(data);
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error('Error fetching users:', error);
+      setError('Failed to load users');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const updateUserRole = async (userId: string, newRole: string) => {
-    setUpdatingUser(userId);
     try {
-      const response = await fetch('/api/users', {
-        method: 'PUT',
+      setUpdating(userId);
+      setError(null);
+      setSuccess(null);
+
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ userId, role: newRole }),
       });
 
-      if (response.ok) {
-        // Reload users to get updated data
-        await loadUsers();
-      } else {
-        console.error('Failed to update user role');
+      if (!response.ok) {
+        throw new Error('Failed to update user role');
       }
+
+      const updatedUser = await response.json();
+      
+      // Update the user in the local state
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === userId ? updatedUser : user
+        )
+      );
+
+      setSuccess(`Successfully updated ${updatedUser.name}'s role to ${newRole}`);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
       console.error('Error updating user role:', error);
+      setError('Failed to update user role');
     } finally {
-      setUpdatingUser(null);
+      setUpdating(null);
     }
   };
 
-  if (status === 'loading' || isLoading) {
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'manager':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'director':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'vp':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'user':
+        return 'bg-green-100 text-green-800 border-green-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      <div className="flex items-center justify-center min-h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading users...</p>
+        </div>
       </div>
     );
   }
 
-  if (!session || session.user?.role !== 'admin') {
-    return null;
-  }
-
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
-        <p className="mt-2 text-gray-600">
-          Manage user roles and permissions
-        </p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Manage user roles and permissions
+          </p>
+        </div>
       </div>
 
-      {/* Users Table */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">All Users</h3>
+      {/* Success/Error Messages */}
+      {success && (
+        <div className="bg-green-50 border border-green-200 rounded-md p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-green-800">{success}</p>
+            </div>
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Joined
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
-                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                          <span className="text-sm font-medium text-indigo-600">
-                            {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {user.name || 'No name'}
-                        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-800">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Users Table */}
+      <div className="bg-white shadow overflow-hidden sm:rounded-md">
+        <div className="px-4 py-5 sm:px-6">
+          <h3 className="text-lg leading-6 font-medium text-gray-900">
+            Users ({users.length})
+          </h3>
+        </div>
+        
+        {users.length === 0 ? (
+          <div className="text-center py-12">
+            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+            </svg>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No users found</h3>
+            <p className="mt-1 text-sm text-gray-500">Get started by creating a new user.</p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-gray-200">
+            {users.map((user) => (
+              <li key={user.id} className="px-4 py-4 sm:px-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                        <span className="text-sm font-medium text-indigo-600">
+                          {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                        </span>
                       </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{user.email}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      user.role === 'admin' 
-                        ? 'bg-red-100 text-red-800' 
-                        : 'bg-green-100 text-green-800'
-                    }`}>
+                    <div className="ml-4">
+                      <div className="text-sm font-medium text-gray-900">
+                        {user.name || 'No name'}
+                      </div>
+                      <div className="text-sm text-gray-500">{user.email}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadgeColor(user.role)}`}>
                       {user.role}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(user.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    {updatingUser === user.id ? (
+                    
+                                         <select
+                       value={user.role}
+                       onChange={(e) => updateUserRole(user.id, e.target.value)}
+                       disabled={updating === user.id}
+                       className="ml-2 block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                     >
+                       <option value="user">User</option>
+                       <option value="manager">Manager</option>
+                       <option value="director">Director</option>
+                       <option value="vp">VP</option>
+                       <option value="admin">Admin</option>
+                     </select>
+                    
+                    {updating === user.id && (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
-                    ) : (
-                      <select
-                        value={user.role}
-                        onChange={(e) => updateUserRole(user.id, e.target.value)}
-                        className="text-sm border border-gray-300 rounded px-2 py-1"
-                        disabled={user.id === session.user?.id} // Can't change own role
-                      >
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                      </select>
                     )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Instructions */}
+      <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-blue-800">Role Management</h3>
+                                       <div className="mt-2 text-sm text-blue-700">
+                <ul className="list-disc pl-5 space-y-1">
+                  <li><strong>User:</strong> Can create and edit SOWs, view their own SOWs</li>
+                  <li><strong>Manager:</strong> Can approve Manager stage (first required approval)</li>
+                  <li><strong>Director:</strong> Can approve Director stage (final required approval after Manager)</li>
+                  <li><strong>VP:</strong> Can approve any stage (optional, bypasses all others if approved)</li>
+                  <li><strong>Admin:</strong> Can access admin panel, manage users, configure integrations, and approve any stage</li>
+                </ul>
+                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                  <p className="text-xs text-yellow-800">
+                    <strong>Approval Flow:</strong> Manager → Director (required) OR VP (bypasses all)
+                  </p>
+                </div>
+              </div>
+          </div>
         </div>
       </div>
     </div>

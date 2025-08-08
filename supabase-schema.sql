@@ -92,7 +92,10 @@ CREATE TABLE IF NOT EXISTS sows (
   customer_signature_date_2 TIMESTAMP WITH TIME ZONE,
   
   -- Salesforce fields
-  salesforce_account_id TEXT DEFAULT ''
+  salesforce_account_id TEXT DEFAULT '',
+  
+  -- Author tracking
+  author_id UUID REFERENCES users(id)
 );
 
 -- Create approval workflow tables
@@ -104,7 +107,7 @@ CREATE TABLE IF NOT EXISTS approval_stages (
   is_active BOOLEAN DEFAULT true,
   requires_comment BOOLEAN DEFAULT false,
   auto_approve BOOLEAN DEFAULT false,
-  assigned_user_id UUID REFERENCES users(id), -- User assigned to this stage
+  assigned_role TEXT, -- Role assigned to this stage (manager, director, vp)
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -149,16 +152,14 @@ CREATE TABLE IF NOT EXISTS approval_comments (
 );
 
 -- Insert default approval stages
-INSERT INTO approval_stages (name, description, sort_order, requires_comment) VALUES
-  ('Manager Approval', 'Approval by project manager', 1, false),
-  ('Director Approval', 'Final approval by director', 2, true)
+INSERT INTO approval_stages (name, description, sort_order, requires_comment, assigned_role) VALUES
+  ('Manager Approval', 'First level approval by project manager', 1, false, 'manager'),
+  ('Director Approval', 'Second level approval by director (can override manager)', 2, true, 'director'),
+  ('VP Approval', 'Final approval by VP (can override director)', 3, true, 'vp')
 ON CONFLICT DO NOTHING;
 
--- Insert default approval rules
-INSERT INTO approval_rules (name, condition_type, condition_value, stage_id, sort_order) VALUES
-  ('High Value Projects', 'amount', '{"min_amount": 50000}', 
-   (SELECT id FROM approval_stages WHERE name = 'Final Approval'), 1)
-ON CONFLICT DO NOTHING;
+-- Insert default approval rules (will be updated after stages are created)
+-- Note: This will be handled by the migration endpoint to avoid subquery issues
 
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (
@@ -307,22 +308,41 @@ ALTER TABLE sows ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE salesforce_configs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE lean_data_signators ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lean_data_signatories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE avoma_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gemini_configs ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for public read access to SOWs
-CREATE POLICY "Public read access to SOWs" ON sows FOR SELECT USING (true);
-
--- Create policies for authenticated users
-CREATE POLICY "Users can manage their own data" ON users FOR ALL USING (auth.uid()::text = id::text);
-CREATE POLICY "Users can create SOWs" ON sows FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can update SOWs" ON sows FOR UPDATE USING (true);
-CREATE POLICY "Users can delete SOWs" ON sows FOR DELETE USING (true);
-CREATE POLICY "Users can manage comments" ON comments FOR ALL USING (true);
-
--- Admin policies for config tables
-CREATE POLICY "Admin access to configs" ON salesforce_configs FOR ALL USING (true);
-CREATE POLICY "Admin access to signators" ON lean_data_signators FOR ALL USING (true);
-CREATE POLICY "Admin access to avoma configs" ON avoma_configs FOR ALL USING (true);
-CREATE POLICY "Admin access to gemini configs" ON gemini_configs FOR ALL USING (true); 
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'sows' AND policyname = 'Public read access to SOWs') THEN
+        CREATE POLICY "Public read access to SOWs" ON sows FOR SELECT USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'users' AND policyname = 'Users can manage their own data') THEN
+        CREATE POLICY "Users can manage their own data" ON users FOR ALL USING (auth.uid()::text = id::text);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'sows' AND policyname = 'Users can create SOWs') THEN
+        CREATE POLICY "Users can create SOWs" ON sows FOR INSERT WITH CHECK (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'sows' AND policyname = 'Users can update SOWs') THEN
+        CREATE POLICY "Users can update SOWs" ON sows FOR UPDATE USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'sows' AND policyname = 'Users can delete SOWs') THEN
+        CREATE POLICY "Users can delete SOWs" ON sows FOR DELETE USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'comments' AND policyname = 'Users can manage comments') THEN
+        CREATE POLICY "Users can manage comments" ON comments FOR ALL USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'salesforce_configs' AND policyname = 'Admin access to configs') THEN
+        CREATE POLICY "Admin access to configs" ON salesforce_configs FOR ALL USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'lean_data_signatories' AND policyname = 'Admin access to signatories') THEN
+        CREATE POLICY "Admin access to signatories" ON lean_data_signatories FOR ALL USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'avoma_configs' AND policyname = 'Admin access to avoma configs') THEN
+        CREATE POLICY "Admin access to avoma configs" ON avoma_configs FOR ALL USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'gemini_configs' AND policyname = 'Admin access to gemini configs') THEN
+        CREATE POLICY "Admin access to gemini configs" ON gemini_configs FOR ALL USING (true);
+    END IF;
+END $$; 

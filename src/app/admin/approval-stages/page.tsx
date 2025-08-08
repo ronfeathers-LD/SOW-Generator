@@ -4,11 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
+
 
 interface ApprovalStage {
   id: string;
@@ -17,15 +13,13 @@ interface ApprovalStage {
   sort_order: number;
   is_active: boolean;
   requires_comment: boolean;
-  assigned_user_id?: string;
-  assigned_user?: User;
+  assigned_role?: string;
 }
 
 export default function ApprovalStagesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [stages, setStages] = useState<ApprovalStage[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
 
@@ -51,12 +45,7 @@ export default function ApprovalStagesPage() {
         setStages(stagesData);
       }
 
-      // Fetch users
-      const usersResponse = await fetch('/api/admin/users');
-      if (usersResponse.ok) {
-        const usersData = await usersResponse.json();
-        setUsers(usersData);
-      }
+
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -64,7 +53,7 @@ export default function ApprovalStagesPage() {
     }
   };
 
-  const updateStageAssignment = async (stageId: string, assignedUserId: string | null) => {
+  const updateStageAssignment = async (stageId: string, assignedRole: string | null) => {
     try {
       setUpdating(stageId);
       
@@ -75,7 +64,7 @@ export default function ApprovalStagesPage() {
         },
         body: JSON.stringify({
           stageId,
-          assignedUserId
+          assignedRole
         }),
       });
 
@@ -113,7 +102,33 @@ export default function ApprovalStagesPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Approval Stage Assignments</h1>
-          <p className="mt-2 text-gray-600">Assign users to approval stages</p>
+          <p className="mt-2 text-gray-600">Assign users to approval stages. Only users with Manager, Director, VP, or Admin roles can be assigned.</p>
+        </div>
+
+        {/* Role Information */}
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-blue-800">Approval Workflow</h3>
+              <div className="mt-2 text-sm text-blue-700">
+                <ul className="list-disc pl-5 space-y-1">
+                  <li><strong>Manager Approval:</strong> First level approval (required)</li>
+                  <li><strong>Director Approval:</strong> Final approval (required after Manager)</li>
+                  <li><strong>VP Approval:</strong> Optional approval (bypasses all others if approved)</li>
+                </ul>
+                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                  <p className="text-xs text-yellow-800">
+                    <strong>Flow:</strong> Manager → Director (required) OR VP (bypasses all)
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="bg-white shadow rounded-lg">
@@ -133,27 +148,25 @@ export default function ApprovalStagesPage() {
                     </div>
                     <div className="flex items-center space-x-4">
                       <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-500">Assigned to:</span>
+                        <span className="text-sm text-gray-500">Assigned Role:</span>
                         <select
-                          value={stage.assigned_user_id || ''}
+                          value={stage.assigned_role || ''}
                           onChange={(e) => updateStageAssignment(stage.id, e.target.value || null)}
                           disabled={updating === stage.id}
                           className="block w-48 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                         >
                           <option value="">No assignment</option>
-                          {users.map((user) => (
-                            <option key={user.id} value={user.id}>
-                              {user.name} ({user.email})
-                            </option>
-                          ))}
+                          <option value="manager">Manager</option>
+                          <option value="director">Director</option>
+                          <option value="vp">VP</option>
                         </select>
                         {updating === stage.id && (
                           <span className="text-sm text-gray-500">Updating...</span>
                         )}
                       </div>
-                      {stage.assigned_user && (
+                      {stage.assigned_role && (
                         <div className="text-sm text-gray-600">
-                          Currently: {stage.assigned_user.name}
+                          Currently: {stage.assigned_role.charAt(0).toUpperCase() + stage.assigned_role.slice(1)}
                         </div>
                       )}
                     </div>

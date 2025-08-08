@@ -115,15 +115,48 @@ export async function GET(
       return new NextResponse('Failed to fetch stages', { status: 500 });
     }
 
-    // Determine current stage and workflow status
-    const currentStage = stages.find(stage => 
-      !approvals.find(approval => 
-        approval.stage_id === stage.id && 
-        ['approved', 'skipped'].includes(approval.status)
-      )
+    // Determine current stage and workflow status with sequential flow
+    let currentStage = null;
+    let isComplete = false;
+    
+    // Check if VP has approved (bypasses all other approvals)
+    const vpApproval = approvals.find(approval => 
+      approval.stage?.name === 'VP Approval' && approval.status === 'approved'
     );
-
-    const isComplete = !currentStage;
+    
+    if (vpApproval) {
+      // VP approval bypasses all others
+      isComplete = true;
+    } else {
+      // Check if Director has approved (final approval after Manager)
+      const directorApproval = approvals.find(approval => 
+        approval.stage?.name === 'Director Approval' && approval.status === 'approved'
+      );
+      
+      if (directorApproval) {
+        // Director approved after Manager - workflow complete
+        isComplete = true;
+      } else {
+        // Check if Manager has approved
+        const managerApproval = approvals.find(approval => 
+          approval.stage?.name === 'Manager Approval' && approval.status === 'approved'
+        );
+        
+        if (managerApproval) {
+          // Manager approved, now waiting for Director approval
+          const directorStage = stages.find(stage => stage.name === 'Director Approval');
+          if (directorStage) {
+            currentStage = directorStage;
+          } else {
+            isComplete = true;
+          }
+        } else {
+          // Manager hasn't approved yet
+          currentStage = stages.find(stage => stage.name === 'Manager Approval');
+        }
+      }
+    }
+    
     const nextStage = stages.find(stage => 
       stage.sort_order > (currentStage?.sort_order || 0)
     );
@@ -135,12 +168,48 @@ export async function GET(
       .eq('email', session.user.email!)
       .single();
 
-    // Check if user can approve based on role or stage assignment
-    const canApprove = (user?.role === 'admin' || currentStage?.assigned_user_id === user?.id) && 
-      currentStage && !approvals.find(a => a.stage_id === currentStage.id && a.status === 'pending');
+    // Check if user can approve based on hierarchical permissions
+    const userRole = user?.role;
+    const currentStageName = currentStage?.name;
     
-    const canReject = (user?.role === 'admin' || currentStage?.assigned_user_id === user?.id) && currentStage;
-    const canSkip = user?.role === 'admin' && currentStage?.auto_approve;
+    let canApprove = false;
+    let canReject = false;
+    let canSkip = false;
+    
+    if (currentStage) {
+      // Check if user role matches the assigned role for the current stage
+      const isAssigned = currentStage?.assigned_role === userRole;
+      const isAdmin = userRole === 'admin';
+      
+      // VP can approve any stage and bypass all others
+      if (userRole === 'vp') {
+        canApprove = isAssigned || isAdmin;
+        canReject = isAssigned || isAdmin;
+        canSkip = isAdmin;
+      }
+      // Director can approve Director stage (after Manager approves)
+      else if (userRole === 'director') {
+        if (currentStageName === 'Director Approval') {
+          canApprove = isAssigned || isAdmin;
+          canReject = isAssigned || isAdmin;
+          canSkip = isAdmin;
+        }
+      }
+      // Manager can only approve Manager stage
+      else if (userRole === 'manager') {
+        if (currentStageName === 'Manager Approval') {
+          canApprove = isAssigned || isAdmin;
+          canReject = isAssigned || isAdmin;
+          canSkip = isAdmin;
+        }
+      }
+      // Admin can approve any stage
+      else if (userRole === 'admin') {
+        canApprove = true;
+        canReject = true;
+        canSkip = currentStage?.auto_approve || false;
+      }
+    }
 
     const workflow = {
       sow_id: sowId,
