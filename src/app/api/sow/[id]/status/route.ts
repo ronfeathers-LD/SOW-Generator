@@ -55,6 +55,43 @@ export async function PATCH(
       .select()
       .single();
 
+    // If status is being set to 'in_review', create approval workflow
+    if (status === 'in_review') {
+      // Check if approval workflow already exists
+      const { data: existingApprovals } = await supabase
+        .from('sow_approvals')
+        .select('id')
+        .eq('sow_id', (await params).id);
+
+      if (!existingApprovals || existingApprovals.length === 0) {
+        // Get all active approval stages
+        const { data: stages } = await supabase
+          .from('approval_stages')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true });
+
+        if (stages && stages.length > 0) {
+          // Create approval records for each stage
+          const approvalRecords = stages.map(stage => ({
+            sow_id: (await params).id,
+            stage_id: stage.id,
+            status: 'pending',
+            version: 1
+          }));
+
+          const { error: insertError } = await supabase
+            .from('sow_approvals')
+            .insert(approvalRecords);
+
+          if (insertError) {
+            console.error('Error creating approval workflow:', insertError);
+            // Don't fail the status update, just log the error
+          }
+        }
+      }
+    }
+
     return NextResponse.json(updatedSOW);
   } catch (error) {
     console.error('Error updating SOW status:', error);

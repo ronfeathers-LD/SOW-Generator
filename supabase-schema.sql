@@ -95,6 +95,71 @@ CREATE TABLE IF NOT EXISTS sows (
   salesforce_account_id TEXT DEFAULT ''
 );
 
+-- Create approval workflow tables
+CREATE TABLE IF NOT EXISTS approval_stages (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  requires_comment BOOLEAN DEFAULT false,
+  auto_approve BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS approval_rules (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  name TEXT NOT NULL,
+  condition_type TEXT NOT NULL, -- 'amount', 'product', etc.
+  condition_value TEXT NOT NULL, -- JSON string with condition details
+  stage_id UUID REFERENCES approval_stages(id),
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS sow_approvals (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  sow_id UUID REFERENCES sows(id) ON DELETE CASCADE,
+  stage_id UUID REFERENCES approval_stages(id),
+  approver_id UUID REFERENCES users(id),
+  status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'approved', 'rejected', 'skipped'
+  comments TEXT,
+  approved_at TIMESTAMP WITH TIME ZONE,
+  rejected_at TIMESTAMP WITH TIME ZONE,
+  skipped_at TIMESTAMP WITH TIME ZONE,
+  version INTEGER DEFAULT 1,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS approval_comments (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  sow_id UUID REFERENCES sows(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id),
+  comment TEXT NOT NULL,
+  is_internal BOOLEAN DEFAULT false,
+  parent_id UUID REFERENCES approval_comments(id), -- For threaded comments
+  version INTEGER DEFAULT 1,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Insert default approval stages
+INSERT INTO approval_stages (name, description, sort_order, requires_comment) VALUES
+  ('Initial Review', 'Initial review by project manager', 1, false),
+  ('Technical Review', 'Technical review by engineering lead', 2, true),
+  ('Final Approval', 'Final approval by VP', 3, true)
+ON CONFLICT DO NOTHING;
+
+-- Insert default approval rules
+INSERT INTO approval_rules (name, condition_type, condition_value, stage_id, sort_order) VALUES
+  ('High Value Projects', 'amount', '{"min_amount": 50000}', 
+   (SELECT id FROM approval_stages WHERE name = 'Final Approval'), 1)
+ON CONFLICT DO NOTHING;
+
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -209,6 +274,10 @@ CREATE TRIGGER update_salesforce_configs_updated_at BEFORE UPDATE ON salesforce_
 CREATE TRIGGER update_lean_data_signatories_updated_at BEFORE UPDATE ON lean_data_signatories FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_avoma_configs_updated_at BEFORE UPDATE ON avoma_configs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_gemini_configs_updated_at BEFORE UPDATE ON gemini_configs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_approval_stages_updated_at BEFORE UPDATE ON approval_stages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_approval_rules_updated_at BEFORE UPDATE ON approval_rules FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_sow_approvals_updated_at BEFORE UPDATE ON sow_approvals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_approval_comments_updated_at BEFORE UPDATE ON approval_comments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE sows ENABLE ROW LEVEL SECURITY;
