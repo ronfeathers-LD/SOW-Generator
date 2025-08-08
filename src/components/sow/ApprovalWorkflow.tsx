@@ -10,8 +10,14 @@ interface ApprovalStage {
   is_active: boolean;
   requires_comment: boolean;
   auto_approve: boolean;
+  assigned_user_id?: string;
   created_at: string;
   updated_at: string;
+  assigned_user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
 }
 
 interface SOWApproval {
@@ -196,6 +202,7 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
       }
       
       const data = await response.json();
+      console.log('Workflow data loaded:', data);
       setWorkflow(data);
     } catch (err) {
       console.error('Error fetching workflow:', err);
@@ -402,6 +409,11 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
           {workflow.current_stage.description && (
             <p className="text-blue-700 text-xs mb-2">{workflow.current_stage.description}</p>
           )}
+          {workflow.current_stage.assigned_user && (
+            <p className="text-blue-700 text-xs mb-2">
+              <strong>Assigned to:</strong> {workflow.current_stage.assigned_user.name} ({workflow.current_stage.assigned_user.email})
+            </p>
+          )}
           
           {workflow.can_approve && showApprovalActions && (
             <div className="space-y-3">
@@ -417,9 +429,15 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
               <div className="flex flex-col space-y-2">
                 <button
                   onClick={() => {
+                    console.log('Approve button clicked');
+                    console.log('Current stage:', workflow.current_stage);
+                    console.log('Approvals:', workflow.approvals);
                     const approvalId = workflow.approvals.find(a => a.stage_id === workflow.current_stage?.id)?.id;
+                    console.log('Found approvalId:', approvalId);
                     if (approvalId) {
                       handleApprovalAction(approvalId, 'approve');
+                    } else {
+                      console.error('No approval ID found for current stage');
                     }
                   }}
                   disabled={submitting || (workflow.current_stage?.requires_comment && !approvalComments.trim())}

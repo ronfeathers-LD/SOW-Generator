@@ -103,7 +103,10 @@ export async function GET(
     // Get all active approval stages
     const { data: stages, error: stagesError } = await supabase
       .from('approval_stages')
-      .select('*')
+      .select(`
+        *,
+        assigned_user:users(id, name, email)
+      `)
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
 
@@ -132,10 +135,11 @@ export async function GET(
       .eq('email', session.user.email!)
       .single();
 
-    const canApprove = user?.role === 'admin' && currentStage && 
-      !approvals.find(a => a.stage_id === currentStage.id && a.status === 'pending');
+    // Check if user can approve based on role or stage assignment
+    const canApprove = (user?.role === 'admin' || currentStage?.assigned_user_id === user?.id) && 
+      currentStage && !approvals.find(a => a.stage_id === currentStage.id && a.status === 'pending');
     
-    const canReject = user?.role === 'admin' && currentStage;
+    const canReject = (user?.role === 'admin' || currentStage?.assigned_user_id === user?.id) && currentStage;
     const canSkip = user?.role === 'admin' && currentStage?.auto_approve;
 
     const workflow = {
