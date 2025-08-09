@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabase } from '@/lib/supabase';
+import { AuditService } from '@/lib/audit-service';
 
 // GET - Fetch approval comments for a SOW
 export async function GET(
@@ -166,6 +167,15 @@ export async function POST(
       console.error('Error creating comment:', insertError);
       return new NextResponse('Failed to create comment', { status: 500 });
     }
+
+    // Log comment addition to audit trail
+    await AuditService.logCommentAdded(
+      sowId,
+      user.id,
+      comment.trim(),
+      false,
+      parent_id || undefined
+    );
 
     return NextResponse.json(newComment);
   } catch (error) {

@@ -15,6 +15,13 @@ export async function GET(
       .eq('id', sowId)
       .single();
 
+    if (sowError || !sow) {
+      return NextResponse.json({ 
+        error: 'SOW not found',
+        details: sowError?.message || 'SOW does not exist'
+      }, { status: 404 });
+    }
+
     // Check approval stages
     const { data: stages, error: stagesError } = await supabase
       .from('approval_stages')

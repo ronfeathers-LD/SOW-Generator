@@ -156,6 +156,7 @@ export async function GET() {
     const { data: sows, error } = await supabase
       .from('sows')
       .select('*')
+      .eq('is_hidden', false) // Only show non-hidden SOWs
       .order('created_at', { ascending: false });
 
     if (error) {

@@ -38,6 +38,29 @@ export async function POST(
         version: (latestVersion?.version || 0) + 1,
         is_latest: true,
         parent_id: originalSOW.parent_id || originalSOW.id,
+        
+        // Reset lifecycle fields for new version
+        status: 'draft', // New versions should always be draft and editable
+        created_at: undefined, // Let Supabase set current timestamp
+        updated_at: undefined, // Let Supabase set current timestamp
+        signature_date: undefined, // Reset signature date
+        start_date: undefined, // Reset project start date
+        project_start_date: undefined, // Reset project start date
+        project_end_date: undefined, // Reset project end date
+        customer_signature_date_2: undefined, // Reset second signature date
+        
+        // Reset content edit tracking flags
+        intro_content_edited: false,
+        scope_content_edited: false,
+        objectives_disclosure_content_edited: false,
+        assumptions_content_edited: false,
+        project_phases_content_edited: false,
+        roles_content_edited: false,
+        deliverables_content_edited: false,
+        objective_overview_content_edited: false,
+        key_objectives_content_edited: false,
+        
+        // Preserve business data with safe defaults
         client_roles: originalSOW.client_roles ?? [],
         pricing_roles: originalSOW.pricing_roles ?? [],
         billing_info: originalSOW.billing_info ?? {},

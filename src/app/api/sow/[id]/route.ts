@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import { supabase } from '@/lib/supabase';
 
 export async function GET(
@@ -10,6 +11,7 @@ export async function GET(
       .from('sows')
       .select('*')
       .eq('id', (await params).id)
+      .eq('is_hidden', false) // Prevent access to hidden SOWs
       .single();
 
     if (error || !sow) {
@@ -343,9 +345,25 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession();
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user is admin
+    const { data: user } = await supabase
+      .from('users')
+      .select('role')
+      .eq('email', session.user.email)
+      .single();
+
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required to hide SOWs' }, { status: 403 });
+    }
+
     const { id } = await params;
     
-    // Find the SOW to ensure it exists
+    // Find the SOW to ensure it exists and check its status
     const { data: existingSOW, error: findError } = await supabase
       .from('sows')
       .select('*')
@@ -356,45 +374,43 @@ export async function DELETE(
       return NextResponse.json({ error: 'SOW not found' }, { status: 404 });
     }
 
-    // Delete all comments first (they reference the SOW)
-    const { error: commentsError } = await supabase
-      .from('comments')
-      .delete()
-      .eq('sow_id', id);
-
-    if (commentsError) {
-      console.error('Error deleting comments:', commentsError);
+    // Prevent hiding of approved SOWs
+    if (existingSOW.status === 'approved') {
+      return NextResponse.json({ 
+        error: 'Cannot hide approved SOWs. Approved SOWs are protected.' 
+      }, { status: 403 });
     }
 
-    // Delete all versions of this SOW
-    const { error: versionsError } = await supabase
+    // Check for versions
+    const { data: versions } = await supabase
       .from('sows')
-      .delete()
+      .select('id')
       .eq('parent_id', id);
 
-    if (versionsError) {
-      console.error('Error deleting versions:', versionsError);
-    }
+    const hasVersions = versions && versions.length > 0;
 
-    // Finally delete the main SOW
-    const { error: deleteError } = await supabase
+    // Soft delete: Hide the SOW and all its versions by setting is_hidden = true
+    const { error: hideError } = await supabase
       .from('sows')
-      .delete()
-      .eq('id', id);
+      .update({ is_hidden: true })
+      .or(`id.eq.${id},parent_id.eq.${id}`);
 
-    if (deleteError) {
-      console.error('Error deleting SOW:', deleteError);
+    if (hideError) {
+      console.error('Error hiding SOW:', hideError);
       return NextResponse.json(
-        { error: 'Failed to delete SOW' },
+        { error: 'Failed to hide SOW' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ message: 'SOW deleted successfully' });
+    return NextResponse.json({ 
+      message: 'SOW hidden successfully',
+      hiddenVersions: hasVersions ? versions?.length + 1 : 1
+    });
   } catch (error) {
-    console.error('Error deleting SOW:', error);
+    console.error('Error hiding SOW:', error);
     return NextResponse.json(
-      { error: 'Failed to delete SOW' },
+      { error: 'Failed to hide SOW' },
       { status: 500 }
     );
   }

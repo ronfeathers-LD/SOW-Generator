@@ -57,8 +57,16 @@ function SOWListContent() {
     }
   }, [sows, statusFilter]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this SOW? This action cannot be undone.')) {
+  const handleHide = async (id: string, sowTitle: string, status: string) => {
+    // Enhanced confirmation dialog
+    const confirmMessage = `Are you sure you want to hide "${sowTitle}"?\n\n` +
+      `Status: ${getStatusLabel(status)}\n` +
+      `This action will hide this SOW and all its versions from the system.\n` +
+      `The data will be preserved but will no longer be visible.\n\n` +
+      `Type "HIDE" to confirm:`;
+    
+    const userInput = prompt(confirmMessage);
+    if (userInput !== 'HIDE') {
       return;
     }
 
@@ -69,14 +77,22 @@ function SOWListContent() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete SOW');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to hide SOW');
       }
 
-      // Remove the deleted SOW from both lists
+      const result = await response.json();
+      
+      // Show success message
+      alert(`SOW "${sowTitle}" hidden successfully${result.hiddenVersions ? ` along with ${result.hiddenVersions} version(s)` : ''}.`);
+
+      // Remove the hidden SOW from both lists
       setSows(sows.filter(sow => sow.id !== id));
       setFilteredSows(filteredSows.filter(sow => sow.id !== id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete SOW');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to hide SOW';
+      setError(errorMessage);
+      alert(`Error: ${errorMessage}`);
     } finally {
       setDeletingId(null);
     }
@@ -293,13 +309,21 @@ function SOWListContent() {
                               >
                                 View
                               </Link>
-                              <button
-                                onClick={() => handleDelete(sow.id)}
-                                disabled={deletingId === sow.id}
-                                className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {deletingId === sow.id ? 'Deleting...' : 'Delete'}
-                              </button>
+                              {sow.status !== 'approved' && (
+                                <button
+                                  onClick={() => handleHide(sow.id, sow.sow_title, sow.status)}
+                                  disabled={deletingId === sow.id}
+                                  className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  title={sow.status === 'approved' ? 'Approved SOWs cannot be hidden' : 'Hide SOW'}
+                                >
+                                  {deletingId === sow.id ? 'Hiding...' : 'Hide'}
+                                </button>
+                              )}
+                              {sow.status === 'approved' && (
+                                <span className="text-gray-400 cursor-not-allowed" title="Approved SOWs cannot be hidden">
+                                  Hide
+                                </span>
+                              )}
                             </div>
                           </td>
                         </tr>

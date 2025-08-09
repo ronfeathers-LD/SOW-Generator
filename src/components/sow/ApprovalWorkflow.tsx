@@ -339,15 +339,7 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending': return '⏳';
-      case 'approved': return '✅';
-      case 'rejected': return '❌';
-      case 'skipped': return '⏭️';
-      default: return '❓';
-    }
-  };
+
 
   if (loading) {
     return (
@@ -401,18 +393,15 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
         )}
       </div>
 
-      {/* Current Stage */}
+      {/* Current Approval */}
       {workflow.current_stage && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-medium text-blue-900 mb-2 text-sm">Current Stage: {workflow.current_stage.name}</h4>
-          {workflow.current_stage.description && (
-            <p className="text-blue-700 text-xs mb-2">{workflow.current_stage.description}</p>
-          )}
-          {workflow.current_stage.assigned_user && (
-            <p className="text-blue-700 text-xs mb-2">
-              <strong>Assigned to:</strong> {workflow.current_stage.assigned_user.name} ({workflow.current_stage.assigned_user.email})
-            </p>
-          )}
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-medium">{workflow.current_stage.name}</p>
+            <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+              Pending
+            </span>
+          </div>
           
           {workflow.can_approve && showApprovalActions && (
             <div className="space-y-3">
@@ -470,61 +459,31 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
         </div>
       )}
 
-      {/* Approval Stages */}
-      <div className="mb-4">
-        <h4 className="font-medium mb-2 text-sm">Approval Stages</h4>
-        <div className="space-y-2">
-                      {workflow.approvals.map((approval) => (
-              <div
-                key={approval.id}
-                className={`p-2 border rounded-lg ${
-                  approval.stage_id === workflow.current_stage?.id
-                    ? 'border-blue-300 bg-blue-50'
-                    : 'border-gray-200'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm">{getStatusIcon(approval.status)}</span>
-                    <div>
-                      <h5 className="font-medium text-sm">{approval.stage?.name}</h5>
-                      {approval.stage?.description && (
-                        <p className="text-xs text-gray-600">{approval.stage.description}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <span className={`px-1 py-0.5 rounded-full text-xs font-medium ${getStatusColor(approval.status)}`}>
-                      {approval.status}
+      {/* Approval History */}
+      {workflow.approvals.some(a => a.status !== 'pending') && (
+        <div className="mb-4">
+          <h4 className="font-medium mb-2 text-sm">Approval History</h4>
+          <div className="space-y-1">
+            {workflow.approvals
+              .filter(approval => approval.status !== 'pending')
+              .map((approval) => (
+              <div key={approval.id} className="flex items-center justify-between text-xs">
+                <span>{approval.stage?.name}</span>
+                <div className="flex items-center space-x-1">
+                  <span className={`px-1 py-0.5 rounded-full text-xs font-medium ${getStatusColor(approval.status)}`}>
+                    {approval.status}
+                  </span>
+                  {approval.approver && (
+                    <span className="text-gray-500">
+                      by {approval.approver.name}
                     </span>
-                    {approval.approver && (
-                      <span className="text-xs text-gray-500">
-                        by {approval.approver.name}
-                      </span>
-                    )}
-                  </div>
+                  )}
                 </div>
-              
-              {approval.comments && (
-                <div className="mt-1 p-1 bg-gray-50 rounded text-xs">
-                  <strong>Comments:</strong> {approval.comments}
-                </div>
-              )}
-              
-              {approval.approved_at && (
-                <div className="mt-1 text-xs text-gray-500">
-                  Approved: {new Date(approval.approved_at).toLocaleDateString()}
-                </div>
-              )}
-              {approval.rejected_at && (
-                <div className="mt-1 text-xs text-gray-500">
-                  Rejected: {new Date(approval.rejected_at).toLocaleDateString()}
-                </div>
-              )}
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Comments Section */}
       <div className="mb-4">

@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const sowId = (await params).id;
-    const results: any = {};
+    const results: Record<string, unknown> = {};
 
     // Step 1: Check SOW
     const { data: sow, error: sowError } = await supabase
@@ -29,7 +29,7 @@ export async function GET(
 
     // Step 3: Check if assigned_user_id column exists
     try {
-      const { data: testStages, error: testError } = await supabase
+      const { error: testError } = await supabase
         .from('approval_stages')
         .select('assigned_user_id')
         .limit(1);

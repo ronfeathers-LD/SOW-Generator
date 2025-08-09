@@ -361,46 +361,7 @@ export default function SOWDetailsPage() {
     return sow.status === 'approved' || sow.status === 'rejected';
   }, [sow]);
 
-  const handleStatusChange = async (newStatus: SOW['status']) => {
-    try {
-      const response = await fetch(`/api/sow/${params.id}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          status: newStatus,
-          version: sow?.version 
-        }),
-      });
 
-      if (!response.ok) {
-        throw new Error('Failed to update status');
-      }
-
-      const updatedSOW = await response.json();
-      
-      // Ensure the SOW data structure is complete
-      setSOW({
-        ...sow!,
-        ...updatedSOW,
-        pricing: {
-          ...sow!.pricing,
-          ...updatedSOW.pricing,
-          roles: sow!.pricing.roles,
-          billing: {
-            ...sow!.pricing.billing,
-            ...updatedSOW.pricing?.billing
-          }
-        },
-        deliverables: sow!.deliverables,
-        clientRoles: sow!.clientRoles
-      });
-    } catch (err) {
-      console.error('Error updating status:', err);
-      setError(err instanceof Error ? err.message : 'Failed to update status');
-    }
-  };
 
   const getStatusColor = (status: SOW['status']) => {
     switch (status) {
@@ -434,8 +395,18 @@ export default function SOWDetailsPage() {
 
 
 
-  const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this SOW? This action cannot be undone.')) {
+  const handleHide = async () => {
+    if (!sow) return;
+
+    // Enhanced confirmation dialog
+    const confirmMessage = `Are you sure you want to hide "${sow.sowTitle}"?\n\n` +
+      `Status: ${sow.status}\n` +
+      `This action will hide this SOW and all its versions from the system.\n` +
+      `The data will be preserved but will no longer be visible.\n\n` +
+      `Type "HIDE" to confirm:`;
+    
+    const userInput = prompt(confirmMessage);
+    if (userInput !== 'HIDE') {
       return;
     }
 
@@ -446,13 +417,21 @@ export default function SOWDetailsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete SOW');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to hide SOW');
       }
+
+      const result = await response.json();
+      
+      // Show success message
+      alert(`SOW "${sow.sowTitle}" hidden successfully${result.hiddenVersions ? ` along with ${result.hiddenVersions} version(s)` : ''}.`);
 
       // Redirect to the SOW list page
       router.push('/sow');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete SOW');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to hide SOW';
+      setError(errorMessage);
+      alert(`Error: ${errorMessage}`);
       setDeleting(false);
     }
   };
@@ -557,16 +536,6 @@ export default function SOWDetailsPage() {
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(sow.status)}`}>
                   {getStatusLabel(sow.status)}
                 </span>
-                {isAdmin && sow.status === 'draft' && (
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleStatusChange('in_review')}
-                      className="px-3 py-1 rounded-md text-sm font-medium bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
-                    >
-                      Submit for Review
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -599,13 +568,21 @@ export default function SOWDetailsPage() {
                   This version is {sow.status === 'approved' ? 'approved' : 'rejected'} and cannot be modified. Create a new version to make changes.
                 </div>
               )}
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {deleting ? 'Deleting...' : 'Delete SOW'}
-              </button>
+              {sow.status !== 'approved' && (
+                <button
+                  onClick={handleHide}
+                  disabled={deleting}
+                  className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Hide SOW from the system"
+                >
+                  {deleting ? 'Hiding...' : 'Hide SOW'}
+                </button>
+              )}
+              {sow.status === 'approved' && (
+                <span className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-50 cursor-not-allowed" title="Approved SOWs cannot be hidden">
+                  Hide SOW
+                </span>
+              )}
             </div>
 
             {/* Two Column Layout */}
@@ -854,18 +831,58 @@ export default function SOWDetailsPage() {
               </div> {/* Close lg:col-span-2 */}
 
               {/* Approval Workflow - Right Column (1/3 width) */}
-              {isAdmin && sow.status === 'in_review' && (
+              {isAdmin && (
                 <div className="lg:col-span-1">
                   <div className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
-                    <ApprovalWorkflow 
-                      sowId={sow.id} 
-                      sowAmount={sow.pricing?.roles?.reduce((total, role) => total + (role.ratePerHour * role.totalHours), 0)}
-                      showApprovalActions={true}
-                      onStatusChange={() => {
-                        // Refresh the SOW data when approval status changes
-                        window.location.reload();
-                      }}
-                    />
+                    {sow.status === 'in_review' || sow.status === 'approved' || sow.status === 'rejected' ? (
+                      // Show full approval workflow with comments for SOWs in review
+                      <ApprovalWorkflow 
+                        sowId={sow.id} 
+                        sowAmount={sow.pricing?.roles?.reduce((total, role) => total + (role.ratePerHour * role.totalHours), 0)}
+                        showApprovalActions={true}
+                        onStatusChange={() => {
+                          // Refresh the SOW data when approval status changes
+                          window.location.reload();
+                        }}
+                      />
+                    ) : (
+                      // Show submit for review button for SOWs not in review
+                      <div className="bg-white shadow rounded-lg p-4">
+                        <h3 className="text-lg font-semibold mb-4">Approval Workflow</h3>
+                        <p className="text-gray-600 mb-4">
+                          This SOW is currently in <span className="font-medium">{sow.status}</span> status. 
+                          Submit it for review to start the approval process.
+                        </p>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(`/api/sow/${sow.id}/approvals`, {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ 
+                                  sow_amount: sow.pricing?.roles?.reduce((total, role) => total + (role.ratePerHour * role.totalHours), 0)
+                                }),
+                              });
+
+                              if (response.ok) {
+                                window.location.reload();
+                              } else {
+                                const error = await response.text();
+                                alert(`Failed to submit for review: ${error}`);
+                              }
+                            } catch (error) {
+                              console.error('Error submitting for review:', error);
+                              alert('Failed to submit for review');
+                            }
+                          }}
+                          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          Submit for Review
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
