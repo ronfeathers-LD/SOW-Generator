@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function GET() {
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const session = await getServerSession(authOptions);
     
     if (!session || session.user?.role !== 'admin') {
@@ -38,6 +40,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const session = await getServerSession(authOptions);
     
     if (!session || session.user?.role !== 'admin') {
@@ -113,6 +117,8 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const session = await getServerSession(authOptions);
     
     if (!session || session.user?.role !== 'admin') {

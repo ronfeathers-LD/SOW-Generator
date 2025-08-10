@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 // Helper function to check admin access
 async function checkAdminAccess() {
@@ -29,6 +29,8 @@ export async function PUT(
   }
 
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const body = await request.json();
     const { name, email, title, isActive } = body;
 
@@ -87,6 +89,8 @@ export async function DELETE(
   }
 
   try {
+    const supabase = await createServerSupabaseClient();
+    
     await supabase
       .from('lean_data_signatories')
       .delete()

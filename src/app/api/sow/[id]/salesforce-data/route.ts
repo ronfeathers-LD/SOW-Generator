@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { SOWSalesforceData } from '@/types/salesforce';
 
 // GET: Retrieve Salesforce data for a SOW
@@ -8,6 +8,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const { id: sowId } = await params;
 
     if (!sowId) {
@@ -55,6 +57,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const { id: sowId } = await params;
     const salesforceData: Partial<SOWSalesforceData> = await request.json();
 
@@ -65,11 +69,12 @@ export async function POST(
       );
     }
 
-    // Check if SOW exists
+    // Check if SOW exists (excluding hidden SOWs)
     const { data: sowExists, error: sowError } = await supabase
       .from('sows')
       .select('id')
       .eq('id', sowId)
+      .eq('is_hidden', false)
       .single();
 
     if (sowError || !sowExists) {
@@ -134,6 +139,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const { id: sowId } = await params;
     const updates: Partial<SOWSalesforceData> = await request.json();
 

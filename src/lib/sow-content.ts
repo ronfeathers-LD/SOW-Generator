@@ -3,19 +3,16 @@ import { SOWContentTemplate } from '@/types/sow';
 
 export async function getContentTemplate(sectionName: string): Promise<SOWContentTemplate | null> {
   try {
-    const { data, error } = await supabase
-      .from('sow_content_templates')
-      .select('*')
-      .eq('section_name', sectionName)
-      .eq('is_active', true)
-      .single();
-
-    if (error) {
-      console.error('Error fetching content template:', error);
+    const response = await fetch('/api/sow-content-templates');
+    if (!response.ok) {
+      console.error('Error fetching content templates:', response.statusText);
       return null;
     }
-
-    return data;
+    
+    const templates = await response.json();
+    const template = templates.find((t: SOWContentTemplate) => t.section_name === sectionName);
+    
+    return template || null;
   } catch (error) {
     console.error('Error in getContentTemplate:', error);
     return null;
@@ -24,23 +21,21 @@ export async function getContentTemplate(sectionName: string): Promise<SOWConten
 
 export async function getAllContentTemplates(): Promise<SOWContentTemplate[]> {
   try {
-    const { data, error } = await supabase
-      .from('sow_content_templates')
-      .select('*')
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching content templates:', error);
+    const response = await fetch('/api/sow-content-templates');
+    if (!response.ok) {
+      console.error('Error fetching content templates:', response.statusText);
       return [];
     }
-
-    return data || [];
+    
+    const templates = await response.json();
+    return templates || [];
   } catch (error) {
     console.error('Error in getAllContentTemplates:', error);
     return [];
   }
 }
+
+
 
 export function processContentTemplate(
   template: SOWContentTemplate,

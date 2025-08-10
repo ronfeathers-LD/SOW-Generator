@@ -13,6 +13,7 @@ interface ContentEditingTabProps {
 }
 
 export default function ContentEditingTab({ formData, setFormData, onUnsavedChanges }: ContentEditingTabProps) {
+
   // Original templates from database (never change)
   const [originalIntroTemplate, setOriginalIntroTemplate] = useState<string>('');
   const [originalScopeTemplate, setOriginalScopeTemplate] = useState<string>('');
@@ -21,7 +22,6 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   const [originalProjectPhasesTemplate, setOriginalProjectPhasesTemplate] = useState<string>('');
   const [originalRolesTemplate, setOriginalRolesTemplate] = useState<string>('');
   
-
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(true);
   const [activeSection, setActiveSection] = useState('intro');
@@ -33,8 +33,6 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   useEffect(() => {
     async function loadTemplates() {
       try {
-
-
         // Load templates for reference and reset functionality only
         const intro = await getContentTemplate('intro');
         if (intro) {
@@ -86,7 +84,6 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
       });
     }
   }, [activeSection, loading, initializing]);
-
 
   // Function to normalize content for comparison (removes HTML tags and normalizes whitespace)
   const normalizeContent = (content: string): string => {
@@ -176,8 +173,6 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
         }
       };
       
-
-      
       const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
         method: 'PUT',
         headers: {
@@ -219,12 +214,12 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   }
 
   const sections = [
-    { id: 'intro', name: 'Introduction' },
-    { id: 'objectives-disclosure', name: 'Objectives' },
-    { id: 'scope', name: 'Scope' },
-    { id: 'project-phases', name: 'Project Phases' },
-    { id: 'roles', name: 'Roles & Responsibilities' },
-    { id: 'assumptions', name: 'Assumptions' },
+    { id: 'intro', name: 'Introduction', icon: '📝' },
+    { id: 'objectives-disclosure', name: 'Objectives', icon: '📋' },
+    { id: 'scope', name: 'Scope', icon: '🎯' },
+    { id: 'project-phases', name: 'Project Phases', icon: '📅' },
+    { id: 'roles', name: 'Roles & Responsibilities', icon: '👥' },
+    { id: 'assumptions', name: 'Assumptions', icon: '⚠️' },
   ];
 
   const renderSection = (sectionId: string) => {
@@ -499,7 +494,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
                 placeholder="Enter the project phases content for this SOW..."
                 initializing={initializing}
               />
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-yellow-800">
                 This content displays the project phases, activities, and artifacts table.
               </p>
             </div>
@@ -598,9 +593,12 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                <div className="flex items-center">
-                  <span>{section.name}</span>
-                  <div className="ml-auto flex items-center space-x-1">
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center">
+                    <span className="mr-2">{section.icon}</span>
+                    <span>{section.name}</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
                     {formData[`${section.id.replace(/-/g, '_')}_content_edited` as keyof SOWData] && (
                       <span className="text-yellow-600 text-xs" title="Content has been edited">
                         ✏️

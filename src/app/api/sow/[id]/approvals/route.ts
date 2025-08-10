@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { supabase } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { ApprovalService } from '@/lib/approval-service';
 
 // GET - Fetch approval workflow for a SOW
@@ -15,12 +15,14 @@ export async function GET(
     }
 
     const sowId = (await params).id;
+    const supabase = await createServerSupabaseClient();
 
-    // Get the SOW
+    // Get the SOW (excluding hidden SOWs)
     const { data: sow, error: sowError } = await supabase
       .from('sows')
       .select('*')
       .eq('id', sowId)
+      .eq('is_hidden', false)
       .single();
 
     if (sowError || !sow) {
@@ -251,6 +253,7 @@ export async function POST(
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    const supabase = await createServerSupabaseClient();
     const { data: user } = await supabase
       .from('users')
       .select('*')

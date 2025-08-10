@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import salesforceClient from '@/lib/salesforce';
-import { supabase } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 import salesforceCache from '@/lib/salesforce-cache';
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const { accountId, forceRefresh = false } = await request.json();
 
     

@@ -12,6 +12,7 @@ import SOWProjectPhasesPage from '@/components/sow/SOWProjectPhasesPage';
 import SOWRolesPage from '@/components/sow/SOWRolesPage';
 import ApprovalWorkflow from '@/components/sow/ApprovalWorkflow';
 import { useSession } from 'next-auth/react';
+import { getStatusColor, getStatusLabel } from '@/lib/utils/statusUtils';
 
 interface ClientRole {
   role: string;
@@ -363,35 +364,7 @@ export default function SOWDetailsPage() {
 
 
 
-  const getStatusColor = (status: SOW['status']) => {
-    switch (status) {
-      case 'draft':
-        return 'bg-gray-100 text-gray-800';
-      case 'in_review':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'approved':
-        return 'bg-green-100 text-green-800';
-      case 'rejected':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
-  const getStatusLabel = (status: SOW['status']) => {
-    switch (status) {
-      case 'draft':
-        return 'Draft';
-      case 'in_review':
-        return 'In Review';
-      case 'approved':
-        return 'Approved';
-      case 'rejected':
-        return 'Rejected';
-      default:
-        return status;
-    }
-  };
 
 
 

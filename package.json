@@ -36,6 +36,7 @@
     "dotenv": "^17.2.1",
     "eslint": "latest",
     "eslint-config-next": "latest",
+    "glob": "^11.0.3",
     "jsforce": "^3.9.4",
     "next": "^15.4.4",
     "next-auth": "^4.24.5",

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 // Helper function to check admin access
 async function checkAdminAccess() {
@@ -26,6 +26,8 @@ export async function GET() {
   }
 
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const { data: config } = await supabase
       .from('salesforce_configs')
       .select('*')
@@ -60,6 +62,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const body = await request.json();
     const { username, password, securityToken, loginUrl, isActive } = body;
 
@@ -112,6 +116,8 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const body = await request.json();
     const { id, username, password, securityToken, loginUrl, isActive } = body;
 

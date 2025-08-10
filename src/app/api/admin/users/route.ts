@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { supabase } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function GET() {
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const session = await getServerSession();
     if (!session?.user) {
       return new NextResponse('Unauthorized', { status: 401 });
@@ -38,6 +40,8 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const session = await getServerSession();
     if (!session?.user) {
       return new NextResponse('Unauthorized', { status: 401 });

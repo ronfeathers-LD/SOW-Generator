@@ -23,7 +23,7 @@ export default function SOWContentTemplatesPage() {
 
   const sectionOrder = sections.map(s => s.id);
 
-  const sortTemplates = useCallback((templates: SOWContentTemplate[]) => {
+  const sortTemplates = (templates: SOWContentTemplate[]) => {
     return templates.sort((a, b) => {
       const aIndex = sectionOrder.indexOf(a.section_name);
       const bIndex = sectionOrder.indexOf(b.section_name);
@@ -40,7 +40,7 @@ export default function SOWContentTemplatesPage() {
       // If neither is in our defined order, sort alphabetically
       return a.section_name.localeCompare(b.section_name);
     });
-  }, [sectionOrder]);
+  };
 
   const fetchTemplates = useCallback(async () => {
     try {
@@ -55,7 +55,7 @@ export default function SOWContentTemplatesPage() {
     } finally {
       setLoading(false);
     }
-  }, [sortTemplates]);
+  }, []);
 
   useEffect(() => {
     fetchTemplates();

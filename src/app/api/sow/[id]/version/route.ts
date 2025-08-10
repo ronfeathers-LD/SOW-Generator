@@ -6,11 +6,12 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Get the original SOW
+    // Get the original SOW (excluding hidden SOWs)
     const { data: originalSOW, error } = await supabase
       .from('sows')
       .select('*')
       .eq('id', (await params).id)
+      .eq('is_hidden', false)
       .single();
 
     if (error || !originalSOW) {

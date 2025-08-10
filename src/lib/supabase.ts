@@ -49,6 +49,7 @@ export interface SOW {
   objectives_description: string;
   objectives_key_objectives: Record<string, unknown>;
   avoma_transcription: string;
+  is_hidden: boolean;
 }
 
 export interface User {

@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function GET() {
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const session = await getServerSession(authOptions);
     
     if (!session || session.user?.role !== 'admin') {
@@ -40,17 +42,19 @@ export async function GET() {
         .then(result => ({ count: result.data?.length || 0, error: result.error }))
     ]);
 
-    // Get SOW counts
+    // Get SOW counts (excluding hidden SOWs)
     const [totalSOWs, activeSOWs] = await Promise.all([
       supabase
         .from('sows')
         .select('id', { count: 'exact' })
+        .eq('is_hidden', false)
         .then(result => ({ count: result.count || 0, error: result.error })),
       
       supabase
         .from('sows')
         .select('id', { count: 'exact' })
         .eq('status', 'active')
+        .eq('is_hidden', false)
         .then(result => ({ count: result.count || 0, error: result.error }))
     ]);
 

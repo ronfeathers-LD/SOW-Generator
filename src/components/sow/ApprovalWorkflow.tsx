@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { getStatusColor } from '@/lib/utils/statusUtils';
 
 interface ApprovalStage {
   id: string;
@@ -329,15 +330,7 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'skipped': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+
 
 
 

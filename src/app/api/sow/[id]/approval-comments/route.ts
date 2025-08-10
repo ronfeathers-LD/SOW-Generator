@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { supabase } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { AuditService } from '@/lib/audit-service';
 
 // GET - Fetch approval comments for a SOW
@@ -9,6 +9,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const session = await getServerSession();
     if (!session?.user) {
       return new NextResponse('Unauthorized', { status: 401 });
@@ -98,6 +100,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const session = await getServerSession();
     if (!session?.user) {
       return new NextResponse('Unauthorized', { status: 401 });
@@ -110,11 +114,12 @@ export async function POST(
       return new NextResponse('Comment is required', { status: 400 });
     }
 
-    // Get the SOW to check version
+    // Get the SOW to check version (excluding hidden SOWs)
     const { data: sow, error: sowError } = await supabase
       .from('sows')
       .select('version')
       .eq('id', sowId)
+      .eq('is_hidden', false)
       .single();
 
     if (sowError || !sow) {

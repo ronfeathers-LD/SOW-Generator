@@ -18,7 +18,8 @@ export async function middleware(request: NextRequest) {
                        request.nextUrl.pathname.startsWith("/_next") ||
                        request.nextUrl.pathname === "/favicon.ico" ||
                        request.nextUrl.pathname.startsWith("/public") ||
-                       request.nextUrl.pathname.startsWith("/api/public");
+                       request.nextUrl.pathname.startsWith("/api/public") ||
+                       request.nextUrl.pathname.startsWith("/api/sow-content-templates");
 
   // Allow access to public routes
   if (isPublicRoute) {
@@ -29,6 +30,8 @@ export async function middleware(request: NextRequest) {
   if (!token) {
     return NextResponse.redirect(new URL("/", request.url));
   }
+
+
 
   // Redirect non-admin users trying to access admin routes
   if ((isAdminRoute || isGeminiAdminRoute) && !isAdmin) {

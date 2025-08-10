@@ -2,6 +2,7 @@
 import GoogleProvider from 'next-auth/providers/google';
 import { supabase } from '@/lib/supabase';
 import type { NextAuthOptions } from 'next-auth';
+import { logger } from './utils/logger';
 
 // Only check for required environment variables in production runtime
 const validateEnvVars = () => {
@@ -54,7 +55,7 @@ export const authOptions: NextAuthOptions = {
         
       // Create or update user in the database
       if (user?.email) {
-          console.log('Processing sign in for user:', user.email);
+          logger.log('Processing sign in for user:', user.email);
           
           // Check if user exists
           const { data: existingUser, error: fetchError } = await supabase
@@ -69,7 +70,7 @@ export const authOptions: NextAuthOptions = {
 
           let dbUser;
           if (existingUser) {
-            console.log('Updating existing user:', existingUser.email);
+            logger.log('Updating existing user:', existingUser.email);
             // Update existing user
             const { data: updatedUser, error: updateError } = await supabase
               .from('users')
@@ -84,7 +85,7 @@ export const authOptions: NextAuthOptions = {
               dbUser = updatedUser;
             }
           } else {
-            console.log('Creating new user:', user.email);
+            logger.log('Creating new user:', user.email);
             // Create new user
             const { data: newUser, error: insertError } = await supabase
               .from('users')
@@ -105,7 +106,7 @@ export const authOptions: NextAuthOptions = {
           
           if (dbUser) {
         user.role = dbUser.role;
-            console.log('User processed successfully:', dbUser.email, 'Role:', dbUser.role);
+            logger.log('User processed successfully:', dbUser.email, 'Role:', dbUser.role);
           }
       }
       return true;

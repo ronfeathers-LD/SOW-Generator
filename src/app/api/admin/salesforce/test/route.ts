@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 import * as jsforce from 'jsforce';
 
 // Helper function to check admin access
@@ -26,6 +26,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const supabase = await createServerSupabaseClient();
+    
     let username: string;
     let password: string;
     let security_token: string | undefined;

@@ -1,27 +1,45 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
-import { processSOWTemplates } from '@/lib/utils/templateProcessor';
+import { getServerSession } from 'next-auth';
+import { supabaseApi } from '@/lib/supabase-api';
 
 export async function POST(request: Request) {
   try {
+    // Check authentication
+    const session = await getServerSession();
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     
     // Log the incoming data for debugging
   
     
-    // Process all templates in parallel
-    const templateResults = await processSOWTemplates(data);
+    // Fetch content templates directly from database
+    const { data: templates, error: templateError } = await supabaseApi
+      .from('sow_content_templates')
+      .select('*')
+      .eq('is_active', true);
     
-    const {
-      intro: defaultIntroContent = '',
-      scope: defaultScopeContent = '',
-      'objectives-disclosure': defaultObjectivesDisclosureContent = '',
-      assumptions: defaultAssumptionsContent = '',
-      'project-phases': defaultProjectPhasesContent = '',
-      roles: defaultRolesContent = ''
-    } = templateResults;
+    if (templateError) {
+      console.error('Error fetching content templates:', templateError);
+    }
     
-    const { data: sow, error } = await supabase
+    // Extract default content from templates
+    const templateMap = new Map();
+    if (templates) {
+      templates.forEach(template => {
+        templateMap.set(template.section_name, template.default_content);
+      });
+    }
+    
+    const defaultIntroContent = templateMap.get('intro') || '';
+    const defaultScopeContent = templateMap.get('scope') || '';
+    const defaultObjectivesDisclosureContent = templateMap.get('objectives-disclosure') || '';
+    const defaultAssumptionsContent = templateMap.get('assumptions') || '';
+    const defaultProjectPhasesContent = templateMap.get('project-phases') || '';
+    const defaultRolesContent = templateMap.get('roles') || '';
+    const { data: sow, error } = await supabaseApi
       .from('sows')
       .insert({
         // Required fields
@@ -153,7 +171,13 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const { data: sows, error } = await supabase
+    // Check authentication
+    const session = await getServerSession();
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: sows, error } = await supabaseApi
       .from('sows')
       .select('*')
       .eq('is_hidden', false) // Only show non-hidden SOWs

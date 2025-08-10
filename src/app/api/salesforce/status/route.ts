@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -11,6 +11,8 @@ export async function GET() {
   }
 
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const { data: config } = await supabase
       .from('salesforce_configs')
       .select('is_active, last_error')

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import salesforceClient from '@/lib/salesforce';
-import { supabase } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createServerSupabaseClient();
+    
     const { accountId } = await request.json();
 
     if (!accountId) {

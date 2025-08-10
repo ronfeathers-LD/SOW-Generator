@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { supabase } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabase = await createServerSupabaseClient();
     const { data: sow, error } = await supabase
       .from('sows')
       .select('*')
@@ -189,6 +190,8 @@ export async function PUT(
     
 
     
+    const supabase = await createServerSupabaseClient();
+    
     // Find the SOW to ensure it exists
     const { data: existingSOW, error: findError } = await supabase
       .from('sows')
@@ -350,6 +353,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const supabase = await createServerSupabaseClient();
+    
     // Check if user is admin
     const { data: user } = await supabase
       .from('users')
