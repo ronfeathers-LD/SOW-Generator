@@ -157,53 +157,7 @@ export default function SalesforceAdminPage() {
     }
   };
 
-  const handleDebugConnection = async () => {
-    setIsTesting(true);
-    setMessage(null);
 
-    try {
-      // Check if form has unsaved changes
-      const hasChanges = config && (
-        config.username !== config.original_username ||
-        config.password !== config.original_password ||
-        config.security_token !== config.original_security_token ||
-        config.login_url !== config.original_login_url
-      );
-
-      const response = await fetch('/api/admin/salesforce/debug', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: hasChanges ? JSON.stringify({
-          username: config?.username,
-          password: config?.password,
-          securityToken: config?.security_token,
-          loginUrl: config?.login_url,
-          useFormData: true
-        }) : undefined,
-      });
-
-      const data = await response.json();
-      
-      if (response.ok) {
-        setMessage({ 
-          type: 'success', 
-          text: `Debug successful! ${hasChanges ? '(using form data)' : '(using stored credentials)'}\n\n${JSON.stringify(data.debug, null, 2)}` 
-        });
-      } else {
-        setMessage({ 
-          type: 'error', 
-          text: `Debug failed: ${data.details}\n\nDebug info: ${JSON.stringify(data.debug, null, 2)}` 
-        });
-      }
-    } catch (error) {
-      console.error('Error in debug:', error);
-      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Debug failed' });
-    } finally {
-      setIsTesting(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -355,14 +309,7 @@ export default function SalesforceAdminPage() {
               {isTesting ? 'Testing...' : 'Test Connection'}
             </button>
 
-            <button
-              type="button"
-              onClick={handleDebugConnection}
-              disabled={isTesting || !config?.username || (!config?.password && !config?.id)}
-              className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:bg-gray-400"
-            >
-              {isTesting ? 'Debugging...' : 'Debug Connection'}
-            </button>
+
 
             <Link
               href="/sow"

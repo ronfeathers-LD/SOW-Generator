@@ -251,6 +251,8 @@ CREATE TABLE IF NOT EXISTS gemini_configs (
   last_error TEXT
 );
 
+
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_sows_created_at ON sows(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sows_status ON sows(status);
@@ -289,6 +291,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_gemini_configs_updated_at') THEN
         CREATE TRIGGER update_gemini_configs_updated_at BEFORE UPDATE ON gemini_configs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
     END IF;
+
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_approval_stages_updated_at') THEN
         CREATE TRIGGER update_approval_stages_updated_at BEFORE UPDATE ON approval_stages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
     END IF;
@@ -311,6 +314,7 @@ ALTER TABLE salesforce_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lean_data_signatories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE avoma_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gemini_configs ENABLE ROW LEVEL SECURITY;
+
 
 -- Create policies for public read access to SOWs
 DO $$ 
@@ -345,4 +349,5 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'gemini_configs' AND policyname = 'Admin access to gemini configs') THEN
         CREATE POLICY "Admin access to gemini configs" ON gemini_configs FOR ALL USING (true);
     END IF;
+
 END $$; 

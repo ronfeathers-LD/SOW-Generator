@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
     const data = await request.json();
     
-    // Log the incoming data for debugging
+
   
     
     // Fetch content templates directly from database

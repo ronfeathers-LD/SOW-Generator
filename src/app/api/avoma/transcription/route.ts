@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         speakers = transcriptResult.speakers;
         
       } catch (transcriptError) {
-        console.error('🔍 Meeting transcript endpoint failed:', transcriptError);
+        console.error('Meeting transcript endpoint failed:', transcriptError);
       }
 
       // If we couldn't get the transcript content, try the old method as fallback
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
             transcriptContent = await avomaClient.getCallTranscriptText(meeting.id);
           }
         } catch (fallbackError) {
-          console.error('🔍 Fallback transcript method also failed:', fallbackError);
+          console.error('Fallback transcript method also failed:', fallbackError);
         }
       }
 

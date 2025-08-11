@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+// import { supabase } from './supabase'; // Not currently used
 import { SOWContentTemplate } from '@/types/sow';
 
 export async function getContentTemplate(sectionName: string): Promise<SOWContentTemplate | null> {

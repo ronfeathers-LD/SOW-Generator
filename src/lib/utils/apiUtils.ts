@@ -2,7 +2,7 @@
  * Standardized API response utilities for consistent error handling and response formatting
  */
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -10,7 +10,7 @@ export interface ApiResponse<T = any> {
   timestamp: string;
 }
 
-export interface PaginatedResponse<T = any> extends ApiResponse<T[]> {
+export interface PaginatedResponse<T = unknown> extends ApiResponse<T[]> {
   pagination: {
     page: number;
     limit: number;
@@ -115,17 +115,19 @@ export const createServerErrorResponse = (message: string = 'Internal server err
 /**
  * Helper to handle common database errors
  */
-export const handleDatabaseError = (error: any): ApiResponse & { statusCode: number } => {
-  if (error.code === '23505') { // Unique constraint violation
-    return createErrorResponse('Resource already exists', 409);
-  }
-  
-  if (error.code === '23503') { // Foreign key violation
-    return createErrorResponse('Referenced resource does not exist', 400);
-  }
-  
-  if (error.code === '42P01') { // Undefined table
-    return createServerErrorResponse('Database configuration error');
+export const handleDatabaseError = (error: unknown): ApiResponse & { statusCode: number } => {
+  if (error && typeof error === 'object' && 'code' in error) {
+    if (error.code === '23505') { // Unique constraint violation
+      return createErrorResponse('Resource already exists', 409);
+    }
+    
+    if (error.code === '23503') { // Foreign key violation
+      return createErrorResponse('Referenced resource does not exist', 400);
+    }
+    
+    if (error.code === '42P01') { // Undefined table
+      return createServerErrorResponse('Database configuration error');
+    }
   }
   
   // Log unexpected database errors
@@ -136,7 +138,7 @@ export const handleDatabaseError = (error: any): ApiResponse & { statusCode: num
 /**
  * Helper to validate required fields
  */
-export const validateRequiredFields = (data: any, requiredFields: string[]): string[] => {
+export const validateRequiredFields = (data: Record<string, unknown>, requiredFields: string[]): string[] => {
   const missingFields: string[] = [];
   
   for (const field of requiredFields) {

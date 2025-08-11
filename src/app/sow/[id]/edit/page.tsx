@@ -216,7 +216,53 @@ export default function EditSOWPage() {
               Update the SOW details below
             </p>
           </div>
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 flex space-x-3">
+            {/* Delete Button */}
+            <button
+              onClick={async () => {
+                if (!sow) return;
+                
+                // Enhanced confirmation dialog
+                const confirmMessage = `Are you sure you want to delete "${sow.template?.sow_title || 'this SOW'}"?\n\n` +
+                  `This action will permanently hide this SOW and all its versions from the system.\n` +
+                  `The data will be preserved but will no longer be visible.\n\n` +
+                  `Type "DELETE" to confirm:`;
+                
+                const userInput = prompt(confirmMessage);
+                if (userInput !== 'DELETE') {
+                  return;
+                }
+
+                try {
+                  const response = await fetch(`/api/sow/${params.id}`, {
+                    method: 'DELETE',
+                  });
+
+                  if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to delete SOW');
+                  }
+
+                  const result = await response.json();
+                  
+                  // Show success message
+                  alert(`SOW "${sow.template?.sow_title || 'SOW'}" deleted successfully${result.hiddenVersions ? ` along with ${result.hiddenVersions} version(s)` : ''}.`);
+
+                  // Redirect to the SOW list page
+                  router.push('/sow');
+                } catch (err) {
+                  const errorMessage = err instanceof Error ? err.message : 'Failed to delete SOW';
+                  alert(`Error: ${errorMessage}`);
+                }
+              }}
+              className="inline-flex items-center px-4 py-2 border border-red-600 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              title="Delete SOW from the system"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Delete SOW
+            </button>
             <a
               href={`/sow/${params.id}`}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"

@@ -22,12 +22,12 @@ export const createServerSupabaseClient = async () => {
   if (session?.user?.email) {
     // For now, we'll use the service role key to bypass RLS
     // This allows authenticated users to access data while we fix the JWT token passing
-    console.log('Using service role client for authenticated user:', session.user.email);
+
     return createServiceRoleClient();
   }
   
   // Fallback to anon client for unauthenticated requests
-  console.log('Using anon client for unauthenticated request');
+  
   return createClient(supabaseUrl, supabaseAnonKey, {
     global: {
       headers: {

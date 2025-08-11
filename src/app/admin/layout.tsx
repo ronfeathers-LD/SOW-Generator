@@ -101,6 +101,7 @@ const adminNavItems = [
       </svg>
     ),
   },
+
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {

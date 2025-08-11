@@ -7,7 +7,7 @@ export interface ValidationRule {
   minLength?: number;
   maxLength?: number;
   pattern?: RegExp;
-  custom?: (value: any) => string | null;
+  custom?: (value: unknown) => string | null;
 }
 
 export interface ValidationResult {
@@ -22,7 +22,7 @@ export interface FieldValidation {
 /**
  * Validate a single field against its rules
  */
-export const validateField = (value: any, rules: ValidationRule, fieldName: string): string[] => {
+export const validateField = (value: unknown, rules: ValidationRule, fieldName: string): string[] => {
   const errors: string[] = [];
   
   // Required field validation
@@ -65,7 +65,7 @@ export const validateField = (value: any, rules: ValidationRule, fieldName: stri
 /**
  * Validate an entire form against validation rules
  */
-export const validateForm = (data: any, rules: FieldValidation): ValidationResult => {
+export const validateForm = (data: Record<string, unknown>, rules: FieldValidation): ValidationResult => {
   const errors: Record<string, string[]> = {};
   let isValid = true;
   
@@ -105,7 +105,7 @@ export const SOW_VALIDATION_RULES: FieldValidation = {
   timeline_weeks: {
     required: true,
     custom: (value) => {
-      const num = parseInt(value);
+      const num = parseInt(String(value));
       if (isNaN(num) || num < 1 || num > 104) {
         return 'Timeline must be between 1 and 104 weeks';
       }
@@ -116,7 +116,7 @@ export const SOW_VALIDATION_RULES: FieldValidation = {
   project_start_date: {
     required: true,
     custom: (value) => {
-      const date = new Date(value);
+      const date = new Date(String(value));
       if (isNaN(date.getTime())) {
         return 'Invalid start date';
       }
@@ -127,7 +127,7 @@ export const SOW_VALIDATION_RULES: FieldValidation = {
   project_end_date: {
     required: true,
     custom: (value) => {
-      const date = new Date(value);
+      const date = new Date(String(value));
       if (isNaN(date.getTime())) {
         return 'Invalid end date';
       }
@@ -139,7 +139,7 @@ export const SOW_VALIDATION_RULES: FieldValidation = {
 /**
  * Validate SOW form data
  */
-export const validateSOWForm = (data: any): ValidationResult => {
+export const validateSOWForm = (data: Record<string, unknown>): ValidationResult => {
   return validateForm(data, SOW_VALIDATION_RULES);
 };
 
@@ -210,7 +210,7 @@ export const sanitizeInput = (input: string): string => {
 export const formatValidationErrors = (errors: Record<string, string[]>): string[] => {
   const formattedErrors: string[] = [];
   
-  for (const [field, fieldErrors] of Object.entries(errors)) {
+  for (const [, fieldErrors] of Object.entries(errors)) {
     for (const error of fieldErrors) {
       formattedErrors.push(error);
     }

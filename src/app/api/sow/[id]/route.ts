@@ -22,7 +22,7 @@ export async function GET(
       );
     }
 
-    // Debug logging for Avoma URL
+
 
 
     // Get products from JSONB field

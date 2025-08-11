@@ -285,10 +285,7 @@ Guidelines:
       .replace(/\{customerName\}/g, customerName)
       .replace(/\{transcription\}/g, transcript);
 
-    // Debug: Log the prompt being sent to AI (with truncated transcript for readability)
-    const truncatedTranscript = transcript.length > 50 ? transcript.substring(0, 50) + '...' : transcript;
-    const truncatedPrompt = prompt.replace(transcript, truncatedTranscript);
-    console.log('AI Prompt being sent:', truncatedPrompt);
+
 
 
 
@@ -317,9 +314,7 @@ Guidelines:
       const response = await result.response;
       const content = response.text();
 
-      // Debug: Log the raw AI response (truncated for readability)
-      const truncatedResponse = content.length > 200 ? content.substring(0, 200) + '...' : content;
-      console.log('Raw AI Response:', truncatedResponse);
+
 
       if (!content) {
         throw new Error('No content received from Gemini');
@@ -407,7 +402,7 @@ export async function analyzeTranscription(
     throw new Error('Gemini API key not configured. Please configure it in the admin panel.');
   }
 
-  // Debug API key format
+  
       // API key validation completed
   
   // Check if API key looks like it's been masked

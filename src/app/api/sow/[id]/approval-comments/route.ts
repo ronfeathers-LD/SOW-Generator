@@ -72,15 +72,10 @@ export async function GET(
       return new Date(aObj.created_at).getTime() - new Date(bObj.created_at).getTime();
     });
 
-    // Debug logging
-    console.log('API Response - All comments:', allComments);
-    console.log('API Response - Comment map:', Array.from(commentMap.entries()));
-    console.log('API Response - Top level comments:', topLevelComments);
+
+
     
-    // Log each comment's threading info
-    comments.forEach(comment => {
-      console.log(`Comment ${comment.id}: parent_id=${comment.parent_id}, comment="${comment.comment}"`);
-    });
+    
 
     if (error) {
       console.error('Error fetching comments:', error);

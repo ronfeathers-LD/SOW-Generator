@@ -46,15 +46,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });
     }
 
-    // Debug API key format
-    console.log('🔍 Test API Key Debug:');
-    console.log('  - Length:', testApiKey.length);
-    console.log('  - First 10 chars:', testApiKey.substring(0, 10));
-    console.log('  - Last 10 chars:', testApiKey.substring(testApiKey.length - 10));
-    console.log('  - Contains invalid chars:', /[^\x00-\x7F]/.test(testApiKey));
-    console.log('  - Contains bullet points:', testApiKey.includes('•'));
-    console.log('  - Contains dots:', testApiKey.includes('····'));
-    console.log('  - Using model:', testModelName);
+
+
     
     // Check if API key looks like it's been masked
     if (testApiKey.includes('•') || testApiKey.includes('····')) {

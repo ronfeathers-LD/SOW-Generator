@@ -129,7 +129,7 @@ class AvomaClient {
       const toDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
       const fromDate = new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 6 months ago
     
-    // Debug: Log the actual dates being used
+    
               // Date parameters prepared
     
     // Search parameters prepared
@@ -292,20 +292,12 @@ class AvomaClient {
                             purpose.includes('requirements') ||
                             purpose.includes('discovery');
           
-          console.log('🔍 Meeting Analysis:', {
-            uuid: meeting.uuid,
-            subject: meeting.subject,
-            organizer_email: meeting.organizer_email,
-            purpose: meeting.purpose,
-            start_at: meeting.start_at,
-            hasCustomerName,
-            hasScoping
-          });
+
           
           return hasCustomerName && hasScoping;
         });
         
-        console.log(`🔍 Meetings containing "${customerName}" and "scoping" keywords:`, scopingCalls.length);
+
         return scopingCalls.slice(0, 20);
       }
       

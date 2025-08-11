@@ -164,7 +164,7 @@ export class ApprovalService {
         throw new Error(`Approval not found: ${approvalError?.message || 'No approval record'}`);
       }
 
-      console.log('Found approval:', approval);
+  
 
       // Validate permissions
       const canProcess = this.validateApprovalPermission(approval, user);
@@ -193,7 +193,7 @@ export class ApprovalService {
         updateData.skipped_at = new Date().toISOString();
       }
 
-      console.log('Updating approval with data:', updateData);
+  
       
       const { error: updateError } = await supabase
         .from('sow_approvals')

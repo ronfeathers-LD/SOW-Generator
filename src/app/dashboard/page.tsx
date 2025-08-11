@@ -7,7 +7,6 @@ import { Session } from 'next-auth';
 
 async function getDashboardStats(session: Session) {
   try {
-    console.log('Dashboard session:', session);
     const supabase = await createServerSupabaseClient();
     
     // First, get the user's database ID from the users table
@@ -17,10 +16,7 @@ async function getDashboardStats(session: Session) {
       .eq('email', session.user.email)
       .single();
     
-    console.log('User data:', userData, 'User error:', userError);
-    
     if (userError || !userData) {
-      console.error('Error fetching user data:', userError);
       return {
         stats: { total: 0, draft: 0, in_review: 0, approved: 0, rejected: 0 },
         recentSOWs: [],
@@ -28,33 +24,14 @@ async function getDashboardStats(session: Session) {
       };
     }
     
-    const userId = userData.id;
-    console.log('User ID:', userId);
-    
-    // Test query: get all SOWs to see what's in the database
-    const { data: allSOWsTest, error: allSOWsTestError } = await supabase
-      .from('sows')
-      .select('id, status, is_hidden, author_id');
-    console.log('All SOWs test:', allSOWsTest, 'Error:', allSOWsTestError);
-    
-    // Test query: get all visible SOWs
-    const { data: visibleSOWsTest, error: visibleSOWsTestError } = await supabase
-      .from('sows')
-      .select('id, status, is_hidden, author_id')
-      .eq('is_hidden', false);
-    console.log('Visible SOWs test:', visibleSOWsTest, 'Error:', visibleSOWsTestError);
-    
-    // Check if we're using service role client
-    console.log('Supabase client type: service (authenticated user)');
+    // const userId = userData.id; // TODO: Use for user-specific filtering in future
     
     // Get SOW counts by status - filter by user access
-    // First try to get SOWs the user has access to
     let sowStats = null;
     let sowError = null;
     
     try {
-      // Try the complex query first - but since all SOWs have author_id: null, 
-      // we'll just get visible SOWs for now
+      // Get visible SOWs
       const result = await supabase
         .from('sows')
         .select('status')
@@ -62,15 +39,12 @@ async function getDashboardStats(session: Session) {
       
       sowStats = result.data;
       sowError = result.error;
-      console.log('SOW stats (with filtering):', sowStats, 'SOW error:', sowError);
       
-    } catch (error) {
-      console.error('Error in complex query:', error);
-      sowError = error;
+    } catch (_error) {
+      sowError = _error;
     }
     
     if (sowError) {
-      console.error('Error fetching SOW stats:', sowError);
       // Fallback: get all visible SOWs without user filtering
       try {
         const { data: fallbackStats, error: fallbackError } = await supabase
@@ -78,14 +52,11 @@ async function getDashboardStats(session: Session) {
           .select('status')
           .eq('is_hidden', false);
         
-        if (fallbackError) {
-          console.error('Fallback query also failed:', fallbackError);
-        } else {
-          console.log('Fallback stats:', fallbackStats);
+        if (!fallbackError) {
           sowStats = fallbackStats; // Use fallback data
         }
-      } catch (fallbackError) {
-        console.error('Fallback query failed:', fallbackError);
+      } catch {
+        // Silently handle fallback error
       }
     }
 
@@ -105,17 +76,6 @@ async function getDashboardStats(session: Session) {
           (stats as Record<string, number>)[sowObj.status]++;
         }
       });
-    } else {
-      // If no stats from complex query, use the simple visible SOWs test
-      if (visibleSOWsTest) {
-        stats.total = visibleSOWsTest.length;
-        visibleSOWsTest.forEach((sow: unknown) => {
-          const sowObj = sow as { status: string };
-          if (stats.hasOwnProperty(sowObj.status)) {
-            (stats as Record<string, number>)[sowObj.status]++;
-          }
-        });
-      }
     }
 
     // Get recent SOWs - filter by user access
@@ -132,15 +92,12 @@ async function getDashboardStats(session: Session) {
       
       recentSOWs = result.data;
       recentError = result.error;
-      console.log('Recent SOWs (with filtering):', recentSOWs, 'Recent error:', recentError);
       
-    } catch (error) {
-      console.error('Error in recent SOWs query:', error);
-      recentError = error;
+    } catch {
+      // Error handled by setting recentError to null
     }
     
     if (recentError) {
-      console.error('Error fetching recent SOWs:', recentError);
       // Fallback: get all visible SOWs without user filtering
       try {
         const { data: fallbackRecent, error: fallbackError } = await supabase
@@ -150,25 +107,11 @@ async function getDashboardStats(session: Session) {
           .order('created_at', { ascending: false })
           .limit(5);
         
-        if (fallbackError) {
-          console.error('Fallback recent SOWs query failed:', fallbackError);
-        } else {
-          console.log('Fallback recent SOWs:', fallbackRecent);
+        if (!fallbackError) {
           recentSOWs = fallbackRecent; // Use fallback data
         }
-      } catch (fallbackError) {
-        console.error('Fallback recent SOWs query failed:', fallbackError);
-      }
-    } else if (!recentSOWs) {
-      // If no recent SOWs from complex query, use the simple visible SOWs test
-      if (visibleSOWsTest) {
-        recentSOWs = visibleSOWsTest.slice(0, 5).map((sow: any) => ({
-          id: sow.id,
-          client_name: 'Client', // Default values since we don't have these fields
-          sow_title: 'SOW',
-          status: sow.status,
-          created_at: new Date().toISOString() // Default date
-        }));
+      } catch {
+        // Silently handle fallback error
       }
     }
 
@@ -187,7 +130,7 @@ async function getDashboardStats(session: Session) {
       .limit(5);
     
     if (approvalError) {
-      console.error('Error fetching pending approvals:', approvalError);
+      // Silently handle approval error
     }
 
     return {
@@ -195,8 +138,7 @@ async function getDashboardStats(session: Session) {
       recentSOWs: recentSOWs || [],
       pendingApprovals: pendingApprovals || []
     };
-  } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
+  } catch {
     return {
       stats: { total: 0, draft: 0, in_review: 0, approved: 0, rejected: 0 },
       recentSOWs: [],
@@ -232,43 +174,7 @@ export default async function Dashboard() {
             </p>
           </div>
 
-          {/* Debug Info - Remove this after fixing */}
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <h3 className="text-sm font-medium text-yellow-800 mb-2">Debug Info</h3>
-            <div className="text-xs text-yellow-700 space-y-1">
-              <p>User Email: {session.user.email}</p>
-              <p>User Role: {session.user.role || 'none'}</p>
-              <p>Stats Total: {dashboardData.stats.total}</p>
-              <p>Stats Draft: {dashboardData.stats.draft}</p>
-              <p>Stats In Review: {dashboardData.stats.in_review}</p>
-              <p>Stats Approved: {dashboardData.stats.approved}</p>
-              <p>Stats Rejected: {dashboardData.stats.rejected}</p>
-              <p>Recent SOWs Count: {dashboardData.recentSOWs.length}</p>
-              <p>Pending Approvals Count: {dashboardData.pendingApprovals.length}</p>
-            </div>
-            <div className="mt-2">
-              <a 
-                href="/api/debug/dashboard-stats" 
-                target="_blank" 
-                className="text-xs text-yellow-600 hover:text-yellow-800 underline"
-              >
-                View Raw Database Data →
-              </a>
-              <br />
-              <a 
-                href="/api/debug/user-info" 
-                target="_blank" 
-                className="text-xs text-yellow-600 hover:text-yellow-800 underline"
-              >
-                View User Info →
-              </a>
-            </div>
-            <div className="mt-2 text-xs text-yellow-700">
-              <p>Check browser console for detailed query logs</p>
-              <p>Note: Make sure SUPABASE_SERVICE_ROLE_KEY is set in your .env file</p>
-              <p>Note: All SOWs currently have author_id: null - filtering simplified</p>
-            </div>
-          </div>
+
 
           {/* Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">

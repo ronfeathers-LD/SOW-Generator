@@ -51,23 +51,19 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { apiKey, modelName, isActive } = body;
 
-    console.log('🔍 Saving Gemini config:', {
-      hasApiKey: !!apiKey,
-      apiKeyLength: apiKey?.length,
-      modelName: modelName
-    });
+
 
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });
     }
 
     // Deactivate any existing configurations
-    const deactivateResult = await supabase
+    await supabase
       .from('gemini_configs')
       .update({ is_active: false })
       .eq('is_active', true);
 
-    console.log('🔍 Deactivated existing configs:', deactivateResult);
+
 
     // Create new configuration
     const { data: config, error } = await supabase
@@ -81,23 +77,14 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('🔍 Supabase error details:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
+      console.error('Supabase error:', error);
       return NextResponse.json({ 
         error: 'Database error: ' + error.message,
         details: error.details 
       }, { status: 500 });
     }
 
-    console.log('🔍 Successfully created config:', { 
-      id: config.id,
-      modelName: config.model_name,
-      isActive: config.is_active
-    });
+
 
     // Don't return the actual API key in the response
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -108,7 +95,7 @@ export async function POST(request: NextRequest) {
       isConfigured: true 
     });
   } catch (error) {
-    console.error('🔍 Error creating Gemini config:', error);
+    console.error('Error creating Gemini config:', error);
     return NextResponse.json({ 
       error: 'Internal server error: ' + (error instanceof Error ? error.message : 'Unknown error')
     }, { status: 500 });

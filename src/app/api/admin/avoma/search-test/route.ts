@@ -26,8 +26,7 @@ export async function POST(request: NextRequest) {
       const fromDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 30 days ago
       
       const searchUrl = `${baseUrl}/calls?from_date=${fromDate}&to_date=${toDate}&limit=5`;
-      console.log('🔍 Testing Avoma Search URL:', searchUrl);
-      console.log('🔍 API Key:', apiKey);
+      
       
       const searchResponse = await fetch(searchUrl, {
         headers: {

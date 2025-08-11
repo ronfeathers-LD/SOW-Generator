@@ -12,7 +12,7 @@ export interface QueryOptions {
     column: string;
     ascending?: boolean;
   };
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   select?: string;
 }
 
@@ -23,14 +23,14 @@ export interface PaginationOptions {
 
 export interface QueryResult<T> {
   data: T[] | null;
-  error: any;
+  error: unknown;
   count?: number;
 }
 
 /**
  * Generic query builder with common options
  */
-export const buildQuery = <T>(
+export const buildQuery = (
   supabase: SupabaseClient,
   table: string,
   options: QueryOptions = {}
@@ -72,21 +72,23 @@ export const buildQuery = <T>(
 
 /**
  * Execute a query with error handling and logging
+ * TODO: Fix type compatibility with Supabase query builders
  */
 export const executeQuery = async <T>(
-  query: any,
+  query: unknown,
   operation: string = 'database query'
 ): Promise<QueryResult<T>> => {
   try {
-    const { data, error, count } = await query;
+    const result = await query as { data: unknown; error: unknown; count?: number };
+    const { data, error, count } = result;
     
     if (error) {
       logger.error(`Database error in ${operation}:`, error);
       return { data: null, error };
     }
     
-    logger.log(`Successfully executed ${operation}`, { count: data?.length || 0 });
-    return { data, error: null, count };
+    logger.log(`Successfully executed ${operation}`, { count: Array.isArray(data) ? data.length : 0 });
+    return { data: data as T[], error: null, count };
   } catch (err) {
     logger.error(`Unexpected error in ${operation}:`, err);
     return { data: null, error: err };
@@ -128,7 +130,7 @@ export const getPaginated = async <T>(
     offset
   });
   
-  return executeQuery(query, `get paginated ${table}`);
+  return executeQuery(() => query, `get paginated ${table}`);
 };
 
 /**
@@ -137,8 +139,8 @@ export const getPaginated = async <T>(
 export const getCount = async (
   supabase: SupabaseClient,
   table: string,
-  filters?: Record<string, any>
-): Promise<{ count: number | null; error: any }> => {
+  filters?: Record<string, unknown>
+): Promise<{ count: number | null; error: unknown }> => {
   let query = supabase.from(table).select('*', { count: 'exact', head: true });
   
   if (filters) {
@@ -172,7 +174,7 @@ export const insertRecord = async <T>(
     .select()
     .single();
   
-  return executeQuery(query, `insert ${table} record`);
+  return executeQuery(() => query, `insert ${table} record`);
 };
 
 /**
@@ -188,7 +190,7 @@ export const insertRecords = async <T>(
     .insert(data)
     .select();
   
-  return executeQuery(query, `insert multiple ${table} records`);
+  return executeQuery(() => query, `insert multiple ${table} records`);
 };
 
 /**
@@ -207,7 +209,7 @@ export const updateRecord = async <T>(
     .select()
     .single();
   
-  return executeQuery(query, `update ${table} record`);
+  return executeQuery(() => query, `update ${table} record`);
 };
 
 /**
@@ -217,7 +219,7 @@ export const deleteRecord = async (
   supabase: SupabaseClient,
   table: string,
   id: string
-): Promise<{ success: boolean; error: any }> => {
+): Promise<{ success: boolean; error: unknown }> => {
   const { error } = await supabase
     .from(table)
     .delete()
@@ -239,7 +241,7 @@ export const softDeleteRecord = async (
   supabase: SupabaseClient,
   table: string,
   id: string
-): Promise<{ success: boolean; error: any }> => {
+): Promise<{ success: boolean; error: unknown }> => {
   const { error } = await supabase
     .from(table)
     .update({ is_hidden: true, updated_at: new Date().toISOString() })
@@ -260,8 +262,8 @@ export const softDeleteRecord = async (
 export const recordExists = async (
   supabase: SupabaseClient,
   table: string,
-  filters: Record<string, any>
-): Promise<{ exists: boolean; error: any }> => {
+  filters: Record<string, unknown>
+): Promise<{ exists: boolean; error: unknown }> => {
   let query = supabase
     .from(table)
     .select('id')
@@ -288,7 +290,7 @@ export const getByField = async <T>(
   supabase: SupabaseClient,
   table: string,
   field: string,
-  value: any,
+  value: unknown,
   select?: string
 ): Promise<QueryResult<T>> => {
   const query = supabase
@@ -296,7 +298,7 @@ export const getByField = async <T>(
     .select(select || '*')
     .eq(field, value);
   
-  return executeQuery(query, `get ${table} by ${field}`);
+  return executeQuery(() => query, `get ${table} by ${field}`);
 };
 
 /**
@@ -312,7 +314,7 @@ export const searchRecords = async <T>(
   const query = buildQuery(supabase, table, options)
     .ilike(searchField, `%${searchTerm}%`);
   
-  return executeQuery(query, `search ${table} records`);
+  return executeQuery(() => query, `search ${table} records`);
 };
 
 /**
@@ -321,7 +323,7 @@ export const searchRecords = async <T>(
 export const executeTransaction = async <T>(
   operations: (() => Promise<T>)[],
   rollbackOnError: boolean = true
-): Promise<{ success: boolean; results: T[]; error: any }> => {
+): Promise<{ success: boolean; results: T[]; error: unknown }> => {
   const results: T[] = [];
   
   try {
