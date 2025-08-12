@@ -99,8 +99,8 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     const hasChanges = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
     setUnsavedChanges(prev => ({ ...prev, [sectionName]: hasChanges }));
     
-    // Notify parent component about unsaved changes
-    if (onUnsavedChanges) {
+    // Notify parent component about unsaved changes, but only after initialization is complete
+    if (onUnsavedChanges && !loading && !initializing) {
       const anyUnsavedChanges = Object.values({ ...unsavedChanges, [sectionName]: hasChanges }).some(Boolean);
       onUnsavedChanges(anyUnsavedChanges);
     }
