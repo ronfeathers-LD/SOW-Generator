@@ -94,16 +94,40 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
 
   // Function to check if a section has unsaved changes
   const checkUnsavedChanges = (sectionName: string, currentContent: string, templateContent: string) => {
+    // Don't check for unsaved changes if we're still loading or initializing
+    if (loading || initializing) {
+      return;
+    }
+    
+    // Don't check if template content is not loaded yet
+    if (!templateContent || templateContent.trim() === '') {
+      return;
+    }
+    
+    // Don't check if current content is null/undefined (not yet initialized)
+    if (currentContent === null || currentContent === undefined) {
+      return;
+    }
+    
     const normalizedCurrent = normalizeContent(currentContent);
     const normalizedTemplate = normalizeContent(templateContent);
-    const hasChanges = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
-    setUnsavedChanges(prev => ({ ...prev, [sectionName]: hasChanges }));
     
-    // Notify parent component about unsaved changes
-    if (onUnsavedChanges) {
-      const anyUnsavedChanges = Object.values({ ...unsavedChanges, [sectionName]: hasChanges }).some(Boolean);
-      onUnsavedChanges(anyUnsavedChanges);
-    }
+    // Only consider it as having unsaved changes if:
+    // 1. Current content is not empty AND
+    // 2. Current content is different from template
+    const hasChanges = normalizedCurrent !== '' && normalizedCurrent !== normalizedTemplate;
+    
+    setUnsavedChanges(prev => {
+      const newState = { ...prev, [sectionName]: hasChanges };
+      
+      // Notify parent component about unsaved changes using the updated state
+      if (onUnsavedChanges) {
+        const anyUnsavedChanges = Object.values(newState).some(Boolean);
+        onUnsavedChanges(anyUnsavedChanges);
+      }
+      
+      return newState;
+    });
   };
 
   // Create all content handlers using the factory
@@ -115,6 +139,36 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     originalProjectPhasesTemplate,
     originalRolesTemplate
   };
+
+  // Clear any false unsaved changes when templates are loaded and component is no longer initializing
+  useEffect(() => {
+    if (!loading && !initializing) {
+      // Re-check all sections for unsaved changes now that templates are loaded
+      const sections = ['intro', 'scope', 'objectives-disclosure', 'assumptions', 'project-phases', 'roles'];
+      sections.forEach(sectionName => {
+        const templateKey = `original${sectionName.charAt(0).toUpperCase() + sectionName.slice(1).replace(/-([a-z])/g, (match, letter) => letter.toUpperCase())}Template`;
+        const contentKey = `custom_${sectionName.replace(/-/g, '_')}_content`;
+        
+        const templateContent = templates[templateKey as keyof typeof templates];
+        const currentContent = formData[contentKey as keyof typeof formData] as string || '';
+        
+        if (templateContent && templateContent.trim() !== '') {
+          checkUnsavedChanges(sectionName, currentContent, templateContent);
+        }
+      });
+    }
+  }, [loading, initializing, templates, formData]);
+
+  // Cleanup effect to clear unsaved changes when component unmounts or when there are no actual changes
+  useEffect(() => {
+    return () => {
+      // Clear unsaved changes when component unmounts
+      setUnsavedChanges({});
+      if (onUnsavedChanges) {
+        onUnsavedChanges(false);
+      }
+    };
+  }, [onUnsavedChanges]);
 
   const context = {
     initializing,

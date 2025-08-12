@@ -30,10 +30,25 @@ export const createContentHandler = (
       return;
     }
     
+    // Don't process if template is not loaded yet
+    const templateContent = templates[templateKey];
+    if (!templateContent || templateContent.trim() === '') {
+      return;
+    }
+    
+    // Don't process if content is null/undefined (not yet initialized)
+    if (content === null || content === undefined) {
+      return;
+    }
+    
     // Check if content has been edited from the original template
     const normalizedCurrent = normalizeContent(content);
-    const normalizedTemplate = normalizeContent(templates[templateKey]);
-    const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
+    const normalizedTemplate = normalizeContent(templateContent);
+    
+    // Only consider it as edited if:
+    // 1. Current content is not empty AND
+    // 2. Current content is different from template
+    const isEdited = normalizedCurrent !== '' && normalizedCurrent !== normalizedTemplate;
     
     setFormData({
       ...formData,
@@ -41,7 +56,7 @@ export const createContentHandler = (
       [editedKey]: isEdited
     });
     
-    checkUnsavedChanges(sectionName, content, templates[templateKey]);
+    checkUnsavedChanges(sectionName, content, templateContent);
   };
 };
 

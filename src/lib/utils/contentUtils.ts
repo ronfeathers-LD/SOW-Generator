@@ -17,9 +17,23 @@ export const checkUnsavedChanges = (
   setUnsavedChanges: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
   onUnsavedChanges?: (hasUnsavedChanges: boolean) => void
 ) => {
+  // Don't check if current content is null/undefined (not yet initialized)
+  if (currentContent === null || currentContent === undefined) {
+    return;
+  }
+  
+  // Don't check if template content is not loaded yet
+  if (!templateContent || templateContent.trim() === '') {
+    return;
+  }
+  
   const normalizedCurrent = normalizeContent(currentContent);
   const normalizedTemplate = normalizeContent(templateContent);
-  const hasChanges = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
+  
+  // Only consider it as having unsaved changes if:
+  // 1. Current content is not empty AND
+  // 2. Current content is different from template
+  const hasChanges = normalizedCurrent !== '' && normalizedCurrent !== normalizedTemplate;
   
   // Defer state updates to avoid setState during render
   setTimeout(() => {
