@@ -1,6 +1,7 @@
 
 import GoogleProvider from 'next-auth/providers/google';
 import { supabase } from '@/lib/supabase';
+import { createServiceRoleClient } from '@/lib/supabase-server';
 import type { NextAuthOptions } from 'next-auth';
 import { logger } from './utils/logger';
 
@@ -121,6 +122,26 @@ export const authOptions: NextAuthOptions = {
         session.user.image = token.picture as string;
         session.user.email = token.email as string;
         session.user.role = token.role as string;
+        
+        // If role is still missing, fetch it directly from database
+        if (!session.user.role && session.user.email) {
+          try {
+            const supabaseServer = createServiceRoleClient();
+            const { data: dbUser, error } = await supabaseServer
+              .from('users')
+              .select('role')
+              .eq('email', session.user.email)
+              .single();
+            
+            if (!error && dbUser) {
+              session.user.role = dbUser.role;
+              // Also update the token for future use
+              token.role = dbUser.role;
+            }
+          } catch (error) {
+            console.error('Error fetching user role in session callback:', error);
+          }
+        }
       }
       return session;
     },
@@ -131,6 +152,25 @@ export const authOptions: NextAuthOptions = {
         token.email = user.email;
         token.role = user.role;
       }
+      
+      // Ensure role persists across token refreshes
+      if (!token.role && token.email) {
+        // Fetch user role from database if not in token
+        try {
+          const { data: dbUser, error } = await supabase
+            .from('users')
+            .select('role')
+            .eq('email', token.email)
+            .single();
+          
+          if (!error && dbUser) {
+            token.role = dbUser.role;
+          }
+        } catch (error) {
+          console.error('Error fetching user role in JWT callback:', error);
+        }
+      }
+      
       return token;
     },
     async redirect({ baseUrl }: { url?: string; baseUrl: string }) {

@@ -85,7 +85,7 @@ export default function SOWTitlePage({
                       {clientSignature?.title || '<TITLE>'}
                     </span>
                   ].filter(Boolean).map((item, index) => (
-                    <span key={index}>
+                    <span key={`client-signature-${index}`}>
                       {item}
                       {index < 1 && clientSignature?.name && clientSignature?.title && ', '}
                     </span>
@@ -123,7 +123,7 @@ export default function SOWTitlePage({
                         {clientSignature2.title || '<TITLE>'}
                       </span>
                     ].filter(Boolean).map((item, index) => (
-                      <span key={index}>
+                      <span key={`client-signature2-${index}`}>
                         {item}
                         {index < 1 && clientSignature2.name && clientSignature2.title && ', '}
                       </span>

@@ -16,6 +16,16 @@ export interface SalesforceAccount {
   AnnualRevenue?: number;
   NumberOfEmployees?: number;
   CurrencyIsoCode?: string;
+  // Lowercase properties for API responses
+  id?: string;
+  name?: string;
+  billingStreet?: string;
+  billingCity?: string;
+  billingState?: string;
+  billingPostalCode?: string;
+  billingCountry?: string;
+  industry?: string;
+  numberOfEmployees?: number;
   // Additional billing fields
   BillingAddress?: {
     street?: string;

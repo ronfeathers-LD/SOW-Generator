@@ -113,7 +113,7 @@ export default function SalesforceIntegration({ onCustomerSelected, onContactSel
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          accountId: account.Id
+          accountId: account.Id || account.id
         }),
       });
 
@@ -145,12 +145,13 @@ export default function SalesforceIntegration({ onCustomerSelected, onContactSel
   };
 
   const formatAddress = (account: SalesforceAccount) => {
+    // Handle both uppercase and lowercase property names from Salesforce API
     const parts = [
-      account.BillingStreet,
-      account.BillingCity,
-      account.BillingState,
-      account.BillingPostalCode,
-      account.BillingCountry
+      account.BillingStreet || account.billingStreet,
+      account.BillingCity || account.billingCity,
+      account.BillingState || account.billingState,
+      account.BillingPostalCode || account.billingPostalCode,
+      account.BillingCountry || account.billingCountry
     ].filter(Boolean);
     
     return parts.length > 0 ? parts.join(', ') : 'No address available';
@@ -241,18 +242,59 @@ export default function SalesforceIntegration({ onCustomerSelected, onContactSel
       {accounts.length > 0 && (
         <div className="mb-4">
           <h4 className="text-sm font-medium text-gray-700 mb-2">Search Results</h4>
-          <div className="space-y-2 max-h-60 overflow-y-auto">
+          <div className="space-y-3 max-h-60 overflow-y-auto">
             {accounts.map((account) => (
               <div
-                key={account.Id}
-                className="p-2 bg-white border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer"
+                key={account.Id || account.id}
+                className="p-3 bg-white border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer transition-colors"
                 onClick={() => handleAccountSelect(account)}
               >
-                <div className="font-medium text-gray-900 text-sm">{account.Name}</div>
-                <div className="text-xs text-gray-600 truncate">{formatAddress(account)}</div>
-                {account.Industry && (
-                  <div className="text-xs text-gray-600">Industry: {account.Industry}</div>
-                )}
+                {/* Company Name - Primary */}
+                <div className="font-semibold text-gray-900 text-base mb-2">
+                  {account.Name || account.name}
+                </div>
+                
+                {/* Address Information */}
+                <div className="text-sm text-gray-700 mb-2">
+                  <div className="font-medium text-gray-800">Address:</div>
+                  <div className="text-gray-600">{formatAddress(account)}</div>
+                </div>
+                
+                {/* Company Details */}
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {account.Industry || account.industry ? (
+                    <div key="industry">
+                      <span className="font-medium text-gray-700">Industry:</span>
+                      <span className="text-gray-600 ml-1">{account.Industry || account.industry}</span>
+                    </div>
+                  ) : null}
+                  
+                  {account.NumberOfEmployees || account.numberOfEmployees ? (
+                    <div key="employees">
+                      <span className="font-medium text-gray-700">Employees:</span>
+                      <span className="text-gray-600 ml-1">{account.NumberOfEmployees || account.numberOfEmployees}</span>
+                    </div>
+                  ) : null}
+                  
+                  {account.Type ? (
+                    <div key="type">
+                      <span className="font-medium text-gray-700">Type:</span>
+                      <span className="text-gray-600 ml-1">{account.Type}</span>
+                    </div>
+                  ) : null}
+                  
+                  {account.Phone ? (
+                    <div key="phone">
+                      <span className="font-medium text-gray-700">Phone:</span>
+                      <span className="text-gray-600 ml-1">{account.Phone}</span>
+                    </div>
+                  ) : null}
+                </div>
+                
+                {/* Click hint */}
+                <div className="text-xs text-blue-600 mt-2 italic">
+                  Click to select this company
+                </div>
               </div>
             ))}
           </div>
@@ -261,11 +303,48 @@ export default function SalesforceIntegration({ onCustomerSelected, onContactSel
 
       {/* Selected Customer Info */}
       {selectedAccount && (
-        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-          <h4 className="text-sm font-medium text-green-800 mb-2">Selected Customer</h4>
-          <div className="text-sm text-green-700">
-            <div><strong>Account:</strong> {selectedAccount.Name}</div>
-            <div><strong>Contacts:</strong> {contacts.length} found</div>
+        <div className="p-4 bg-green-50 border border-green-200 rounded-md">
+          <h4 className="text-sm font-medium text-green-800 mb-3">Selected Customer</h4>
+          
+          {/* Company Details */}
+          <div className="space-y-2 mb-3">
+            <div className="text-sm text-green-700" key="company-name">
+              <span className="font-semibold">Company:</span> {selectedAccount.Name || selectedAccount.name}
+            </div>
+            
+            {formatAddress(selectedAccount) !== 'No address available' && (
+              <div className="text-sm text-green-700" key="address">
+                <span className="font-semibold">Address:</span> {formatAddress(selectedAccount)}
+              </div>
+            )}
+            
+            {selectedAccount.Industry && (
+              <div className="text-sm text-green-700" key="industry">
+                <span className="font-semibold">Industry:</span> {selectedAccount.Industry}
+              </div>
+            )}
+            
+            {selectedAccount.NumberOfEmployees && (
+              <div className="text-sm text-green-700" key="employees">
+                <span className="font-semibold">Employees:</span> {selectedAccount.NumberOfEmployees}
+              </div>
+            )}
+            
+            {selectedAccount.Type && (
+              <div className="text-sm text-green-700" key="type">
+                <span className="font-semibold">Type:</span> {selectedAccount.Type}
+              </div>
+            )}
+            
+            {selectedAccount.Phone && (
+              <div className="text-sm text-green-700" key="phone">
+                <span className="font-semibold">Phone:</span> {selectedAccount.Phone}
+              </div>
+            )}
+            
+            <div className="text-sm text-green-700" key="contacts-count">
+              <span className="font-semibold">Contacts Found:</span> {contacts.length}
+            </div>
           </div>
           
 
