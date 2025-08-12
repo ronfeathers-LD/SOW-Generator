@@ -41,6 +41,11 @@ export const createContentHandler = (
       return;
     }
     
+    // Don't process during initial render when formData might not be fully initialized
+    if (!formData.id) {
+      return;
+    }
+    
     // Check if content has been edited from the original template
     const normalizedCurrent = normalizeContent(content);
     const normalizedTemplate = normalizeContent(templateContent);

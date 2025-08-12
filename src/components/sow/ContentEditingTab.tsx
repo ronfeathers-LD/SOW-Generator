@@ -94,18 +94,8 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
 
   // Function to check if a section has unsaved changes
   const checkUnsavedChanges = (sectionName: string, currentContent: string, templateContent: string) => {
-    // Don't check for unsaved changes if we're still loading or initializing
-    if (loading || initializing) {
-      return;
-    }
-    
-    // Don't check if template content is not loaded yet
-    if (!templateContent || templateContent.trim() === '') {
-      return;
-    }
-    
-    // Don't check if current content is null/undefined (not yet initialized)
-    if (currentContent === null || currentContent === undefined) {
+    // Only run this function when we're fully initialized and have actual content to compare
+    if (loading || initializing || !templateContent || !currentContent) {
       return;
     }
     
@@ -146,14 +136,10 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   // Clear any false unsaved changes when templates are loaded and component is no longer initializing
   useEffect(() => {
     if (!loading && !initializing) {
-      // Just clear any existing unsaved changes when we're done initializing
-      // The actual content comparison will happen naturally when content changes
-      setUnsavedChanges({});
-      if (onUnsavedChanges) {
-        onUnsavedChanges(false);
-      }
+      // Don't call setState here - just let the natural content comparison happen
+      // The unsaved changes will be properly calculated when content actually changes
     }
-  }, [loading, initializing, onUnsavedChanges]);
+  }, [loading, initializing]);
 
   // Cleanup effect to clear unsaved changes when component unmounts or when there are no actual changes
   useEffect(() => {
