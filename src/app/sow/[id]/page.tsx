@@ -11,6 +11,7 @@ import SOWAssumptionsPage from '@/components/sow/SOWAssumptionsPage';
 import SOWProjectPhasesPage from '@/components/sow/SOWProjectPhasesPage';
 import SOWRolesPage from '@/components/sow/SOWRolesPage';
 import ApprovalWorkflow from '@/components/sow/ApprovalWorkflow';
+import PricingDisplay from '@/components/sow/PricingDisplay';
 import { useSession } from 'next-auth/react';
 import { getStatusColor, getStatusLabel } from '@/lib/utils/statusUtils';
 
@@ -51,6 +52,8 @@ interface SOW {
       poNumber: string;
       paymentTerms: string;
       currency: string;
+      taxRate?: number;
+      shipping?: number;
     };
     // New pricing configuration fields
     project_management_included?: boolean;
@@ -63,6 +66,8 @@ interface SOW {
     subtotal?: number;
     discount_total?: number;
     total_amount?: number;
+    auto_calculated?: boolean;
+    last_calculated?: string | null;
   };
   accessRequirements: string;
   travelRequirements: string;
@@ -262,6 +267,8 @@ export default function SOWDetailsPage() {
             subtotal: data.pricing?.subtotal || 0,
             discount_total: data.pricing?.discount_total || 0,
             total_amount: data.pricing?.total_amount || 0,
+            auto_calculated: data.pricing?.auto_calculated || false,
+            last_calculated: data.pricing?.last_calculated || null,
           },
 
           companyLogo: data.header?.company_logo || data.companyLogo || '',
@@ -737,113 +744,161 @@ export default function SOWDetailsPage() {
 
               {/* Pricing Section */}
                 <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
-                  <h2 className="text-3xl font-bold  mb-6">5. PRICING</h2>
-                  <p className="mb-4 text-center">
-                    The tasks above will be completed on a time and material basis, using the LeanData standard workday of 8 hours for a duration of {sow.duration || 'N/A'}.
-                  </p>
-                  <div className="overflow-x-auto mb-4">
-                    <table className="min-w-full divide-y divide-gray-200 border">
-                      <thead className="bg-blue-100">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">LeanData Role</th>
-                          <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Rate/Hr</th>
-                          <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total Hours</th>
-                          <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total USD</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {Array.isArray(sow.pricing.roles) && sow.pricing.roles.map((role, idx) => (
-                          <tr key={idx}>
-                            <td className="px-6 py-4 whitespace-nowrap font-semibold">{role.role}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">${role.ratePerHour?.toFixed(2) || '0.00'}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">{role.totalHours}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">{role.ratePerHour && role.totalHours ? (role.ratePerHour * role.totalHours).toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '$0.00'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <h2 className="text-3xl font-bold mb-6">5. PRICING</h2>
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+                    <p className="text-gray-700">
+                      The tasks above will be completed on a <strong>time and material basis</strong>, using the LeanData standard workday of 8 hours for a duration of <strong>{sow.timeline_weeks ? `${sow.timeline_weeks} weeks` : 'N/A'}</strong>.
+                    </p>
+                    <p className="text-sm text-gray-600 mt-2">
+                      Hours are calculated based on product selection and unit counts, with automatic role assignment and project management inclusion where applicable.
+                    </p>
                   </div>
+                  
+
+                  
+                  {/* Pricing Display Component */}
+                  <PricingDisplay
+                    pricingRoles={Array.isArray(sow.pricing.roles) ? sow.pricing.roles.map(role => ({
+                      role: role.role,
+                      ratePerHour: role.ratePerHour || 0,
+                      totalHours: role.totalHours || 0,
+                      totalCost: (role.ratePerHour || 0) * (role.totalHours || 0)
+                    })) : []}
+                    discountType={sow.pricing?.discount_type || 'none'}
+                    discountAmount={sow.pricing?.discount_amount || 0}
+                    discountPercentage={sow.pricing?.discount_percentage || 0}
+                    subtotal={sow.pricing?.subtotal || 0}
+
+                    totalAmount={sow.pricing?.total_amount || 0}
+                    autoCalculated={sow.pricing?.auto_calculated || false}
+                    lastCalculated={sow.pricing?.last_calculated || null}
+                  />
+                  
                   <p className="mb-2 text-sm text-gray-700">LeanData shall notify Customer when costs are projected to exceed this estimate, providing the opportunity for Customer and LeanData to resolve jointly how to proceed. Hours listed above are to be consumed by the end date and cannot be extended.</p>
                   <p className="mb-2 text-sm text-gray-700">Any additional requests or mutually agreed-upon additional hours required to complete the tasks shall be documented in a change order Exhibit to this SOW and signed by both parties. <span className="font-bold">Additional hours will be billed at the Rate/Hr.</span></p>
-                  {/* Pricing Summary */}
-                  <div className="mt-8 p-6 bg-gray-50 rounded-lg">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Pricing Summary</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <div className="flex justify-between">
-                          <span className="font-medium">Role-based Subtotal:</span>
-                          <span className="font-semibold">
-                            ${Array.isArray(sow.pricing.roles) ? sow.pricing.roles.reduce((sum, role) => sum + (role.ratePerHour || 0) * (role.totalHours || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
-                          </span>
+                  
+                  {/* Project Details Summary */}
+                  {sow.products && Array.isArray(sow.products) && sow.products.length > 0 && (
+                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <h4 className="text-md font-semibold text-blue-900 mb-3">Project Details Used for Hour Calculation</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium text-blue-800">Selected Products:</span>
+                          <div className="mt-1 space-y-1">
+                            {sow.products.map((product, idx) => (
+                              <div key={idx} className="flex items-center space-x-2">
+                                <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                                <span className="text-blue-700">{product}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        {sow.pricing?.project_management_included && (
-                          <div className="flex justify-between">
-                            <span className="font-medium">Project Management:</span>
-                            <span className="font-semibold">
-                              ${((sow.pricing.project_management_hours || 0) * (sow.pricing.project_management_rate || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                        )}
-                        {sow.pricing?.discount_type && sow.pricing.discount_type !== 'none' && (
-                          <div className="flex justify-between text-red-600">
-                            <span className="font-medium">Discount {sow.pricing.discount_type === 'fixed' ? `($${sow.pricing.discount_amount})` : `(${sow.pricing.discount_percentage}%)`}:</span>
-                            <span className="font-semibold">
-                              -${sow.pricing.discount_total?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
-                            </span>
-                          </div>
-                        )}
-                        <div className="border-t pt-3">
-                          <div className="flex justify-between text-lg font-bold">
-                            <span>Total Amount:</span>
-                            <span>
-                              ${sow.pricing.total_amount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
-                            </span>
-                          </div>
+                        <div className="space-y-2">
+                          {sow.number_of_units && (
+                            <div>
+                              <span className="font-medium text-blue-800">Orchestration Units:</span>
+                              <span className="ml-2 text-blue-700">{sow.number_of_units}</span>
+                            </div>
+                          )}
+                          {sow.bookit_forms_units && (
+                            <div>
+                              <span className="font-medium text-blue-800">BookIt Forms Units:</span>
+                              <span className="ml-2 text-blue-700">{sow.bookit_forms_units}</span>
+                            </div>
+                          )}
+                          {sow.bookit_links_units && (
+                            <div>
+                              <span className="font-medium text-blue-800">BookIt Links Units:</span>
+                              <span className="ml-2 text-blue-700">{sow.bookit_links_units}</span>
+                            </div>
+                          )}
+                          {sow.bookit_handoff_units && (
+                            <div>
+                              <span className="font-medium text-blue-800">BookIt Handoff Units:</span>
+                              <span className="ml-2 text-blue-700">{sow.bookit_handoff_units}</span>
+                            </div>
+                          )}
+                          {sow.timeline_weeks && (
+                            <div>
+                              <span className="font-medium text-blue-800">Timeline:</span>
+                              <span className="ml-2 text-blue-700">{sow.timeline_weeks} weeks</span>
+                            </div>
+                          )}
                         </div>
                       </div>
-                      
-                      <div className="space-y-3">
-                        <div className="flex justify-between">
-                          <span className="font-medium">Total Hours:</span>
-                          <span className="font-semibold">
-                            {Array.isArray(sow.pricing.roles) ? sow.pricing.roles.reduce((sum, role) => sum + (role.totalHours || 0), 0) : 0}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium">Average Rate:</span>
-                          <span className="font-semibold">
-                            ${Array.isArray(sow.pricing.roles) && sow.pricing.roles.length > 0 ? 
-                              (sow.pricing.roles.reduce((sum, role) => sum + (role.ratePerHour || 0) * (role.totalHours || 0), 0) / 
-                               sow.pricing.roles.reduce((sum, role) => sum + (role.totalHours || 0), 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
-                          </span>
-                        </div>
+                      <div className="mt-3 pt-3 border-t border-blue-200">
+                        <p className="text-xs text-blue-600">
+                          💡 <strong>Auto-Calculation:</strong> Hours are automatically calculated based on product selection and unit counts using LeanData&apos;s standard estimation rules. 
+                          Project Manager role is auto-added for 3+ products. All calculated hours are initially assigned to the Onboarding Specialist role.
+                        </p>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Billing Information */}
-                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 mt-8 text-sm">
-                    <dt className="font-semibold">Company Name:</dt>
-                    <dd>{sow.pricing?.billing?.companyName || 'N/A'}</dd>
-                    <dt className="font-semibold">Billing Contact Name:</dt>
-                    <dd>{sow.pricing?.billing?.billingContact || 'N/A'}</dd>
-                    <dt className="font-semibold">Billing Address:</dt>
-                    <dd>
-                      {(sow.pricing?.billing?.billingAddress || 'N/A')
-                        .split(',')
-                        .map((line, idx) => (
-                          <span key={idx} className="block">{line.trim()}</span>
-                        ))}
-                    </dd>
-                    <dt className="font-semibold">Billing Email:</dt>
-                    <dd>{sow.pricing?.billing?.billingEmail || 'N/A'}</dd>
-                    <dt className="font-semibold">Purchase Order Number:</dt>
-                    <dd>{sow.pricing?.billing?.poNumber || 'PO provided by customer'}</dd>
-                    <dt className="font-semibold">Payment Terms:</dt>
-                    <dd>{sow.pricing?.billing?.paymentTerms || 'N/A'}</dd>
-                    <dt className="font-semibold">Currency:</dt>
-                    <dd>{sow.pricing?.billing?.currency || 'N/A'}</dd>
-                  </dl>
+                  <div className="mt-8 p-6 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900">Billing Information</h3>
+                      {sow.salesforceAccountId && (
+                        <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                          From Salesforce
+                        </span>
+                      )}
+                    </div>
+                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                      <dt className="font-semibold text-gray-700">Company Name:</dt>
+                      <dd className="text-gray-900">{sow.pricing?.billing?.companyName || 'N/A'}</dd>
+                      
+                      <dt className="font-semibold text-gray-700">Billing Contact Name:</dt>
+                      <dd className="text-gray-900">{sow.pricing?.billing?.billingContact || 'N/A'}</dd>
+                      
+                      <dt className="font-semibold text-gray-700">Billing Address:</dt>
+                      <dd className="text-gray-900">
+                        {(sow.pricing?.billing?.billingAddress || 'N/A')
+                          .split(',')
+                          .map((line, idx) => (
+                            <span key={idx} className="block">{line.trim()}</span>
+                          ))}
+                      </dd>
+                      
+                      <dt className="font-semibold text-gray-700">Billing Email:</dt>
+                      <dd className="text-gray-900">{sow.pricing?.billing?.billingEmail || 'N/A'}</dd>
+                      
+                      <dt className="font-semibold text-gray-700">Purchase Order Number:</dt>
+                      <dd className="text-gray-900">{sow.pricing?.billing?.poNumber || 'PO provided by customer'}</dd>
+                      
+                      <dt className="font-semibold text-gray-700">Payment Terms:</dt>
+                      <dd className="text-gray-900">{sow.pricing?.billing?.paymentTerms || 'Net 30'}</dd>
+                      
+                      <dt className="font-semibold text-gray-700">Currency:</dt>
+                      <dd className="text-gray-900">{sow.pricing?.billing?.currency || 'USD'}</dd>
+                      
+                      {/* Additional billing fields if available */}
+                      {sow.pricing?.billing?.taxRate && (
+                        <>
+                          <dt className="font-semibold text-gray-700">Tax Rate:</dt>
+                          <dd className="text-gray-900">{sow.pricing.billing.taxRate}%</dd>
+                        </>
+                      )}
+                      {sow.pricing?.billing?.shipping && (
+                        <>
+                          <dt className="font-semibold text-gray-700">Shipping:</dt>
+                          <dd className="text-gray-900">${sow.pricing.billing.shipping}</dd>
+                        </>
+                      )}
+                    </dl>
+                    
+                    {/* Payment Terms Note */}
+                    <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <p className="text-sm text-yellow-800">
+                        <strong>Payment Terms:</strong> {sow.pricing?.billing?.paymentTerms || 'Net 30'} • 
+                        <strong>Currency:</strong> {sow.pricing?.billing?.currency || 'USD'} • 
+                        <strong>Billing Cycle:</strong> Monthly or upon completion of major milestones
+                      </p>
+                    </div>
+                  </div>
+                  
+
                 </div>
               </div>
 

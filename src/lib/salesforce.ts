@@ -154,8 +154,9 @@ class SalesforceClient {
         loginUrl: cleanLoginUrl
       });
     }
+    
     try {
-          // Authentication attempt started
+      // Authentication attempt started
       
       // Try authentication with password + security token first
       try {
@@ -166,13 +167,18 @@ class SalesforceClient {
         if (error instanceof Error && error.message.includes('INVALID_LOGIN')) {
           // First attempt failed, trying with password only
           await this.conn.login(username, password);
-                      // Authentication successful with password only
+          // Authentication successful with password only
         } else {
           throw error;
         }
       }
       
-              // Authentication successful
+      // Verify that the connection has a valid instance URL after authentication
+      if (!this.conn.instanceUrl) {
+        throw new Error('Salesforce authentication succeeded but no instance URL was returned');
+      }
+      
+      // Authentication successful
     } catch (error) {
       console.error('Salesforce authentication failed:', error);
       
@@ -291,6 +297,11 @@ class SalesforceClient {
    */
   async getAccountContacts(accountId: string): Promise<SalesforceContact[]> {
     try {
+      // Verify connection is properly authenticated
+      if (!this.conn.instanceUrl) {
+        throw new Error('Salesforce connection not properly authenticated - missing instance URL');
+      }
+      
       const query = `
         SELECT Id, FirstName, LastName, Email, Phone, Title, AccountId,
                Account.Name
@@ -299,10 +310,16 @@ class SalesforceClient {
         ORDER BY FirstName, LastName
       `;
       
+      console.log('Executing Salesforce query with instance URL:', this.conn.instanceUrl);
       const result = await this.conn.query(query);
       return result.records as SalesforceContact[];
     } catch (error) {
       console.error('Error getting account contacts:', error);
+      console.error('Connection details:', {
+        instanceUrl: this.conn.instanceUrl,
+        accessToken: this.conn.accessToken ? 'present' : 'missing',
+        isLoggedIn: !!this.conn.accessToken
+      });
       throw new Error('Failed to get Salesforce contacts');
     }
   }
@@ -428,12 +445,25 @@ class SalesforceClient {
    */
   async testConnection(): Promise<boolean> {
     try {
+      // Check if we have the necessary connection details
+      if (!this.conn.instanceUrl || !this.conn.accessToken) {
+        console.error('Salesforce connection test failed: Missing instance URL or access token');
+        return false;
+      }
+      
       const result = await this.conn.query('SELECT Id FROM User LIMIT 1');
       return result.records.length > 0;
     } catch (error) {
       console.error('Salesforce connection test failed:', error);
       return false;
     }
+  }
+
+  /**
+   * Check if the connection is properly authenticated
+   */
+  isAuthenticated(): boolean {
+    return !!(this.conn.instanceUrl && this.conn.accessToken);
   }
 }
 

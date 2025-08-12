@@ -108,6 +108,35 @@ export async function GET(
       key_objectives_content_edited: sow.key_objectives_content_edited || false,
       // Include client roles
       clientRoles: sow.client_roles || [],
+      // Include pricing data - handle mixed structure where pricing_roles contains both roles and config
+      pricingRoles: (() => {
+        if (Array.isArray(sow.pricing_roles)) {
+          // If it's an array, return it directly (old format)
+          return sow.pricing_roles;
+        } else if (sow.pricing_roles && typeof sow.pricing_roles === 'object' && sow.pricing_roles.roles) {
+          // If it's an object with a roles property, return the roles array
+          return sow.pricing_roles.roles;
+        } else {
+          // Otherwise return empty array
+          return [];
+        }
+      })(),
+      billingInfo: sow.billing_info || {},
+      // Include pricing configuration from JSONB fields
+      pricing: {
+        project_management_included: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.project_management_included || false : false,
+        project_management_hours: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.project_management_hours || 40 : 40,
+        project_management_rate: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.project_management_rate || 225 : 225,
+        base_hourly_rate: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.base_hourly_rate || 200 : 200,
+        discount_type: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.discount_type || 'none' : 'none',
+        discount_amount: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.discount_amount || 0 : 0,
+        discount_percentage: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.discount_percentage || 0 : 0,
+        subtotal: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.subtotal || 0 : 0,
+        discount_total: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.discount_total || 0 : 0,
+        total_amount: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.total_amount || 0 : 0,
+        auto_calculated: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.auto_calculated || false : false,
+        last_calculated: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.last_calculated || null : null,
+      },
     };
 
     return NextResponse.json(transformedSow);

@@ -126,6 +126,41 @@ export async function PUT(
       case 'Billing & Payment':
         // Handle billing and payment data
         if (data.pricing?.billing !== undefined) updateData.billing_info = data.pricing.billing;
+        
+        // Handle pricing configuration and calculated totals
+        if (data.pricing) {
+          // Create a structured pricing object that preserves both roles and configuration
+          const pricingData: {
+            roles: Array<{
+              role: string;
+              ratePerHour: number;
+              totalHours: number;
+              [key: string]: unknown;
+            }>;
+            subtotal?: number;
+            discount_total?: number;
+            total_amount?: number;
+            discount_type?: string;
+            discount_amount?: number;
+            discount_percentage?: number;
+            auto_calculated?: boolean;
+            last_calculated?: string;
+          } = {
+            roles: data.pricing.roles || [],
+            subtotal: data.pricing.subtotal,
+            discount_total: data.pricing.discount_total,
+            total_amount: data.pricing.total_amount,
+            discount_type: data.pricing.discount_type,
+            discount_amount: data.pricing.discount_amount,
+            discount_percentage: data.pricing.discount_percentage,
+            auto_calculated: data.pricing.auto_calculated,
+            last_calculated: data.pricing.last_calculated,
+          };
+          
+          // Save the structured pricing data
+          updateData.pricing_roles = pricingData;
+        }
+        
         if (data.assumptions) {
           if (data.assumptions.access_requirements !== undefined) updateData.access_requirements = data.assumptions.access_requirements;
           if (data.assumptions.travel_requirements !== undefined) updateData.travel_requirements = data.assumptions.travel_requirements;

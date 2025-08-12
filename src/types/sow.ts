@@ -146,6 +146,9 @@ export interface SOWData {
     subtotal?: number;
     discount_total?: number;
     total_amount?: number;
+    // Auto-save tracking fields
+    auto_calculated?: boolean;
+    last_calculated?: string;
   };
 
   // Project Assumptions

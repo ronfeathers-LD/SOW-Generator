@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SOWData } from '@/types/sow';
 import { getContentTemplate } from '@/lib/sow-content';
 import { createAllContentHandlers } from '@/lib/utils/contentHandlers';
@@ -74,6 +74,14 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     loadTemplates();
   }, []); // Only run once when component mounts
 
+  // Function to clear all unsaved changes and notify parent
+  const clearAllUnsavedChanges = useCallback(() => {
+    setUnsavedChanges({});
+    if (onUnsavedChanges) {
+      onUnsavedChanges(false);
+    }
+  }, [onUnsavedChanges]);
+
   // Mark section as initialized when it becomes active
   useEffect(() => {
     if (!loading && !initializing && activeSection) {
@@ -91,7 +99,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
       // Clear any existing unsaved changes to start with a clean state
       clearAllUnsavedChanges();
     }
-  }, [loading, initializing]);
+  }, [loading, initializing, clearAllUnsavedChanges]);
 
   // Function to normalize content for comparison (removes HTML tags and normalizes whitespace)
   const normalizeContent = (content: string): string => {
@@ -111,14 +119,6 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     if (onUnsavedChanges && !loading && !initializing) {
       const anyUnsavedChanges = Object.values({ ...unsavedChanges, [sectionName]: hasChanges }).some(Boolean);
       onUnsavedChanges(anyUnsavedChanges);
-    }
-  };
-
-  // Function to clear all unsaved changes and notify parent
-  const clearAllUnsavedChanges = () => {
-    setUnsavedChanges({});
-    if (onUnsavedChanges) {
-      onUnsavedChanges(false);
     }
   };
 

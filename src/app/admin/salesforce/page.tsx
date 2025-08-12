@@ -106,7 +106,6 @@ export default function SalesforceAdminPage() {
       });
 
       if (response.ok) {
-        const data = await response.json();
         // Reload config to get updated data while preserving the password
         await reloadConfigPreservingPassword();
         setMessage({ type: 'success', text: 'Salesforce configuration saved successfully!' });
@@ -149,8 +148,6 @@ export default function SalesforceAdminPage() {
         }) : undefined,
       });
 
-      const data = await response.json();
-      
       if (response.ok) {
         setMessage({ 
           type: 'success', 
@@ -159,6 +156,7 @@ export default function SalesforceAdminPage() {
         // Reload config to get updated last_tested timestamp, but preserve the password
         await reloadConfigPreservingPassword();
       } else {
+        const data = await response.json();
         throw new Error(data.details || 'Connection test failed');
       }
     } catch (error) {

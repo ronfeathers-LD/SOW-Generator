@@ -59,11 +59,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Authenticate with Salesforce using stored credentials
-
+    console.log('Authenticating with Salesforce using login URL:', config.login_url);
     await salesforceClient.authenticate(config.username, config.password, config.security_token || undefined, config.login_url);
 
-    // Get contacts for the account
+    // Verify authentication was successful
+    if (!salesforceClient.isAuthenticated()) {
+      console.error('Salesforce authentication failed - connection not properly established');
+      return NextResponse.json(
+        { error: 'Salesforce authentication failed' },
+        { status: 500 }
+      );
+    }
 
+    console.log('Salesforce authentication successful, instance URL:', salesforceClient.getInstanceUrl());
+
+    // Get contacts for the account
     const contacts = await salesforceClient.getAccountContacts(accountId);
 
 
@@ -78,8 +88,18 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error getting account contacts from Salesforce:', error);
+    
+    // Provide more detailed error information
+    let errorMessage = 'Failed to get account contacts from Salesforce';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to get account contacts from Salesforce' },
+      { 
+        error: errorMessage,
+        details: 'Check the server logs for more information about the Salesforce connection issue.'
+      },
       { status: 500 }
     );
   }

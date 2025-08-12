@@ -827,6 +827,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               subtotal: formData.pricing?.subtotal,
               discount_total: formData.pricing?.discount_total,
               total_amount: formData.pricing?.total_amount,
+              // Auto-save tracking fields
+              auto_calculated: formData.pricing?.auto_calculated,
+              last_calculated: formData.pricing?.last_calculated,
             },
             assumptions: {
               access_requirements: formData.assumptions?.access_requirements,
