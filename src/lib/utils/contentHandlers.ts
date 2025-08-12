@@ -15,6 +15,7 @@ interface ContentHandlerContext {
   setFormData: (data: Partial<SOWData>) => void;
   normalizeContent: (content: string) => string;
   checkUnsavedChanges: (sectionName: string, currentContent: string, templateContent: string) => void;
+  isReady?: React.MutableRefObject<boolean>;
 }
 
 export const createContentHandler = (
@@ -23,10 +24,15 @@ export const createContentHandler = (
 ) => {
   return (content: string) => {
     const { sectionName, templateKey, contentKey, editedKey } = config;
-    const { initializing, initializedSections, templates, formData, setFormData, normalizeContent, checkUnsavedChanges } = context;
+    const { initializing, initializedSections, templates, formData, setFormData, normalizeContent, checkUnsavedChanges, isReady } = context;
 
     // Don't process changes during initialization or if section hasn't been initialized yet
     if (initializing || !initializedSections.has(sectionName)) {
+      return;
+    }
+    
+    // Don't process if component is not ready yet
+    if (!isReady?.current) {
       return;
     }
     
@@ -55,15 +61,22 @@ export const createContentHandler = (
     // 2. Current content is different from template
     const isEdited = normalizedCurrent !== '' && normalizedCurrent !== normalizedTemplate;
     
-    setFormData({
-      ...formData,
-      [contentKey]: content,
-      [editedKey]: isEdited
-    });
-    
-    // Use setTimeout to defer the checkUnsavedChanges call and avoid setState during render
+    // Use setTimeout to defer state updates and avoid setState during render
     setTimeout(() => {
-      checkUnsavedChanges(sectionName, content, templateContent);
+      if (isReady?.current) {
+        setFormData({
+          ...formData,
+          [contentKey]: content,
+          [editedKey]: isEdited
+        });
+        
+        // Defer the checkUnsavedChanges call
+        setTimeout(() => {
+          if (isReady?.current) {
+            checkUnsavedChanges(sectionName, content, templateContent);
+          }
+        }, 0);
+      }
     }, 0);
   };
 };

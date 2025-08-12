@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { SOWData } from '@/types/sow';
 import { getContentTemplate } from '@/lib/sow-content';
 import { createAllContentHandlers } from '@/lib/utils/contentHandlers';
@@ -29,6 +29,10 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   const [saveStatus, setSaveStatus] = useState<{ [key: string]: 'success' | 'error' | null }>({});
   const [unsavedChanges, setUnsavedChanges] = useState<{ [key: string]: boolean }>({});
   const [initializedSections, setInitializedSections] = useState<Set<string>>(new Set());
+  
+  // Use refs to track if component is mounted and ready
+  const isMounted = useRef(false);
+  const isReady = useRef(false);
 
   useEffect(() => {
     async function loadTemplates() {
@@ -68,10 +72,20 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
       } finally {
         setLoading(false);
         setInitializing(false);
+        // Mark component as ready after templates are loaded
+        isReady.current = true;
       }
     }
 
     loadTemplates();
+    
+    // Mark component as mounted
+    isMounted.current = true;
+    
+    return () => {
+      isMounted.current = false;
+      isReady.current = false;
+    };
   }, []); // Only run once when component mounts
 
   // Mark section as initialized when it becomes active
@@ -94,8 +108,18 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
 
   // Function to check if a section has unsaved changes
   const checkUnsavedChanges = (sectionName: string, currentContent: string, templateContent: string) => {
-    // Only run this function when we're fully initialized and have actual content to compare
-    if (loading || initializing || !templateContent || !currentContent) {
+    // Only run this function when component is fully mounted and ready
+    if (!isMounted.current || !isReady.current) {
+      return;
+    }
+    
+    // Don't check if template content is not loaded yet
+    if (!templateContent || templateContent.trim() === '') {
+      return;
+    }
+    
+    // Don't check if current content is null/undefined (not yet initialized)
+    if (currentContent === null || currentContent === undefined) {
       return;
     }
     
@@ -109,17 +133,20 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     
     // Use setTimeout to defer state updates and avoid setState during render
     setTimeout(() => {
-      setUnsavedChanges(prev => {
-        const newState = { ...prev, [sectionName]: hasChanges };
-        
-        // Notify parent component about unsaved changes using the updated state
-        if (onUnsavedChanges) {
-          const anyUnsavedChanges = Object.values(newState).some(Boolean);
-          onUnsavedChanges(anyUnsavedChanges);
-        }
-        
-        return newState;
-      });
+      // Double-check that component is still mounted before updating state
+      if (isMounted.current) {
+        setUnsavedChanges(prev => {
+          const newState = { ...prev, [sectionName]: hasChanges };
+          
+          // Notify parent component about unsaved changes using the updated state
+          if (onUnsavedChanges) {
+            const anyUnsavedChanges = Object.values(newState).some(Boolean);
+            onUnsavedChanges(anyUnsavedChanges);
+          }
+          
+          return newState;
+        });
+      }
     }, 0);
   };
 
@@ -159,7 +186,8 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     formData,
     setFormData,
     normalizeContent,
-    checkUnsavedChanges
+    checkUnsavedChanges,
+    isReady
   };
 
   const { handlers, resetHandlers } = createAllContentHandlers(context);
