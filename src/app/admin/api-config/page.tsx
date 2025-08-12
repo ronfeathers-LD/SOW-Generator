@@ -21,7 +21,7 @@ export default function ApiConfigPage() {
   useEffect(() => {
     if (status === 'loading') return;
     
-    if (!session?.user?.isAdmin) {
+    if (!session?.user?.role || session.user.role !== 'admin') {
       router.push('/');
       return;
     }
@@ -54,7 +54,7 @@ export default function ApiConfigPage() {
     );
   }
 
-  if (!session?.user?.isAdmin) {
+  if (!session?.user?.role || session.user.role !== 'admin') {
     return null;
   }
 
