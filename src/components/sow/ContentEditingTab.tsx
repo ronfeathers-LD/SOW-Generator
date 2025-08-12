@@ -117,17 +117,20 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     // 2. Current content is different from template
     const hasChanges = normalizedCurrent !== '' && normalizedCurrent !== normalizedTemplate;
     
-    setUnsavedChanges(prev => {
-      const newState = { ...prev, [sectionName]: hasChanges };
-      
-      // Notify parent component about unsaved changes using the updated state
-      if (onUnsavedChanges) {
-        const anyUnsavedChanges = Object.values(newState).some(Boolean);
-        onUnsavedChanges(anyUnsavedChanges);
-      }
-      
-      return newState;
-    });
+    // Use setTimeout to defer state updates and avoid setState during render
+    setTimeout(() => {
+      setUnsavedChanges(prev => {
+        const newState = { ...prev, [sectionName]: hasChanges };
+        
+        // Notify parent component about unsaved changes using the updated state
+        if (onUnsavedChanges) {
+          const anyUnsavedChanges = Object.values(newState).some(Boolean);
+          onUnsavedChanges(anyUnsavedChanges);
+        }
+        
+        return newState;
+      });
+    }, 0);
   };
 
   // Create all content handlers using the factory
@@ -143,21 +146,14 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   // Clear any false unsaved changes when templates are loaded and component is no longer initializing
   useEffect(() => {
     if (!loading && !initializing) {
-      // Re-check all sections for unsaved changes now that templates are loaded
-      const sections = ['intro', 'scope', 'objectives-disclosure', 'assumptions', 'project-phases', 'roles'];
-      sections.forEach(sectionName => {
-        const templateKey = `original${sectionName.charAt(0).toUpperCase() + sectionName.slice(1).replace(/-([a-z])/g, (match, letter) => letter.toUpperCase())}Template`;
-        const contentKey = `custom_${sectionName.replace(/-/g, '_')}_content`;
-        
-        const templateContent = templates[templateKey as keyof typeof templates];
-        const currentContent = formData[contentKey as keyof typeof formData] as string || '';
-        
-        if (templateContent && templateContent.trim() !== '') {
-          checkUnsavedChanges(sectionName, currentContent, templateContent);
-        }
-      });
+      // Just clear any existing unsaved changes when we're done initializing
+      // The actual content comparison will happen naturally when content changes
+      setUnsavedChanges({});
+      if (onUnsavedChanges) {
+        onUnsavedChanges(false);
+      }
     }
-  }, [loading, initializing, templates, formData]);
+  }, [loading, initializing, onUnsavedChanges]);
 
   // Cleanup effect to clear unsaved changes when component unmounts or when there are no actual changes
   useEffect(() => {

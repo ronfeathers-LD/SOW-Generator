@@ -56,7 +56,10 @@ export const createContentHandler = (
       [editedKey]: isEdited
     });
     
-    checkUnsavedChanges(sectionName, content, templateContent);
+    // Use setTimeout to defer the checkUnsavedChanges call and avoid setState during render
+    setTimeout(() => {
+      checkUnsavedChanges(sectionName, content, templateContent);
+    }, 0);
   };
 };
 
