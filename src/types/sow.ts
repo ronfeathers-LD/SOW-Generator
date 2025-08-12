@@ -135,6 +135,17 @@ export interface SOWData {
       total_hours: number;
     }>;
     billing: BillingInfo;
+    // New pricing configuration fields
+    project_management_included?: boolean;
+    project_management_hours?: number;
+    project_management_rate?: number;
+    base_hourly_rate?: number;
+    discount_type?: 'none' | 'fixed' | 'percentage';
+    discount_amount?: number;
+    discount_percentage?: number;
+    subtotal?: number;
+    discount_total?: number;
+    total_amount?: number;
   };
 
   // Project Assumptions

@@ -52,6 +52,17 @@ interface SOW {
       paymentTerms: string;
       currency: string;
     };
+    // New pricing configuration fields
+    project_management_included?: boolean;
+    project_management_hours?: number;
+    project_management_rate?: number;
+    base_hourly_rate?: number;
+    discount_type?: 'none' | 'fixed' | 'percentage';
+    discount_amount?: number;
+    discount_percentage?: number;
+    subtotal?: number;
+    discount_total?: number;
+    total_amount?: number;
   };
   accessRequirements: string;
   travelRequirements: string;
@@ -240,6 +251,17 @@ export default function SOWDetailsPage() {
               paymentTerms: '',
               currency: '',
             },
+            // New pricing configuration fields
+            project_management_included: data.pricing?.project_management_included || false,
+            project_management_hours: data.pricing?.project_management_hours || 40,
+            project_management_rate: data.pricing?.project_management_rate || 225,
+            base_hourly_rate: data.pricing?.base_hourly_rate || 200,
+            discount_type: data.pricing?.discount_type || 'none',
+            discount_amount: data.pricing?.discount_amount || 0,
+            discount_percentage: data.pricing?.discount_percentage || 0,
+            subtotal: data.pricing?.subtotal || 0,
+            discount_total: data.pricing?.discount_total || 0,
+            total_amount: data.pricing?.total_amount || 0,
           },
 
           companyLogo: data.header?.company_logo || data.companyLogo || '',
@@ -743,6 +765,63 @@ export default function SOWDetailsPage() {
                   </div>
                   <p className="mb-2 text-sm text-gray-700">LeanData shall notify Customer when costs are projected to exceed this estimate, providing the opportunity for Customer and LeanData to resolve jointly how to proceed. Hours listed above are to be consumed by the end date and cannot be extended.</p>
                   <p className="mb-2 text-sm text-gray-700">Any additional requests or mutually agreed-upon additional hours required to complete the tasks shall be documented in a change order Exhibit to this SOW and signed by both parties. <span className="font-bold">Additional hours will be billed at the Rate/Hr.</span></p>
+                  {/* Pricing Summary */}
+                  <div className="mt-8 p-6 bg-gray-50 rounded-lg">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Pricing Summary</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="font-medium">Role-based Subtotal:</span>
+                          <span className="font-semibold">
+                            ${Array.isArray(sow.pricing.roles) ? sow.pricing.roles.reduce((sum, role) => sum + (role.ratePerHour || 0) * (role.totalHours || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                          </span>
+                        </div>
+                        {sow.pricing?.project_management_included && (
+                          <div className="flex justify-between">
+                            <span className="font-medium">Project Management:</span>
+                            <span className="font-semibold">
+                              ${((sow.pricing.project_management_hours || 0) * (sow.pricing.project_management_rate || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        )}
+                        {sow.pricing?.discount_type && sow.pricing.discount_type !== 'none' && (
+                          <div className="flex justify-between text-red-600">
+                            <span className="font-medium">Discount {sow.pricing.discount_type === 'fixed' ? `($${sow.pricing.discount_amount})` : `(${sow.pricing.discount_percentage}%)`}:</span>
+                            <span className="font-semibold">
+                              -${sow.pricing.discount_total?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                            </span>
+                          </div>
+                        )}
+                        <div className="border-t pt-3">
+                          <div className="flex justify-between text-lg font-bold">
+                            <span>Total Amount:</span>
+                            <span>
+                              ${sow.pricing.total_amount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="font-medium">Total Hours:</span>
+                          <span className="font-semibold">
+                            {Array.isArray(sow.pricing.roles) ? sow.pricing.roles.reduce((sum, role) => sum + (role.totalHours || 0), 0) : 0}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">Average Rate:</span>
+                          <span className="font-semibold">
+                            ${Array.isArray(sow.pricing.roles) && sow.pricing.roles.length > 0 ? 
+                              (sow.pricing.roles.reduce((sum, role) => sum + (role.ratePerHour || 0) * (role.totalHours || 0), 0) / 
+                               sow.pricing.roles.reduce((sum, role) => sum + (role.totalHours || 0), 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Billing Information */}
                   <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 mt-8 text-sm">
                     <dt className="font-semibold">Company Name:</dt>
                     <dd>{sow.pricing?.billing?.companyName || 'N/A'}</dd>

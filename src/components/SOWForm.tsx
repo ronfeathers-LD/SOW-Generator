@@ -81,6 +81,32 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             project_description: initialData.scope?.project_description || '',
             deliverables: initialData.deliverables || '',
           },
+          pricing: {
+            ...initialData.pricing,
+            roles: initialData.pricing?.roles || [{
+              role: '',
+              rate_per_hour: 0,
+              total_hours: 0,
+            }],
+            billing: initialData.pricing?.billing || {
+              company_name: '',
+              billing_contact: '',
+              billing_address: '',
+              billing_email: '',
+              po_number: '',
+            },
+            // New pricing configuration fields
+            project_management_included: initialData.pricing?.project_management_included || false,
+            project_management_hours: initialData.pricing?.project_management_hours || 40,
+            project_management_rate: initialData.pricing?.project_management_rate || 225,
+            base_hourly_rate: initialData.pricing?.base_hourly_rate || 200,
+            discount_type: initialData.pricing?.discount_type || 'none',
+            discount_amount: initialData.pricing?.discount_amount || 0,
+            discount_percentage: initialData.pricing?.discount_percentage || 0,
+            subtotal: initialData.pricing?.subtotal || 0,
+            discount_total: initialData.pricing?.discount_total || 0,
+            total_amount: initialData.pricing?.total_amount || 0,
+          },
           custom_deliverables_content: initialData.custom_deliverables_content || '',
           deliverables_content_edited: initialData.deliverables_content_edited || false,
           custom_objective_overview_content: initialData.custom_objective_overview_content || '',
@@ -181,6 +207,17 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               billing_email: '',
               po_number: '',
             },
+            // New pricing configuration fields
+            project_management_included: false,
+            project_management_hours: 40,
+            project_management_rate: 225,
+            base_hourly_rate: 200,
+            discount_type: 'none',
+            discount_amount: 0,
+            discount_percentage: 0,
+            subtotal: 0,
+            discount_total: 0,
+            total_amount: 0,
           },
           assumptions: {
             access_requirements: '',
@@ -752,9 +789,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             roles: {
               client_roles: formData.roles?.client_roles,
             },
-            pricing: {
-              roles: formData.pricing?.roles,
-            },
             // Also save contact information
             template: {
               customer_signature_name: formData.template?.customer_signature_name,
@@ -782,6 +816,17 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             },
             pricing: {
               billing: formData.pricing?.billing,
+              roles: formData.pricing?.roles,
+              project_management_included: formData.pricing?.project_management_included,
+              project_management_hours: formData.pricing?.project_management_hours,
+              project_management_rate: formData.pricing?.project_management_rate,
+              base_hourly_rate: formData.pricing?.base_hourly_rate,
+              discount_type: formData.pricing?.discount_type,
+              discount_amount: formData.pricing?.discount_amount,
+              discount_percentage: formData.pricing?.discount_percentage,
+              subtotal: formData.pricing?.subtotal,
+              discount_total: formData.pricing?.discount_total,
+              total_amount: formData.pricing?.total_amount,
             },
             assumptions: {
               access_requirements: formData.assumptions?.access_requirements,

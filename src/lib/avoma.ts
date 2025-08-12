@@ -327,8 +327,10 @@ class AvomaClient {
  */
 async function getAvomaConfig(): Promise<AvomaConfig | null> {
   try {
-    // Import supabase dynamically to avoid issues during build
-    const { supabase } = await import('@/lib/supabase');
+    // Import server-side supabase client dynamically to avoid issues during build
+    const { createServerSupabaseClient } = await import('@/lib/supabase-server');
+    
+    const supabase = await createServerSupabaseClient();
     
     const { data: config } = await supabase
       .from('avoma_configs')

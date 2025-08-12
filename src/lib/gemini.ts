@@ -389,8 +389,10 @@ export async function analyzeTranscription(
   transcript: string, 
   customerName: string
 ): Promise<TranscriptionAnalysisResponse> {
-  // Get API key from database
-  const { supabase } = await import('@/lib/supabase');
+  // Get API key from database using server-side client
+  const { createServerSupabaseClient } = await import('@/lib/supabase-server');
+  
+  const supabase = await createServerSupabaseClient();
   
   const { data: config, error } = await supabase
     .from('gemini_configs')

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AvomaClient, getAvomaConfig } from '@/lib/avoma';
 import { GeminiClient } from '@/lib/gemini';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,9 +31,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get Gemini configuration from database
+    const supabase = await createServerSupabaseClient();
+    const { data: geminiConfig, error: geminiError } = await supabase
+      .from('gemini_configs')
+      .select('api_key, model_name, is_active')
+      .eq('is_active', true)
+      .single();
+
+    if (geminiError || !geminiConfig?.api_key) {
+      return NextResponse.json(
+        { error: 'AI service is not properly configured. Please contact your administrator.' },
+        { status: 503 }
+      );
+    }
+
     // Initialize clients
     const avomaClient = new AvomaClient(avomaConfig.api_key, avomaConfig.api_url);
-    const geminiClient = new GeminiClient(process.env.GEMINI_API_KEY!);
+    const geminiClient = new GeminiClient(geminiConfig.api_key, geminiConfig.model_name);
 
     // Search for scoping calls
     const scopingCalls = await avomaClient.findScopingCalls(customerName);

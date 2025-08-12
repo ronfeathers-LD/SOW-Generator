@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 // GET - Fetch all approval stages with assigned users
@@ -7,7 +8,7 @@ export async function GET() {
   try {
     const supabase = await createServerSupabaseClient();
     
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
@@ -44,7 +45,7 @@ export async function PATCH(request: Request) {
   try {
     const supabase = await createServerSupabaseClient();
     
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return new NextResponse('Unauthorized', { status: 401 });
     }

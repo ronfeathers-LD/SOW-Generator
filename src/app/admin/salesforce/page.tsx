@@ -25,7 +25,7 @@ export default function SalesforceAdminPage() {
   const [isTesting, setIsTesting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const loadConfig = useCallback(async (preservePassword = false) => {
+  const loadConfig = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/salesforce/config');
       if (response.ok) {
@@ -33,10 +33,9 @@ export default function SalesforceAdminPage() {
         // Store original values for change detection
         const configWithOriginals = {
           ...data.config,
-          // Preserve current password if requested (for after successful tests)
-          password: preservePassword && config?.password ? config.password : '',
+          password: '', // Always start with empty password for security
           originalUsername: data.config.username,
-          originalPassword: preservePassword && config?.password ? config.password : '',
+          originalPassword: '', // Don't store original password in state
           originalSecurityToken: data.config.security_token,
           originalLoginUrl: data.config.login_url,
         };
@@ -58,7 +57,27 @@ export default function SalesforceAdminPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [config]);
+  }, []); // Remove config dependency
+
+  // Function to reload config while preserving current password
+  const reloadConfigPreservingPassword = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/salesforce/config');
+      if (response.ok) {
+        const data = await response.json();
+        setConfig(prev => ({
+          ...data.config,
+          password: prev?.password || '', // Preserve current password
+          originalUsername: data.config.username,
+          originalPassword: prev?.password || '', // Preserve current password
+          originalSecurityToken: data.config.security_token,
+          originalLoginUrl: data.config.login_url,
+        }));
+      }
+    } catch (error) {
+      console.error('Error reloading config:', error);
+    }
+  }, []);
 
   // Load config on component mount
   useEffect(() => {
@@ -88,15 +107,8 @@ export default function SalesforceAdminPage() {
 
       if (response.ok) {
         const data = await response.json();
-        // Preserve the password when setting the config after save
-        setConfig({
-          ...data.config,
-          password: config?.password || '',
-          original_username: data.config.username,
-          original_password: config?.password || '',
-          original_security_token: data.config.security_token,
-          original_login_url: data.config.login_url,
-        });
+        // Reload config to get updated data while preserving the password
+        await reloadConfigPreservingPassword();
         setMessage({ type: 'success', text: 'Salesforce configuration saved successfully!' });
       } else {
         const error = await response.json();
@@ -145,7 +157,7 @@ export default function SalesforceAdminPage() {
           text: `Salesforce connection test successful! ${hasChanges ? '(using form data)' : '(using stored credentials)'}` 
         });
         // Reload config to get updated last_tested timestamp, but preserve the password
-        await loadConfig(true);
+        await reloadConfigPreservingPassword();
       } else {
         throw new Error(data.details || 'Connection test failed');
       }
