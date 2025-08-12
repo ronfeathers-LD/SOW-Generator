@@ -7,6 +7,7 @@ import { useState } from 'react';
 export default function AdminNav() {
   const { data: session } = useSession();
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [isApiConfigOpen, setIsApiConfigOpen] = useState(false);
 
   // Only show admin nav if user is admin
   if (!session || session.user?.role !== 'admin') {
@@ -26,6 +27,59 @@ export default function AdminNav() {
           >
             Dashboard
           </Link>
+
+          {/* API Config Dropdown */}
+          <div className="relative">
+            <div className="flex items-center">
+              <Link
+                href="/admin/api-config"
+                className="text-sm hover:text-indigo-200 transition-colors flex items-center mr-2"
+              >
+                API Config
+              </Link>
+              <button
+                onClick={() => setIsApiConfigOpen(!isApiConfigOpen)}
+                className="text-sm hover:text-indigo-200 transition-colors flex items-center"
+              >
+                <svg 
+                  className={`h-4 w-4 transition-transform ${isApiConfigOpen ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
+            
+            {isApiConfigOpen && (
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
+                <div className="py-1">
+                  <Link 
+                    href="/admin/salesforce"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsApiConfigOpen(false)}
+                  >
+                    Salesforce Config
+                  </Link>
+                  <Link 
+                    href="/admin/avoma"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsApiConfigOpen(false)}
+                  >
+                    Avoma Config
+                  </Link>
+                  <Link 
+                    href="/admin/gemini"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsApiConfigOpen(false)}
+                  >
+                    Gemini AI Config
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Configuration Dropdown */}
           <div className="relative">
@@ -47,39 +101,6 @@ export default function AdminNav() {
             {isConfigOpen && (
               <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
                 <div className="py-1">
-                  <div className="relative group">
-                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between">
-                      API Configuration
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                    <div className="absolute left-full top-0 ml-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                      <div className="py-1">
-                        <Link 
-                          href="/admin/salesforce"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() => setIsConfigOpen(false)}
-                        >
-                          Salesforce
-                        </Link>
-                        <Link 
-                          href="/admin/avoma"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() => setIsConfigOpen(false)}
-                        >
-                          Avoma
-                        </Link>
-                        <Link 
-                          href="/admin/gemini"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() => setIsConfigOpen(false)}
-                        >
-                          Gemini AI
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
                   <Link 
                     href="/admin/leandata-signatories"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -139,6 +160,12 @@ export default function AdminNav() {
         <div 
           className="fixed inset-0 z-40" 
           onClick={() => setIsConfigOpen(false)}
+        />
+      )}
+      {isApiConfigOpen && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setIsApiConfigOpen(false)}
         />
       )}
     </div>

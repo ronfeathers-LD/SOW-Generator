@@ -186,7 +186,7 @@ export default function AdminDashboard() {
           </div>
           <div className="bg-gray-50 px-5 py-3">
             <div className="text-sm">
-              <Link href="/admin" className="font-medium text-indigo-700 hover:text-indigo-900">
+              <Link href="/admin/api-config" className="font-medium text-indigo-700 hover:text-indigo-900">
                 Manage APIs
               </Link>
             </div>
