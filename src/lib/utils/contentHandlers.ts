@@ -15,7 +15,6 @@ interface ContentHandlerContext {
   setFormData: (data: Partial<SOWData>) => void;
   normalizeContent: (content: string) => string;
   checkUnsavedChanges: (sectionName: string, currentContent: string, templateContent: string) => void;
-  isReady?: React.MutableRefObject<boolean>;
 }
 
 export const createContentHandler = (
@@ -24,60 +23,25 @@ export const createContentHandler = (
 ) => {
   return (content: string) => {
     const { sectionName, templateKey, contentKey, editedKey } = config;
-    const { initializing, initializedSections, templates, formData, setFormData, normalizeContent, checkUnsavedChanges, isReady } = context;
+    const { initializing, initializedSections, templates, formData, setFormData, normalizeContent, checkUnsavedChanges } = context;
 
     // Don't process changes during initialization or if section hasn't been initialized yet
     if (initializing || !initializedSections.has(sectionName)) {
       return;
     }
     
-    // Don't process if component is not ready yet
-    if (!isReady?.current) {
-      return;
-    }
-    
-    // Don't process if template is not loaded yet
-    const templateContent = templates[templateKey];
-    if (!templateContent || templateContent.trim() === '') {
-      return;
-    }
-    
-    // Don't process if content is null/undefined (not yet initialized)
-    if (content === null || content === undefined) {
-      return;
-    }
-    
-    // Don't process during initial render when formData might not be fully initialized
-    if (!formData.id) {
-      return;
-    }
-    
     // Check if content has been edited from the original template
     const normalizedCurrent = normalizeContent(content);
-    const normalizedTemplate = normalizeContent(templateContent);
+    const normalizedTemplate = normalizeContent(templates[templateKey]);
+    const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
     
-    // Only consider it as edited if:
-    // 1. Current content is not empty AND
-    // 2. Current content is different from template
-    const isEdited = normalizedCurrent !== '' && normalizedCurrent !== normalizedTemplate;
+    setFormData({
+      ...formData,
+      [contentKey]: content,
+      [editedKey]: isEdited
+    });
     
-    // Use setTimeout to defer state updates and avoid setState during render
-    setTimeout(() => {
-      if (isReady?.current) {
-        setFormData({
-          ...formData,
-          [contentKey]: content,
-          [editedKey]: isEdited
-        });
-        
-        // Defer the checkUnsavedChanges call
-        setTimeout(() => {
-          if (isReady?.current) {
-            checkUnsavedChanges(sectionName, content, templateContent);
-          }
-        }, 0);
-      }
-    }, 0);
+    checkUnsavedChanges(sectionName, content, templates[templateKey]);
   };
 };
 
