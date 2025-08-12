@@ -85,6 +85,14 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     }
   }, [activeSection, loading, initializing]);
 
+  // Clear unsaved changes when initialization is complete
+  useEffect(() => {
+    if (!loading && !initializing) {
+      // Clear any existing unsaved changes to start with a clean state
+      clearAllUnsavedChanges();
+    }
+  }, [loading, initializing]);
+
   // Function to normalize content for comparison (removes HTML tags and normalizes whitespace)
   const normalizeContent = (content: string): string => {
     if (!content) return '';
@@ -103,6 +111,14 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     if (onUnsavedChanges && !loading && !initializing) {
       const anyUnsavedChanges = Object.values({ ...unsavedChanges, [sectionName]: hasChanges }).some(Boolean);
       onUnsavedChanges(anyUnsavedChanges);
+    }
+  };
+
+  // Function to clear all unsaved changes and notify parent
+  const clearAllUnsavedChanges = () => {
+    setUnsavedChanges({});
+    if (onUnsavedChanges) {
+      onUnsavedChanges(false);
     }
   };
 
@@ -184,10 +200,17 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
       if (response.ok) {
         setSaveStatus({ ...saveStatus, [sectionName]: 'success' });
         // Clear unsaved changes for this section
-        setUnsavedChanges(prev => ({
-          ...prev,
-          [sectionName]: false
-        }));
+        setUnsavedChanges(prev => {
+          const newState = { ...prev, [sectionName]: false };
+          
+          // Notify parent component that unsaved changes have been updated
+          if (onUnsavedChanges) {
+            const anyUnsavedChanges = Object.values(newState).some(Boolean);
+            onUnsavedChanges(anyUnsavedChanges);
+          }
+          
+          return newState;
+        });
         setTimeout(() => {
           setSaveStatus({ ...saveStatus, [sectionName]: null });
         }, 3000);

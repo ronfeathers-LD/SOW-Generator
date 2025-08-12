@@ -47,17 +47,22 @@ export const createContentHandler = (
 
 export const createResetHandler = (
   config: ContentHandlerConfig,
-  context: Pick<ContentHandlerContext, 'templates' | 'formData' | 'setFormData'>
+  context: Pick<ContentHandlerContext, 'templates' | 'formData' | 'setFormData' | 'checkUnsavedChanges'>
 ) => {
   return () => {
-    const { templateKey, contentKey, editedKey } = config;
-    const { templates, formData, setFormData } = context;
+    const { sectionName, templateKey, contentKey, editedKey } = config;
+    const { templates, formData, setFormData, checkUnsavedChanges } = context;
 
     setFormData({
       ...formData,
       [contentKey]: templates[templateKey],
       [editedKey]: false
     });
+    
+    // After resetting, check if there are still unsaved changes
+    if (checkUnsavedChanges) {
+      checkUnsavedChanges(sectionName, templates[templateKey], templates[templateKey]);
+    }
   };
 };
 
