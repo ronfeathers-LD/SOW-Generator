@@ -47,33 +47,73 @@ export default function AdminNav() {
             {isConfigOpen && (
               <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
                 <div className="py-1">
-                  <Link 
-                    href="/admin/salesforce"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setIsConfigOpen(false)}
-                  >
-                    Salesforce
-                  </Link>
-                  <Link 
-                    href="/admin/avoma"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setIsConfigOpen(false)}
-                  >
-                    Avoma
-                  </Link>
-                  <Link 
-                    href="/admin/gemini"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setIsConfigOpen(false)}
-                  >
-                    Gemini AI
-                  </Link>
+                  <div className="relative group">
+                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between">
+                      API Configuration
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                    <div className="absolute left-full top-0 ml-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                      <div className="py-1">
+                        <Link 
+                          href="/admin/salesforce"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setIsConfigOpen(false)}
+                        >
+                          Salesforce
+                        </Link>
+                        <Link 
+                          href="/admin/avoma"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setIsConfigOpen(false)}
+                        >
+                          Avoma
+                        </Link>
+                        <Link 
+                          href="/admin/gemini"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setIsConfigOpen(false)}
+                        >
+                          Gemini AI
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
                   <Link 
                     href="/admin/leandata-signatories"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     onClick={() => setIsConfigOpen(false)}
                   >
                     LeanData Signatories
+                  </Link>
+                  <Link 
+                    href="/admin/sow-content-templates"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsConfigOpen(false)}
+                  >
+                    Content Templates
+                  </Link>
+                  <Link 
+                    href="/admin/products"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsConfigOpen(false)}
+                  >
+                    Products
+                  </Link>
+                  <Link 
+                    href="/admin/ai-prompts"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsConfigOpen(false)}
+                  >
+                    AI Prompts
+                  </Link>
+                  <Link 
+                    href="/admin/approval-stages"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsConfigOpen(false)}
+                  >
+                    Approval Stages
                   </Link>
                 </div>
               </div>
