@@ -160,24 +160,8 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     originalRolesTemplate
   };
 
-  // Clear any false unsaved changes when templates are loaded and component is no longer initializing
-  useEffect(() => {
-    if (!loading && !initializing) {
-      // Don't call setState here - just let the natural content comparison happen
-      // The unsaved changes will be properly calculated when content actually changes
-    }
-  }, [loading, initializing]);
-
-  // Cleanup effect to clear unsaved changes when component unmounts or when there are no actual changes
-  useEffect(() => {
-    return () => {
-      // Clear unsaved changes when component unmounts
-      setUnsavedChanges({});
-      if (onUnsavedChanges) {
-        onUnsavedChanges(false);
-      }
-    };
-  }, [onUnsavedChanges]);
+  // Create a no-op function for when component is not ready
+  const noOpHandler = () => {};
 
   const context = {
     initializing,
@@ -192,7 +176,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
 
   const { handlers, resetHandlers } = createAllContentHandlers(context);
 
-  // Destructure the handlers for easy access
+  // Destructure the handlers for easy access, but only use them when ready
   const {
     handleIntroContentChange,
     handleScopeContentChange,
@@ -210,6 +194,27 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     resetProjectPhasesContent,
     resetRolesContent
   } = resetHandlers;
+
+  // Create safe handlers that only work when component is ready
+  const safeIntroContentChange = isReady.current ? handleIntroContentChange : noOpHandler;
+  const safeScopeContentChange = isReady.current ? handleScopeContentChange : noOpHandler;
+  const safeObjectivesDisclosureContentChange = isReady.current ? handleObjectivesDisclosureContentChange : noOpHandler;
+  const safeAssumptionsContentChange = isReady.current ? handleAssumptionsContentChange : noOpHandler;
+  const safeProjectPhasesContentChange = isReady.current ? handleProjectPhasesContentChange : noOpHandler;
+  const safeRolesContentChange = isReady.current ? handleRolesContentChange : noOpHandler;
+
+  // Cleanup effect to clear unsaved changes when component unmounts
+  useEffect(() => {
+    return () => {
+      // Only clear state if component is still mounted
+      if (isMounted.current) {
+        setUnsavedChanges({});
+        if (onUnsavedChanges) {
+          onUnsavedChanges(false);
+        }
+      }
+    };
+  }, [onUnsavedChanges]);
 
   const saveSection = async (sectionName: string) => {
     if (!formData.id) {
@@ -329,7 +334,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
               </p>
               <TipTapEditor
                 value={formData.custom_intro_content || ''}
-                onChange={handleIntroContentChange}
+                onChange={safeIntroContentChange}
                 placeholder="Enter the introduction content for this SOW..."
                 initializing={initializing}
               />
@@ -386,7 +391,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
               </p>
               <TipTapEditor
                 value={formData.custom_scope_content || ''}
-                onChange={handleScopeContentChange}
+                onChange={safeScopeContentChange}
                 placeholder="Enter the scope content for this SOW..."
                 initializing={initializing}
               />
@@ -440,7 +445,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
             <div className="mb-4">
               <TipTapEditor
                 value={formData.custom_objectives_disclosure_content || ''}
-                onChange={handleObjectivesDisclosureContentChange}
+                onChange={safeObjectivesDisclosureContentChange}
                 placeholder="Enter the objectives disclosure content for this SOW..."
                 initializing={initializing}
               />
@@ -497,7 +502,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
             <div className="mb-4">
               <TipTapEditor
                 value={formData.custom_assumptions_content || ''}
-                onChange={handleAssumptionsContentChange}
+                onChange={safeAssumptionsContentChange}
                 placeholder="Enter the assumptions content for this SOW..."
                 initializing={initializing}
               />
@@ -554,7 +559,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
             <div className="mb-4">
               <TipTapEditor
                 value={formData.custom_project_phases_content || ''}
-                onChange={handleProjectPhasesContentChange}
+                onChange={safeProjectPhasesContentChange}
                 placeholder="Enter the project phases content for this SOW..."
                 initializing={initializing}
               />
@@ -611,7 +616,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
             <div className="mb-4">
               <TipTapEditor
                 value={formData.custom_roles_content || ''}
-                onChange={handleRolesContentChange}
+                onChange={safeRolesContentChange}
                 placeholder="Enter the roles and responsibilities content for this SOW..."
                 initializing={initializing}
               />
