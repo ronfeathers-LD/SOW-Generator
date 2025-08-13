@@ -12,9 +12,18 @@ export async function POST(request: Request) {
 
     const data = await request.json();
     
+    // Get the current user's ID from the users table
+    const { data: user, error: userError } = await supabaseApi
+      .from('users')
+      .select('id')
+      .eq('email', session.user.email)
+      .single();
 
-  
-    
+    if (userError || !user) {
+      console.error('Error fetching user:', userError);
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
     // Fetch content templates directly from database
     const { data: templates, error: templateError } = await supabaseApi
       .from('sow_content_templates')
@@ -86,6 +95,9 @@ export async function POST(request: Request) {
         
         // Salesforce Account Information
         salesforce_account_id: data.selectedAccount?.id || null,
+        
+        // Author tracking
+        author_id: user.id,
         
         // Salesforce Opportunity Information
         opportunity_id: data.template?.opportunity_id || null,
@@ -179,7 +191,10 @@ export async function GET() {
 
     const { data: sows, error } = await supabaseApi
       .from('sows')
-      .select('*')
+      .select(`
+        *,
+        author:users(name)
+      `)
       .eq('is_hidden', false) // Only show non-hidden SOWs
       .order('created_at', { ascending: false });
 
@@ -194,6 +209,7 @@ export async function GET() {
     // Return snake_case data directly
     const transformedSows = sows.map(sow => ({
       ...sow,
+      author: sow.author?.name || 'Unknown',
       created_at: sow.created_at ? new Date(sow.created_at).toISOString() : new Date().toISOString(),
       updated_at: sow.updated_at ? new Date(sow.updated_at).toISOString() : new Date().toISOString(),
       start_date: sow.start_date && sow.start_date !== '1970-01-01T00:00:00.000Z' ? new Date(sow.start_date).toISOString() : null,

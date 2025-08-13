@@ -13,6 +13,7 @@ interface SOW {
   status: string;
   created_at: string | Date;
   updated_at: string | Date;
+  author?: string; // Add author field
 }
 
 function SOWListContent() {
@@ -231,13 +232,13 @@ function SOWListContent() {
                         Project Name
                       </th>
                       <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Start Date
-                      </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                         Status
                       </th>
                       <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                         Created
+                      </th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                        Author
                       </th>
                       <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                         <span className="sr-only">Actions</span>
@@ -253,19 +254,6 @@ function SOWListContent() {
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                             {sow.sow_title || 'N/A'}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            {(() => {
-                              try {
-                                if (sow.start_date && sow.start_date !== '1970-01-01T00:00:00.000Z') {
-                                  return new Date(sow.start_date).toLocaleDateString();
-                                }
-                                return 'N/A';
-                              } catch (error) {
-                                console.error('Error parsing start_date:', error, sow.start_date);
-                                return 'N/A';
-                              }
-                            })()}
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(sow.status)}`}>
@@ -285,6 +273,9 @@ function SOWListContent() {
                                 return 'N/A';
                               }
                             })()}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {sow.author || 'N/A'}
                           </td>
                           <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                             <div className="flex justify-end space-x-2">
