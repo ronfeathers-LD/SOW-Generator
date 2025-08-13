@@ -258,7 +258,14 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   const [selectedContact, setSelectedContact] = useState<SalesforceContact | null>(null);
   const [selectedBillingContact, setSelectedBillingContact] = useState<SalesforceContact | null>(null);
   const [selectedOpportunity, setSelectedOpportunity] = useState<SalesforceOpportunity | null>(null);
-  const [availableOpportunities, setAvailableOpportunities] = useState<SalesforceOpportunity[]>([]);
+  const [availableOpportunities, setAvailableOpportunities] = useState<Array<{
+    id: string;
+    name: string;
+    amount?: number;
+    stageName?: string;
+    closeDate?: string;
+    description?: string;
+  }>>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -491,7 +498,14 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     });
     
     // Store available opportunities
-    setAvailableOpportunities((opportunities as SalesforceOpportunity[]) || []);
+    setAvailableOpportunities((opportunities as Array<{
+      id: string;
+      name: string;
+      amount?: number;
+      stageName?: string;
+      closeDate?: string;
+      description?: string;
+    }>) || []);
     
     // Reset selected opportunity when account changes
     setSelectedOpportunity(null);

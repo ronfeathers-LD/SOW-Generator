@@ -10,10 +10,24 @@ interface CustomerInformationTabProps {
   initialData?: SOWData;
   selectedAccount: { id: string; name: string } | null;
   selectedOpportunity: SalesforceOpportunity | null;
-  availableOpportunities: SalesforceOpportunity[];
+  availableOpportunities: Array<{
+    id: string;
+    name: string;
+    amount?: number;
+    stageName?: string;
+    closeDate?: string;
+    description?: string;
+  }>;
   onCustomerSelectedFromSalesforce: (customerData: { account: unknown; contacts: unknown[]; opportunities: unknown[] }) => void;
   onOpportunitySelectedFromSalesforce: (opportunity: SalesforceOpportunity | null) => void;
-  onAvailableOpportunitiesUpdate: (opportunities: SalesforceOpportunity[]) => void;
+  onAvailableOpportunitiesUpdate: (opportunities: Array<{
+    id: string;
+    name: string;
+    amount?: number;
+    stageName?: string;
+    closeDate?: string;
+    description?: string;
+  }>) => void;
   getSalesforceLink: (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => string;
   onLogoChange: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
 }
@@ -118,8 +132,8 @@ export default function CustomerInformationTab({
         // If we have a selected opportunity, make sure it's still in the refreshed list
         if (selectedOpportunity && data.opportunities) {
           const opportunityStillExists = data.opportunities.some((opportunity: unknown) => {
-            const opp = opportunity as { Id: string };
-            return opp.Id === selectedOpportunity.Id;
+            const opp = opportunity as { id: string };
+            return opp.id === selectedOpportunity.Id;
           });
           if (!opportunityStillExists) {
             onOpportunitySelectedFromSalesforce(null);
@@ -387,24 +401,24 @@ export default function CustomerInformationTab({
                      <div className="space-y-2 max-h-60 overflow-y-auto">
                        {availableOpportunities.map((opportunity) => (
                          <div
-                           key={opportunity.Id}
+                           key={opportunity.id}
                            className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
-                           onClick={() => handleOpportunitySelected(opportunity)}
+                           onClick={() => handleOpportunitySelected(opportunity as any)}
                          >
-                           <div className="font-medium text-gray-900">{opportunity.Name}</div>
+                           <div className="font-medium text-gray-900">{opportunity.name}</div>
                            <div className="text-sm text-gray-600 mt-1">
                              <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium mr-2">
-                               {opportunity.StageName}
+                               {opportunity.stageName}
                              </span>
-                             {opportunity.Amount && (
+                             {opportunity.amount && (
                                <span className="text-gray-600">
-                                 ${opportunity.Amount.toLocaleString()}
+                                 ${opportunity.amount.toLocaleString()}
                                </span>
                              )}
                            </div>
-                           {opportunity.CloseDate && (
+                           {opportunity.closeDate && (
                              <div className="text-xs text-gray-600 mt-1">
-                               Close Date: {new Date(opportunity.CloseDate).toLocaleDateString()}
+                               Close Date: {new Date(opportunity.closeDate).toLocaleDateString()}
                              </div>
                            )}
                          </div>
