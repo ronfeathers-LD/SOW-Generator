@@ -26,34 +26,51 @@ export default function SalesforceIntegration({ onCustomerSelected, onContactSel
     isActive: boolean;
     lastError?: string;
   } | null>(null);
+  const [isCheckingConfig, setIsCheckingConfig] = useState(false);
 
   // Check Salesforce configuration status on component mount
   useEffect(() => {
-    checkConfigStatus();
+    // Add a small delay to ensure the server is ready
+    const timer = setTimeout(() => {
+      checkConfigStatus();
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const checkConfigStatus = async () => {
     try {
+      setIsCheckingConfig(true);
+      console.log('🔍 Checking Salesforce configuration status...');
       const response = await fetch('/api/salesforce/status');
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Salesforce status response:', data);
         setConfigStatus({
           isConfigured: data.isConfigured,
           isActive: data.isActive,
           lastError: data.lastError
         });
       } else {
+        console.warn('⚠️ Salesforce status response not ok:', response.status, response.statusText);
         setConfigStatus({
           isConfigured: false,
           isActive: false
         });
       }
     } catch (error) {
-      console.error('Error checking config status:', error);
+      console.error('❌ Error checking Salesforce config status:', error);
+      // Don't set error state for network failures - just log them
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.log('🌐 Network error - Salesforce API may not be available yet');
+      }
       setConfigStatus({
         isConfigured: false,
         isActive: false
       });
+    } finally {
+      setIsCheckingConfig(false);
     }
   };
 
@@ -164,6 +181,19 @@ export default function SalesforceIntegration({ onCustomerSelected, onContactSel
     }
   };
 
+  // Show loading state
+  if (isCheckingConfig) {
+    return (
+      <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+        <h3 className="text-lg font-semibold mb-3 text-blue-800">Salesforce Integration</h3>
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+          <p className="text-blue-700">Checking Salesforce configuration...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Show configuration status
   if (!configStatus?.isConfigured) {
     return (
@@ -172,12 +202,20 @@ export default function SalesforceIntegration({ onCustomerSelected, onContactSel
         <p className="text-yellow-700 mb-4">
           Salesforce integration is not configured. Please contact your administrator to set up the connection.
         </p>
-        <a
-          href="/admin/salesforce"
-          className="inline-flex items-center px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-        >
-          Configure Salesforce
-        </a>
+        <div className="flex gap-2">
+          <a
+            href="/admin/salesforce"
+            className="inline-flex items-center px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+          >
+            Configure Salesforce
+          </a>
+          <button
+            onClick={checkConfigStatus}
+            className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+          >
+            Retry Check
+          </button>
+        </div>
       </div>
     );
   }
@@ -194,12 +232,20 @@ export default function SalesforceIntegration({ onCustomerSelected, onContactSel
             Last error: {configStatus.lastError}
           </p>
         )}
-        <a
-          href="/admin/salesforce"
-          className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-        >
-          Fix Configuration
-        </a>
+        <div className="flex gap-2">
+          <a
+            href="/admin/salesforce"
+            className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+          >
+            Fix Configuration
+          </a>
+          <button
+            onClick={checkConfigStatus}
+            className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+          >
+            Retry Check
+          </button>
+        </div>
       </div>
     );
   }
