@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { SOWData } from '@/types/sow';
-import { SalesforceOpportunity } from '@/lib/salesforce';
+
 import SalesforceIntegration from '../SalesforceIntegration';
 
 interface CustomerInformationTabProps {
@@ -9,7 +9,14 @@ interface CustomerInformationTabProps {
   setFormData?: (data: Partial<SOWData>) => void;
   initialData?: SOWData;
   selectedAccount: { id: string; name: string } | null;
-  selectedOpportunity: SalesforceOpportunity | null;
+  selectedOpportunity: {
+    id: string;
+    name: string;
+    amount?: number;
+    stageName?: string;
+    closeDate?: string;
+    description?: string;
+  } | null;
   availableOpportunities: Array<{
     id: string;
     name: string;
@@ -18,8 +25,15 @@ interface CustomerInformationTabProps {
     closeDate?: string;
     description?: string;
   }>;
-  onCustomerSelectedFromSalesforce: (customerData: { account: unknown; contacts: unknown[]; opportunities: unknown[] }) => void;
-  onOpportunitySelectedFromSalesforce: (opportunity: SalesforceOpportunity | null) => void;
+  onCustomerSelectedFromSalesforce: (customerData: { account: unknown; opportunities: unknown[] }) => void;
+  onOpportunitySelectedFromSalesforce: (opportunity: {
+    id: string;
+    name: string;
+    amount?: number;
+    stageName?: string;
+    closeDate?: string;
+    description?: string;
+  } | null) => void;
   onAvailableOpportunitiesUpdate: (opportunities: Array<{
     id: string;
     name: string;
@@ -133,7 +147,8 @@ export default function CustomerInformationTab({
         if (selectedOpportunity && data.opportunities) {
           const opportunityStillExists = data.opportunities.some((opportunity: unknown) => {
             const opp = opportunity as { id: string };
-            return opp.id === selectedOpportunity.Id;
+            // Compare lowercase API id with lowercase selectedOpportunity id
+            return opp.id === selectedOpportunity.id;
           });
           if (!opportunityStillExists) {
             onOpportunitySelectedFromSalesforce(null);
@@ -154,13 +169,20 @@ export default function CustomerInformationTab({
     }
   };
 
-  const handleAccountSelected = (customerData: { account: unknown; contacts: unknown[]; opportunities: unknown[] }) => {
+  const handleAccountSelected = (customerData: { account: unknown; opportunities: unknown[] }) => {
     onCustomerSelectedFromSalesforce(customerData);
     // Automatically proceed to opportunity selection since we already have the opportunities
     setCurrentStep('opportunity');
   };
 
-  const handleOpportunitySelected = (opportunity: SalesforceOpportunity | null) => {
+  const handleOpportunitySelected = (opportunity: {
+    id: string;
+    name: string;
+    amount?: number;
+    stageName?: string;
+    closeDate?: string;
+    description?: string;
+  } | null) => {
     onOpportunitySelectedFromSalesforce(opportunity);
     if (opportunity) {
       setCurrentStep('logo');
@@ -254,7 +276,7 @@ export default function CustomerInformationTab({
                   <p className="text-sm font-medium text-gray-900">Opportunity</p>
                   <p className="text-xs text-gray-500 mb-2">
                     {selectedOpportunity 
-                      ? selectedOpportunity.Name
+                      ? selectedOpportunity.name
                                         : (initialData?.opportunity_name || initialData?.template?.opportunity_name)
                       ? `${initialData.opportunity_name || initialData.template?.opportunity_name} (stored)`
                         : 'No opportunity selected'
@@ -270,15 +292,15 @@ export default function CustomerInformationTab({
                           <span>Opportunity verified in Salesforce</span>
                         </div>
                       )}
-                                          {(selectedOpportunity?.StageName || initialData?.opportunity_stage || initialData?.template?.opportunity_stage) && (
+                                          {(selectedOpportunity?.stageName || initialData?.opportunity_stage || initialData?.template?.opportunity_stage) && (
                         <div className="flex items-center">
                           <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
-                                                  <span>Stage: {selectedOpportunity?.StageName || initialData?.opportunity_stage || initialData?.template?.opportunity_stage}</span>
+                                                  <span>Stage: {selectedOpportunity?.stageName || initialData?.opportunity_stage || initialData?.template?.opportunity_stage}</span>
                         </div>
                       )}
-                                          {(selectedOpportunity?.Amount || initialData?.opportunity_amount || initialData?.template?.opportunity_amount) && (
+                                          {(selectedOpportunity?.amount || initialData?.opportunity_amount || initialData?.template?.opportunity_amount) && (
                         <div className="flex items-center">
                           <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -286,20 +308,20 @@ export default function CustomerInformationTab({
                           <span>Amount: {new Intl.NumberFormat('en-US', {
                             style: 'currency',
                             currency: 'USD',
-                                                  }).format(selectedOpportunity?.Amount || initialData?.opportunity_amount || initialData?.template?.opportunity_amount || 0)}</span>
+                                                  }).format(selectedOpportunity?.amount || initialData?.opportunity_amount || initialData?.template?.opportunity_amount || 0)}</span>
                         </div>
                       )}
-                                          {(selectedOpportunity?.CloseDate || initialData?.opportunity_close_date || initialData?.template?.opportunity_close_date) && (
+                                          {(selectedOpportunity?.closeDate || initialData?.opportunity_close_date || initialData?.template?.opportunity_close_date) && (
                         <div className="flex items-center">
                           <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
-                                                  <span>Close Date: {new Date(selectedOpportunity?.CloseDate || initialData?.opportunity_close_date || initialData?.template?.opportunity_close_date || '').toLocaleDateString()}</span>
+                                                  <span>Close Date: {new Date(selectedOpportunity?.closeDate || initialData?.opportunity_close_date || initialData?.template?.opportunity_close_date || '').toLocaleDateString()}</span>
                         </div>
                       )}
                                           {(selectedOpportunity || initialData?.opportunity_id || initialData?.template?.opportunity_id) && (
                         <a
-                                                  href={getSalesforceLink(selectedOpportunity?.Id || initialData?.opportunity_id || initialData?.template?.opportunity_id || '', 'Opportunity')}
+                                                  href={getSalesforceLink(selectedOpportunity?.id || initialData?.opportunity_id || initialData?.template?.opportunity_id || '', 'Opportunity')}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:text-blue-800 underline flex items-center"
@@ -403,7 +425,7 @@ export default function CustomerInformationTab({
                          <div
                            key={opportunity.id}
                            className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
-                           onClick={() => handleOpportunitySelected(opportunity as any)}
+                           onClick={() => handleOpportunitySelected(opportunity)}
                          >
                            <div className="font-medium text-gray-900">{opportunity.name}</div>
                            <div className="text-sm text-gray-600 mt-1">

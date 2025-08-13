@@ -6,7 +6,6 @@ import { SalesforceAccount, SalesforceContact, SalesforceOpportunity } from '@/l
 interface SalesforceIntegrationProps {
   onCustomerSelected: (customerData: {
     account: SalesforceAccount;
-    contacts: SalesforceContact[];
     opportunities: SalesforceOpportunity[];
   }) => void;
   onContactSelected?: (contact: SalesforceContact) => void;
@@ -143,10 +142,9 @@ export default function SalesforceIntegration({ onCustomerSelected, onContactSel
       
       setContacts(data.customerInfo.contacts || []);
       
-      // Pass the customer data to the parent component
+      // Pass the customer data to the parent component (only account and opportunities needed)
       onCustomerSelected({
         account: data.customerInfo.account,
-        contacts: data.customerInfo.contacts || [],
         opportunities: data.customerInfo.opportunities || []
       });
 

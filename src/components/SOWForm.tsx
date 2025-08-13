@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { SOWData, SOWTemplate, BillingInfo } from '@/types/sow';
-import { SalesforceOpportunity, SalesforceContact } from '@/lib/salesforce';
+import { SalesforceContact } from '@/lib/salesforce';
 import ProjectOverviewTab from './sow/ProjectOverviewTab';
 import CustomerInformationTab from './sow/CustomerInformationTab';
 import ObjectivesTab from './sow/ObjectivesTab';
@@ -257,7 +257,14 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   const [selectedAccount, setSelectedAccount] = useState<{ id: string; name: string } | null>(null);
   const [selectedContact, setSelectedContact] = useState<SalesforceContact | null>(null);
   const [selectedBillingContact, setSelectedBillingContact] = useState<SalesforceContact | null>(null);
-  const [selectedOpportunity, setSelectedOpportunity] = useState<SalesforceOpportunity | null>(null);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<{
+    id: string;
+    name: string;
+    amount?: number;
+    stageName?: string;
+    closeDate?: string;
+    description?: string;
+  } | null>(null);
   const [availableOpportunities, setAvailableOpportunities] = useState<Array<{
     id: string;
     name: string;
@@ -370,14 +377,12 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       // Set selected opportunity if opportunity data exists
       if (initialData.template?.opportunity_id || initialData.template?.opportunity_name || initialData.opportunity_id || initialData.opportunity_name) {
         setSelectedOpportunity({
-          Id: initialData.template?.opportunity_id || initialData.opportunity_id || '',
-          Name: initialData.template?.opportunity_name || initialData.opportunity_name || '',
-          Amount: initialData.template?.opportunity_amount || initialData.opportunity_amount || undefined,
-          StageName: initialData.template?.opportunity_stage || initialData.opportunity_stage || '',
-          CloseDate: initialData.template?.opportunity_close_date || initialData.opportunity_close_date || undefined,
-          Description: '',
-          AccountId: '',
-          Account: { Name: '' }
+          id: initialData.template?.opportunity_id || initialData.opportunity_id || '',
+          name: initialData.template?.opportunity_name || initialData.opportunity_name || '',
+          amount: initialData.template?.opportunity_amount || initialData.opportunity_amount || undefined,
+          stageName: initialData.template?.opportunity_stage || initialData.opportunity_stage || '',
+          closeDate: initialData.template?.opportunity_close_date || initialData.opportunity_close_date || undefined,
+          description: ''
         });
       }
 
@@ -485,10 +490,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
   const handleCustomerSelectedFromSalesforce = async (customerData: {
     account: unknown;
-    contacts: unknown[];
     opportunities: unknown[];
   }) => {
-    const { account, contacts, opportunities } = customerData;
+    const { account, opportunities } = customerData;
     const accountObj = account as { Id: string; Name: string };
     
     // Set the selected account for opportunity lookup
@@ -497,15 +501,22 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       name: accountObj.Name
     });
     
-    // Store available opportunities
+    // Store available opportunities - convert from uppercase API response to lowercase for component use
     setAvailableOpportunities((opportunities as Array<{
-      id: string;
-      name: string;
-      amount?: number;
-      stageName?: string;
-      closeDate?: string;
-      description?: string;
-    }>) || []);
+      Id: string;
+      Name: string;
+      Amount?: number;
+      StageName?: string;
+      CloseDate?: string;
+      Description?: string;
+    }>).map(opp => ({
+      id: opp.Id,
+      name: opp.Name,
+      amount: opp.Amount,
+      stageName: opp.StageName,
+      closeDate: opp.CloseDate,
+      description: opp.Description
+    })) || []);
     
     // Reset selected opportunity when account changes
     setSelectedOpportunity(null);
@@ -539,8 +550,14 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           },
           body: JSON.stringify({
             account_data: accountData,
-            contacts_data: contacts.map((contact: unknown) => createSalesforceContactData(contact as SalesforceContact)),
-            opportunity_data: opportunities.length > 0 ? createSalesforceOpportunityData(opportunities[0] as SalesforceOpportunity) : undefined
+            opportunity_data: opportunities.length > 0 ? createSalesforceOpportunityData({
+              Id: (opportunities[0] as { Id: string; Name: string; Amount?: number; StageName?: string; CloseDate?: string; Description?: string }).Id,
+              Name: (opportunities[0] as { Id: string; Name: string; Amount?: number; StageName?: string; CloseDate?: string; Description?: string }).Name,
+              Amount: (opportunities[0] as { Id: string; Name: string; Amount?: number; StageName?: string; CloseDate?: string; Description?: string }).Amount,
+              StageName: (opportunities[0] as { Id: string; Name: string; Amount?: number; StageName?: string; CloseDate?: string; Description?: string }).StageName || '',
+              CloseDate: (opportunities[0] as { Id: string; Name: string; Amount?: number; StageName?: string; CloseDate?: string; Description?: string }).CloseDate || '',
+              Description: (opportunities[0] as { Id: string; Name: string; Amount?: number; StageName?: string; CloseDate?: string; Description?: string }).Description || ''
+            }) : undefined
           }),
         });
       } catch (error) {
@@ -647,7 +664,14 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     return `${salesforceInstanceUrl}/${recordId}`;
   };
 
-  const handleOpportunitySelectedFromSalesforce = async (opportunity: SalesforceOpportunity | null) => {
+  const handleOpportunitySelectedFromSalesforce = async (opportunity: {
+    id: string;
+    name: string;
+    amount?: number;
+    stageName?: string;
+    closeDate?: string;
+    description?: string;
+  } | null) => {
     setSelectedOpportunity(opportunity);
     
     if (opportunity) {
@@ -658,21 +682,28 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           ...formData.template,
           // Auto-populate SOW title with opportunity name if it's not already set
           sow_title: (!formData.template?.sow_title || formData.template.sow_title === 'Statement of Work for LeanData Implementation') 
-            ? `Statement of Work for ${opportunity.Name}` 
+            ? `Statement of Work for ${opportunity.name}` 
             : formData.template.sow_title,
           // Store opportunity details
-          opportunity_id: opportunity.Id,
-          opportunity_name: opportunity.Name,
-          opportunity_amount: opportunity.Amount,
-          opportunity_stage: opportunity.StageName,
-          opportunity_close_date: opportunity.CloseDate,
+          opportunity_id: opportunity.id,
+          opportunity_name: opportunity.name,
+          opportunity_amount: opportunity.amount,
+          opportunity_stage: opportunity.stageName,
+          opportunity_close_date: opportunity.closeDate,
         } as SOWTemplate,
       });
 
       // Save opportunity data to database if we have a SOW ID
       if (initialData?.id) {
         try {
-          const opportunityData = createSalesforceOpportunityData(opportunity);
+          const opportunityData = createSalesforceOpportunityData({
+            Id: opportunity.id,
+            Name: opportunity.name,
+            Amount: opportunity.amount,
+            StageName: opportunity.stageName || '',
+            CloseDate: opportunity.closeDate || '',
+            Description: opportunity.description || ''
+          });
           
           await fetch(`/api/sow/${initialData.id}/salesforce-data`, {
             method: 'PATCH',
