@@ -3,6 +3,85 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getStatusColor } from '@/lib/utils/statusUtils';
 
+// Component to show what essential information is missing
+const MissingEssentialInfoMessage = () => {
+  const [validation, setValidation] = useState<{
+    isValid: boolean;
+    missingFields: string[];
+    errors: string[];
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+
+  useEffect(() => {
+    const checkValidation = async () => {
+      try {
+        // Get the current SOW data from the URL
+        const sowId = window.location.pathname.split('/')[2];
+        const response = await fetch(`/api/sow/${sowId}`);
+        const sowData = await response.json();
+        
+        // Use the client-safe validation utility
+        const { validateSOWForApproval } = await import('@/lib/validation-utils');
+        const { isValid, missingFields, errors } = validateSOWForApproval(sowData);
+        
+        setValidation({ isValid, missingFields, errors });
+        
+        // Log validation results for debugging
+        if (sowData.status === 'in_review' && !isValid) {
+          console.log('⚠️ SOW is in review but validation fails - this should not happen with prevention logic');
+          console.log('Validation result:', { isValid, missingFields, errors });
+        }
+      } catch (error) {
+        console.error('Error checking SOW validation:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkValidation();
+  }, []);
+
+  // Don't show anything if all validation passes
+  if (isLoading || !validation || validation.isValid) {
+    return null;
+  }
+
+  return (
+    <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <p className="text-sm text-yellow-800 mb-2 font-medium">
+          This SOW cannot be submitted for approval until all required fields are completed.
+        </p>
+        
+        {validation.missingFields.length > 0 && (
+          <div className="mb-2">
+            <p className="text-xs text-yellow-700 font-medium">Missing Required Fields:</p>
+            <ul className="text-xs text-yellow-600 ml-4 list-disc">
+              {validation.missingFields.map((field, index) => (
+                <li key={index}>{field}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
+        {validation.errors.length > 0 && (
+          <div className="mb-2">
+            <p className="text-xs text-yellow-700 font-medium">Validation Errors:</p>
+            <ul className="text-xs text-yellow-600 ml-4 list-disc">
+              {validation.errors.map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
+        <p className="text-xs text-yellow-600">
+          Complete all required fields above to enable automatic approval workflow.
+        </p>
+      </div>
+  );
+};
+
 interface ApprovalStage {
   id: string;
   name: string;
@@ -186,6 +265,20 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [newComment, setNewComment] = useState('');
+  const [validation, setValidation] = useState<{
+    isValid: boolean;
+    missingFields: string[];
+    errors: string[];
+  } | null>(null);
+
+  // Debug logging for component state
+  console.log('🔍 ApprovalWorkflow component render state:', {
+    sowId,
+    workflow: workflow ? 'exists' : 'null',
+    loading,
+    error: error ? 'yes' : 'no',
+    validation: validation ? 'loaded' : 'not loaded'
+  });
 
   const [approvalComments, setApprovalComments] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -204,6 +297,14 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
       
       const data = await response.json();
       setWorkflow(data);
+      
+      // Check and fix any status inconsistencies
+      try {
+        await fetch(`/api/sow/${sowId}/check-status-consistency`, { method: 'POST' });
+      } catch (consistencyError) {
+        console.error('Status consistency check failed:', consistencyError);
+        // Don't fail the main workflow fetch for this
+      }
     } catch (err) {
       console.error('Error fetching workflow:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch workflow');
@@ -212,12 +313,48 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
     }
   }, [sowId]);
 
+  const checkValidation = useCallback(async () => {
+    try {
+      console.log('🔍 Starting validation check for SOW:', sowId);
+      
+      // Get current SOW data to validate
+      const response = await fetch(`/api/sow/${sowId}`);
+      const sowData = await response.json();
+      
+      console.log('📋 SOW data received:', sowData);
+      
+      // Use the client-safe validation utility
+      const { validateSOWForApproval } = await import('@/lib/validation-utils');
+      const validationResult = validateSOWForApproval(sowData);
+      
+      console.log('✅ Validation result:', validationResult);
+      console.log('🔒 Is valid:', validationResult.isValid);
+      console.log('❌ Missing fields:', validationResult.missingFields);
+      console.log('⚠️ Validation errors:', validationResult.errors);
+      
+      setValidation(validationResult);
+      return validationResult.isValid;
+    } catch (error) {
+      console.error('❌ Error checking validation:', error);
+      return false;
+    }
+  }, [sowId]);
+
   useEffect(() => {
     fetchWorkflow();
-  }, [fetchWorkflow]);
+    // Also check validation when component loads
+    checkValidation();
+  }, [fetchWorkflow, checkValidation]);
 
   const handleSubmitForApproval = async () => {
     try {
+      // Check validation before allowing submission
+      const isValid = await checkValidation();
+      if (!isValid) {
+        setError('Cannot submit for approval: SOW validation failed. Please complete all required fields first.');
+        return;
+      }
+
       setSubmitting(true);
       const response = await fetch(`/api/sow/${sowId}/approvals`, {
         method: 'POST',
@@ -243,7 +380,9 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
 
   const handleApprovalAction = async (approvalId: string, action: 'approve' | 'reject' | 'skip') => {
     try {
+      console.log('Starting approval action:', { approvalId, action, comments: approvalComments });
       setSubmitting(true);
+      
       const response = await fetch(`/api/sow/${sowId}/approvals/${approvalId}`, {
         method: 'PATCH',
         headers: {
@@ -255,9 +394,16 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
         }),
       });
 
+      console.log('Approval response:', { status: response.status, ok: response.ok });
+
       if (!response.ok) {
-        throw new Error(`Failed to ${action} approval`);
+        const errorText = await response.text();
+        console.error('Approval failed with response:', errorText);
+        throw new Error(`Failed to ${action} approval: ${errorText}`);
       }
+
+      const result = await response.json();
+      console.log('Approval successful:', result);
 
       setApprovalComments('');
       await fetchWorkflow();
@@ -335,6 +481,7 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
 
 
   if (loading) {
+    console.log('🔄 Rendering loading state');
     return (
       <div className="bg-white shadow rounded-lg p-4">
         <div className="animate-pulse">
@@ -346,6 +493,7 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
   }
 
   if (error) {
+    console.log('❌ Rendering error state');
     return (
       <div className="bg-white shadow rounded-lg p-4">
         <div className="text-red-600 mb-4">{error}</div>
@@ -360,17 +508,71 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
   }
 
   if (!workflow) {
+    console.log('📝 Rendering no workflow state (this is where the debug box should be)');
     return (
       <div className="bg-white shadow rounded-lg p-4">
         <h3 className="text-lg font-semibold mb-4">Approval Workflow</h3>
         <p className="text-gray-600 mb-4">No approval workflow found for this SOW.</p>
+        
+        {/* Debug validation state */}
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs">
+          <p><strong>🔍 Validation Debug Info:</strong></p>
+          <p>Validation state: {validation ? 'Loaded' : 'Not loaded'}</p>
+          <p>Is valid: {validation?.isValid ? 'Yes' : 'No'}</p>
+          <p>Missing fields count: {validation?.missingFields?.length || 0}</p>
+          <p>Validation errors count: {validation?.errors?.length || 0}</p>
+          <p>Button disabled: {submitting || (validation?.isValid === false) ? 'Yes' : 'No'}</p>
+        </div>
+        
         <button
           onClick={handleSubmitForApproval}
-          disabled={submitting}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+          disabled={submitting || (validation?.isValid === false)}
+          className={`px-4 py-2 rounded transition-colors ${
+            validation?.isValid === false
+              ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+          } disabled:opacity-50`}
+          title={
+            validation?.isValid === false
+              ? `Cannot submit: ${validation.missingFields.length} missing fields, ${validation.errors.length} validation errors`
+              : 'Click to submit SOW for approval'
+          }
         >
           {submitting ? 'Submitting...' : 'Submit for Approval'}
         </button>
+        
+        {/* Show validation errors if button is disabled */}
+        {validation?.isValid === false && (
+          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm">
+            <p className="text-red-800 font-medium mb-2">❌ Cannot Submit for Approval:</p>
+            
+            {validation.missingFields.length > 0 && (
+              <div className="mb-2">
+                <p className="text-red-700 font-medium">Missing Required Fields:</p>
+                <ul className="text-red-600 ml-4 list-disc">
+                  {validation.missingFields.map((field, index) => (
+                    <li key={index}>{field}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {validation.errors.length > 0 && (
+              <div className="mb-2">
+                <p className="text-red-700 font-medium">Validation Errors:</p>
+                <ul className="text-red-600 ml-4 list-disc">
+                  {validation.errors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            <p className="text-red-600 text-xs">
+              Complete all required fields above to enable submission for approval.
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -385,6 +587,25 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
           </span>
         )}
       </div>
+
+      {/* Debug Info */}
+      <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs">
+        <p><strong>Debug Info:</strong></p>
+        <p>Workflow exists: {workflow ? 'Yes' : 'No'}</p>
+        <p>Current stage: {workflow.current_stage?.name || 'None'}</p>
+        <p>Approvals count: {workflow.approvals?.length || 0}</p>
+        <p>Can approve: {workflow.can_approve ? 'Yes' : 'No'}</p>
+        <p>Can reject: {workflow.can_reject ? 'Yes' : 'No'}</p>
+        <p>Can skip: {workflow.can_skip ? 'Yes' : 'No'}</p>
+        <p>Show approval actions: {showApprovalActions ? 'Yes' : 'No'}</p>
+        <p>Is complete: {workflow.is_complete ? 'Yes' : 'No'}</p>
+        <p>Next stage: {workflow.next_stage?.name || 'None'}</p>
+      </div>
+
+      {/* Show missing essential info message only when needed */}
+      {workflow.approvals?.length === 0 && workflow.current_stage && (
+        <MissingEssentialInfoMessage />
+      )}
 
       {/* Current Approval */}
       {workflow.current_stage && (
@@ -410,13 +631,23 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
               <div className="flex flex-col space-y-2">
                 <button
                   onClick={() => {
+                    console.log('Approve button clicked');
+                    console.log('Current stage:', workflow.current_stage);
+                    console.log('All approvals:', workflow.approvals);
+                    
                     const approvalId = workflow.approvals.find(a => a.stage_id === workflow.current_stage?.id)?.id;
+                    console.log('Found approval ID:', approvalId);
+                    
                     if (approvalId) {
                       handleApprovalAction(approvalId, 'approve');
+                    } else {
+                      console.error('No approval ID found for current stage');
+                      setError('Could not find approval record for current stage');
                     }
                   }}
                   disabled={submitting || (workflow.current_stage?.requires_comment && !approvalComments.trim())}
                   className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 text-xs"
+                  title={submitting ? 'Processing...' : (workflow.current_stage?.requires_comment && !approvalComments.trim()) ? 'Comments required' : 'Click to approve'}
                 >
                   {submitting ? 'Processing...' : 'Approve'}
                 </button>

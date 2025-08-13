@@ -43,7 +43,11 @@ export default function NewSOWPage() {
         body: JSON.stringify({
           // Include customer information
           template: {
-            sow_title: `Statement of Work for ${customerName}`,
+            sow_title: `Statement of Work for ${customerName} - ${new Date().toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}`,
             customer_name: customerName,
             lean_data_name: 'Agam Vasani',
             lean_data_title: 'VP Customer Success',

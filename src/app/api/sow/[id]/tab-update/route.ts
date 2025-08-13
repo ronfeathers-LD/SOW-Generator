@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ChangelogService } from '@/lib/changelog-service';
+import { ApprovalWorkflowService } from '@/lib/approval-workflow-service';
 
 export async function PUT(
   request: Request,
@@ -238,6 +239,33 @@ export async function PUT(
     } catch (changelogError) {
       console.error('❌ Error logging changes to changelog:', changelogError);
       // Don't fail the main operation if changelog logging fails
+    }
+
+    // Check if approval workflow should be started after this update
+    try {
+      // IMPORTANT: Validate the SOW before attempting to start approval workflow
+      const validation = ApprovalWorkflowService.validateSOWForApproval(updatedSOW);
+      
+      if (validation.isValid) {
+        console.log('✅ SOW validation passed after update, starting approval workflow');
+        const session = await getServerSession(authOptions);
+        await ApprovalWorkflowService.startApprovalWorkflow({
+          sowId: updatedSOW.id,
+          sowTitle: updatedSOW.sow_title || 'Untitled SOW',
+          clientName: updatedSOW.client_name || 'Unknown Client',
+          authorId: session?.user?.id || '',
+          authorEmail: session?.user?.email || ''
+        });
+        console.log('Approval workflow started automatically after tab update for SOW:', updatedSOW.id);
+      } else {
+        console.log('❌ SOW validation failed after update, NOT starting approval workflow');
+        console.log('Missing fields:', validation.missingFields);
+        console.log('Validation errors:', validation.errors);
+        console.log('SOW will remain in current status until validation passes');
+      }
+    } catch (workflowError) {
+      console.error('Error starting approval workflow after tab update:', workflowError);
+      // Don't fail the main operation if approval workflow fails
     }
 
     return NextResponse.json({ 

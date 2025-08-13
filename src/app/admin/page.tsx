@@ -9,6 +9,7 @@ interface DashboardStats {
   salesforceConfigured: boolean;
   avomaConfigured: boolean;
   geminiConfigured: boolean;
+  slackConfigured: boolean;
   leanDataSignatories: number;
 }
 
@@ -33,6 +34,7 @@ export default function AdminDashboard() {
           salesforceConfigured: status.salesforceConfigured || false,
           avomaConfigured: status.avomaConfigured || false,
           geminiConfigured: status.geminiConfigured || false,
+          slackConfigured: status.slackConfigured || false,
           leanDataSignatories: status.leanDataSignatories || 0,
         });
       } else {
@@ -47,6 +49,7 @@ export default function AdminDashboard() {
         salesforceConfigured: false,
         avomaConfigured: false,
         geminiConfigured: false,
+        slackConfigured: false,
         leanDataSignatories: 0,
       });
     } finally {
@@ -177,6 +180,16 @@ export default function AdminDashboard() {
                           : 'bg-red-100 text-red-800'
                       }`}>
                         {stats?.geminiConfigured ? 'Connected' : 'Not Configured'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Slack</span>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        stats?.slackConfigured 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {stats?.slackConfigured ? 'Connected' : 'Not Configured'}
                       </span>
                     </div>
                   </dd>
@@ -330,6 +343,35 @@ export default function AdminDashboard() {
                 <p className="text-sm text-gray-500">Return to main application dashboard</p>
               </div>
             </Link>
+
+            {/* Cleanup Invalid SOWs Button */}
+            <button
+              onClick={async () => {
+                if (confirm('This will reset all SOWs that are incorrectly in review status but fail validation. Continue?')) {
+                  try {
+                    const response = await fetch('/api/admin/cleanup-invalid-sows', { method: 'POST' });
+                    const result = await response.json();
+                    if (result.success) {
+                      alert(`🧹 Cleanup complete!\n\n${result.cleaned} SOWs reset to draft\n${result.skipped} SOWs kept in review\n\nPage will refresh to show updated status.`);
+                      window.location.reload();
+                    } else {
+                      alert('❌ Cleanup failed: ' + result.error);
+                    }
+                  } catch (error) {
+                    alert('❌ Error running cleanup: ' + error);
+                  }
+                }
+              }}
+              className="flex items-center p-4 border-2 border-red-200 rounded-lg hover:bg-red-50 transition-colors bg-red-50"
+            >
+              <svg className="h-8 w-8 text-red-600 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <div>
+                <h4 className="text-sm font-medium text-red-900">🧹 Cleanup Invalid SOWs</h4>
+                <p className="text-sm text-red-700">Reset SOWs incorrectly in review status</p>
+              </div>
+            </button>
           </div>
         </div>
       </div>

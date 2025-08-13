@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { ApprovalService } from '@/lib/approval-service';
 
 // PATCH - Handle approval actions (approve, reject, skip)
@@ -8,13 +9,20 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; approvalId: string }> }
 ) {
   try {
-    const session = await getServerSession();
+    console.log('Approval API called with params:', await params);
+    
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
+      console.log('No session found');
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    console.log('Session user:', session.user.email);
+
     const { id: sowId, approvalId } = await params;
     const { action, comments } = await request.json();
+
+    console.log('Processing approval:', { sowId, approvalId, action, comments });
 
     if (!['approve', 'reject', 'skip'].includes(action)) {
       return new NextResponse('Invalid action', { status: 400 });
@@ -29,6 +37,7 @@ export async function PATCH(
       comments
     );
 
+    console.log('Approval processed successfully');
     return NextResponse.json({ message: `Approval ${action} successfully` });
   } catch (error) {
     console.error('Error processing approval:', error);

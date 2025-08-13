@@ -14,7 +14,7 @@ export async function GET() {
     }
 
     // Fetch all configuration statuses in parallel
-    const [avomaConfig, salesforceConfig, geminiConfig, leanDataSignatories] = await Promise.all([
+    const [avomaConfig, salesforceConfig, geminiConfig, slackConfig, leanDataSignatories] = await Promise.all([
       supabase
         .from('avoma_configs')
         .select('is_active')
@@ -35,6 +35,9 @@ export async function GET() {
         .eq('is_active', true)
         .single()
         .then(result => ({ config: result.data, error: result.error })),
+      
+      // Check Slack configuration from environment variables
+      Promise.resolve({ config: { is_active: !!process.env.SLACK_WEBHOOK_URL }, error: null }),
       
       supabase
         .from('lean_data_signatories')
@@ -64,7 +67,8 @@ export async function GET() {
       salesforceConfigured: !!(salesforceConfig.config && salesforceConfig.config.is_active),
       avomaConfigured: !!(avomaConfig.config && avomaConfig.config.is_active),
       geminiConfigured: !!(geminiConfig.config && geminiConfig.config.is_active),
-              leanDataSignatories: leanDataSignatories.count
+      slackConfigured: !!(slackConfig.config && slackConfig.config.is_active),
+      leanDataSignatories: leanDataSignatories.count
     });
 
   } catch (error) {

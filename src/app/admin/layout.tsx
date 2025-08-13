@@ -56,6 +56,15 @@ const adminNavItems = [
           </svg>
         ),
       },
+      {
+        name: 'Slack Config',
+        href: '/admin/slack',
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293H7.586a1 1 0 01-.707-.293L4.293 13.586A1 1 0 004 13.293V13" />
+          </svg>
+        ),
+      },
     ],
   },
   {
@@ -95,6 +104,15 @@ const adminNavItems = [
     ),
   },
   {
+    name: 'Changelog',
+    href: '/admin/changelog',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  },
+  {
     name: 'User Management',
     href: '/admin/users',
     icon: (
@@ -103,15 +121,7 @@ const adminNavItems = [
       </svg>
     ),
   },
-  {
-    name: 'Approval Stages',
-    href: '/admin/approval-stages',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-  },
+
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {

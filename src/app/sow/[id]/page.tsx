@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import SOWTitlePage from '@/components/sow/SOWTitlePage';
@@ -14,6 +14,132 @@ import ApprovalWorkflow from '@/components/sow/ApprovalWorkflow';
 import PricingDisplay from '@/components/sow/PricingDisplay';
 import { useSession } from 'next-auth/react';
 import { getStatusColor, getStatusLabel } from '@/lib/utils/statusUtils';
+
+// Validation Submit Button Component
+function ValidationSubmitButton({ sow }: { sow: any }) {
+  const [validation, setValidation] = useState<{
+    isValid: boolean;
+    missingFields: string[];
+    errors: string[];
+  } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const checkValidation = useCallback(async () => {
+    try {
+      console.log('🔍 Starting validation check for SOW:', sow.id);
+      
+      // Use the client-safe validation utility
+      const { validateSOWForApproval } = await import('@/lib/validation-utils');
+      const validationResult = validateSOWForApproval(sow);
+      
+      console.log('✅ Validation result:', validationResult);
+      console.log('🔒 Is valid:', validationResult.isValid);
+      console.log('❌ Missing fields:', validationResult.missingFields);
+      console.log('⚠️ Validation errors:', validationResult.errors);
+      
+      setValidation(validationResult);
+      return validationResult.isValid;
+    } catch (error) {
+      console.error('❌ Error checking validation:', error);
+      return false;
+    }
+  }, [sow.id, sow.pricing?.roles]);
+
+  const handleSubmitForReview = async () => {
+    try {
+      // Check validation before allowing submission
+      const isValid = await checkValidation();
+      if (!isValid) {
+        alert('Cannot submit for review: SOW validation failed. Please complete all required fields first.');
+        return;
+      }
+
+      setSubmitting(true);
+      const response = await fetch(`/api/sow/${sow.id}/approvals`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          sow_amount: sow.pricing?.roles?.reduce((total: number, role: any) => total + (role.ratePerHour * role.totalHours), 0)
+        }),
+      });
+
+      if (response.ok) {
+        window.location.reload();
+      } else {
+        const error = await response.text();
+        alert(`Failed to submit for review: ${error}`);
+      }
+    } catch (error) {
+      console.error('Error submitting for review:', error);
+      alert('Failed to submit for review');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Check validation when component mounts
+  useEffect(() => {
+    checkValidation();
+  }, [sow.id, checkValidation]);
+
+  return (
+    <div>
+
+
+      <button
+        onClick={handleSubmitForReview}
+        disabled={submitting || (validation?.isValid === false)}
+        className={`px-4 py-2 rounded transition-colors ${
+          validation?.isValid === false
+            ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+            : 'bg-blue-600 text-white hover:bg-blue-700'
+        } disabled:opacity-50`}
+        title={
+          validation?.isValid === false
+            ? `Cannot submit: ${validation.missingFields.length} missing fields, ${validation.errors.length} validation errors`
+            : 'Click to submit SOW for review'
+        }
+      >
+        {submitting ? 'Submitting...' : 'Submit for Review'}
+      </button>
+      
+      {/* Show validation errors if button is disabled */}
+      {validation?.isValid === false && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm">
+          <p className="text-red-800 font-medium mb-2">❌ Cannot Submit for Review:</p>
+          
+          {validation.missingFields.length > 0 && (
+            <div className="mb-2">
+              <p className="text-red-700 font-medium">Missing Required Fields:</p>
+              <ul className="text-red-600 ml-4 list-disc">
+                {validation.missingFields.map((field, index) => (
+                  <li key={index}>{field}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {validation.errors.length > 0 && (
+            <div className="mb-2">
+              <p className="text-red-700 font-medium">Validation Errors:</p>
+              <ul className="text-red-600 ml-4 list-disc">
+                {validation.errors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          <p className="text-red-600 text-xs">
+            Complete all required fields above to enable submission for review.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface ClientRole {
   role: string;
@@ -975,34 +1101,9 @@ export default function SOWDetailsPage() {
                           This SOW is currently in <span className="font-medium">{sow.status}</span> status. 
                           Submit it for review to start the approval process.
                         </p>
-                        <button
-                          onClick={async () => {
-                            try {
-                              const response = await fetch(`/api/sow/${sow.id}/approvals`, {
-                                method: 'POST',
-                                headers: {
-                                  'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify({ 
-                                  sow_amount: sow.pricing?.roles?.reduce((total, role) => total + (role.ratePerHour * role.totalHours), 0)
-                                }),
-                              });
-
-                              if (response.ok) {
-                                window.location.reload();
-                              } else {
-                                const error = await response.text();
-                                alert(`Failed to submit for review: ${error}`);
-                              }
-                            } catch (error) {
-                              console.error('Error submitting for review:', error);
-                              alert('Failed to submit for review');
-                            }
-                          }}
-                          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                        >
-                          Submit for Review
-                        </button>
+                        
+                        {/* Validation check and button */}
+                        <ValidationSubmitButton sow={sow} />
                       </div>
                     )}
                   </div>

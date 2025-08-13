@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabaseApi } from '@/lib/supabase-api';
 import { ChangelogService } from '@/lib/changelog-service';
+import { getSlackService } from '@/lib/slack';
+import { ApprovalWorkflowService } from '@/lib/approval-workflow-service';
 
 export async function POST(request: Request) {
   try {
@@ -171,6 +173,55 @@ export async function POST(request: Request) {
     } catch (changelogError) {
       console.error('Error logging SOW creation to changelog:', changelogError);
       // Don't fail the main operation if changelog logging fails
+    }
+
+    // Send Slack notification for SOW creation (only for new SOWs)
+    try {
+      const slackService = getSlackService();
+      if (slackService) {
+        const sowTitle = data.template?.sow_title || data.header?.sowTitle || 'Untitled SOW';
+        const clientName = data.template?.customer_name || data.header?.client_name || data.selectedAccount?.name || 'Unknown Client';
+        const amount = data.template?.opportunity_amount || (data.selectedAccount?.amount ? Number(data.selectedAccount.amount) : undefined);
+
+        await slackService.sendSOWCreationNotification(
+          sow.id,
+          sowTitle,
+          clientName,
+          session.user.name || session.user.email || 'Unknown User',
+          amount
+        );
+        
+        console.log('Slack notification sent for SOW creation:', sow.id);
+      }
+    } catch (slackError) {
+      console.error('Error sending Slack notification for SOW creation:', slackError);
+      // Don't fail the main operation if Slack notification fails
+    }
+
+    // Automatically start approval workflow ONLY if SOW passes validation
+    try {
+      // IMPORTANT: Validate the SOW before attempting to start approval workflow
+      const validation = ApprovalWorkflowService.validateSOWForApproval(sow);
+      
+      if (validation.isValid) {
+        console.log('✅ SOW validation passed, starting approval workflow');
+        await ApprovalWorkflowService.startApprovalWorkflow({
+          sowId: sow.id,
+          sowTitle: sow.sow_title || 'Untitled SOW',
+          clientName: sow.client_name || 'Unknown Client',
+          authorId: user.id,
+          authorEmail: session.user.email || ''
+        });
+        console.log('Approval workflow started automatically for SOW:', sow.id);
+      } else {
+        console.log('❌ SOW validation failed, NOT starting approval workflow');
+        console.log('Missing fields:', validation.missingFields);
+        console.log('Validation errors:', validation.errors);
+        console.log('SOW will remain in "draft" status until validation passes');
+      }
+    } catch (workflowError) {
+      console.error('Error starting approval workflow:', workflowError);
+      // Don't fail the main operation if approval workflow fails
     }
 
     // SOW created successfully

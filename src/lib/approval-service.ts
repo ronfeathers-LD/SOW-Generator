@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
+import { createServiceRoleClient } from './supabase-server';
 import { AuditService } from './audit-service';
+import { getSlackService } from './slack';
 
 export interface ApprovalStage {
   id: string;
@@ -64,15 +66,18 @@ export class ApprovalService {
    */
   static async getWorkflow(sowId: string, userEmail: string): Promise<ApprovalWorkflow> {
     try {
-      // Get user information
-      const { data: user, error: userError } = await supabase
+      // Get user information using service role client to bypass RLS
+      const supabaseServer = createServiceRoleClient();
+      const { data: user, error: userError } = await supabaseServer
         .from('users')
         .select('*')
         .eq('email', userEmail)
         .single();
 
+      // If user doesn't exist, something is wrong - we shouldn't be creating users here
       if (userError || !user) {
-        throw new Error('User not found');
+        console.error('User not found in database:', userEmail, 'Error:', userError);
+        throw new Error(`User not found: ${userEmail}. This should not happen for existing users.`);
       }
 
       // Get all approvals for this SOW
@@ -90,23 +95,18 @@ export class ApprovalService {
         throw new Error('Failed to fetch approvals');
       }
 
-      // Get all active approval stages
-      const { data: stages, error: stagesError } = await supabase
-        .from('approval_stages')
-        .select(`
-          *,
-          assigned_user:users(id, name, email)
-        `)
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true });
-
-      if (stagesError) {
-        throw new Error('Failed to fetch stages');
-      }
-
+            // Super simple: No complex stages needed
+      const stages: ApprovalStage[] = [];
+      console.log('Using super simple approval system - no complex stages needed');
+      
       // Determine workflow state
       const workflowState = this.determineWorkflowState(approvals || [], stages || []);
+      
+      // Debug user role and permissions
+      console.log('User details:', { email: user.email, role: user.role, id: user.id });
+      
       const permissions = this.calculatePermissions(workflowState.currentStage, user);
+      console.log('Calculated permissions:', permissions);
 
       return {
         sow_id: sowId,
@@ -135,15 +135,18 @@ export class ApprovalService {
     comments?: string
   ): Promise<void> {
     try {
-      // Get user information
-      const { data: user, error: userError } = await supabase
+      // Get user information using service role client to bypass RLS
+      const supabaseServer = createServiceRoleClient();
+      const { data: user, error: userError } = await supabaseServer
         .from('users')
         .select('*')
         .eq('email', userEmail)
         .single();
 
+      // If user doesn't exist, something is wrong - we shouldn't be creating users here
       if (userError || !user) {
-        throw new Error('User not found');
+        console.error('User not found in database:', userEmail, 'Error:', userError);
+        throw new Error(`User not found: ${userEmail}. This should not happen for existing users.`);
       }
 
       // Get the approval record
@@ -226,6 +229,42 @@ export class ApprovalService {
         // Don't throw here as audit logging is not critical to the approval process
       }
 
+      // Send Slack notification only for key approval events
+      try {
+        const slackService = getSlackService();
+        if (slackService) {
+          // Only send notifications for key business events
+          if (action === 'approve') {
+            // Get SOW details for the notification
+            const { data: sow } = await supabase
+              .from('sows')
+              .select('sow_title, client_name, template')
+              .eq('id', sowId)
+              .single();
+
+            const sowTitle = sow?.sow_title || sow?.template?.sow_title || 'Untitled SOW';
+            const clientName = sow?.client_name || sow?.template?.customer_name || 'Unknown Client';
+            const stageName = approval.stage?.name || 'Unknown Stage';
+
+            await slackService.sendApprovalNotification(
+              sowId,
+              sowTitle,
+              clientName,
+              stageName,
+              user.name || user.email,
+              'approved',
+              comments
+            );
+            
+            console.log('Slack notification sent for SOW approval:', sowId);
+          }
+          // Note: We don't send notifications for reject/skip to reduce noise
+        }
+      } catch (slackError) {
+        console.error('Slack notification failed, but approval succeeded:', slackError);
+        // Don't throw here as Slack notification is not critical to the approval process
+      }
+
     } catch (error) {
       console.error('Error processing approval:', error);
       throw error;
@@ -246,6 +285,30 @@ export class ApprovalService {
       if (existingApprovals && existingApprovals.length > 0) {
         throw new Error('Approval workflow already exists');
       }
+
+      // IMPORTANT: Validate the SOW before creating approval workflow
+      const { data: sow, error: sowError } = await supabase
+        .from('sows')
+        .select('*')
+        .eq('id', sowId)
+        .single();
+
+      if (sowError || !sow) {
+        throw new Error('Failed to fetch SOW data for validation');
+      }
+
+      // Use the same validation logic as the automatic workflow
+      const { validateSOWForApproval } = await import('./validation-utils');
+      const validation = validateSOWForApproval(sow);
+
+      if (!validation.isValid) {
+        console.log('❌ SOW validation failed in startWorkflow, cannot create approval workflow');
+        console.log('Missing fields:', validation.missingFields);
+        console.log('Validation errors:', validation.errors);
+        throw new Error(`Cannot start approval workflow: SOW validation failed. Missing: ${validation.missingFields.join(', ')}. Errors: ${validation.errors.join(', ')}`);
+      }
+
+      console.log('✅ SOW validation passed in startWorkflow, proceeding with approval workflow creation');
 
       // Get required stages based on rules and amount
       const requiredStages = await this.getRequiredStages(sowAmount);
@@ -289,6 +352,36 @@ export class ApprovalService {
         throw new Error('Failed to update SOW status');
       }
 
+      // Send Slack notification for SOW submitted for approval
+      try {
+        const slackService = getSlackService();
+        if (slackService) {
+          // Get SOW details for the notification
+          const { data: sow } = await supabase
+            .from('sows')
+            .select('sow_title, client_name, template')
+            .eq('id', sowId)
+            .single();
+
+          const sowTitle = sow?.sow_title || sow?.template?.sow_title || 'Untitled SOW';
+          const clientName = sow?.client_name || sow?.template?.customer_name || 'Unknown Client';
+
+          await slackService.sendApprovalRequestNotification(
+            sowId,
+            sowTitle,
+            clientName,
+            'Approval Workflow Started',
+            'System',
+            sowAmount
+          );
+          
+          console.log('Slack notification sent for SOW submitted for approval:', sowId);
+        }
+      } catch (slackError) {
+        console.error('Slack notification failed for workflow start, but workflow was created:', slackError);
+        // Don't throw here as Slack notification is not critical to the workflow creation
+      }
+
     } catch (error) {
       console.error('Error starting approval workflow:', error);
       throw error;
@@ -299,95 +392,60 @@ export class ApprovalService {
    * Determine the current workflow state
    */
   private static determineWorkflowState(approvals: SOWApproval[], stages: ApprovalStage[]) {
-    let currentStage = null;
-    let isComplete = false;
-    let nextStage = null;
-
-    // Check if VP has approved (bypasses all other approvals)
-    const vpApproval = approvals.find(approval => 
-      approval.stage?.name === 'VP Approval' && approval.status === 'approved'
-    );
+    console.log('determineWorkflowState called with:');
+    console.log('  approvals:', approvals);
+    console.log('  stages:', stages);
     
-    // Check if Director has approved (bypasses all other approvals)
-    const directorApproval = approvals.find(approval => 
-      approval.stage?.name === 'Director Approval' && approval.status === 'approved'
-    );
+    // Super simple: Just check if there's any approval
+    const hasApproval = approvals.some(approval => approval.status === 'approved');
+    const hasRejection = approvals.some(approval => approval.status === 'rejected');
     
-    if (vpApproval || directorApproval) {
-      // VP or Director approval bypasses all others
-      isComplete = true;
-    } else {
-      // Check if Manager has approved
-      const managerApproval = approvals.find(approval => 
-        approval.stage?.name === 'Manager Approval' && approval.status === 'approved'
-      );
-      
-      if (managerApproval) {
-        // Manager approved - workflow complete
-        isComplete = true;
-      } else {
-        // Manager hasn't approved yet
-        currentStage = stages.find(stage => stage.name === 'Manager Approval');
-      }
+    if (hasApproval || hasRejection) {
+      return { currentStage: null, isComplete: true, nextStage: null };
     }
     
-    if (currentStage) {
-      nextStage = stages.find(stage => stage.sort_order > currentStage.sort_order);
-    }
-
-    return { currentStage: currentStage || null, isComplete, nextStage: nextStage || null };
+    // If no approvals exist yet, create a simple approval stage
+    const simpleStage = {
+      id: 'simple-approval',
+      name: 'Approval Required',
+      description: 'This SOW needs approval from an Approver or Admin',
+      sort_order: 1,
+      is_active: true,
+      requires_comment: false,
+      auto_approve: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    return { currentStage: simpleStage, isComplete: false, nextStage: null };
   }
 
   /**
    * Calculate user permissions for the current stage
    */
   private static calculatePermissions(currentStage: ApprovalStage | null, user: User) {
-    let canApprove = false;
-    let canReject = false;
-    let canSkip = false;
-
-    if (!currentStage) {
-      return { canApprove, canReject, canSkip };
-    }
-
+    // Simple role-based permissions
     const userRole = user.role;
-    const currentStageName = currentStage.name;
     
-    // Admin can do everything
-    if (userRole === 'admin') {
-      canApprove = true;
-      canReject = true;
-      canSkip = currentStage.auto_approve || false;
-      return { canApprove, canReject, canSkip };
+    console.log('calculatePermissions called with:', { userRole, currentStage: currentStage?.name });
+    
+    // Admin and Manager can approve/reject
+    if (userRole === 'admin' || userRole === 'manager') {
+      console.log('User has approval permissions');
+      return {
+        canApprove: true,
+        canReject: true,
+        canSkip: false
+      };
     }
-
-    // VP can approve any stage and bypass all others
-    if (userRole === 'vp') {
-      canApprove = true;
-      canReject = true;
-      canSkip = false;
-      return { canApprove, canReject, canSkip };
-    }
-
-    // Director can approve any stage and bypass all others
-    if (userRole === 'director') {
-      canApprove = true;
-      canReject = true;
-      canSkip = false;
-      return { canApprove, canReject, canSkip };
-    }
-
-    // Manager can approve Manager stage
-    if (userRole === 'manager') {
-      if (currentStageName === 'Manager Approval') {
-        canApprove = true;
-        canReject = true;
-        canSkip = false;
-      }
-      return { canApprove, canReject, canSkip };
-    }
-
-    return { canApprove, canReject, canSkip };
+    
+    // Regular users cannot approve
+    console.log('User does not have approval permissions');
+    return {
+      canApprove: false,
+      canReject: false,
+      canSkip: false
+    };
   }
 
   /**
@@ -395,28 +453,13 @@ export class ApprovalService {
    */
   private static validateApprovalPermission(approval: SOWApproval, user: User): boolean {
     const userRole = user.role;
-    const stageName = approval.stage?.name;
     
-    // Admin can approve any stage
-    if (userRole === 'admin') {
+    // Admin and Manager can approve anything
+    if (userRole === 'admin' || userRole === 'manager') {
       return true;
     }
-
-    // VP can approve any stage
-    if (userRole === 'vp') {
-      return true;
-    }
-
-    // Director can approve any stage
-    if (userRole === 'director') {
-      return true;
-    }
-
-    // Manager can approve Manager stage
-    if (userRole === 'manager') {
-      return stageName === 'Manager Approval';
-    }
-
+    
+    // Regular users cannot approve
     return false;
   }
 

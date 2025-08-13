@@ -9,7 +9,7 @@ import ObjectivesTab from './sow/ObjectivesTab';
 import TeamRolesTab from './sow/TeamRolesTab';
 import BillingPaymentTab from './sow/BillingPaymentTab';
 import ContentEditingTab from './sow/ContentEditingTab';
-import ChangelogTab from './sow/ChangelogTab';
+
 import { createSalesforceAccountData, createSalesforceContactData, createSalesforceOpportunityData } from '@/types/salesforce';
 
 interface LeanDataSignatory {
@@ -35,7 +35,11 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       ? {
           ...initialData,
           template: {
-            sow_title: initialData.template?.sow_title || 'Statement of Work for LeanData Implementation',
+            sow_title: initialData.template?.sow_title || `Statement of Work for LeanData Implementation - ${new Date().toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}`,
             company_logo: initialData.template?.company_logo || '',
             customer_name: initialData.template?.customer_name || '',
             customer_signature_name: initialData.template?.customer_signature_name || '',
@@ -117,7 +121,11 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           // Template Variables
           template: {
             // Header Information
-            sow_title: 'Statement of Work for LeanData Implementation',
+            sow_title: `Statement of Work for LeanData Implementation - ${new Date().toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}`,
             company_logo: '',
             
             // Customer Information
@@ -763,6 +771,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         case 'Project Overview':
           tabData = {
             template: {
+              sow_title: formData.template?.sow_title,
               products: formData.template?.products || [],
               number_of_units: formData.template?.number_of_units,
               regions: formData.template?.regions,
@@ -973,7 +982,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     { key: 'Team & Roles', label: 'Team & Roles' },
     { key: 'Billing & Payment', label: 'Billing & Payment' },
     { key: 'Content Editing', label: 'Content Editing' },
-    { key: 'Changelog', label: 'Changelog' },
   ], []);
 
   // Tab navigation with URL hash persistence
@@ -1164,13 +1172,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         />
       )}
 
-      {/* Changelog Section */}
-      {activeTab === 'Changelog' && initialData?.id && (
-        <ChangelogTab sowId={initialData.id} />
-      )}
-
       {/* Submit Button - Hidden for Content Editing tab since each section has its own save button */}
-      {activeTab !== 'Content Editing' && activeTab !== 'Changelog' && (
+      {activeTab !== 'Content Editing' && (
         <div className="flex justify-end">
           <button
             type="submit"

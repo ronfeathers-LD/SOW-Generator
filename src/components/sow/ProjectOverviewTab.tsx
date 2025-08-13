@@ -24,6 +24,37 @@ export default function ProjectOverviewTab({
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
+  // Format the created date for display
+  const formatCreatedDate = (date: Date | string | undefined): string => {
+    if (!date) return '';
+    
+    try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      return dateObj.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '';
+    }
+  };
+
+  // Get the default title with created date
+  const getDefaultTitle = (): string => {
+    const customerName = formData.template?.customer_name || '';
+    const createdDate = formatCreatedDate(formData.created_at);
+    
+    if (customerName && createdDate) {
+      return `Statement of Work for ${customerName} - ${createdDate}`;
+    } else if (customerName) {
+      return `Statement of Work for ${customerName}`;
+    } else {
+      return 'Statement of Work';
+    }
+  };
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -284,6 +315,34 @@ export default function ProjectOverviewTab({
   return (
     <section className="space-y-6">
       <h2 className="text-2xl font-bold">Project Overview</h2>
+      
+      {/* SOW Title */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <h3 className="text-lg font-semibold mb-4">SOW Title</h3>
+        <div className="max-w-2xl">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <span className="inline-flex items-center">
+              <svg className="w-4 h-4 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Statement of Work Title
+            </span>
+          </label>
+          <input
+            type="text"
+            value={formData.template?.sow_title || getDefaultTitle()}
+            onChange={(e) => setFormData({
+              ...formData,
+              template: { ...formData.template!, sow_title: e.target.value }
+            })}
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            placeholder={getDefaultTitle()}
+          />
+          <p className="mt-2 text-sm text-gray-500">
+            Customize the title for this Statement of Work. The default format is &quot;Statement of Work for [Account Name] - [Created Date]&quot;.
+          </p>
+        </div>
+      </div>
       
       {/* Project Configuration */}
       <div className="bg-white shadow rounded-lg p-6">
