@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabaseApi } from '@/lib/supabase-api';
+import { ChangelogService } from '@/lib/changelog-service';
 
 export async function POST(request: Request) {
   try {
@@ -160,8 +161,19 @@ export async function POST(request: Request) {
 
 
 
-    // SOW created successfully
+    // Log SOW creation to changelog
+    try {
+      await ChangelogService.logSOWCreation(sow.id, user.id, {
+        source: 'sow_creation',
+        template_data: !!data.template,
+        has_salesforce_data: !!data.selectedAccount
+      });
+    } catch (changelogError) {
+      console.error('Error logging SOW creation to changelog:', changelogError);
+      // Don't fail the main operation if changelog logging fails
+    }
 
+    // SOW created successfully
     return NextResponse.json({ 
       success: true, 
       message: 'SOW saved successfully',

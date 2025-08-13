@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { ChangelogService } from '@/lib/changelog-service';
 
 export async function POST(
   request: Request,
@@ -84,6 +87,20 @@ export async function POST(
       .update({ is_latest: false })
       .or(`id.eq.${(await params).id},parent_id.eq.${(await params).id}`)
       .neq('id', newVersion.id);
+
+    // Log version creation to changelog
+    try {
+      const session = await getServerSession(authOptions);
+      await ChangelogService.logVersionCreation(
+        newVersion.id,
+        (await params).id,
+        session?.user?.id,
+        { source: 'version_creation', parent_version: originalSOW.version }
+      );
+    } catch (changelogError) {
+      console.error('Error logging version creation to changelog:', changelogError);
+      // Don't fail the main operation if changelog logging fails
+    }
 
     return NextResponse.json(newVersion);
   } catch (error) {

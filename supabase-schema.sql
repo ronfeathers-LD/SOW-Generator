@@ -251,7 +251,37 @@ CREATE TABLE IF NOT EXISTS gemini_configs (
   last_error TEXT
 );
 
+-- Create approval_audit_log table for tracking approval workflow actions
+CREATE TABLE IF NOT EXISTS approval_audit_log (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  sow_id UUID REFERENCES sows(id) ON DELETE CASCADE,
+  approval_id UUID REFERENCES sow_approvals(id) ON DELETE SET NULL,
+  user_id TEXT, -- Store the actual user identifier (Google OAuth ID, email, or UUID)
+  action TEXT NOT NULL,
+  previous_status TEXT,
+  new_status TEXT,
+  comments TEXT,
+  metadata JSONB DEFAULT '{}',
+  version INTEGER DEFAULT 1
+);
 
+-- Create sow_changelog table for tracking all SOW content changes
+CREATE TABLE IF NOT EXISTS sow_changelog (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  sow_id UUID REFERENCES sows(id) ON DELETE CASCADE,
+  user_id TEXT, -- Store the actual user identifier (Google OAuth ID, email, or UUID)
+  action TEXT NOT NULL, -- 'create', 'update', 'delete', 'version_create'
+  field_name TEXT, -- The specific field that was changed
+  previous_value TEXT, -- Previous value (for text fields) or JSON string (for complex fields)
+  new_value TEXT, -- New value (for text fields) or JSON string (for complex fields)
+  change_type TEXT NOT NULL, -- 'field_update', 'content_edit', 'status_change', 'version_create'
+  diff_summary TEXT, -- Human-readable summary of the change
+  metadata JSONB DEFAULT '{}', -- Additional context like tab name, section, etc.
+  version INTEGER DEFAULT 1,
+  parent_version_id UUID REFERENCES sows(id) ON DELETE SET NULL -- For versioning context
+);
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_sows_created_at ON sows(created_at DESC);
@@ -260,6 +290,13 @@ CREATE INDEX IF NOT EXISTS idx_sows_parent_id ON sows(parent_id);
 CREATE INDEX IF NOT EXISTS idx_comments_sow_id ON comments(sow_id);
 CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_approval_audit_log_sow_id ON approval_audit_log(sow_id);
+CREATE INDEX IF NOT EXISTS idx_approval_audit_log_user_id ON approval_audit_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_sow_changelog_sow_id ON sow_changelog(sow_id);
+CREATE INDEX IF NOT EXISTS idx_sow_changelog_user_id ON sow_changelog(user_id);
+CREATE INDEX IF NOT EXISTS idx_sow_changelog_created_at ON sow_changelog(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sow_changelog_field_name ON sow_changelog(field_name);
+CREATE INDEX IF NOT EXISTS idx_sow_changelog_change_type ON sow_changelog(change_type);
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -292,6 +329,14 @@ BEGIN
         CREATE TRIGGER update_gemini_configs_updated_at BEFORE UPDATE ON gemini_configs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
     END IF;
 
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_approval_audit_log_updated_at') THEN
+        CREATE TRIGGER update_approval_audit_log_updated_at BEFORE UPDATE ON approval_audit_log FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_sow_changelog_updated_at') THEN
+        CREATE TRIGGER update_sow_changelog_updated_at BEFORE UPDATE ON sow_changelog FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_approval_stages_updated_at') THEN
         CREATE TRIGGER update_approval_stages_updated_at BEFORE UPDATE ON approval_stages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
     END IF;
@@ -314,6 +359,8 @@ ALTER TABLE salesforce_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lean_data_signatories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE avoma_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gemini_configs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE approval_audit_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sow_changelog ENABLE ROW LEVEL SECURITY;
 
 
 -- Create policies for public read access to SOWs
@@ -348,6 +395,22 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'gemini_configs' AND policyname = 'Admin access to gemini configs') THEN
         CREATE POLICY "Admin access to gemini configs" ON gemini_configs FOR ALL USING (true);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'approval_audit_log' AND policyname = 'Users can view audit logs') THEN
+        CREATE POLICY "Users can view audit logs" ON approval_audit_log FOR SELECT USING (true);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'approval_audit_log' AND policyname = 'Users can create audit logs') THEN
+        CREATE POLICY "Users can create audit logs" ON approval_audit_log FOR INSERT WITH CHECK (true);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'sow_changelog' AND policyname = 'Users can view changelog') THEN
+        CREATE POLICY "Users can view changelog" ON sow_changelog FOR SELECT USING (true);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'sow_changelog' AND policyname = 'Users can create changelog entries') THEN
+        CREATE POLICY "Users can create changelog entries" ON sow_changelog FOR INSERT WITH CHECK (true);
     END IF;
 
 END $$; 

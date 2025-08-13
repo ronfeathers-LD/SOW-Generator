@@ -9,6 +9,7 @@ import ObjectivesTab from './sow/ObjectivesTab';
 import TeamRolesTab from './sow/TeamRolesTab';
 import BillingPaymentTab from './sow/BillingPaymentTab';
 import ContentEditingTab from './sow/ContentEditingTab';
+import ChangelogTab from './sow/ChangelogTab';
 import { createSalesforceAccountData, createSalesforceContactData, createSalesforceOpportunityData } from '@/types/salesforce';
 
 interface LeanDataSignatory {
@@ -927,6 +928,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     { key: 'Team & Roles', label: 'Team & Roles' },
     { key: 'Billing & Payment', label: 'Billing & Payment' },
     { key: 'Content Editing', label: 'Content Editing' },
+    { key: 'Changelog', label: 'Changelog' },
   ], []);
 
   // Tab navigation with URL hash persistence
@@ -1117,8 +1119,13 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         />
       )}
 
+      {/* Changelog Section */}
+      {activeTab === 'Changelog' && initialData?.id && (
+        <ChangelogTab sowId={initialData.id} />
+      )}
+
       {/* Submit Button - Hidden for Content Editing tab since each section has its own save button */}
-      {activeTab !== 'Content Editing' && (
+      {activeTab !== 'Content Editing' && activeTab !== 'Changelog' && (
         <div className="flex justify-end">
           <button
             type="submit"

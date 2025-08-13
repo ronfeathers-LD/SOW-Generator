@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { ChangelogService } from '@/lib/changelog-service';
 
 export async function GET(
   request: Request,
@@ -367,8 +368,21 @@ export async function PUT(
       updateData.products = data.template.products;
     }
 
-    // Updated SOW response
+    // Log changes to changelog
+    try {
+      await ChangelogService.compareSOWs(
+        (await params).id,
+        existingSOW,
+        updatedSOW,
+        session?.user?.id,
+        { source: 'main_update', update_type: 'comprehensive' }
+      );
+    } catch (changelogError) {
+      console.error('Error logging changes to changelog:', changelogError);
+      // Don't fail the main operation if changelog logging fails
+    }
 
+    // Updated SOW response
     return NextResponse.json(updatedSOW);
   } catch (error) {
     console.error('Error updating SOW:', error, { body: data });

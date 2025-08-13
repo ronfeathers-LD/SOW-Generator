@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { ChangelogService } from '@/lib/changelog-service';
 
 export async function PUT(
   request: Request,
@@ -196,7 +199,7 @@ export async function PUT(
     }
 
     // Update the SOW with the tab-specific data
-    const { error: updateError } = await supabase
+    const { data: updatedSOW, error: updateError } = await supabase
       .from('sows')
       .update(updateData)
       .eq('id', sowId)
@@ -209,6 +212,32 @@ export async function PUT(
         { error: 'Failed to update SOW', details: updateError.message },
         { status: 500 }
       );
+    }
+
+    // Log changes to changelog
+    try {
+      console.log('🔄 Tab update - About to log changes to changelog');
+      console.log('📝 Tab:', tab);
+      console.log('🆔 SOW ID:', sowId);
+      
+      const session = await getServerSession(authOptions);
+      console.log('👤 Session user ID:', session?.user?.id);
+      
+      console.log('📊 Existing SOW data:', Object.keys(existingSOW));
+      console.log('📊 Updated SOW data:', Object.keys(updatedSOW));
+      
+      await ChangelogService.compareSOWs(
+        sowId,
+        existingSOW,
+        updatedSOW,
+        session?.user?.id,
+        { source: 'tab_update', tab: tab, update_type: 'tab_specific' }
+      );
+      
+      console.log('✅ Changelog logging completed successfully');
+    } catch (changelogError) {
+      console.error('❌ Error logging changes to changelog:', changelogError);
+      // Don't fail the main operation if changelog logging fails
     }
 
     return NextResponse.json({ 
