@@ -115,7 +115,6 @@ export interface SOWData {
 
   // Project Scope
   scope: {
-    project_description: string;
     deliverables: string;
     timeline: {
       duration: string;

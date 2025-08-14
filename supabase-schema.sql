@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS sows (
   opportunity_id TEXT,
   opportunity_name TEXT,
   opportunity_stage TEXT,
-  project_description TEXT DEFAULT '',
+
   objectives_description TEXT DEFAULT '',
   objectives_key_objectives JSONB DEFAULT '[]',
   avoma_transcription TEXT DEFAULT '',

@@ -45,7 +45,7 @@ export interface SOW {
   opportunity_id?: string;
   opportunity_name?: string;
   opportunity_stage?: string;
-  project_description: string;
+
   objectives_description: string;
   objectives_key_objectives: Record<string, unknown>;
   avoma_transcription: string;

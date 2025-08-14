@@ -50,7 +50,7 @@ export async function GET(
         avoma_url: sow.avoma_url || '',
       },
       scope: {
-        project_description: sow.project_description || '',
+
         deliverables: sow.deliverables || '',
         timeline: {
           duration: sow.duration || '',

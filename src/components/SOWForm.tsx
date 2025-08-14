@@ -77,13 +77,13 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           },
           objectives: {
             ...initialData.objectives,
-            description: initialData.objectives?.description || initialData.scope?.project_description || '',
+            description: initialData.objectives?.description || '',
             key_objectives: initialData.objectives?.key_objectives || [''],
             avoma_transcription: initialData.objectives?.avoma_transcription || '',
           },
           scope: {
             ...initialData.scope,
-            project_description: initialData.scope?.project_description || '',
+
             deliverables: initialData.deliverables || '',
           },
           pricing: {
@@ -189,7 +189,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             key_objectives: [''],
           },
           scope: {
-            project_description: '',
+
             deliverables: '',
             timeline: {
               duration: '',

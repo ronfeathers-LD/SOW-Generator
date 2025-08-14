@@ -19,7 +19,7 @@ export function validateSOWForApproval(sowData: { [key: string]: any }): SOWVali
   // Basic required fields
   if (!sowData.sow_title) missingFields.push('SOW Title');
   if (!sowData.client_name) missingFields.push('Client Name');
-  if (!sowData.project_description) missingFields.push('Project Description');
+
 
   // Overview Tab validation
   if (!sowData.number_of_units || sowData.number_of_units <= 0 || sowData.number_of_units >= 99) {

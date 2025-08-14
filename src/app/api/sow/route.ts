@@ -70,7 +70,6 @@ export async function POST(request: Request) {
         signature_date: data.client_signature?.signature_date ? new Date(data.client_signature.signature_date).toISOString() : new Date().toISOString(),
         
         // Project Scope
-        project_description: data.scope?.project_description || '',
         deliverables: data.scope?.deliverables || '',
         start_date: data.scope?.timeline?.start_date ? new Date(data.scope.timeline.start_date).toISOString() : new Date().toISOString(),
         duration: data.scope?.timeline?.duration || '',

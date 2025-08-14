@@ -71,7 +71,7 @@ export default function NewSOWPage() {
             avoma_transcription: '',
           },
           scope: {
-            project_description: '',
+
             deliverables: '',
           },
           // Store the selected account information for later use

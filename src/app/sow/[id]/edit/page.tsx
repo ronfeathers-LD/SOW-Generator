@@ -115,7 +115,7 @@ export default function EditSOWPage() {
               signature_date: new Date(data.signature_date),
             },
             scope: {
-              project_description: data.project_description || '',
+  
               deliverables: data.deliverables || '',
               timeline: {
                 duration: data.duration || '',

@@ -579,7 +579,7 @@ export class ChangelogService {
       // Common field mappings for better readability
       'client_name': 'Client Name',
       'sow_title': 'SOW Title',
-      'project_description': 'Project Description',
+  
       'deliverables': 'Deliverables',
       'custom_intro_content': 'Introduction Content',
       'custom_scope_content': 'Scope Content',

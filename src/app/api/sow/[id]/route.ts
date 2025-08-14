@@ -39,7 +39,7 @@ export async function GET(
         avoma_url: sow.avoma_url || '',
       },
       scope: {
-        project_description: sow.project_description || '',
+
         deliverables: sow.deliverables || '',
         timeline: {
           duration: sow.duration || '',
@@ -185,7 +185,7 @@ export async function PUT(
         },
         client_signer_name: data.client_signer_name || '',
         scope: {
-          project_description: data.project_description || '',
+  
           deliverables: data.deliverables || '',
           timeline: {
             duration: data.duration || '',
@@ -261,7 +261,7 @@ export async function PUT(
     
     // Scope fields
     if (data.scope) {
-      if (data.scope.project_description !== undefined) updateData.project_description = data.scope.project_description;
+      
       if (data.scope.deliverables !== undefined) updateData.deliverables = data.scope.deliverables;
       if (data.scope.timeline?.start_date !== undefined) updateData.start_date = new Date(data.scope.timeline.start_date).toISOString();
       if (data.scope.timeline?.duration !== undefined) updateData.duration = data.scope.timeline.duration;
