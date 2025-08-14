@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
           objectiveOverview: result.objectiveOverview,
           painPointsCount: result.painPoints.length,
           solutionsCategories: Object.keys(result.solutions).length,
-          totalSolutionsItems: Object.values(result.solutions).reduce((total: number, items: string[]) => total + items.length, 0)
+          totalSolutionsItems: Object.values(result.solutions).reduce((total: number, items: unknown) => total + (Array.isArray(items) ? items.length : 0), 0)
         }
       });
 

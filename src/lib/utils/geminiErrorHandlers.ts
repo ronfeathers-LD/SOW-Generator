@@ -44,7 +44,13 @@ export function cleanAndParseJSON(content: string): unknown {
  */
 export function validateParsedResponse(parsed: unknown): boolean {
   const typedParsed = parsed as { objectiveOverview?: unknown; painPoints?: unknown; solutions?: unknown };
-  return !!(typedParsed.objectiveOverview && typedParsed.painPoints && typedParsed.solutions);
+  
+  // More flexible validation - just need solutions object with some content
+  return !!(
+    typedParsed.solutions && 
+    typeof typedParsed.solutions === 'object' && 
+    Object.keys(typedParsed.solutions).length > 0
+  );
 }
 
 /**
@@ -54,23 +60,37 @@ export function createStandardResponse(parsed: unknown, isFallback: boolean = fa
   const typedParsed = parsed as {
     objectiveOverview?: string;
     painPoints?: unknown[];
-    solutions?: {
-      "Lead Routing"?: unknown[];
-      "Account Matching"?: unknown[];
-      "BookIt"?: unknown[];
-      "Integrations"?: unknown[];
-    };
+    solutions?: Record<string, unknown[]>;
   };
+  
+  // Smart field mapping - dynamically map any field names to a flexible structure
+  const mapFieldNames = (solutions: Record<string, unknown[]> | undefined) => {
+    // Start with empty arrays for any fields that might exist
+    const mapped: Record<string, string[]> = {};
+
+    if (!solutions) return mapped;
+
+    // Map any field names dynamically - preserve the original field names
+    Object.entries(solutions).forEach(([fieldName, value]) => {
+      const arrayValue = Array.isArray(value) ? value as string[] : [];
+      // Use the original field name from the AI response
+      mapped[fieldName] = arrayValue;
+    });
+
+    return mapped;
+  };
+
+  const mappedSolutions = mapFieldNames(typedParsed.solutions);
+  
+  // Debug logging to see what was mapped
+  console.log('🔍 Field Mapping Debug:');
+  console.log('Original solutions:', typedParsed.solutions);
+  console.log('Mapped solutions:', mappedSolutions);
   
   return {
     objectiveOverview: typedParsed.objectiveOverview || 'Objective could not be generated',
     painPoints: Array.isArray(typedParsed.painPoints) ? typedParsed.painPoints as string[] : ['Pain points could not be generated'],
-    solutions: {
-      "Lead Routing": Array.isArray(typedParsed.solutions?.["Lead Routing"]) ? typedParsed.solutions["Lead Routing"] as string[] : ['Lead routing solutions could not be generated'],
-      "Account Matching": Array.isArray(typedParsed.solutions?.["Account Matching"]) ? typedParsed.solutions["Account Matching"] as string[] : ['Account matching solutions could not be generated'],
-      "BookIt": Array.isArray(typedParsed.solutions?.["BookIt"]) ? typedParsed.solutions["BookIt"] as string[] : ['BookIt solutions could not be generated'],
-      "Integrations": Array.isArray(typedParsed.solutions?.["Integrations"]) ? typedParsed.solutions["Integrations"] as string[] : ['Integrations solutions could not be generated']
-    },
+    solutions: mappedSolutions, // Return the solutions exactly as the AI provided them
     isFallback
   };
 }
@@ -187,10 +207,7 @@ export function createFallbackResponse(scopeItems: string[]): TranscriptionAnaly
     objectiveOverview: scopeItems.length > 0 ? scopeItems[0] : 'Project objective could not be generated due to formatting issues',
     painPoints: scopeItems.length > 0 ? scopeItems.slice(0, 3) : ['Manual lead routing and assignment processes', 'Duplicate leads and contacts in Salesforce', 'Inconsistent data quality across objects'],
     solutions: {
-      "Lead Routing": scopeItems.length > 3 ? scopeItems.slice(3, 5) : ['Automate lead routing based on territory and account status'],
-      "Account Matching": scopeItems.length > 5 ? scopeItems.slice(5, 7) : ['Implement lead-to-account matching logic'],
-      "BookIt": scopeItems.length > 7 ? scopeItems.slice(7, 9) : ['Streamline meeting scheduling and calendar management'],
-      "Integrations": scopeItems.length > 9 ? scopeItems.slice(9, 11) : ['Integrate with existing marketing automation and CRM systems']
+      "General Solutions": scopeItems.length > 3 ? scopeItems.slice(3, 5) : ['Automate lead routing based on territory and account status', 'Implement lead-to-account matching logic']
     },
     isFallback: true
   };
@@ -224,10 +241,7 @@ export function createErrorResponse(error: unknown): TranscriptionAnalysisRespon
     objectiveOverview: getErrorMessage(error),
     painPoints: ['Manual lead routing and assignment processes', 'Duplicate leads and contacts in Salesforce', 'Inconsistent data quality across objects'],
     solutions: {
-      "Lead Routing": ['Automate lead routing based on territory and account status'],
-      "Account Matching": ['Implement lead-to-account matching logic'],
-      "BookIt": ['Streamline meeting scheduling and calendar management'],
-      "Integrations": ['Integrate with existing marketing automation and CRM systems']
+      "General Solutions": ['Automate lead routing based on territory and account status', 'Implement lead-to-account matching logic']
     },
     isFallback: true
   };

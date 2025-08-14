@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AvomaClient, getAvomaConfig } from '@/lib/avoma';
-
+import { logRequest } from '@/lib/simple-api-logger';
+ 
 export async function POST(request: NextRequest) {
+  // Log the entire request to the database
+  await logRequest(request);
+  
   try {
     const { meetingUuid, avomaUrl } = await request.json();
 

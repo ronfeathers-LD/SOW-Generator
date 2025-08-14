@@ -3,7 +3,16 @@ import { analyzeTranscription } from '@/lib/gemini';
 
 export async function POST(request: NextRequest) {
   try {
-    const { transcript, customerName } = await request.json();
+    const { transcript, customerName, selectedProducts, existingDescription, existingObjectives } = await request.json();
+
+    // Debug logging to see what's being received
+    console.log('=== ANALYZE TRANSCRIPTION API DEBUG ===');
+    console.log('Received transcript length:', transcript ? transcript.length : 'undefined');
+    console.log('Received customerName:', customerName);
+    console.log('Received selectedProducts:', selectedProducts);
+    console.log('Received existingDescription:', existingDescription);
+    console.log('Received existingObjectives:', existingObjectives);
+    console.log('=== END API DEBUG ===');
 
     if (!transcript) {
       return NextResponse.json({ error: 'Transcription is required' }, { status: 400 });
@@ -13,15 +22,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Customer name is required' }, { status: 400 });
     }
 
-    
+    const result = await analyzeTranscription(transcript, customerName, selectedProducts, existingDescription, existingObjectives);
 
-    const result = await analyzeTranscription(transcript, customerName);
-
-    // Check if the result contains the error message
-    if (result.objectiveOverview.includes('could not be generated due to formatting issues')) {
-      console.error('Gemini returned formatting error for customer:', customerName);
+    // Check if the result contains an error
+    if (result.error) {
+      console.error('Gemini returned error for customer:', customerName, result.error);
       return NextResponse.json(
-        { error: 'The AI analysis returned unexpected formatting. Please try again or contact support if the issue persists.' },
+        { error: `AI analysis failed: ${result.error}` },
         { status: 500 }
       );
     }
