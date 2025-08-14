@@ -240,3 +240,71 @@ ol {
   list-style-type: decimal;
   padding-left: 1.5em;
 }
+
+/* Fix for paragraph tags inside list items (TipTap editor issue) */
+.sow-content li p,
+li p,
+.ProseMirror li p {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline !important;
+}
+
+/* Ensure proper spacing for list items with nested content */
+.sow-content li,
+li {
+  margin: 0.25em 0 !important;
+  padding: 0 !important;
+}
+
+/* Remove any default margins from paragraphs inside lists */
+.sow-content ul li p,
+.sow-content ol li p,
+ul li p,
+ol li p {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline !important;
+}
+
+/* Specific fix for TipTap editor content */
+.ProseMirror ul li p,
+.ProseMirror ol li p {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline !important;
+}
+
+/* Handle empty list items and ensure proper list spacing */
+.sow-content li:empty,
+li:empty {
+  display: none !important;
+}
+
+.sow-content li:blank,
+li:blank {
+  display: none !important;
+}
+
+/* Ensure list items with only whitespace are hidden */
+.sow-content li:only-child:empty,
+li:only-child:empty {
+  display: none !important;
+}
+
+/* Fix spacing between list items */
+.sow-content ul li + li,
+.sow-content ol li + li,
+ul li + li,
+ol li + li {
+  margin-top: 0.25em !important;
+}
+
+/* Ensure proper list marker alignment */
+.sow-content ul,
+.sow-content ol,
+ul,
+ol {
+  list-style-position: outside !important;
+  padding-left: 2em !important;
+}
