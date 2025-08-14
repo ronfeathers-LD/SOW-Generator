@@ -43,7 +43,7 @@ export default function SOWIntroPage({ clientName, customContent, isEdited }: SO
         </div>
       )}
       <div 
-        className="text-base leading-relaxed"
+        className="text-base leading-relaxed sow-content"
         dangerouslySetInnerHTML={{ __html: content }} 
       />
 

@@ -17,7 +17,7 @@ export default function SOWProjectPhasesPage({ customContent, isEdited }: SOWPro
 
       {/* Project Phases Content */}
       <div 
-        className="text-base leading-relaxed"
+        className="text-base leading-relaxed sow-content"
         dangerouslySetInnerHTML={{ __html: customContent || '' }}
       />
     </div>

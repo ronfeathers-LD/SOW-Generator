@@ -9,8 +9,36 @@ export function isHtmlContent(content: string): boolean {
 export function processContent(content: string): string {
   if (!content) return '';
   
-  // If it's already HTML, return as is
+  // If it's already HTML, we still need to ensure proper list styling
   if (isHtmlContent(content)) {
+    // For HTML content, we need to ensure lists are properly styled
+    // Check if the content contains list items that might need styling
+    if (content.includes('<li>') || content.includes('<ul>') || content.includes('<ol>')) {
+      // The content already has HTML list structure, but let's ensure proper CSS classes
+      let processedContent = content;
+      
+      // Ensure ul elements have proper list styling classes
+      processedContent = processedContent.replace(
+        /<ul([^>]*)>/g, 
+        '<ul$1 class="list-disc list-inside mb-4">'
+      );
+      
+      // Ensure ol elements have proper list styling classes
+      processedContent = processedContent.replace(
+        /<ol([^>]*)>/g, 
+        '<ol$1 class="list-decimal list-inside mb-4">'
+      );
+      
+      // Ensure li elements have proper styling
+      processedContent = processedContent.replace(
+        /<li([^>]*)>/g, 
+        '<li$1 class="mb-1">'
+      );
+      
+      return processedContent;
+    }
+    
+    // If it's HTML but doesn't contain lists, return as is
     return content;
   }
   

@@ -213,7 +213,7 @@ export default function SOWObjectivesPage({
         </div>
       ) : (
         <div 
-          className="text-base leading-relaxed"
+          className="text-base leading-relaxed sow-content"
           dangerouslySetInnerHTML={{ __html: objectivesDisclosureContent }}
         />
       )}

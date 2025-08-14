@@ -31,7 +31,7 @@ export default function SOWAssumptionsPage({
         </div>
       )}
       <div 
-        className="text-base leading-relaxed"
+        className="text-base leading-relaxed sow-content"
         dangerouslySetInnerHTML={{ __html: content }}
       />
     </div>

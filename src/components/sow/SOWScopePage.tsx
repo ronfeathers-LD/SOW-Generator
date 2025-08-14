@@ -47,6 +47,14 @@ export default function SOWScopePage({
     return <ContentSkeleton />;
   }
 
+  // Debug logging to see what content is being rendered
+  console.log('=== SOW SCOPE PAGE DEBUG ===');
+  console.log('Content to render:', content);
+  console.log('Content contains <ul>:', content.includes('<ul>'));
+  console.log('Content contains <li>:', content.includes('<li>'));
+  console.log('Content contains list-disc:', content.includes('list-disc'));
+  console.log('=== END DEBUG ===');
+
   return (
     <div className="max-w-none text-left">
       {/* Project Description */}
@@ -65,7 +73,7 @@ export default function SOWScopePage({
       )}
       
       <div 
-        className="text-base leading-relaxed"
+        className="text-base leading-relaxed sow-content"
         dangerouslySetInnerHTML={{ __html: content }} 
       />
     </div>
