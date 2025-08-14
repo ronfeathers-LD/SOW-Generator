@@ -17,19 +17,6 @@ export function processContent(content: string): string {
       // The content already has HTML list structure, but let's ensure proper CSS classes
       let processedContent = content;
       
-      // Clean up TipTap editor's paragraph tags inside list items
-      // Convert <li><p>content</p></li> to <li>content</li>
-      processedContent = processedContent.replace(
-        /<li([^>]*)>\s*<p([^>]*)>(.*?)<\/p>\s*<\/li>/g,
-        '<li$1>$3</li>'
-      );
-      
-      // Also handle cases where there might be multiple paragraphs in a list item
-      processedContent = processedContent.replace(
-        /<li([^>]*)>\s*<p([^>]*)>(.*?)<\/p>\s*<p([^>]*)>(.*?)<\/p>\s*<\/li>/g,
-        '<li$1>$3<br>$5</li>'
-      );
-      
       // Ensure ul elements have proper list styling classes
       processedContent = processedContent.replace(
         /<ul([^>]*)>/g, 
