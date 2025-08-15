@@ -20,7 +20,7 @@ export const useSOWContent = ({
 
   useEffect(() => {
     async function loadContent() {
-      if (customContent) {
+      if (customContent && customContent.trim() !== '') {
         const processedContent = processor ? processor(customContent) : processContent(customContent);
         setContent(processedContent);
         setLoading(false);

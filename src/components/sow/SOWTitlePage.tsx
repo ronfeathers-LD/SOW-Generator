@@ -49,8 +49,8 @@ export default function SOWTitlePage({
         <h2 className="text-xl font-bold text-center mb-12">LeanData Delivery Methodology</h2>
         {/* Statement of Work Title */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold mb-2">Statement of Work</h1>
-          <div className="text-2xl">
+          <h1 className="text-4xl font-bold mb-2">Statement of Work</h1>
+          <div className="text-3xl">
             prepared for <span className={`font-bold ${!clientName || clientName === 'Not Entered' ? 'text-red-600 font-bold' : ''}`}>{clientName || 'Not Entered'}</span>
           </div>
         </div>

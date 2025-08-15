@@ -289,8 +289,8 @@ export default function BillingPaymentTab({
         />
 
         {/* Pricing Calculator */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-xl font-semibold text-gray-900 mb-6">Pricing Calculator</h3>
+          <div className="bg-white shadow rounded-lg p-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">Pricing Calculator</h3>
           <PricingCalculator 
             formData={formData as any}
           />

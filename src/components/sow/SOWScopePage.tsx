@@ -1,8 +1,6 @@
 'use client';
 
-import { useSOWContent } from '@/lib/hooks/useSOWContent';
 import { ContentSkeleton } from '@/components/ui/LoadingSkeletons';
-import { processContent } from '@/lib/text-to-html';
 
 interface SOWScopePageProps {
   deliverables: string[];
@@ -19,63 +17,60 @@ export default function SOWScopePage({
   customDeliverablesContent,
   isEdited 
 }: SOWScopePageProps) {
-  // Custom processor for scope content that handles deliverables replacement
-  const scopeProcessor = (content: string) => {
-    let processedContent = processContent(content);
-    
-    // Replace deliverables placeholder with actual deliverables
-    const deliverablesHtml = deliverables
-      .map((deliverable) => `<div class="mb-4"><div>${deliverable}</div></div>`)
-      .join('\n');
-    processedContent = processedContent.replace(/{deliverables}/g, deliverablesHtml);
-    
-    return processedContent;
-  };
-
-  // Determine which content to use and how to process it
-  const contentToUse = customDeliverablesContent || customContent;
-  const processor = customDeliverablesContent ? processContent : scopeProcessor;
-
-  const { content, loading } = useSOWContent({
-    sectionName: 'scope',
-    customContent: contentToUse,
-    processor,
-    dependencies: [deliverables, customDeliverablesContent]
-  });
-
-  if (loading) {
-    return <ContentSkeleton />;
-  }
-
-  // Debug logging to see what content is being rendered
-  console.log('=== SOW SCOPE PAGE DEBUG ===');
-  console.log('Content to render:', content);
-  console.log('Content contains <ul>:', content.includes('<ul>'));
-  console.log('Content contains <li>:', content.includes('<li>'));
-  console.log('Content contains list-disc:', content.includes('list-disc'));
-  console.log('=== END DEBUG ===');
-
   return (
     <div className="max-w-none text-left">
-      {/* Project Description */}
-      {projectDescription && (
-        <div className="mb-6">
-          <p className="text-gray-700">{projectDescription}</p>
+      {/* Scope Content from Database */}
+      {isEdited ? (
+        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+          <div className="mb-3 p-2 bg-yellow-100 border border-yellow-300 rounded">
+            <p className="text-sm text-yellow-800 font-medium">
+              ⚠️ <strong>Note:</strong> This content has been customized from the default template.
+            </p>
+          </div>
+          
+          <div className="text-base leading-relaxed">
+            {customContent ? (
+              <div dangerouslySetInnerHTML={{ __html: customContent }} />
+            ) : (
+              <p className="text-gray-600 italic">No custom scope content found</p>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="mb-6 p-4 border-2 border-blue-300 rounded-lg bg-blue-50">
+          <h4 className="text-sm font-semibold text-blue-800 mb-2">Scope Content from Database</h4>
+          <div className="text-base leading-relaxed">
+            {customContent ? (
+              <div dangerouslySetInnerHTML={{ __html: customContent }} />
+            ) : (
+              <p className="text-gray-600 italic">No custom scope content found</p>
+            )}
+          </div>
         </div>
       )}
       
-      {isEdited && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-          <p className="text-sm text-yellow-800">
-            <strong>Note:</strong> This content has been customized from the default template.
-          </p>
+      {/* Deliverables from Database */}
+      <div className="mb-6 p-4 border-2 border-green-300 rounded-lg bg-green-50">
+        <h4 className="text-sm font-semibold text-green-800 mb-2">Deliverables from Database</h4>
+        <div className="text-base leading-relaxed">
+          {customDeliverablesContent ? (
+            <div dangerouslySetInnerHTML={{ __html: customDeliverablesContent }} />
+          ) : (
+            <p className="text-gray-600 italic">No custom deliverables content found</p>
+          )}
         </div>
-      )}
+      </div>
       
-      <div 
-        className="text-base leading-relaxed sow-content"
-        dangerouslySetInnerHTML={{ __html: content }} 
-      />
+      {/* Debug Info */}
+      <div className="mt-4 p-4 border-2 border-purple-300 rounded-lg bg-purple-50">
+        <h4 className="text-sm font-semibold text-purple-800 mb-2">DEBUG: Content Sources</h4>
+        <div className="text-xs text-purple-700 space-y-1">
+          <div><strong>customDeliverablesContent:</strong> {customDeliverablesContent ? 'Present' : 'None'}</div>
+          <div><strong>customContent:</strong> {customContent ? 'Present' : 'None'}</div>
+          <div><strong>deliverables count:</strong> {deliverables.length}</div>
+          <div><strong>isEdited:</strong> {isEdited ? 'Yes' : 'No'}</div>
+        </div>
+      </div>
     </div>
   );
 } 

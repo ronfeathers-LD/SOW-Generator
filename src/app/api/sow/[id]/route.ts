@@ -49,6 +49,7 @@ export async function GET(
         customer_name: sow.client_name || '',
         customer_signature_name: sow.client_signer_name || '',
         customer_email: sow.client_email || '',
+        customer_signature: sow.client_title || '', // Add this missing mapping!
         lean_data_name: sow.leandata_name || '',
         lean_data_title: sow.leandata_title || '',
         lean_data_email: sow.leandata_email || '',
@@ -73,6 +74,12 @@ export async function GET(
         customer_signature_2: sow.customer_signature_2 || '',
         customer_email_2: sow.customer_email_2 || '',
         customer_signature_date_2: sow.customer_signature_date_2 || null,
+        // Billing information - map from billing_info JSONB field
+        billing_company_name: (sow.billing_info as Record<string, unknown>)?.company_name || '',
+        billing_contact_name: (sow.billing_info as Record<string, unknown>)?.billing_contact || '',
+        billing_address: (sow.billing_info as Record<string, unknown>)?.billing_address || '',
+        billing_email: (sow.billing_info as Record<string, unknown>)?.billing_email || '',
+        purchase_order_number: (sow.billing_info as Record<string, unknown>)?.po_number || '',
       },
       header: {
         company_logo: sow.company_logo || '',

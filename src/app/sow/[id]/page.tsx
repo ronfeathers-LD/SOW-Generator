@@ -7,6 +7,7 @@ import SOWTitlePage from '@/components/sow/SOWTitlePage';
 import SOWIntroPage from '@/components/sow/SOWIntroPage';
 import SOWObjectivesPage from '@/components/sow/SOWObjectivesPage';
 import SOWScopePage from '@/components/sow/SOWScopePage';
+import SOWOutOfScopePage from '@/components/sow/SOWOutOfScopePage';
 import SOWAssumptionsPage from '@/components/sow/SOWAssumptionsPage';
 import SOWProjectPhasesPage from '@/components/sow/SOWProjectPhasesPage';
 import SOWRolesPage from '@/components/sow/SOWRolesPage';
@@ -235,6 +236,7 @@ interface SOW {
   // Custom content tracking
   custom_intro_content?: string;
   custom_scope_content?: string;
+  custom_out_of_scope_content?: string;
   custom_objectives_disclosure_content?: string;
   custom_assumptions_content?: string;
   custom_project_phases_content?: string;
@@ -244,6 +246,7 @@ interface SOW {
   custom_key_objectives_content?: string;
   intro_content_edited?: boolean;
   scope_content_edited?: boolean;
+  out_of_scope_content_edited?: boolean;
   objectives_disclosure_content_edited?: boolean;
   assumptions_content_edited?: boolean;
   project_phases_content_edited?: boolean;
@@ -251,6 +254,18 @@ interface SOW {
   deliverables_content_edited?: boolean;
   objective_overview_content_edited?: boolean;
   key_objectives_content_edited?: boolean;
+  
+  // Template fields for billing and other data
+  template?: {
+    billing_company_name?: string;
+    billing_contact_name?: string;
+    billing_address?: string;
+    billing_email?: string;
+    purchase_order_number?: string;
+    customer_signature_name?: string;
+    customer_signature?: string;
+    customer_email?: string;
+  };
 }
 
 interface SOWVersion {
@@ -414,8 +429,22 @@ export default function SOWDetailsPage() {
           customer_email_2: data.template?.customer_email_2 || undefined,
           customer_signature_date_2: data.template?.customer_signature_date_2 || undefined,
           salesforceAccountId: data.salesforce_account_id || undefined,
+          
+          // Template fields for billing and customer information
+          template: {
+            billing_company_name: data.template?.billing_company_name || (data.billing_info as Record<string, unknown>)?.company_name || '',
+            billing_contact_name: data.template?.billing_contact_name || (data.billing_info as Record<string, unknown>)?.billing_contact || '',
+            billing_address: data.template?.billing_address || (data.billing_info as Record<string, unknown>)?.billing_address || '',
+            billing_email: data.template?.billing_email || (data.billing_info as Record<string, unknown>)?.billing_email || '',
+            purchase_order_number: data.template?.purchase_order_number || (data.billing_info as Record<string, unknown>)?.po_number || '',
+            customer_signature_name: data.template?.customer_signature_name || data.client_signer_name || '',
+            customer_signature: data.template?.customer_signature || data.client_title || '',
+            customer_email: data.template?.customer_email || data.client_email || '',
+          },
+          
           custom_intro_content: data.custom_intro_content || undefined,
           custom_scope_content: data.custom_scope_content || undefined,
+          custom_out_of_scope_content: data.custom_out_of_scope_content || undefined,
           custom_objectives_disclosure_content: data.custom_objectives_disclosure_content || undefined,
           custom_assumptions_content: data.custom_assumptions_content || undefined,
           custom_project_phases_content: data.custom_project_phases_content || undefined,
@@ -440,6 +469,7 @@ export default function SOWDetailsPage() {
           bookit_handoff_units: data.template?.bookit_handoff_units || data.bookit_handoff_units || '',
           intro_content_edited: data.intro_content_edited || false,
           scope_content_edited: data.scope_content_edited || false,
+          out_of_scope_content_edited: data.out_of_scope_content_edited || false,
           objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false,
           assumptions_content_edited: data.assumptions_content_edited || false,
           project_phases_content_edited: data.project_phases_content_edited || false,
@@ -814,6 +844,15 @@ export default function SOWDetailsPage() {
                   />
                 </div>
 
+              {/* SOW Out of Scope Page Section */}
+                <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                  <h2 className="text-3xl font-bold mb-6">3. OUT OF SCOPE</h2>
+                  <SOWOutOfScopePage 
+                    customContent={sow.custom_out_of_scope_content}
+                    isEdited={sow.out_of_scope_content_edited}
+                  />
+                </div>
+
               {/* SOW Project Phases Page Section */}
                 <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold mb-6">3. PROJECT PHASES, ACTIVITIES AND ARTIFACTS</h2>
@@ -903,63 +942,7 @@ export default function SOWDetailsPage() {
                   <p className="mb-2 text-sm text-gray-700">LeanData shall notify Customer when costs are projected to exceed this estimate, providing the opportunity for Customer and LeanData to resolve jointly how to proceed. Hours listed above are to be consumed by the end date and cannot be extended.</p>
                   <p className="mb-2 text-sm text-gray-700">Any additional requests or mutually agreed-upon additional hours required to complete the tasks shall be documented in a change order Exhibit to this SOW and signed by both parties. <span className="font-bold">Additional hours will be billed at the Rate/Hr.</span></p>
                   
-                  {/* Project Details Summary */}
-                  {sow.products && Array.isArray(sow.products) && sow.products.length > 0 && (
-                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <h4 className="text-md font-semibold text-blue-900 mb-3">Project Details Used for Hour Calculation</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="font-medium text-blue-800">Selected Products:</span>
-                          <div className="mt-1 space-y-1">
-                            {sow.products.map((product, idx) => (
-                              <div key={idx} className="flex items-center space-x-2">
-                                <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
-                                <span className="text-blue-700">{product}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          {sow.number_of_units && (
-                            <div>
-                              <span className="font-medium text-blue-800">Orchestration Units:</span>
-                              <span className="ml-2 text-blue-700">{sow.number_of_units}</span>
-                            </div>
-                          )}
-                          {sow.bookit_forms_units && (
-                            <div>
-                              <span className="font-medium text-blue-800">BookIt Forms Units:</span>
-                              <span className="ml-2 text-blue-700">{sow.bookit_forms_units}</span>
-                            </div>
-                          )}
-                          {sow.bookit_links_units && (
-                            <div>
-                              <span className="font-medium text-blue-800">BookIt Links Units:</span>
-                              <span className="ml-2 text-blue-700">{sow.bookit_links_units}</span>
-                            </div>
-                          )}
-                          {sow.bookit_handoff_units && (
-                            <div>
-                              <span className="font-medium text-blue-800">BookIt Handoff Units:</span>
-                              <span className="ml-2 text-blue-700">{sow.bookit_handoff_units}</span>
-                            </div>
-                          )}
-                          {sow.timeline_weeks && (
-                            <div>
-                              <span className="font-medium text-blue-800">Timeline:</span>
-                              <span className="ml-2 text-blue-700">{sow.timeline_weeks} weeks</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="mt-3 pt-3 border-t border-blue-200">
-                        <p className="text-xs text-blue-600">
-                          💡 <strong>Auto-Calculation:</strong> Hours are automatically calculated based on product selection and unit counts using LeanData&apos;s standard estimation rules. 
-                          Project Manager role is auto-added for 3+ products. All calculated hours are initially assigned to the Onboarding Specialist role.
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  {/* Project Details Summary section removed */}
 
                   {/* Billing Information */}
                   <div className="mt-8 p-6 bg-gray-50 rounded-lg">
@@ -973,57 +956,42 @@ export default function SOWDetailsPage() {
                     </div>
                     <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
                       <dt className="font-semibold text-gray-700">Company Name:</dt>
-                      <dd className="text-gray-900">{sow.pricing?.billing?.companyName || 'N/A'}</dd>
+                      <dd className="text-gray-900">{sow.template?.billing_company_name || 'N/A'}</dd>
                       
                       <dt className="font-semibold text-gray-700">Billing Contact Name:</dt>
-                      <dd className="text-gray-900">{sow.pricing?.billing?.billingContact || 'N/A'}</dd>
+                      <dd className="text-gray-900">{sow.template?.billing_contact_name || 'N/A'}</dd>
                       
                       <dt className="font-semibold text-gray-700">Billing Address:</dt>
                       <dd className="text-gray-900">
-                        {(sow.pricing?.billing?.billingAddress || 'N/A')
+                        {(sow.template?.billing_address || 'N/A')
                           .split(',')
-                          .map((line, idx) => (
+                          .map((line: string, idx: number) => (
                             <span key={idx} className="block">{line.trim()}</span>
                           ))}
                       </dd>
                       
                       <dt className="font-semibold text-gray-700">Billing Email:</dt>
-                      <dd className="text-gray-900">{sow.pricing?.billing?.billingEmail || 'N/A'}</dd>
+                      <dd className="text-gray-900">{sow.template?.billing_email || 'N/A'}</dd>
                       
                       <dt className="font-semibold text-gray-700">Purchase Order Number:</dt>
-                      <dd className="text-gray-900">{sow.pricing?.billing?.poNumber || 'PO provided by customer'}</dd>
+                      <dd className="text-gray-900">{sow.template?.purchase_order_number || 'PO provided by customer'}</dd>
                       
                       <dt className="font-semibold text-gray-700">Payment Terms:</dt>
-                      <dd className="text-gray-900">{sow.pricing?.billing?.paymentTerms || 'Net 30'}</dd>
+                      <dd className="text-gray-900">Net 30</dd>
                       
                       <dt className="font-semibold text-gray-700">Currency:</dt>
-                      <dd className="text-gray-900">{sow.pricing?.billing?.currency || 'USD'}</dd>
-                      
-                      {/* Additional billing fields if available */}
-                      {sow.pricing?.billing?.taxRate && (
-                        <>
-                          <dt className="font-semibold text-gray-700">Tax Rate:</dt>
-                          <dd className="text-gray-900">{sow.pricing.billing.taxRate}%</dd>
-                        </>
-                      )}
-                      {sow.pricing?.billing?.shipping && (
-                        <>
-                          <dt className="font-semibold text-gray-700">Shipping:</dt>
-                          <dd className="text-gray-900">${sow.pricing.billing.shipping}</dd>
-                        </>
-                      )}
+                      <dd className="text-gray-900">USD</dd>
                     </dl>
                     
                     {/* Payment Terms Note */}
                     <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                       <p className="text-sm text-yellow-800">
-                        <strong>Payment Terms:</strong> {sow.pricing?.billing?.paymentTerms || 'Net 30'} • 
-                        <strong>Currency:</strong> {sow.pricing?.billing?.currency || 'USD'} • 
+                        <strong>Payment Terms:</strong> Net 30 • 
+                        <strong>Currency:</strong> USD • 
                         <strong>Billing Cycle:</strong> Monthly or upon completion of major milestones
                       </p>
                     </div>
                   </div>
-                  
 
                 </div>
               </div>

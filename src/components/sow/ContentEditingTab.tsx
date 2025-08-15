@@ -17,6 +17,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   // Original templates from database (never change)
   const [originalIntroTemplate, setOriginalIntroTemplate] = useState<string>('');
   const [originalScopeTemplate, setOriginalScopeTemplate] = useState<string>('');
+  const [originalOutOfScopeTemplate, setOriginalOutOfScopeTemplate] = useState<string>('');
   const [originalObjectivesDisclosureTemplate, setOriginalObjectivesDisclosureTemplate] = useState<string>('');
   const [originalAssumptionsTemplate, setOriginalAssumptionsTemplate] = useState<string>('');
   const [originalProjectPhasesTemplate, setOriginalProjectPhasesTemplate] = useState<string>('');
@@ -42,6 +43,11 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
         const scope = await getContentTemplate('scope');
         if (scope) {
           setOriginalScopeTemplate(scope.default_content);
+        }
+
+        const outOfScope = await getContentTemplate('out-of-scope');
+        if (outOfScope) {
+          setOriginalOutOfScopeTemplate(outOfScope.default_content);
         }
 
         const objectivesDisclosure = await getContentTemplate('objectives-disclosure');
@@ -114,18 +120,21 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     const normalizedTemplate = normalizeContent(templateContent);
     const hasChanges = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
     setUnsavedChanges(prev => ({ ...prev, [sectionName]: hasChanges }));
-    
-    // Notify parent component about unsaved changes, but only after initialization is complete
+  };
+
+  // Effect to notify parent about unsaved changes after state updates
+  useEffect(() => {
     if (onUnsavedChanges && !loading && !initializing) {
-      const anyUnsavedChanges = Object.values({ ...unsavedChanges, [sectionName]: hasChanges }).some(Boolean);
+      const anyUnsavedChanges = Object.values(unsavedChanges).some(Boolean);
       onUnsavedChanges(anyUnsavedChanges);
     }
-  };
+  }, [unsavedChanges, onUnsavedChanges, loading, initializing]);
 
   // Create all content handlers using the factory
   const templates = {
     originalIntroTemplate,
     originalScopeTemplate,
+    originalOutOfScopeTemplate,
     originalObjectivesDisclosureTemplate,
     originalAssumptionsTemplate,
     originalProjectPhasesTemplate,
@@ -151,7 +160,8 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     handleObjectivesDisclosureContentChange,
     handleAssumptionsContentChange,
     handleProjectPhasesContentChange,
-    handleRolesContentChange
+    handleRolesContentChange,
+    handleOutOfScopeContentChange
   } = handlers;
 
   const {
@@ -160,7 +170,8 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     resetObjectivesDisclosureContent,
     resetAssumptionsContent,
     resetProjectPhasesContent,
-    resetRolesContent
+    resetRolesContent,
+    resetOutOfScopeContent
   } = resetHandlers;
 
   const saveSection = async (sectionName: string) => {
@@ -180,12 +191,14 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
           custom_assumptions_content: formData.custom_assumptions_content,
           custom_project_phases_content: formData.custom_project_phases_content,
           custom_roles_content: formData.custom_roles_content,
+          custom_out_of_scope_content: formData.custom_out_of_scope_content,
           intro_content_edited: formData.intro_content_edited,
           scope_content_edited: formData.scope_content_edited,
           objectives_disclosure_content_edited: formData.objectives_disclosure_content_edited,
           assumptions_content_edited: formData.assumptions_content_edited,
           project_phases_content_edited: formData.project_phases_content_edited,
           roles_content_edited: formData.roles_content_edited,
+          out_of_scope_content_edited: formData.out_of_scope_content_edited,
         }
       };
       
@@ -240,6 +253,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     { id: 'intro', name: 'Introduction', icon: '📝' },
     { id: 'objectives-disclosure', name: 'Objectives', icon: '📋' },
     { id: 'scope', name: 'Scope', icon: '🎯' },
+    { id: 'out-of-scope', name: 'Out of Scope', icon: '🚫' },
     { id: 'project-phases', name: 'Project Phases', icon: '📅' },
     { id: 'roles', name: 'Roles & Responsibilities', icon: '👥' },
     { id: 'assumptions', name: 'Assumptions', icon: '⚠️' },
@@ -256,6 +270,11 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
                 {formData.intro_content_edited && (
                   <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
                     Customized
+                  </span>
+                )}
+                {unsavedChanges.intro && (
+                  <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                    Unsaved Changes
                   </span>
                 )}
                 <button
@@ -315,6 +334,11 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
                     Customized
                   </span>
                 )}
+                {unsavedChanges.scope && (
+                  <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                    Unsaved Changes
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => saveSection('scope')}
@@ -340,6 +364,12 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
             </div>
             
             <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-4">
+                Customize the scope content for this SOW. This will override the default template.
+              </p>
+            </div>
+            
+            <div className="mb-4">
               <p className="mt-2 text-sm text-gray-500">
                 NOTE: {'{deliverables}'} is a placeholder which will be replaced with the actual deliverables list.
               </p>
@@ -361,6 +391,69 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
           </div>
         );
 
+      case 'out-of-scope':
+        return (
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Out of Scope</h3>
+              <div className="flex items-center space-x-2">
+                {formData.out_of_scope_content_edited && (
+                  <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                    Customized
+                  </span>
+                )}
+                {unsavedChanges['out-of-scope'] && (
+                  <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                    Unsaved Changes
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => saveSection('out-of-scope')}
+                  disabled={saving === 'out-of-scope'}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving === 'out-of-scope' ? 'Saving...' : 'Save'}
+                </button>
+                {saveStatus['out-of-scope'] === 'success' && (
+                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
+                )}
+                {saveStatus['out-of-scope'] === 'error' && (
+                  <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Error</span>
+                )}
+                <button
+                  type="button"
+                  onClick={resetOutOfScopeContent}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Reset to Default
+                </button>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-4">
+                Customize the out of scope content for this SOW. This will override the default template.
+              </p>
+            </div>
+            
+            <TipTapEditor
+              value={formData.custom_out_of_scope_content || ''}
+              onChange={handleOutOfScopeContentChange}
+              placeholder="Enter the out of scope content for this SOW..."
+              initializing={initializing}
+            />
+
+            {formData.out_of_scope_content_edited && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> This content has been customized from the default template and will be flagged during approval.
+                </p>
+              </div>
+            )}
+          </div>
+        );
+
       case 'objectives-disclosure':
         return (
           <div className="bg-white shadow rounded-lg p-6">
@@ -370,6 +463,11 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
                 {formData.objectives_disclosure_content_edited && (
                   <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
                     Customized
+                  </span>
+                )}
+                {unsavedChanges['objectives-disclosure'] && (
+                  <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                    Unsaved Changes
                   </span>
                 )}
                 <button
@@ -429,6 +527,11 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
                     Customized
                   </span>
                 )}
+                {unsavedChanges.assumptions && (
+                  <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                    Unsaved Changes
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => saveSection('assumptions')}
@@ -486,6 +589,11 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
                     Customized
                   </span>
                 )}
+                {unsavedChanges['project-phases'] && (
+                  <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                    Unsaved Changes
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => saveSection('project-phases')}
@@ -541,6 +649,11 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
                 {formData.roles_content_edited && (
                   <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
                     Customized
+                  </span>
+                )}
+                {unsavedChanges.roles && (
+                  <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                    Unsaved Changes
                   </span>
                 )}
                 <button

@@ -35,7 +35,8 @@ export default function SOWObjectivesPage({
   projectDescription,
   customContent,
   customKeyObjectivesContent,
-  projectDetails 
+  projectDetails,
+  isEdited
 }: SOWObjectivesPageProps) {
   const [objectivesDisclosureContent, setObjectivesDisclosureContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -98,45 +99,18 @@ export default function SOWObjectivesPage({
       {/* Key Objectives */}
       {(customKeyObjectivesContent || (keyObjectives && keyObjectives.length > 0)) && (
         <div className="mb-6">
-          <p>The Key Objectives for the program include:
-          </p>
+          <h3 className="text-lg font-semibold mb-4">Key Objectives:</h3>
           {customKeyObjectivesContent ? (
             <div 
-              className="text-base leading-relaxed text-gray-700 prose prose-sm max-w-none"
+              className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
               dangerouslySetInnerHTML={{ __html: customKeyObjectivesContent }}
             />
           ) : (
-            <div className="space-y-4 text-gray-700">
+            <div className="text-gray-700 leading-relaxed">
               {keyObjectives.map((objective, index) => {
                 const trimmedObjective = objective.trim();
+                if (!trimmedObjective) return null;
                 
-                // Skip empty lines
-                if (trimmedObjective.length === 0) {
-                  return null;
-                }
-                
-                // Check if this is a product header (ends with :)
-                if (trimmedObjective.endsWith(':')) {
-                  return (
-                    <div key={index}>
-                      <h4 className="font-semibold text-gray-900 mt-4 mb-2">
-                        {trimmedObjective.slice(0, -1)} {/* Remove the trailing colon */}
-                      </h4>
-                    </div>
-                  );
-                }
-                
-                // Check if this is a bullet point (starts with •)
-                if (trimmedObjective.startsWith('• ')) {
-                  return (
-                    <div key={index} className="flex items-start">
-                      <span className="text-gray-400 mr-2 mt-1">•</span>
-                      <span className="flex-1">{trimmedObjective.substring(2)}</span>
-                    </div>
-                  );
-                }
-                
-                // Regular item (fallback)
                 return (
                   <div key={index} className="flex items-start">
                     <span className="text-gray-400 mr-2 mt-1">•</span>
@@ -156,12 +130,16 @@ export default function SOWObjectivesPage({
             The following are the high-level details as part of the implementation:
           </p>
           <ul className="list-disc pl-6 prose prose-md max-w-none">
-            <li>
-              Products: {projectDetails.products?.join(', ') || 'N/A'}
-            </li>
-            <li>
-              Number of Units (Legacy): {projectDetails.number_of_units || 'N/A'}
-            </li>
+            {projectDetails.products && Array.isArray(projectDetails.products) && projectDetails.products.length > 0 && (
+              <li>
+                <strong>Products:</strong>
+                <ul className="list-disc pl-6 mt-1">
+                  {projectDetails.products.map((product, index) => (
+                    <li key={index}>{product}</li>
+                  ))}
+                </ul>
+              </li>
+            )}
             <li>
               Regions/Business Units: {projectDetails.regions || 'N/A'}
             </li>
@@ -179,43 +157,78 @@ export default function SOWObjectivesPage({
             </li>
           </ul>
           
-          {/* BookIt Family Units */}
-          {(projectDetails.orchestration_units || projectDetails.bookit_forms_units || projectDetails.bookit_links_units || projectDetails.bookit_handoff_units) && (
-            <div className="mt-4">
-              <h4 className="text-lg font-semibold mb-2">BookIt Family Units:</h4>
+          {/* Product Units Breakdown */}
+          {(projectDetails.orchestration_units ||
+            projectDetails.bookit_forms_units ||
+            projectDetails.bookit_links_units ||
+            projectDetails.bookit_handoff_units ||
+            projectDetails.number_of_units) && (
+            <div className="mt-6">
+              <h4 className="text-lg font-semibold text-gray-900 mb-3">Product Units:</h4>
               <ul className="list-disc pl-6 prose prose-md max-w-none">
-                {projectDetails.orchestration_units && projectDetails.orchestration_units.trim() !== '' && (
-                  <li>Orchestration Units: {projectDetails.orchestration_units}</li>
+                {projectDetails.number_of_units && (
+                  <li>
+                    <strong>Orchestration Units:</strong> {projectDetails.number_of_units}
+                  </li>
                 )}
-                {projectDetails.bookit_forms_units && projectDetails.bookit_forms_units.trim() !== '' && (
-                  <li>BookIt for Forms Units: {projectDetails.bookit_forms_units}</li>
+                {projectDetails.bookit_forms_units && (
+                  <li>
+                    <strong>BookIt for Forms Units:</strong> {projectDetails.bookit_forms_units}
+                  </li>
                 )}
-                {projectDetails.bookit_links_units && projectDetails.bookit_links_units.trim() !== '' && (
-                  <li>BookIt Links Units: {projectDetails.bookit_links_units}</li>
+                {projectDetails.bookit_links_units && (
+                  <li>
+                    <strong>BookIt Links Units:</strong> {projectDetails.bookit_links_units}
+                  </li>
                 )}
-                {projectDetails.bookit_handoff_units && projectDetails.bookit_handoff_units.trim() !== '' && (
-                  <li>BookIt Handoff Units: {projectDetails.bookit_handoff_units}</li>
+                {projectDetails.bookit_handoff_units && (
+                  <li>
+                    <strong>BookIt Handoff Units:</strong> {projectDetails.bookit_handoff_units}
+                  </li>
                 )}
               </ul>
             </div>
           )}
+          
+          {/* BookIt Family Units section removed - now covered by Product Units above */}
         </div>
       )}
 
-      
-
-
-      
-      {loading ? (
-        <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="h-32 bg-gray-200 rounded"></div>
+      {/* Warning Badge for Edited Content - positioned above the Objectives content */}
+      {isEdited ? (
+        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+          <div className="mb-3 p-2 bg-yellow-100 border border-yellow-300 rounded">
+            <p className="text-sm text-yellow-800 font-medium">
+              ⚠️ <strong>Note:</strong> This content has been customized from the default template.
+            </p>
+          </div>
+          
+          {loading ? (
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+              <div className="h-32 bg-gray-200 rounded"></div>
+            </div>
+          ) : (
+            <div 
+              className="text-base leading-relaxed sow-content"
+              dangerouslySetInnerHTML={{ __html: objectivesDisclosureContent }}
+            />
+          )}
         </div>
       ) : (
-        <div 
-          className="text-base leading-relaxed sow-content"
-          dangerouslySetInnerHTML={{ __html: objectivesDisclosureContent }}
-        />
+        <>
+          {loading ? (
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+              <div className="h-32 bg-gray-200 rounded"></div>
+            </div>
+          ) : (
+            <div 
+              className="text-base leading-relaxed sow-content"
+              dangerouslySetInnerHTML={{ __html: objectivesDisclosureContent }}
+            />
+          )}
+        </>
       )}
     </div>
   );

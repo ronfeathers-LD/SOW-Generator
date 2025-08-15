@@ -195,6 +195,7 @@ export async function PUT(
         // Handle content editing data
         if (data.custom_intro_content !== undefined) updateData.custom_intro_content = data.custom_intro_content;
         if (data.custom_scope_content !== undefined) updateData.custom_scope_content = data.custom_scope_content;
+        if (data.custom_out_of_scope_content !== undefined) updateData.custom_out_of_scope_content = data.custom_out_of_scope_content;
         if (data.custom_objectives_disclosure_content !== undefined) updateData.custom_objectives_disclosure_content = data.custom_objectives_disclosure_content;
         if (data.custom_assumptions_content !== undefined) updateData.custom_assumptions_content = data.custom_assumptions_content;
         if (data.custom_project_phases_content !== undefined) updateData.custom_project_phases_content = data.custom_project_phases_content;
@@ -203,6 +204,7 @@ export async function PUT(
         if (data.custom_objective_overview_content !== undefined) updateData.custom_objective_overview_content = data.custom_objective_overview_content;
         if (data.intro_content_edited !== undefined) updateData.intro_content_edited = data.intro_content_edited;
         if (data.scope_content_edited !== undefined) updateData.scope_content_edited = data.scope_content_edited;
+        if (data.out_of_scope_content_edited !== undefined) updateData.out_of_scope_content_edited = data.out_of_scope_content_edited;
         if (data.objectives_disclosure_content_edited !== undefined) updateData.objectives_disclosure_content_edited = data.objectives_disclosure_content_edited;
         if (data.assumptions_content_edited !== undefined) updateData.assumptions_content_edited = data.assumptions_content_edited;
         if (data.project_phases_content_edited !== undefined) updateData.project_phases_content_edited = data.project_phases_content_edited;

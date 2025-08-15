@@ -50,8 +50,8 @@ export function validateSOWForApproval(sowData: { [key: string]: unknown }): SOW
   if (!sowData.client_signer_name || ((sowData.client_signer_name as string) || '').trim() === '') {
     missingFields.push('Customer Signer');
   }
-  // Check if signer has a title (either from template or direct field)
-  const signerTitle = (sowData.template as Record<string, unknown>)?.customer_signature || sowData.client_signer_title;
+  // Check if signer has a title from template
+  const signerTitle = (sowData.template as Record<string, unknown>)?.customer_signature;
   if (!signerTitle || ((signerTitle as string) || '').trim() === '') {
     missingFields.push('Customer Signer Title');
   }
@@ -62,18 +62,52 @@ export function validateSOWForApproval(sowData: { [key: string]: unknown }): SOW
     errors.push('At least one Client Role must be added');
   }
 
-  // Pricing Tab validation
-  if (sowData.billing_info) {
-    const billingInfo = sowData.billing_info as Record<string, unknown>;
-    if (!billingInfo.hours || (billingInfo.hours as number || 0) <= 0) {
-      errors.push('Hours must be greater than 0');
+  // Pricing Tab validation - check for pricing roles and hours
+  if (sowData.pricing_roles) {
+    let pricingRoles: Array<Record<string, unknown>> = [];
+    
+    // Handle different pricing_roles data structures
+    if (Array.isArray(sowData.pricing_roles)) {
+      // If it's directly an array, use it
+      pricingRoles = sowData.pricing_roles;
+    } else if (sowData.pricing_roles && typeof sowData.pricing_roles === 'object' && 'roles' in sowData.pricing_roles) {
+      // If it's an object with a roles property, extract the roles array
+      const rolesData = (sowData.pricing_roles as Record<string, unknown>).roles;
+      if (Array.isArray(rolesData)) {
+        pricingRoles = rolesData;
+      }
     }
-    if (!billingInfo.billing_information || ((billingInfo.billing_information as string) || '').trim() === '') {
-      missingFields.push('Billing Information');
+    
+    if (pricingRoles.length === 0) {
+      errors.push('At least one pricing role must be configured');
+    } else {
+      // Check if any role has hours > 0
+      const hasValidHours = pricingRoles.some(role => 
+        role.total_hours && (role.total_hours as number) > 0
+      );
+      if (!hasValidHours) {
+        errors.push('Hours must be greater than 0');
+      }
     }
-    if (!billingInfo.billing_contact || ((billingInfo.billing_contact as string) || '').trim() === '') {
-      missingFields.push('Billing Contact');
-    }
+  }
+
+  // Billing Information validation - now stored in template fields
+  const billingCompanyName = (sowData.template as Record<string, unknown>)?.billing_company_name;
+  const billingContactName = (sowData.template as Record<string, unknown>)?.billing_contact_name;
+  const billingAddress = (sowData.template as Record<string, unknown>)?.billing_address;
+  const billingEmail = (sowData.template as Record<string, unknown>)?.billing_email;
+  
+  if (!billingCompanyName || ((billingCompanyName as string) || '').trim() === '') {
+    missingFields.push('Billing Company Name');
+  }
+  if (!billingContactName || ((billingContactName as string) || '').trim() === '') {
+    missingFields.push('Billing Contact');
+  }
+  if (!billingAddress || ((billingAddress as string) || '').trim() === '') {
+    missingFields.push('Billing Address');
+  }
+  if (!billingEmail || ((billingEmail as string) || '').trim() === '') {
+    missingFields.push('Billing Email');
   }
 
   const isValid = missingFields.length === 0 && errors.length === 0;

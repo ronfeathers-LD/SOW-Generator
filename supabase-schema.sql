@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS sows (
   -- Custom content fields
   custom_intro_content TEXT DEFAULT '',
   custom_scope_content TEXT DEFAULT '',
+  custom_out_of_scope_content TEXT DEFAULT '',
   custom_objectives_disclosure_content TEXT DEFAULT '',
   custom_assumptions_content TEXT DEFAULT '',
   custom_project_phases_content TEXT DEFAULT '',
@@ -77,6 +78,7 @@ CREATE TABLE IF NOT EXISTS sows (
   -- Content edit tracking
   intro_content_edited BOOLEAN DEFAULT false,
   scope_content_edited BOOLEAN DEFAULT false,
+  out_of_scope_content_edited BOOLEAN DEFAULT false,
   objectives_disclosure_content_edited BOOLEAN DEFAULT false,
   assumptions_content_edited BOOLEAN DEFAULT false,
   project_phases_content_edited BOOLEAN DEFAULT false,

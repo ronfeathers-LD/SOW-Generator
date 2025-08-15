@@ -204,13 +204,23 @@ export default function ObjectivesTab({
       };
 
       // Convert solutions to HTML format with proper product family groupings
-      const convertSolutionsToHTML = (solutions: Record<string, string[]>): string => {
+      const convertSolutionsToHTML = (solutions: Record<string, string | string[]>): string => {
         if (!solutions || typeof solutions !== 'object') return '';
         
         let html = '';
         
         Object.entries(solutions).forEach(([category, items]) => {
-          if (Array.isArray(items) && items.length > 0) {
+          if (typeof items === 'string' && items.trim()) {
+            // New format: items is a single HTML string
+            if (items.includes('<ul>') && items.includes('<li>')) {
+              // Already properly formatted HTML, just add the header
+              html += `<h4><strong>${category.toUpperCase()}</strong></h4>\n${items}\n`;
+            } else {
+              // Plain text, wrap in list
+              html += `<h4><strong>${category.toUpperCase()}</strong></h4>\n<ul>\n<li>${items}</li>\n</ul>\n`;
+            }
+          } else if (Array.isArray(items) && items.length > 0) {
+            // Old format: items is an array of strings
             // Add product family header
             html += `<h4><strong>${category.toUpperCase()}</strong></h4>\n<ul>\n`;
             
@@ -261,30 +271,66 @@ export default function ObjectivesTab({
       // Update the form with the generated objective overview, pain points, and solutions
       // Process solutions into deliverables format with proper product family grouping
       const allScopeItems: string[] = [];
-      Object.entries(result.solutions).forEach(([category, items]) => {
-        if (Array.isArray(items) && items.length > 0) {
-          const formattedItems = items.map(item => {
-            // Check if the item is already HTML (contains <li> tags)
-            if (typeof item === 'string' && item.includes('<li>')) {
-              // Extract the text content from the HTML
-              const textContent = item.replace(/<li>(.*?)<\/li>/, '$1').trim();
-              return `• ${textContent}`;
-            }
-            
-            // Check for nested content patterns (like "Target:" statements or other sub-items)
-            const targetMatch = item.match(/\.\s*Target:\s*(.+)$/);
-            if (targetMatch) {
-              const mainObjective = item.replace(/\.\s*Target:\s*.+$/, '.');
-              const target = targetMatch[1];
-              return `• ${mainObjective}\n  • ${target}`;
+      
+      if (typeof result.solutions === 'string' && result.solutions.includes('<li>')) {
+        // New format: solutions is already HTML
+        // Extract text content from HTML for scope items
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = result.solutions;
+        const listItems = tempDiv.querySelectorAll('li');
+        listItems.forEach(item => {
+          if (item.textContent && item.textContent.trim()) {
+            allScopeItems.push(`• ${item.textContent.trim()}`);
+          }
+        });
+      } else if (typeof result.solutions === 'object' && result.solutions !== null) {
+        // Old format: solutions is an object with categories
+        Object.entries(result.solutions).forEach(([category, items]) => {
+          if (typeof items === 'string' && items.trim()) {
+            // New format: items is a single HTML string
+            if (items.includes('<ul>') && items.includes('<li>')) {
+              // Extract text content from HTML for scope items
+              const tempDiv = document.createElement('div');
+              tempDiv.innerHTML = items;
+              const listItems = tempDiv.querySelectorAll('li');
+              const formattedItems = Array.from(listItems).map(item => {
+                if (item.textContent && item.textContent.trim()) {
+                  return `• ${item.textContent.trim()}`;
+                }
+                return '';
+              }).filter(item => item !== '');
+              if (formattedItems.length > 0) {
+                allScopeItems.push(`${category.toUpperCase()}\n${formattedItems.join('\n')}`);
+              }
             } else {
-              // If no target found, just format as a regular bullet point
-              return `• ${item}`;
+              // Plain text, format as bullet point
+              allScopeItems.push(`${category.toUpperCase()}\n• ${items}`);
             }
-          });
-          allScopeItems.push(`${category.toUpperCase()}\n${formattedItems.join('\n')}`);
-        }
-      });
+          } else if (Array.isArray(items) && items.length > 0) {
+            // Old format: items is an array of strings
+            const formattedItems = items.map(item => {
+              // Check if the item is already HTML (contains <li> tags)
+              if (typeof item === 'string' && item.includes('<li>')) {
+                // Extract the text content from the HTML
+                const textContent = item.replace(/<li>(.*?)<\/li>/, '$1').trim();
+                return `• ${textContent}`;
+              }
+              
+              // Check for nested content patterns (like "Target:" statements or other sub-items)
+              const targetMatch = item.match(/\.\s*Target:\s*(.+)$/);
+              if (targetMatch) {
+                const mainObjective = item.replace(/\.\s*Target:\s*.+$/, '.');
+                const target = targetMatch[1];
+                return `• ${mainObjective}\n  • ${target}`;
+              } else {
+                // If no target found, just format as a regular bullet point
+                return `• ${item}`;
+              }
+            });
+            allScopeItems.push(`${category.toUpperCase()}\n${formattedItems.join('\n')}`);
+          }
+        });
+      }
       
       // Convert pain points to key objectives format
       const painPoints = result.painPoints || [];
@@ -304,15 +350,19 @@ export default function ObjectivesTab({
           deliverables: allScopeItems.join('\n\n')
         },
         // Store the AI response directly without processing - let the display component handle it
-        custom_deliverables_content: result.solutions ? convertSolutionsToHTML(result.solutions) : '',
+        custom_deliverables_content: result.solutions ? 
+          (typeof result.solutions === 'string' && result.solutions.includes('<li>') ? 
+            result.solutions : // If already HTML, use as-is
+            convertSolutionsToHTML(typeof result.solutions === 'object' ? result.solutions : {}) // If object format, convert
+          ) : '',
         deliverables_content_edited: true,
         custom_objective_overview_content: result.objectiveOverview,
         objective_overview_content_edited: true,
         // Store pain points as-is if they're already HTML, otherwise convert
         custom_key_objectives_content: result.painPoints ? 
-          (result.painPoints.some((p: unknown) => typeof p === 'string' && p.includes('<li>')) ? 
-            result.painPoints.join('') : // If already HTML, join without processing
-            convertObjectiveToBulletPoints(result.painPoints) // If plain text, convert
+          (typeof result.painPoints === 'string' && result.painPoints.includes('<li>') ? 
+            result.painPoints : // If already HTML, use as-is
+            convertObjectiveToBulletPoints(Array.isArray(result.painPoints) ? result.painPoints : [result.painPoints]) // If plain text, convert
           ) : '',
         key_objectives_content_edited: true
       };

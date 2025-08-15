@@ -81,6 +81,12 @@ export const CONTENT_SECTIONS: ContentHandlerConfig[] = [
     editedKey: 'scope_content_edited'
   },
   {
+    sectionName: 'out-of-scope',
+    templateKey: 'originalOutOfScopeTemplate',
+    contentKey: 'custom_out_of_scope_content',
+    editedKey: 'out_of_scope_content_edited'
+  },
+  {
     sectionName: 'objectives-disclosure',
     templateKey: 'originalObjectivesDisclosureTemplate',
     contentKey: 'custom_objectives_disclosure_content',

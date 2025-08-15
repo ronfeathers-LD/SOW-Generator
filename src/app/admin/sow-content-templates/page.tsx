@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { SOWContentTemplate } from '@/types/sow';
 import TipTapEditor from '@/components/TipTapEditor';
 
@@ -11,17 +11,18 @@ export default function SOWContentTemplatesPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Define the desired order of sections with metadata
-  const sections = [
+  // Define the desired order of sections with metadata - memoized to prevent recreation
+  const sections = useMemo(() => [
     { id: 'intro', name: 'Introduction', description: 'Opening content for the SOW' },
     { id: 'objectives-disclosure', name: 'Objectives', description: 'Disclosure about objectives' },
     { id: 'scope', name: 'Scope', description: 'Project scope and deliverables' },
+    { id: 'out-of-scope', name: 'Out of Scope', description: 'What is not included in the project' },
     { id: 'project-phases', name: 'Project Phases', description: 'Detailed project phases and activities' },
     { id: 'roles', name: 'Roles and Responsibilities', description: 'Team roles and responsibilities' },
     { id: 'assumptions', name: 'Assumptions', description: 'Project assumptions and constraints' }
-  ];
+  ], []);
 
-  const sectionOrder = sections.map(s => s.id);
+  const sectionOrder = useMemo(() => sections.map(s => s.id), [sections]);
 
   const sortTemplates = useCallback((templates: SOWContentTemplate[]) => {
     return templates.sort((a, b) => {
@@ -204,18 +205,18 @@ function SectionEditor({ section, template, onSave, saving }: SectionEditorProps
 
   // Update form data when template changes, but not during save
   useEffect(() => {
-    if (!saving) {
+    if (!saving && template) {
       setFormData({
-        id: template?.id,
+        id: template.id,
         section_name: section.id,
         section_title: section.name,
         description: section.description,
-        default_content: template?.default_content || '',
-        sort_order: template?.sort_order || 0,
-        is_active: true,
+        default_content: template.default_content || '',
+        sort_order: template.sort_order || 0,
+        is_active: template.is_active ?? true,
       });
     }
-  }, [template, section, saving]);
+  }, [template?.id, template?.default_content, template?.sort_order, template?.is_active, section.id, section.name, section.description, saving]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
