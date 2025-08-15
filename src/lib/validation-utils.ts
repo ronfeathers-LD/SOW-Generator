@@ -62,7 +62,7 @@ export function validateSOWForApproval(sowData: { [key: string]: unknown }): SOW
     errors.push('At least one Client Role must be added');
   }
 
-  // Billing & Payment Tab validation
+  // Pricing Tab validation
   if (sowData.billing_info) {
     const billingInfo = sowData.billing_info as Record<string, unknown>;
     if (!billingInfo.hours || (billingInfo.hours as number || 0) <= 0) {

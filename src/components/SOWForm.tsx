@@ -755,37 +755,21 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           };
           break;
 
-        case 'Billing & Payment':
+        case 'Pricing':
+          // For Pricing tab, we need to get the current data from the component state
+          // This will be populated by the Pricing tab component before save
           tabData = {
-            template: {
-              billing_company_name: formData.template?.billing_company_name,
-              billing_contact_name: formData.template?.billing_contact_name,
-              billing_address: formData.template?.billing_address,
-              billing_email: formData.template?.billing_email,
-              purchase_order_number: formData.template?.purchase_order_number,
-            },
             pricing: {
-              billing: formData.pricing?.billing,
-              roles: formData.pricing?.roles,
-              project_management_included: formData.pricing?.project_management_included,
-              project_management_hours: formData.pricing?.project_management_hours,
-              project_management_rate: formData.pricing?.project_management_rate,
-              base_hourly_rate: formData.pricing?.base_hourly_rate,
-              discount_type: formData.pricing?.discount_type,
-              discount_amount: formData.pricing?.discount_amount,
-              discount_percentage: formData.pricing?.discount_percentage,
-              subtotal: formData.pricing?.subtotal,
-              discount_total: formData.pricing?.discount_total,
-              total_amount: formData.pricing?.total_amount,
+              roles: formData.pricing?.roles || [],
+              discount_type: formData.pricing?.discount_type || 'none',
+              discount_amount: formData.pricing?.discount_amount || 0,
+              discount_percentage: formData.pricing?.discount_percentage || 0,
+              subtotal: formData.pricing?.subtotal || 0,
+              discount_total: formData.pricing?.discount_total || 0,
+              total_amount: formData.pricing?.total_amount || 0,
               // Auto-save tracking fields
-              auto_calculated: formData.pricing?.auto_calculated,
-              last_calculated: formData.pricing?.last_calculated,
-            },
-            assumptions: {
-              access_requirements: formData.assumptions?.access_requirements,
-              travel_requirements: formData.assumptions?.travel_requirements,
-              working_hours: formData.assumptions?.working_hours,
-              testing_responsibilities: formData.assumptions?.testing_responsibilities,
+              auto_calculated: formData.pricing?.auto_calculated || false,
+              last_calculated: formData.pricing?.last_calculated || new Date().toISOString(),
             }
           };
           break;
@@ -875,7 +859,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     { key: 'Customer Information', label: 'Customer Information' },
     { key: 'Objectives', label: 'Objectives' },
     { key: 'Team & Roles', label: 'Team & Roles' },
-    { key: 'Billing & Payment', label: 'Billing & Payment' },
+            { key: 'Pricing', label: 'Pricing' },
     { key: 'Content Editing', label: 'Content Editing' },
   ], []);
 
@@ -1046,13 +1030,31 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         />
       )}
 
-      {/* Billing & Payment Section */}
-      {activeTab === 'Billing & Payment' && (
-        <BillingPaymentTab
-          formData={formData}
-          setFormData={updateFormData}
-        />
-      )}
+              {/* Pricing Section */}
+        {activeTab === 'Pricing' && (
+          <BillingPaymentTab
+            formData={formData}
+            setFormData={updateFormData}
+            onBeforeSave={(pricingData) => {
+              // Update form data with current pricing data before save
+              setFormData(prev => ({
+                ...prev,
+                pricing: {
+                  ...prev.pricing,
+                  ...pricingData,
+                  // Preserve billing info if it exists
+                  billing: prev.pricing?.billing || {
+                    company_name: '',
+                    billing_contact: '',
+                    billing_address: '',
+                    billing_email: '',
+                    po_number: '',
+                  }
+                }
+              }));
+            }}
+          />
+        )}
 
       {/* Content Editing Section */}
       {activeTab === 'Content Editing' && (

@@ -138,7 +138,7 @@ export async function PUT(
         }
         break;
 
-      case 'Billing & Payment':
+      case 'Pricing':
         // Handle billing and payment data
         if (data.pricing?.billing !== undefined) updateData.billing_info = data.pricing.billing;
         
