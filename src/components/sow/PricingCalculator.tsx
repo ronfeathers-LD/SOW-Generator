@@ -29,17 +29,17 @@ interface PricingCalculatorProps {
       bookit_forms_units?: string;
       bookit_links_units?: string;
       bookit_handoff_units?: string;
-      [key: string]: any;
+      [key: string]: unknown;
     };
     pricing?: {
       discount_type?: 'none' | 'fixed' | 'percentage';
       discount_amount?: number;
       discount_percentage?: number;
-      [key: string]: any;
+      [key: string]: unknown;
     };
-    [key: string]: any;
+    [key: string]: unknown;
   }>;
-  setFormData: (data: any) => void;
+  setFormData: (data: any | ((prevData: any) => any)) => void;
   onValidationChange?: (isValid: boolean) => void;
 }
 
@@ -750,7 +750,7 @@ export default function PricingCalculator({ formData, setFormData, onValidationC
           <div className="bg-white p-3 rounded border">
             <div className="text-sm text-gray-600">Subtotal</div>
             <div className="text-xl font-bold text-gray-900">
-              ${(formData.pricing?.subtotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ${((formData.pricing?.subtotal || 0) as number).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
           <div className="bg-white p-3 rounded border">
@@ -768,7 +768,7 @@ export default function PricingCalculator({ formData, setFormData, onValidationC
           <div className="bg-white p-3 rounded border">
             <div className="text-sm text-gray-600">Total Amount</div>
             <div className="text-xl font-bold text-green-600">
-              ${(formData.pricing?.total_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ${((formData.pricing?.total_amount || 0) as number).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
         </div>

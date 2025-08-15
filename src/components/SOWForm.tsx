@@ -10,7 +10,7 @@ import TeamRolesTab from './sow/TeamRolesTab';
 import BillingPaymentTab from './sow/BillingPaymentTab';
 import ContentEditingTab from './sow/ContentEditingTab';
 
-import { createSalesforceAccountData, createSalesforceContactData, createSalesforceOpportunityData } from '@/types/salesforce';
+import { createSalesforceAccountData, createSalesforceOpportunityData } from '@/types/salesforce';
 
 interface LeanDataSignatory {
   id: string;
@@ -574,56 +574,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     }
   };
 
-  const handleContactSelectedFromSalesforce = async (contact: SalesforceContact | null) => {
-    setSelectedContact(contact);
-    
-    if (contact) {
-      // Auto-populate contact information when POC is selected
-      setFormData({
-        ...formData,
-        template: {
-          ...formData.template!,
-          customer_email: contact.Email || '',
-          customer_signature_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
-          customer_signature: contact.Title || '',
-        },
-        // Also store the Salesforce contact ID
-        salesforce_contact_id: contact.Id,
-      });
 
-      // Save contact data to database if we have a SOW ID
-      if (initialData?.id) {
-        try {
-          const contactData = createSalesforceContactData(contact, 'primary_poc');
-          
-          await fetch(`/api/sow/${initialData.id}/salesforce-data`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              contacts_data: [contactData]
-            }),
-          });
-        } catch (error) {
-          console.error('Error saving contact data:', error);
-        }
-      }
-    } else {
-      // Clear contact information when POC is deselected
-      setFormData({
-        ...formData,
-        template: {
-          ...formData.template!,
-          customer_email: '',
-          customer_signature_name: '',
-          customer_signature: '',
-        },
-        // Also clear the Salesforce contact ID
-        salesforce_contact_id: undefined,
-      });
-    }
-  };
 
   const handleBillingContactSelectedFromSalesforce = async (contact: SalesforceContact | null) => {
     setSelectedBillingContact(contact);
@@ -854,9 +805,16 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               customer_signature_2: formData.template?.customer_signature_2,
               customer_email_2: formData.template?.customer_email_2,
               customer_signature_date_2: formData.template?.customer_signature_date_2,
+              // Billing contact information
+              billing_contact_name: formData.template?.billing_contact_name,
+              billing_email: formData.template?.billing_email,
             },
             // Save Salesforce contact ID
-            salesforce_contact_id: selectedContact?.Id || null
+            salesforce_contact_id: selectedContact?.Id || null,
+            // Save billing information
+            pricing: {
+              billing: formData.pricing?.billing
+            }
           };
           break;
 
@@ -1146,7 +1104,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           onLeanDataSignatoryChange={handleLeanDataSignatoryChange}
           selectedAccount={selectedAccount}
           selectedContact={selectedContact}
-          onContactSelectedFromSalesforce={handleContactSelectedFromSalesforce}
+
           getSalesforceLink={getSalesforceLink}
         />
       )}

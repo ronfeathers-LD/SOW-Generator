@@ -3,7 +3,7 @@
 import React from 'react';
 
 interface DynamicAIResponseProps {
-  aiResponse: any; // Accept any response format
+  aiResponse: Record<string, unknown>; // Accept any response format
   customerName: string;
 }
 
@@ -13,12 +13,12 @@ export default function DynamicAIResponse({ aiResponse, customerName }: DynamicA
     return (
       <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
         <h3 className="text-lg font-medium text-red-800 mb-2">AI Analysis Error</h3>
-        <p className="text-red-700">{aiResponse.error}</p>
-        {aiResponse.rawContent && (
+        <p className="text-red-700">{aiResponse.error as string}</p>
+        {(aiResponse.rawContent as string) && (
           <details className="mt-3">
             <summary className="text-red-600 cursor-pointer">View Raw Response</summary>
             <pre className="mt-2 text-sm text-red-600 bg-red-100 p-3 rounded overflow-auto">
-              {aiResponse.rawContent}
+              {aiResponse.rawContent as string}
             </pre>
           </details>
         )}
@@ -27,7 +27,7 @@ export default function DynamicAIResponse({ aiResponse, customerName }: DynamicA
   }
 
   // Helper function to render different data types
-  const renderValue = (value: any, key: string): React.ReactNode => {
+  const renderValue = (value: unknown, key: string): React.ReactNode => {
     if (Array.isArray(value)) {
       return (
         <div key={key} className="mb-4">

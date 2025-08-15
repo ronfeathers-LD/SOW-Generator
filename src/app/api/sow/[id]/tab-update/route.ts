@@ -112,9 +112,20 @@ export async function PUT(
           if (data.template.customer_signature_2 !== undefined) updateData.customer_signature_2 = data.template.customer_signature_2;
           if (data.template.customer_email_2 !== undefined) updateData.customer_email_2 = data.template.customer_email_2;
           if (data.template.customer_signature_date_2 !== undefined) updateData.customer_signature_date_2 = data.template.customer_signature_date_2;
+          // Billing contact information - store in billing_info JSONB field
+          if (data.template.billing_contact_name !== undefined || data.template.billing_email !== undefined) {
+            // Get existing billing_info or create new object
+            const existingBillingInfo = updateData.billing_info || {};
+            updateData.billing_info = {
+              ...existingBillingInfo,
+              billing_contact: data.template.billing_contact_name || (existingBillingInfo as Record<string, unknown>).billing_contact,
+              billing_email: data.template.billing_email || (existingBillingInfo as Record<string, unknown>).billing_email,
+            };
+          }
         }
         if (data.roles?.client_roles !== undefined) updateData.client_roles = data.roles.client_roles;
         if (data.pricing?.roles !== undefined) updateData.pricing_roles = data.pricing.roles;
+        // Note: billing information is handled above in the template section
 
         // Handle Salesforce contact ID
         if (data.salesforce_contact_id !== undefined) {

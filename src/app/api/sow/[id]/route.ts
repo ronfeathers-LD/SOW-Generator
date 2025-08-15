@@ -154,7 +154,7 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let data: any;
+  let data: Record<string, unknown> = {};
   
   try {
     // Check authentication
@@ -245,91 +245,104 @@ export async function PUT(
     
     // Header fields
     if (data.header) {
-      if (data.header.company_logo !== undefined) updateData.company_logo = data.header.company_logo;
-      if (data.header.client_name !== undefined) updateData.client_name = data.header.client_name;
-      if (data.header.sow_title !== undefined) updateData.sow_title = data.header.sow_title;
+      const header = data.header as Record<string, unknown>;
+      if (header.company_logo !== undefined) updateData.company_logo = header.company_logo;
+      if (header.client_name !== undefined) updateData.client_name = header.client_name;
+      if (header.sow_title !== undefined) updateData.sow_title = header.sow_title;
     }
     
     // Client signature fields
     if (data.client_signature) {
-      if (data.client_signature.title !== undefined) updateData.client_title = data.client_signature.title;
-      if (data.client_signature.email !== undefined) updateData.client_email = data.client_signature.email;
-      if (data.client_signature.signature_date !== undefined) updateData.signature_date = new Date(data.client_signature.signature_date).toISOString();
+      const clientSignature = data.client_signature as Record<string, unknown>;
+      if (clientSignature.title !== undefined) updateData.client_title = clientSignature.title;
+      if (clientSignature.email !== undefined) updateData.client_email = clientSignature.email;
+      if (clientSignature.signature_date !== undefined) updateData.signature_date = new Date(clientSignature.signature_date as string).toISOString();
     }
     
     if (data.client_signer_name !== undefined) updateData.client_signer_name = data.client_signer_name || '';
     
     // Scope fields
     if (data.scope) {
-      
-      if (data.scope.deliverables !== undefined) updateData.deliverables = data.scope.deliverables;
-      if (data.scope.timeline?.start_date !== undefined) updateData.start_date = new Date(data.scope.timeline.start_date).toISOString();
-      if (data.scope.timeline?.duration !== undefined) updateData.duration = data.scope.timeline.duration;
+      const scope = data.scope as Record<string, unknown>;
+      if (scope.deliverables !== undefined) updateData.deliverables = scope.deliverables;
+      if ((scope.timeline as Record<string, unknown>)?.start_date !== undefined) updateData.start_date = new Date((scope.timeline as Record<string, unknown>).start_date as string).toISOString();
+      if ((scope.timeline as Record<string, unknown>)?.duration !== undefined) updateData.duration = (scope.timeline as Record<string, unknown>).duration;
     }
     
     // Objectives fields
     // API received objectives data
     if (data.objectives) {
-      if (data.objectives.description !== undefined) {
-        updateData.objectives_description = data.objectives.description;
+      const objectives = data.objectives as Record<string, unknown>;
+      if (objectives.description !== undefined) {
+        updateData.objectives_description = objectives.description;
         // Setting objectives_description
       }
-      if (data.objectives.key_objectives !== undefined) {
-        updateData.objectives_key_objectives = data.objectives.key_objectives;
+      if (objectives.key_objectives !== undefined) {
+        updateData.objectives_key_objectives = objectives.key_objectives;
         // Setting objectives_key_objectives
       }
-      if (data.objectives.avoma_transcription !== undefined) {
-        updateData.avoma_transcription = data.objectives.avoma_transcription;
+      if (objectives.avoma_transcription !== undefined) {
+        updateData.avoma_transcription = objectives.avoma_transcription;
         // Setting avoma_transcription
       }
-      if (data.objectives.avoma_url !== undefined) {
-        updateData.avoma_url = data.objectives.avoma_url;
+      if (objectives.avoma_url !== undefined) {
+        updateData.avoma_url = objectives.avoma_url;
         // Setting avoma_url
       }
     }
     
     // Roles fields
-    if (data.roles?.client_roles !== undefined) updateData.client_roles = data.roles.client_roles;
-    if (data.pricing?.roles !== undefined) updateData.pricing_roles = data.pricing.roles;
-    if (data.pricing?.billing !== undefined) updateData.billing_info = data.pricing.billing;
+    if (data.roles) {
+      const roles = data.roles as Record<string, unknown>;
+      if (roles.client_roles !== undefined) updateData.client_roles = roles.client_roles;
+    }
+    if (data.pricing) {
+      const pricing = data.pricing as Record<string, unknown>;
+      if (pricing.roles !== undefined) updateData.pricing_roles = pricing.roles;
+      if (pricing.billing !== undefined) updateData.billing_info = pricing.billing;
+    }
     
     // Assumptions fields
     if (data.assumptions) {
-      if (data.assumptions.access_requirements !== undefined) updateData.access_requirements = data.assumptions.access_requirements;
-      if (data.assumptions.travel_requirements !== undefined) updateData.travel_requirements = data.assumptions.travel_requirements;
-      if (data.assumptions.working_hours !== undefined) updateData.working_hours = data.assumptions.working_hours;
-      if (data.assumptions.testing_responsibilities !== undefined) updateData.testing_responsibilities = data.assumptions.testing_responsibilities;
+      const assumptions = data.assumptions as Record<string, unknown>;
+      if (assumptions.access_requirements !== undefined) updateData.access_requirements = assumptions.access_requirements;
+      if (assumptions.travel_requirements !== undefined) updateData.travel_requirements = assumptions.travel_requirements;
+      if (assumptions.working_hours !== undefined) updateData.working_hours = assumptions.working_hours;
+      if (assumptions.testing_responsibilities !== undefined) updateData.testing_responsibilities = assumptions.testing_responsibilities;
     }
     
 
     
     // LeanData Information
     if (data.template) {
-      if (data.template.lean_data_name !== undefined) updateData.leandata_name = data.template.lean_data_name;
-      if (data.template.lean_data_title !== undefined) updateData.leandata_title = data.template.lean_data_title;
-      if (data.template.lean_data_email !== undefined) updateData.leandata_email = data.template.lean_data_email;
+      const template = data.template as Record<string, unknown>;
+      if (template.lean_data_name !== undefined) updateData.leandata_name = template.lean_data_name;
+      if (template.lean_data_title !== undefined) updateData.leandata_title = template.lean_data_title;
+      if (template.lean_data_email !== undefined) updateData.leandata_email = template.lean_data_email;
     }
     
 
     
     // Project Details Information
     if (data.template) {
-      if (data.template.number_of_units !== undefined) updateData.number_of_units = data.template.number_of_units;
-      if (data.template.regions !== undefined) updateData.regions = data.template.regions;
-      if (data.template.salesforce_tenants !== undefined) updateData.salesforce_tenants = data.template.salesforce_tenants;
-      if (data.template.timeline_weeks !== undefined) updateData.timeline_weeks = data.template.timeline_weeks;
-      if (data.template.start_date !== undefined) updateData.project_start_date = data.template.start_date ? new Date(data.template.start_date).toISOString() : null;
-      if (data.template.end_date !== undefined) updateData.project_end_date = data.template.end_date ? new Date(data.template.end_date).toISOString() : null;
-      if (data.template.units_consumption !== undefined) updateData.units_consumption = data.template.units_consumption;
+      const template = data.template as Record<string, unknown>;
+      if (template.number_of_units !== undefined) updateData.number_of_units = template.number_of_units;
+      if (template.regions !== undefined) updateData.regions = template.regions;
+      if (template.salesforce_tenants !== undefined) updateData.salesforce_tenants = template.salesforce_tenants;
+      if (template.timeline_weeks !== undefined) updateData.timeline_weeks = template.timeline_weeks;
+      if (template.start_date !== undefined) updateData.project_start_date = template.start_date ? new Date(template.start_date as string).toISOString() : null;
+      if (template.end_date !== undefined) updateData.project_end_date = template.end_date ? new Date(template.end_date as string).toISOString() : null;
+      if (template.units_consumption !== undefined) updateData.units_consumption = template.units_consumption;
     }
 
     // Salesforce Opportunity Information
     if (data.template) {
-      if (data.template.opportunity_id !== undefined) updateData.opportunity_id = data.template.opportunity_id || null;
-      if (data.template.opportunity_name !== undefined) updateData.opportunity_name = data.template.opportunity_name || null;
-      if (data.template.opportunity_amount !== undefined) updateData.opportunity_amount = data.template.opportunity_amount || null;
-      if (data.template.opportunity_stage !== undefined) updateData.opportunity_stage = data.template.opportunity_stage || null;
-      if (data.template.opportunity_close_date !== undefined) updateData.opportunity_close_date = data.template.opportunity_close_date ? new Date(data.template.opportunity_close_date).toISOString() : null;
+      const template = data.template as Record<string, unknown>;
+      if (template.opportunity_id !== undefined) updateData.opportunity_id = template.opportunity_id || null;
+      if (template.opportunity_name !== undefined) updateData.opportunity_name = template.opportunity_name || null;
+      if (template.opportunity_amount !== undefined) updateData.opportunity_amount = template.opportunity_amount || null;
+      if (template.opportunity_stage !== undefined) updateData.opportunity_stage = template.opportunity_stage || null;
+      if (template.opportunity_close_date !== undefined) updateData.opportunity_close_date = template.opportunity_close_date ? new Date(template.opportunity_close_date as string).toISOString() : null;
     }
 
     // Custom Content fields
@@ -364,8 +377,11 @@ export async function PUT(
     }
 
     // Handle products if provided - use JSONB field
-    if (data.template?.products !== undefined) {
-      updateData.products = data.template.products;
+    if (data.template) {
+      const template = data.template as Record<string, unknown>;
+      if (template.products !== undefined) {
+        updateData.products = template.products;
+      }
     }
 
     // Log changes to changelog
@@ -385,7 +401,7 @@ export async function PUT(
     // Updated SOW response
     return NextResponse.json(updatedSOW);
   } catch (error) {
-    console.error('Error updating SOW:', error, { body: data });
+    console.error('Error updating SOW:', error, { body: data || 'No data' });
     return NextResponse.json(
       { error: 'Failed to update SOW' },
       { status: 500 }

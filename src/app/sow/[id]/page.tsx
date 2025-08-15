@@ -16,7 +16,7 @@ import { useSession } from 'next-auth/react';
 import { getStatusColor, getStatusLabel } from '@/lib/utils/statusUtils';
 
 // Validation Submit Button Component
-function ValidationSubmitButton({ sow }: { sow: any }) {
+function ValidationSubmitButton({ sow }: { sow: SOW }) {
   const [validation, setValidation] = useState<{
     isValid: boolean;
     missingFields: string[];
@@ -30,7 +30,7 @@ function ValidationSubmitButton({ sow }: { sow: any }) {
       
       // Use the client-safe validation utility
       const { validateSOWForApproval } = await import('@/lib/validation-utils');
-      const validationResult = validateSOWForApproval(sow);
+      const validationResult = validateSOWForApproval(sow as unknown as Record<string, unknown>);
       
       console.log('✅ Validation result:', validationResult);
       console.log('🔒 Is valid:', validationResult.isValid);
@@ -43,7 +43,7 @@ function ValidationSubmitButton({ sow }: { sow: any }) {
       console.error('❌ Error checking validation:', error);
       return false;
     }
-  }, [sow.id, sow.pricing?.roles]);
+  }, [sow]);
 
   const handleSubmitForReview = async () => {
     try {
@@ -61,7 +61,7 @@ function ValidationSubmitButton({ sow }: { sow: any }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          sow_amount: sow.pricing?.roles?.reduce((total: number, role: any) => total + (role.ratePerHour * role.totalHours), 0)
+          sow_amount: ((sow.pricing as Record<string, unknown>)?.roles as Array<Record<string, unknown>> || []).reduce((total: number, role: Record<string, unknown>) => total + ((role.ratePerHour as number) * (role.totalHours as number)), 0)
         }),
       });
 

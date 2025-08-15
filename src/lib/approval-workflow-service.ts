@@ -104,7 +104,7 @@ export class ApprovalWorkflowService {
    * Check if a SOW needs approval workflow started
    * This determines when to automatically start the workflow
    */
-  static shouldStartApprovalWorkflow(sowData: { status?: string; [key: string]: any }): boolean {
+  static shouldStartApprovalWorkflow(sowData: { status?: string; [key: string]: unknown }): boolean {
     // Check all required fields are properly filled out
     const validation = this.validateSOWForApproval(sowData);
     
@@ -168,7 +168,7 @@ export class ApprovalWorkflowService {
    * Comprehensive validation of SOW before allowing approval
    * This duplicates the client-side validation logic for server-side use
    */
-  static validateSOWForApproval(sowData: { status?: string; [key: string]: any }): { isValid: boolean; missingFields: string[]; errors: string[] } {
+  static validateSOWForApproval(sowData: { status?: string; [key: string]: unknown }): { isValid: boolean; missingFields: string[]; errors: string[] } {
     const missingFields: string[] = [];
     const errors: string[] = [];
 
@@ -178,50 +178,53 @@ export class ApprovalWorkflowService {
 
 
     // Overview Tab validation
-    if (!sowData.number_of_units || sowData.number_of_units <= 0 || sowData.number_of_units >= 99) {
+    if (!sowData.number_of_units || (sowData.number_of_units as number) <= 0 || (sowData.number_of_units as number) >= 99) {
       errors.push('Regions must be greater than 0 and less than 99');
     }
-    if (!sowData.salesforce_tenants || sowData.salesforce_tenants <= 0 || sowData.salesforce_tenants >= 99) {
+    if (!sowData.salesforce_tenants || (sowData.salesforce_tenants as number) <= 0 || (sowData.salesforce_tenants as number) >= 99) {
       errors.push('Tenants must be greater than 0 and less than 99');
     }
-    if (!sowData.timeline_weeks || sowData.timeline_weeks <= 0 || sowData.timeline_weeks >= 99) {
+    if (!sowData.timeline_weeks || (sowData.timeline_weeks as number) <= 0 || (sowData.timeline_weeks as number) >= 99) {
       errors.push('Timeline must be greater than 0 and less than 99');
     }
-    if (!sowData.products || !Array.isArray(sowData.products) || sowData.products.length === 0) {
+    if (!sowData.products || !Array.isArray(sowData.products) || (sowData.products as unknown[]).length === 0) {
       errors.push('At least one product must be selected');
     }
 
     // Objectives Tab validation
-    if (!sowData.custom_objective_overview_content || sowData.custom_objective_overview_content.trim() === '') {
+    if (!sowData.custom_objective_overview_content || ((sowData.custom_objective_overview_content as string) || '').trim() === '') {
       missingFields.push('Objective Overview');
     }
-    if (!sowData.custom_key_objectives_content || sowData.custom_key_objectives_content.trim() === '') {
+    if (!sowData.custom_key_objectives_content || ((sowData.custom_key_objectives_content as string) || '').trim() === '') {
       missingFields.push('Key Objectives');
     }
-    if (!sowData.custom_deliverables_content || sowData.custom_deliverables_content.trim() === '') {
+    if (!sowData.custom_deliverables_content || ((sowData.custom_deliverables_content as string) || '').trim() === '') {
       missingFields.push('Deliverables');
     }
 
     // Team & Roles Tab validation
-    if (!sowData.client_signer_name || sowData.client_signer_name.trim() === '') {
+    if (!sowData.client_signer_name || ((sowData.client_signer_name as string) || '').trim() === '') {
       missingFields.push('Customer Signer');
     }
-    if (!sowData.leandata_name || sowData.leandata_name.trim() === '') {
+    if (!sowData.leandata_name || ((sowData.leandata_name as string) || '').trim() === '') {
       missingFields.push('LeanData Signatory');
     }
-    if (!sowData.client_roles || !Array.isArray(sowData.client_roles) || sowData.client_roles.length === 0) {
+    if (!sowData.client_roles || !Array.isArray(sowData.client_roles) || (sowData.client_roles as unknown[]).length === 0) {
       errors.push('At least one Client Role must be added');
     }
 
     // Billing & Payment Tab validation
-    if (!sowData.billing_info?.hours || sowData.billing_info.hours <= 0) {
-      errors.push('Hours must be greater than 0');
-    }
-    if (!sowData.billing_info?.billing_information || sowData.billing_info.billing_information.trim() === '') {
-      missingFields.push('Billing Information');
-    }
-    if (!sowData.billing_info?.billing_contact || sowData.billing_info.billing_contact.trim() === '') {
-      missingFields.push('Billing Contact');
+    if (sowData.billing_info) {
+      const billingInfo = sowData.billing_info as Record<string, unknown>;
+      if (!billingInfo.hours || (billingInfo.hours as number || 0) <= 0) {
+        errors.push('Hours must be greater than 0');
+      }
+      if (!billingInfo.billing_information || ((billingInfo.billing_information as string) || '').trim() === '') {
+        missingFields.push('Billing Information');
+      }
+      if (!billingInfo.billing_contact || ((billingInfo.billing_contact as string) || '').trim() === '') {
+        missingFields.push('Billing Contact');
+      }
     }
 
     const isValid = missingFields.length === 0 && errors.length === 0;

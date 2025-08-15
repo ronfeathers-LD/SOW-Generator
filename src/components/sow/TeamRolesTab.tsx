@@ -11,7 +11,6 @@ interface TeamRolesTabProps {
   // New props for signer selection
   selectedAccount: { id: string; name: string } | null;
   selectedContact: SalesforceContact | null;
-  onContactSelectedFromSalesforce: (contact: SalesforceContact | null) => void;
   getSalesforceLink: (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => string;
 }
 
@@ -23,7 +22,6 @@ export default function TeamRolesTab({
   onLeanDataSignatoryChange,
   selectedAccount,
   selectedContact,
-  onContactSelectedFromSalesforce,
   getSalesforceLink,
 }: TeamRolesTabProps) {
 
@@ -32,6 +30,12 @@ export default function TeamRolesTab({
   const [showSignerContactSelection, setShowSignerContactSelection] = useState<boolean>(false);
   const [showSecondSignerContactSelection, setShowSecondSignerContactSelection] = useState<boolean>(false);
   const [showRoleContactSelection, setShowRoleContactSelection] = useState<number | null>(null);
+  
+  // Billing information state
+  const [isLoadingBilling, setIsLoadingBilling] = useState(false);
+  const [billingError, setBillingError] = useState<string | null>(null);
+  const [billingSuccess, setBillingSuccess] = useState<string | null>(null);
+  const [showBillingContactSelection, setShowBillingContactSelection] = useState<boolean>(false);
 
   // Load contacts when account is selected and set initial contact selection state
   useEffect(() => {
@@ -78,14 +82,69 @@ export default function TeamRolesTab({
     await loadContacts(selectedAccount.id);
   };
 
-  const handleContactSelected = (contact: SalesforceContact | null) => {
-    onContactSelectedFromSalesforce(contact);
+  const handleContactSelected = async (contact: SalesforceContact | null) => {
+    console.log('handleContactSelected called with:', contact);
+    console.log('formData.id:', formData.id);
+    
     if (contact) {
+      // Update local form data for customer signer
+      setFormData({
+        ...formData,
+        template: {
+          ...(formData.template || {}),
+          customer_email: contact.Email || '',
+          customer_signature_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
+          customer_signature: contact.Title || '',
+        } as any,
+        // Also store the Salesforce contact ID
+        salesforce_contact_id: contact.Id,
+      });
+
+      // Asynchronously save the Customer Signer selection via tab-update
+      if (formData.id) {
+        try {
+          console.log('Making API call to save Customer Signer...');
+          const requestBody = {
+            tab: 'Team & Roles',
+            data: {
+              template: {
+                customer_signature_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
+                customer_email: contact.Email || '',
+                customer_signature: contact.Title || '',
+              },
+              salesforce_contact_id: contact.Id
+            }
+          };
+          console.log('Request body:', requestBody);
+          
+          const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+          });
+
+          if (!response.ok) {
+            console.error('Failed to save Customer Signer, status:', response.status);
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+          } else {
+            console.log('Customer Signer saved successfully');
+          }
+        } catch (error) {
+          console.error('Error saving Customer Signer:', error);
+        }
+      } else {
+        console.warn('No formData.id available, skipping save');
+      }
+
       setShowSignerContactSelection(false);
     }
   };
 
-  const handleSecondSignerContactSelected = (contact: SalesforceContact) => {
+  const handleSecondSignerContactSelected = async (contact: SalesforceContact) => {
+    // Update local form data for second signer
     setFormData({
       ...formData,
       template: {
@@ -95,6 +154,45 @@ export default function TeamRolesTab({
         customer_signature_2: contact.Title || '',
       }
     });
+
+    // Asynchronously save the Second Customer Signer selection via tab-update
+    if (formData.id) {
+      try {
+        console.log('Making API call to save Second Customer Signer...');
+        const requestBody = {
+          tab: 'Team & Roles',
+          data: {
+            template: {
+              customer_signature_name_2: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
+              customer_email_2: contact.Email || '',
+              customer_signature_2: contact.Title || '',
+            }
+          }
+        };
+        console.log('Request body:', requestBody);
+        
+                  const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+          });
+
+        if (!response.ok) {
+          console.error('Failed to save Second Customer Signer, status:', response.status);
+          const errorText = await response.text();
+          console.error('Error response:', errorText);
+        } else {
+          console.log('Second Customer Signer saved successfully');
+        }
+      } catch (error) {
+        console.error('Error saving Second Customer Signer:', error);
+      }
+    } else {
+      console.warn('No formData.id available, skipping save');
+    }
+
     setShowSecondSignerContactSelection(false);
   };
 
@@ -115,311 +213,629 @@ export default function TeamRolesTab({
     setShowRoleContactSelection(null);
   };
 
+  // Billing information functions
+  const fetchBillingFromSalesforce = async () => {
+    if (!selectedAccount?.id) {
+      setBillingError('No account selected. Please select a customer first.');
+      return;
+    }
+
+    setIsLoadingBilling(true);
+    setBillingError(null);
+
+    try {
+      const response = await fetch(`/api/salesforce/billing-info?accountId=${selectedAccount.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch billing information');
+      }
+
+      const data = await response.json();
+      const billingInfo = data.billingInfo;
+
+      setFormData({
+        ...formData,
+        template: {
+          ...(formData.template || {}),
+          billing_company_name: billingInfo.companyName || formData.template?.customer_name || '',
+          billing_contact_name: billingInfo.billingContact || '',
+          billing_address: billingInfo.billingAddress || '',
+          billing_email: billingInfo.billingEmail || '',
+        } as any,
+        pricing: {
+          ...(formData.pricing || {}),
+          roles: formData.pricing?.roles || [],
+          billing: {
+            ...(formData.pricing?.billing || {}),
+            company_name: billingInfo.companyName || formData.template?.customer_name || '',
+            billing_contact: billingInfo.billingContact || '',
+            billing_address: billingInfo.billingAddress || '',
+            billing_email: billingInfo.billingEmail || '',
+            po_number: formData.pricing?.billing?.po_number || ''
+          }
+        }
+      });
+
+      setBillingSuccess('Billing information loaded from Salesforce successfully!');
+      setTimeout(() => setBillingSuccess(null), 3000);
+    } catch (error) {
+      setBillingError('Failed to fetch billing information from Salesforce');
+      console.error('Error fetching billing info:', error);
+    } finally {
+      setIsLoadingBilling(false);
+    }
+  };
+
+  // Billing contact selection handler
+  const handleBillingContactSelected = async (contact: SalesforceContact) => {
+    const contactName = `${contact.FirstName || ''} ${contact.LastName || ''}`.trim();
+    const contactEmail = contact.Email || '';
+    
+    // Update local form data
+    setFormData({
+      ...formData,
+              template: {
+          ...(formData.template || {}),
+          billing_contact_name: contactName,
+          billing_email: contactEmail,
+        } as any,
+      pricing: {
+        ...(formData.pricing || {}),
+        roles: formData.pricing?.roles || [],
+        billing: {
+          ...(formData.pricing?.billing || {}),
+          company_name: formData.pricing?.billing?.company_name || formData.template?.billing_company_name || '',
+          billing_contact: contactName,
+          billing_address: formData.pricing?.billing?.billing_address || formData.template?.billing_address || '',
+          billing_email: contactEmail,
+          po_number: formData.pricing?.billing?.po_number || formData.template?.purchase_order_number || ''
+        }
+      }
+    });
+
+    // Try to save billing contact selection via tab-update, but don't fail if it doesn't work
+    if (formData.id) {
+      try {
+        console.log('Making API call to save billing contact...');
+        const requestBody = {
+          tab: 'Team & Roles',
+          data: {
+            template: {
+              billing_contact_name: contactName,
+              billing_email: contactEmail,
+            },
+            pricing: {
+              billing: {
+                billing_contact: contactName,
+                billing_email: contactEmail,
+              }
+            }
+          }
+        };
+        console.log('Request body:', requestBody);
+        
+        const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          console.warn('Failed to save billing contact immediately, status:', response.status);
+          const errorText = await response.text();
+          console.warn('Error response:', errorText);
+          console.log('Billing contact will be saved when you navigate to another tab');
+        } else {
+          console.log('Billing contact saved successfully');
+        }
+      } catch (error) {
+        console.warn('Error saving billing contact immediately:', error);
+        console.log('Billing contact will be saved when you navigate to another tab');
+      }
+    } else {
+      console.warn('No formData.id available, billing contact will be saved when you navigate to another tab');
+    }
+
+    setBillingSuccess('Billing contact selected successfully!');
+    setTimeout(() => setBillingSuccess(null), 3000);
+    setShowBillingContactSelection(false);
+  };
+
 
 
   return (
     <section className="space-y-6">
       <h2 className="text-2xl font-bold">Team & Roles</h2>
       
-      {/* Signatories Section - 50/50 Split */}
+      {/* Signatories Section - 2x2 Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Customer Signer - Left Side */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4 text-blue-800">Customer Signer</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Select the customer contact who will sign this SOW
-          </p>
-          
-          {!selectedAccount ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-              <p className="text-sm text-yellow-800">
-                Please select a customer account first in the Customer Information tab.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Current Signer Display */}
-              <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium text-gray-900">Current Signer</h4>
-                    <p className="text-sm text-gray-600">
-                      {(() => {
-                        // Determine the contact name to display
-                        let contactDisplay = 'No signer selected';
-                        
-                        if (selectedContact?.FirstName || selectedContact?.LastName) {
-                          contactDisplay = `${selectedContact.FirstName || ''} ${selectedContact.LastName}`.trim();
-                        } else if (formData.template?.customer_signature_name) {
-                          contactDisplay = formData.template.customer_signature_name;
-                        }
-                        
-                        return contactDisplay;
-                      })()}
-                    </p>
-                    {(selectedContact || formData.template?.customer_signature_name || formData.salesforce_contact_id) && (
-                      <div className="text-xs text-gray-600 space-y-1 mt-2">
-                        {/* Show "Contact verified in Salesforce" if we have a Salesforce contact ID */}
-                        {(selectedContact?.Id || formData.salesforce_contact_id) && (
-                          <div className="flex items-center">
-                            <svg className="h-3 w-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                            <span>Contact verified in Salesforce</span>
-                          </div>
-                        )}
-                        {(selectedContact?.Email || formData.template?.customer_email) && (
-                          <div className="flex items-center">
-                            <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                            <span>Email: {selectedContact?.Email || formData.template?.customer_email}</span>
-                          </div>
-                        )}
-                        {(selectedContact?.Title || formData.template?.customer_signature) && (
-                          <div className="flex items-center">
-                            <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                            <span>Title: {selectedContact?.Title || formData.template?.customer_signature}</span>
-                          </div>
-                        )}
-                        {/* Show "View in Salesforce" link if we have a Salesforce contact ID */}
-                        {(selectedContact?.Id || formData.salesforce_contact_id) && (
-                          <a
-                            href={getSalesforceLink(selectedContact?.Id || formData.salesforce_contact_id || '', 'Contact')}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 underline flex items-center"
-                          >
-                            <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                              <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-                            </svg>
-                            View in Salesforce
-                          </a>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setShowSignerContactSelection(true)}
-                    className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
-                  >
-                    Change Signer
-                  </button>
-                </div>
+        {/* Left Column */}
+        <div className="space-y-6">
+          {/* Customer Signer - Top Left */}
+          <div className="bg-white shadow rounded-lg p-6">
+            <h3 className="text-lg font-semibold mb-4 text-blue-800">Customer Signer</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Select the customer contact who will sign this SOW
+            </p>
+            
+            {!selectedAccount ? (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                <p className="text-sm text-yellow-800">
+                  Please select a customer account first in the Customer Information tab.
+                </p>
               </div>
-
-              {/* Contact Selection */}
-              {showSignerContactSelection && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                  <h4 className="text-lg font-semibold mb-4 text-blue-800">Select Customer Signer</h4>
-                  
-                  <div className="space-y-4">
-                    {isLoadingContacts ? (
-                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                        <p className="text-sm text-yellow-800">Loading contacts...</p>
-                      </div>
-                    ) : availableContacts.length > 0 ? (
-                      <>
-                        <div className="flex justify-between items-center mb-4">
-                          <p className="text-sm text-gray-600">
-                            Found {availableContacts.length} contact{availableContacts.length !== 1 ? 's' : ''} for {selectedAccount.name}
-                          </p>
-                          <button
-                            onClick={refreshContacts}
-                            disabled={isLoadingContacts}
-                            className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                          >
-                            <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            Refresh
-                          </button>
-                        </div>
-                        <div className="space-y-2 max-h-60 overflow-y-auto">
-                          {availableContacts.map((contact) => (
-                            <div
-                              key={contact.Id}
-                              className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
-                              onClick={() => handleContactSelected(contact)}
-                            >
-                              <div className="font-medium text-gray-900">{contact.FirstName} {contact.LastName}</div>
-                              <div className="text-sm text-gray-600 mt-1">
-                                <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium mr-2">
-                                  {contact.Title}
-                                </span>
-                                <span>{contact.Email}</span>
-                              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Current Signer Display */}
+                <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-gray-900">Current Signer</h4>
+                      <p className="text-sm text-gray-600">
+                        {(() => {
+                          // Determine the contact name to display
+                          let contactDisplay = 'No signer selected';
+                          
+                          if (selectedContact?.FirstName || selectedContact?.LastName) {
+                            contactDisplay = `${selectedContact.FirstName || ''} ${selectedContact.LastName}`.trim();
+                          } else if (formData.template?.customer_signature_name) {
+                            contactDisplay = formData.template.customer_signature_name;
+                          }
+                          
+                          return contactDisplay;
+                        })()}
+                      </p>
+                      {(selectedContact || formData.template?.customer_signature_name || formData.salesforce_contact_id) && (
+                        <div className="text-xs text-gray-600 space-y-1 mt-2">
+                          {/* Show "Contact verified in Salesforce" if we have a Salesforce contact ID */}
+                          {(selectedContact?.Id || formData.salesforce_contact_id) && (
+                            <div className="flex items-center">
+                              <svg className="h-3 w-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              <span>Contact verified in Salesforce</span>
                             </div>
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                        <p className="text-sm text-yellow-800">
-                          No contacts found for {selectedAccount.name}. Please ensure contacts exist in Salesforce.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* LeanData Signatory - Right Side */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4 text-green-800">LeanData Signatory</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Select the LeanData representative who will sign this SOW
-          </p>
-          <select
-            value={selectedLeanDataSignatory}
-            onChange={(e) => onLeanDataSignatoryChange(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          >
-            <option value="">Select a signatory</option>
-            {leanDataSignatories.map((signatory) => (
-              <option key={signatory.id} value={signatory.id}>
-                {signatory.name} - {signatory.title}
-              </option>
-            ))}
-          </select>
-          {selectedLeanDataSignatory && (
-            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Selected Signatory</h4>
-              <div className="font-medium text-gray-900">
-                {leanDataSignatories.find(s => s.id === selectedLeanDataSignatory)?.name}
-              </div>
-              <div className="text-sm text-gray-600">
-                {leanDataSignatories.find(s => s.id === selectedLeanDataSignatory)?.title}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Second Customer Signer - Optional */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4 text-blue-800">Second Customer Signer</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Optional - Select a second customer contact who will sign this SOW
-          </p>
-          
-          {!selectedAccount ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-              <p className="text-sm text-yellow-800">
-                Please select a customer account first in the Customer Information tab.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Current Second Signer Display */}
-              <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium text-gray-900">Current Second Signer</h4>
-                    <p className="text-sm text-gray-600">
-                      {formData.template?.customer_signature_name_2 || 'No second signer selected'}
-                    </p>
-                    {formData.template?.customer_signature_name_2 && (
-                      <div className="text-xs text-gray-600 space-y-1 mt-2">
-                        {formData.template?.customer_email_2 && (
-                          <div className="flex items-center">
-                            <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                            <span>Email: {formData.template.customer_email_2}</span>
-                          </div>
-                        )}
-                        {formData.template?.customer_signature_2 && (
-                          <div className="flex items-center">
-                            <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                            <span>Title: {formData.template.customer_signature_2}</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setShowSecondSignerContactSelection(true)}
-                    className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
-                  >
-                    {formData.template?.customer_signature_name_2 ? 'Change Signer' : 'Select Signer'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Second Signer Contact Selection */}
-              {showSecondSignerContactSelection && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                  <h4 className="text-lg font-semibold mb-4 text-blue-800">Select Second Customer Signer</h4>
-                  
-                  <div className="space-y-4">
-                    {isLoadingContacts ? (
-                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                        <p className="text-sm text-yellow-800">Loading contacts...</p>
-                      </div>
-                    ) : availableContacts.length > 0 ? (
-                      <>
-                        <div className="flex justify-between items-center mb-4">
-                          <p className="text-sm text-gray-600">
-                            Found {availableContacts.length} contact{availableContacts.length !== 1 ? 's' : ''} for {selectedAccount.name}
-                          </p>
-                          <button
-                            onClick={refreshContacts}
-                            disabled={isLoadingContacts}
-                            className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                          >
-                            <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            Refresh
-                          </button>
-                        </div>
-                        <div className="space-y-2 max-h-60 overflow-y-auto">
-                          {availableContacts.map((contact) => (
-                            <div
-                              key={contact.Id}
-                              className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
-                              onClick={() => handleSecondSignerContactSelected(contact)}
-                            >
-                              <div className="font-medium text-gray-900">{contact.FirstName} {contact.LastName}</div>
-                              <div className="text-sm text-gray-600 mt-1">
-                                <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium mr-2">
-                                  {contact.Title}
-                                </span>
-                                <span>{contact.Email}</span>
-                              </div>
+                          )}
+                          {(selectedContact?.Email || formData.template?.customer_email) && (
+                            <div className="flex items-center">
+                              <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              <span>Email: {selectedContact?.Email || formData.template?.customer_email}</span>
                             </div>
-                          ))}
+                          )}
+                          {(selectedContact?.Title || formData.template?.customer_signature) && (
+                            <div className="flex items-center">
+                              <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              <span>Title: {selectedContact?.Title || formData.template?.customer_signature}</span>
+                            </div>
+                          )}
+                          {/* Show "View in Salesforce" link if we have a Salesforce contact ID */}
+                          {(selectedContact?.Id || formData.salesforce_contact_id) && (
+                            <a
+                              href={getSalesforceLink(selectedContact?.Id || formData.salesforce_contact_id || '', 'Contact')}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline flex items-center"
+                            >
+                              <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                                <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                              </svg>
+                              View in Salesforce
+                            </a>
+                          )}
                         </div>
-                      </>
-                    ) : (
-                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                        <p className="text-sm text-yellow-800">
-                          No contacts found for {selectedAccount.name}. Please ensure contacts exist in Salesforce.
-                        </p>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowSignerContactSelection(true)}
+                      className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                    >
+                      Change Signer
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
+
+                {/* Contact Selection */}
+                {showSignerContactSelection && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                    <h4 className="text-lg font-semibold mb-4 text-blue-800">Select Customer Signer</h4>
+                    
+                    <div className="space-y-4">
+                      {isLoadingContacts ? (
+                        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                          <p className="text-sm text-yellow-800">Loading contacts...</p>
+                        </div>
+                      ) : availableContacts.length > 0 ? (
+                        <>
+                          <div className="flex justify-between items-center mb-4">
+                            <p className="text-sm text-gray-600">
+                              Found {availableContacts.length} contact{availableContacts.length !== 1 ? 's' : ''} for {selectedAccount.name}
+                            </p>
+                            <button
+                              onClick={refreshContacts}
+                              disabled={isLoadingContacts}
+                              className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                            >
+                              <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              Refresh
+                            </button>
+                          </div>
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {availableContacts.map((contact) => (
+                              <div
+                                key={contact.Id}
+                                className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                                onClick={() => handleContactSelected(contact)}
+                              >
+                                <div className="font-medium text-gray-900">{contact.FirstName} {contact.LastName}</div>
+                                <div className="text-sm text-gray-600 mt-1">
+                                  <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium mr-2">
+                                    {contact.Title}
+                                  </span>
+                                  <span>{contact.Email}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                          <p className="text-sm text-yellow-800">
+                            No contacts found for {selectedAccount.name}. Please ensure contacts exist in Salesforce.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Second Customer Signer - Bottom Left */}
+          <div className="bg-white shadow rounded-lg p-6">
+            <h3 className="text-lg font-semibold mb-4 text-blue-800">Second Customer Signer</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Optional - Select a second customer contact who will sign this SOW
+            </p>
+            
+            {!selectedAccount ? (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                <p className="text-sm text-yellow-800">
+                  Please select a customer account first in the Customer Information tab.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Current Second Signer Display */}
+                <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-gray-900">Current Second Signer</h4>
+                      <p className="text-sm text-gray-600">
+                        {formData.template?.customer_signature_name_2 || 'No second signer selected'}
+                      </p>
+                      {formData.template?.customer_signature_name_2 && (
+                        <div className="text-xs text-gray-600 space-y-1 mt-2">
+                          {formData.template?.customer_email_2 && (
+                            <div className="flex items-center">
+                              <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              <span>Email: {formData.template.customer_email_2}</span>
+                            </div>
+                          )}
+                          {formData.template?.customer_signature_2 && (
+                            <div className="flex items-center">
+                              <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              <span>Title: {formData.template.customer_signature_2}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowSecondSignerContactSelection(true)}
+                      className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                    >
+                      {formData.template?.customer_signature_name_2 ? 'Change Signer' : 'Select Signer'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Second Signer Contact Selection */}
+                {showSecondSignerContactSelection && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                    <h4 className="text-lg font-semibold mb-4 text-blue-800">Select Second Customer Signer</h4>
+                    
+                    <div className="space-y-4">
+                      {isLoadingContacts ? (
+                        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                          <p className="text-sm text-yellow-800">Loading contacts...</p>
+                        </div>
+                      ) : availableContacts.length > 0 ? (
+                        <>
+                          <div className="flex justify-between items-center mb-4">
+                            <p className="text-sm text-gray-600">
+                              Found {availableContacts.length} contact{availableContacts.length !== 1 ? 's' : ''} for {selectedAccount.name}
+                            </p>
+                            <button
+                              onClick={refreshContacts}
+                              disabled={isLoadingContacts}
+                              className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                            >
+                              <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              Refresh
+                            </button>
+                          </div>
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {availableContacts.map((contact) => (
+                              <div
+                                key={contact.Id}
+                                className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                                onClick={() => handleSecondSignerContactSelected(contact)}
+                              >
+                                <div className="font-medium text-gray-900">{contact.FirstName} {contact.LastName}</div>
+                                <div className="text-sm text-gray-600 mt-1">
+                                  <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                    {contact.Title}
+                                  </span>
+                                  <span>{contact.Email}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                          <p className="text-sm text-yellow-800">
+                            No contacts found for {selectedAccount.name}. Please ensure contacts exist in Salesforce.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-      
-      {/* Client Roles */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-4">Client Roles & Responsibilities</h3>
-        <p className="text-sm text-gray-600 mb-4">
-          Define the roles and responsibilities for the client team
-        </p>
+
+                 {/* Right Column */}
+         <div className="space-y-6">
+           {/* LeanData Signatory - Top Right */}
+           <div className="bg-white shadow rounded-lg p-6">
+             <h3 className="text-lg font-semibold mb-4 text-green-800">LeanData Signatory</h3>
+             <p className="text-sm text-gray-600 mb-4">
+               Select the LeanData representative who will sign this SOW
+             </p>
+             <select
+               value={selectedLeanDataSignatory}
+               onChange={(e) => onLeanDataSignatoryChange(e.target.value)}
+               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+             >
+               <option value="">Select a signatory</option>
+               {leanDataSignatories.map((signatory) => (
+                 <option key={signatory.id} value={signatory.id}>
+                   {signatory.name} - {signatory.title}
+                 </option>
+               ))}
+             </select>
+             {selectedLeanDataSignatory && (
+               <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                 <h4 className="text-sm font-medium text-gray-700 mb-2">Selected Signatory</h4>
+                 <div className="font-medium text-gray-900">
+                   {leanDataSignatories.find(s => s.id === selectedLeanDataSignatory)?.name}
+                 </div>
+                 <div className="text-sm text-gray-600">
+                   {leanDataSignatories.find(s => s.id === selectedLeanDataSignatory)?.title}
+                 </div>
+               </div>
+             )}
+           </div>
+
+           {/* Billing Information - Bottom Right */}
+           <div className="bg-white shadow rounded-lg p-6">
+           <div className="mb-4 flex justify-between items-center">
+             <h3 className="text-lg font-semibold">Billing Information</h3>
+             {selectedAccount && (
+               <button
+                 type="button"
+                 onClick={fetchBillingFromSalesforce}
+                 disabled={isLoadingBilling}
+                 className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+               >
+                 {isLoadingBilling ? (
+                   <>
+                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                     </svg>
+                     Loading...
+                   </>
+                 ) : (
+                   <>
+                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                     </svg>
+                     Get from Salesforce
+                   </>
+                 )}
+               </button>
+             )}
+           </div>
+
+           {/* Error and Success Messages */}
+           {billingError && (
+             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+               <div className="flex items-center">
+                 <svg className="h-5 w-5 text-red-400 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                 </svg>
+                 <span className="text-sm text-red-800">{billingError}</span>
+               </div>
+             </div>
+           )}
+
+           {billingSuccess && (
+             <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+               <div className="flex items-center">
+                 <svg className="h-5 w-5 text-green-400 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                 </svg>
+                 <span className="text-sm text-green-800">{billingSuccess}</span>
+               </div>
+             </div>
+           )}
+
+           {/* Billing Information Fields */}
+           <div className="space-y-4">
+             <div>
+               <label className="block text-sm font-medium text-gray-700">Company Name</label>
+               <input
+                 type="text"
+                 value={formData.pricing?.billing?.company_name || formData.template?.billing_company_name || ''}
+                 onChange={(e) => setFormData({
+                   ...formData,
+                   template: { ...(formData.template || {}), billing_company_name: e.target.value } as any,
+                   pricing: {
+                     ...(formData.pricing || {}),
+                     roles: formData.pricing?.roles || [],
+                     billing: { 
+                       ...(formData.pricing?.billing || {}), 
+                       company_name: e.target.value,
+                       billing_contact: formData.pricing?.billing?.billing_contact || '',
+                       billing_address: formData.pricing?.billing?.billing_address || '',
+                       billing_email: formData.pricing?.billing?.billing_email || '',
+                       po_number: formData.pricing?.billing?.po_number || ''
+                     }
+                   }
+                 })}
+                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                 placeholder="Company name for billing"
+               />
+             </div>
+
+             <div>
+               <label className="block text-sm font-medium text-gray-700">Billing Address</label>
+               <textarea
+                 value={formData.pricing?.billing?.billing_address || formData.template?.billing_address || ''}
+                 onChange={(e) => setFormData({
+                   ...formData,
+                   template: { ...(formData.template || {}), billing_address: e.target.value } as any,
+                   pricing: {
+                     ...(formData.pricing || {}),
+                     roles: formData.pricing?.roles || [],
+                     billing: { 
+                       ...(formData.pricing?.billing || {}), 
+                       company_name: formData.pricing?.billing?.company_name || '',
+                       billing_contact: formData.pricing?.billing?.billing_contact || '',
+                       billing_address: e.target.value,
+                       billing_email: formData.pricing?.billing?.billing_email || '',
+                       po_number: formData.pricing?.billing?.po_number || ''
+                     }
+                   }
+                 })}
+                 rows={3}
+                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                 placeholder="Billing address"
+               />
+             </div>
+
+             <div>
+               <label className="block text-sm font-medium text-gray-700">Purchase Order Number</label>
+               <input
+                 type="text"
+                 value={formData.pricing?.billing?.po_number || formData.template?.purchase_order_number || ''}
+                 onChange={(e) => setFormData({
+                   ...formData,
+                   template: { ...(formData.template || {}), purchase_order_number: e.target.value } as any,
+                   pricing: {
+                     ...(formData.pricing || {}),
+                     roles: formData.pricing?.roles || [],
+                     billing: { 
+                       ...(formData.pricing?.billing || {}), 
+                       company_name: formData.pricing?.billing?.company_name || '',
+                       billing_contact: formData.pricing?.billing?.billing_contact || '',
+                       billing_address: formData.pricing?.billing?.billing_address || '',
+                       billing_email: formData.pricing?.billing?.billing_email || '',
+                       po_number: e.target.value
+                     }
+                   }
+                 })}
+                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                 placeholder="Purchase order number (optional)"
+               />
+             </div>
+
+             {/* Billing Contact Selection */}
+             <div>
+               <label className="block text-sm font-medium text-gray-700">Billing Contact</label>
+               <div className="flex items-center space-x-4">
+                 {/* Select Contact Button */}
+                 {selectedAccount && (
+                   <button
+                     type="button"
+                     onClick={() => setShowBillingContactSelection(true)}
+                     className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                   >
+                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                     </svg>
+                     Select Contact
+                   </button>
+                 )}
+                 {/* Warning or Selected Contact Card - Same line as button */}
+                 {!formData.template?.billing_contact_name ? (
+                   <div className="flex-1 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                     <div className="flex items-center">
+                       <svg className="h-5 w-5 text-yellow-400 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                         <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                       </svg>
+                       <span className="text-sm text-yellow-800">
+                         <strong>Warning:</strong> No billing contact selected. Please select a billing contact to proceed.
+                       </span>
+                     </div>
+                   </div>
+                 ) : (
+                   <div className="flex-1 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                     <div className="text-sm text-blue-800">
+                       <strong>Selected:</strong> {formData.template?.billing_contact_name}
+                       {formData.template?.billing_email && (
+                         <span className="ml-2 text-blue-600">({formData.template?.billing_email})</span>
+                       )}
+                     </div>
+                   </div>
+                 )}
+               </div>
+               {/* Hidden fields to store the data */}
+               <input type="hidden" value={formData.pricing?.billing?.billing_contact || formData.template?.billing_contact_name || ''} />
+               <input type="hidden" value={formData.pricing?.billing?.billing_email || formData.template?.billing_email || ''} />
+             </div>
+           </div>
+         </div>
+       </div>
+     </div>
+     
+     {/* Client Roles */}
+     <div className="bg-white shadow rounded-lg p-6">
+       <h3 className="text-lg font-semibold mb-4">Client Roles & Responsibilities</h3>
+       <p className="text-sm text-gray-600 mb-4">
+         Define the roles and responsibilities for the client team
+       </p>
         {formData.roles?.client_roles?.map((role, index) => (
           <div key={index} className="border border-gray-200 rounded-md p-4 mb-4">
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -487,6 +903,7 @@ export default function TeamRolesTab({
                           )}
                         </div>
                         <button
+                          type="button"
                           onClick={() => setShowRoleContactSelection(index)}
                           className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
                         >
@@ -627,6 +1044,91 @@ export default function TeamRolesTab({
           Add Client Role
         </button>
       </div>
+
+      {/* Billing Contact Selection Modal */}
+      {showBillingContactSelection && selectedAccount && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Select Billing Contact</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowBillingContactSelection(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="space-y-4">
+                {isLoadingContacts ? (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                    <p className="text-sm text-yellow-800">Loading contacts...</p>
+                  </div>
+                ) : availableContacts.length > 0 ? (
+                  <>
+                    <div className="flex justify-between items-center mb-4">
+                      <p className="text-sm text-gray-600">
+                        Found {availableContacts.length} contact{availableContacts.length !== 1 ? 's' : ''} for {selectedAccount.name}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={refreshContacts}
+                        disabled={isLoadingContacts}
+                        className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                      >
+                        <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Refresh
+                      </button>
+                    </div>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {availableContacts.map((contact) => (
+                        <div
+                          key={contact.Id}
+                          className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                          onClick={() => handleBillingContactSelected(contact)}
+                        >
+                          <div className="font-medium text-gray-900">{contact.FirstName} {contact.LastName}</div>
+                          <div className="text-sm text-gray-600 mt-1">
+                            <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium mr-2">
+                              {contact.Title}
+                            </span>
+                            <span>{contact.Email}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                    <p className="text-sm text-yellow-800">
+                      No contacts found for {selectedAccount.name}. Please ensure contacts exist in Salesforce.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex justify-end mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowBillingContactSelection(false)}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
 
     </section>

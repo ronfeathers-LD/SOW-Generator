@@ -83,12 +83,12 @@ export default function EditSOWPage() {
               bookit_links_units: data.bookit_links_units || '',
               bookit_handoff_units: data.bookit_handoff_units || '',
               
-              // Billing Information
-              billing_company_name: data.template?.billing_company_name || '',
-              billing_contact_name: data.template?.billing_contact_name || '',
-              billing_address: data.template?.billing_address || '',
-              billing_email: data.template?.billing_email || '',
-              purchase_order_number: data.template?.purchase_order_number || '',
+              // Billing Information - map from billing_info JSONB field
+              billing_company_name: data.billing_info?.companyName || data.template?.billing_company_name || '',
+              billing_contact_name: data.billing_info?.billing_contact || data.template?.billing_contact_name || '',
+              billing_address: data.billing_info?.billingAddress || data.template?.billing_address || '',
+              billing_email: data.billing_info?.billing_email || data.template?.billing_email || '',
+              purchase_order_number: data.billing_info?.poNumber || data.template?.purchase_order_number || '',
               
               // Salesforce Opportunity Information
               opportunity_id: data.template?.opportunity_id || data.opportunity_id || '',
@@ -181,6 +181,12 @@ export default function EditSOWPage() {
             project_phases_content_edited: data.project_phases_content_edited || false,
             roles_content_edited: data.roles_content_edited || false,
           };
+          
+          // Set billing contact information from billing_info JSONB field
+          if (transformedData.template) {
+            transformedData.template.billing_contact_name = data.billing_info?.billing_contact || '';
+            transformedData.template.billing_email = data.billing_info?.billing_email || '';
+          }
           
           setSOW(transformedData);
         } else {

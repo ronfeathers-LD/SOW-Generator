@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -36,18 +36,9 @@ export default function GeminiLogsPage() {
     endDate: ''
   });
 
-  useEffect(() => {
-    if (status === 'loading') return;
-    
-    if (!session) {
-      router.push('/auth/signin');
-      return;
-    }
 
-    fetchLogs();
-  }, [session, status, router]);
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -69,7 +60,19 @@ export default function GeminiLogsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  // Load logs when component mounts
+  useEffect(() => {
+    if (status === 'loading') return;
+    
+    if (!session) {
+      router.push('/auth/signin');
+      return;
+    }
+
+    fetchLogs();
+  }, [session, status, router, fetchLogs]);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -412,7 +415,7 @@ export default function GeminiLogsPage() {
                         <strong>Parsing Status:</strong> No parsed result available
                       </p>
                       <p className="text-sm text-gray-500">
-                        This could indicate a parsing failure or that the endpoint doesn't return structured data.
+                        This could indicate a parsing failure or that the endpoint doesn&apos;t return structured data.
                       </p>
                     </div>
                   )}
