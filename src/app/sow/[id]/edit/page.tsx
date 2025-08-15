@@ -182,10 +182,19 @@ export default function EditSOWPage() {
             roles_content_edited: data.roles_content_edited || false,
           };
           
-          // Set billing contact information from billing_info JSONB field
+          // Set billing contact information from the correct database fields
           if (transformedData.template) {
-            transformedData.template.billing_contact_name = data.billing_info?.billing_contact || '';
-            transformedData.template.billing_email = data.billing_info?.billing_email || '';
+            // Map billing info from the database structure to template fields
+            transformedData.template.billing_company_name = data.billing_info?.company_name || 
+                                                          data.template?.billing_company_name || '';
+            transformedData.template.billing_address = data.billing_info?.billing_address || 
+                                                     data.template?.billing_address || '';
+            transformedData.template.billing_contact_name = data.billing_info?.billing_contact || 
+                                                          data.template?.billing_contact_name || '';
+            transformedData.template.billing_email = data.billing_info?.billing_email || 
+                                                   data.template?.billing_email || '';
+            transformedData.template.purchase_order_number = data.billing_info?.po_number || 
+                                                          data.template?.purchase_order_number || '';
           }
           
           setSOW(transformedData);

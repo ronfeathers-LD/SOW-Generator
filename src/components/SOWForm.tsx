@@ -241,7 +241,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         }
   );
 
-  const [, setLogoPreview] = useState<string | null>(initialData?.header?.company_logo || null);
+
   const [activeTab, setActiveTab] = useState('Project Overview');
 
   const handleTabChange = (tabKey: string) => {
@@ -451,10 +451,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Create a preview URL
-      const previewUrl = URL.createObjectURL(file);
-      setLogoPreview(previewUrl);
-
       // Convert the file to base64
       const reader = new FileReader();
       reader.onloadend = () => {

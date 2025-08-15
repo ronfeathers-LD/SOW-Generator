@@ -308,3 +308,169 @@ ol {
   list-style-position: outside !important;
   padding-left: 2em !important;
 }
+
+/* AI Analysis Response Styles */
+.analysis-container {
+  max-width: 100%;
+  margin: 0;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.analysis-container h2.section {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 2rem 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.analysis-container h3.subsection {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #374151;
+  margin: 1.5rem 0 0.75rem 0;
+}
+
+.analysis-container h4 {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #4b5563;
+  margin: 1rem 0 0.5rem 0;
+}
+
+.analysis-container p.overview {
+  font-size: 1rem;
+  color: #374151;
+  margin: 1rem 0;
+  line-height: 1.7;
+}
+
+.analysis-container ul.pain-points,
+.analysis-container ul.solution-list {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.analysis-container li.list-item {
+  margin: 0.5rem 0;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.analysis-container .product-solutions {
+  margin: 1.5rem 0;
+}
+
+.analysis-container .recommendations {
+  background-color: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border-left: 4px solid #3b82f6;
+  margin: 1.5rem 0;
+}
+
+.analysis-container .highlight {
+  background-color: #fef3c7;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+}
+
+/* Error container styles */
+.error-container {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.error-container h2 {
+  color: #dc2626;
+  margin: 0 0 1rem 0;
+}
+
+.error-container .raw-content {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.25rem;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.error-container .raw-content h3 {
+  color: #6b7280;
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+}
+
+.error-container .raw-content pre {
+  background-color: #f3f4f6;
+  padding: 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* AI Analysis Results Display Styles */
+.ai-analysis-results {
+  background-color: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.ai-analysis-results h3 {
+  color: #0369a1;
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.ai-analysis-results h4 {
+  color: #0c4a6e;
+  margin: 1.5rem 0 0.75rem 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.ai-analysis-results p {
+  color: #0c4a6e;
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+
+.ai-analysis-results ul {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+}
+
+.ai-analysis-results li {
+  color: #0c4a6e;
+  margin: 0.25rem 0;
+  line-height: 1.5;
+}
+
+.ai-analysis-results .prose {
+  color: #0c4a6e;
+}
+
+.ai-analysis-results .prose h4 {
+  color: #0c4a6e;
+  margin: 1rem 0 0.5rem 0;
+}
+
+.ai-analysis-results .prose ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.ai-analysis-results .prose li {
+  color: #0c4a6e;
+  margin: 0.25rem 0;
+}

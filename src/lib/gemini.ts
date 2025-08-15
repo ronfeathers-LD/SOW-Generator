@@ -14,7 +14,14 @@ interface GeminiGenerationResponse {
 
 
 interface TranscriptionAnalysisResponse {
-  [key: string]: any; // Completely flexible - accept anything the AI returns
+  html?: string; // HTML content from AI
+  objectiveOverview?: string;
+  painPoints?: string[];
+  solutions?: Record<string, string[]>;
+  isFallback?: boolean;
+  error?: string;
+  rawContent?: string;
+  [key: string]: any; // Keep flexible for backward compatibility
 }
 
 class GeminiClient {
@@ -294,175 +301,28 @@ Please provide a professional, 2-3 sentence project description that captures th
 
     let finalPrompt: string;
 
-        if (promptError || !aiPrompt?.prompt_content) {
-      console.warn('Failed to fetch AI prompt from database, using fallback prompt');
-      // Use fallback prompt logic
-      const fallbackPrompt = `
-LeanData Project Analysis Prompt
-
-You are an expert business analyst and technical consultant specializing in LeanData solutions built upon Salesforce. Your task is to analyze a meeting transcript and extract key project details in a format suitable for a VP of Services.
-
-Instructions
-
-Analyze the provided meeting transcription and generate a valid, parseable JSON object that captures the project's core details.
-
-The output must contain ONLY the JSON object. Do not include any introductory or explanatory text, markdown, or code blocks.
-
-JSON Structure and Content Requirements
-
-Your response must strictly adhere to the following JSON format.
-
-{
-  "objectiveOverview": "A comprehensive paragraph summarizing the customer's primary goals and the overall purpose of the project. The paragraph must explicitly mention the customer's name ({customerName}) and the LeanData products being implemented ({selectedProducts}).",
-  "painPoints": [
-    "An action-oriented pain point related to the project.",
-    "Another action-oriented pain point.",
-    "A third action-oriented pain point.",
-    "A fourth action-oriented pain point."
-  ],
-  "solutions": {
-    ${selectedProducts ? selectedProducts.map(product => `"${product}": ["Specific solution item related to ${product}, as discussed in the transcript."]`).join(',\n    ') : '// No products specified'}
-  },
-  "isFallback": false
-}
-
-Guidelines for Content Generation
-
-Comprehensive Overview: If a value is provided in the existingDescription variable ({existingDescription}), use it as the starting point to generate a comprehensive paragraph for the objectiveOverview, otherwise, create a new summary based on the transcript. The overview should summarize the customer's primary goals and the overall purpose of the project and must explicitly mention the customer's name ({customerName}) and the LeanData products being implemented ({selectedProducts}).
-
-Be Comprehensive: Extract all relevant pain points and solutions discussed in the transcript. The lists should be as exhaustive as possible.
-
-Action-Oriented Pain Points: If a value is provided in the existingObjectives variable ({existingObjectives}), use those items as the basis for the painPoints array. Otherwise, create new pain points from the transcript. The items should be phrased as an action or an objective. Start each item with a verb (e.g., 'Address,' 'Eliminate,' 'Improve') to describe the desired outcome of overcoming the pain point.
-
-Dynamic Solutions Object: The solutions object must be dynamically generated. The keys of this object must correspond exactly to the LeanData products listed in the selectedProducts variable ({selectedProducts}).
-
-Product-Specific Solutions: For each product key in the solutions object, extract and list all specific actions, configurations, or benefits discussed. For example, under Account Matching, include details on how the customer wants to handle deduplication and merging of records. Under Integrations, include solutions related to third-party applications like Slack, Teams, and Zapier. Under BookIt, include discussions about form integration, automated scheduling, and the handoff module.
-
-Fallback for Solutions: If no specific solution items for a particular product are mentioned in the transcript, the value for that product's key should be an array containing a single string: "Specific solutions for this product were not discussed in detail.". In this case, you must also set the isFallback key to true.
-
-Professional Tone: The output should be suitable for a formal document, such as a Statement of Work (SOW).
-
-Call Transcript:
-{transcription}
-
-CRITICAL: You must respond with ONLY valid JSON. Do not include any introductory or explanatory text, markdown formatting, or code blocks.`;
-
-      // Apply variable substitution to fallback prompt
-      finalPrompt = fallbackPrompt
-        .replace(/\{customerName\}/g, customerName)
-        .replace(/\{transcription\}/g, transcript)
-        .replace(/\{selectedProducts\}/g, selectedProducts ? selectedProducts.join(', ') : 'None specified')
-        .replace(/\{existingDescription\}/g, existingDescription || '')
-        .replace(/\{existingObjectives\}/g, existingObjectives ? JSON.stringify(existingObjectives) : '[]');
-    } else {
-      // Use the prompt from the database, replacing placeholders
-      console.log('=== USING DATABASE PROMPT ===');
-      console.log('Original prompt from DB:', aiPrompt.prompt_content.substring(0, 200) + '...');
-      console.log('Full prompt length:', aiPrompt.prompt_content.length);
-      
-      // Check for hardcoded values that might indicate the prompt template is wrong
-      const hardcodedValues = {
-        globalTech: aiPrompt.prompt_content.includes('GlobalTech'),
-        globalTechSolutions: aiPrompt.prompt_content.includes('GlobalTech Solutions'),
-        unit21: aiPrompt.prompt_content.includes('Unit 21'),
-        customerNamePlaceholder: aiPrompt.prompt_content.includes('{customerName}'),
-        transcriptionPlaceholder: aiPrompt.prompt_content.includes('{transcription}'),
-        selectedProductsPlaceholder: aiPrompt.prompt_content.includes('{selectedProducts}')
-      };
-      console.log('Hardcoded values check:', hardcodedValues);
-      
-      // Show a sample of the prompt content to see what's actually there
-      console.log('Sample prompt content (first 1000 chars):', aiPrompt.prompt_content.substring(0, 1000));
-      
-      // Check if the database prompt has the required placeholders
-      const hasRequiredPlaceholders = aiPrompt.prompt_content.includes('{customerName}') && 
-                                   aiPrompt.prompt_content.includes('{transcription}') && 
-                                   aiPrompt.prompt_content.includes('{selectedProducts}');
-      
-      console.log('Has required placeholders:', hasRequiredPlaceholders);
-      
-      if (!hasRequiredPlaceholders) {
-        console.warn('Database prompt is missing required placeholders, using fallback prompt instead');
-        // Use fallback prompt logic
-        const fallbackPrompt = `
-LeanData Project Analysis Prompt
-
-You are an expert business analyst and technical consultant specializing in LeanData solutions built upon Salesforce. Your task is to analyze a meeting transcript and extract key project details in a format suitable for a VP of Services.
-
-Instructions
-
-Analyze the provided meeting transcription and generate a valid, parseable JSON object that captures the project's core details.
-
-The output must contain ONLY the JSON object. Do not include any introductory or explanatory text, markdown, or code blocks.
-
-JSON Structure and Content Requirements
-
-Your response must strictly adhere to the following JSON format.
-
-{
-  "objectiveOverview": "A comprehensive paragraph summarizing the customer's primary goals and the overall purpose of the project. The paragraph must explicitly mention the customer's name ({customerName}) and the LeanData products being implemented ({selectedProducts}).",
-  "painPoints": [
-    "An action-oriented pain point related to the project.",
-    "Another action-oriented pain point.",
-    "A third action-oriented pain point.",
-    "A fourth action-oriented pain point."
-  ],
-  "solutions": {
-    ${selectedProducts ? selectedProducts.map(product => `"${product}": ["Specific solution item related to ${product}, as discussed in the transcript."]`).join(',\n    ') : '// No products specified'}
-  },
-  "isFallback": false
-}
-
-Guidelines for Content Generation
-
-Comprehensive Overview: If a value is provided in the existingDescription variable ({existingDescription}), use it as the starting point to generate a comprehensive paragraph for the objectiveOverview, otherwise, create a new summary based on the transcript. The overview should summarize the customer's primary goals and the overall purpose of the project and must explicitly mention the customer's name ({customerName}) and the LeanData products being implemented ({selectedProducts}).
-
-Be Comprehensive: Extract all relevant pain points and solutions discussed in the transcript. The lists should be as exhaustive as possible.
-
-Action-Oriented Pain Points: If a value is provided in the existingObjectives variable ({existingObjectives}), use those items as the basis for the painPoints array. Otherwise, create new pain points from the transcript. The items should be phrased as an action or an objective. Start each item with a verb (e.g., 'Address,' 'Eliminate,' 'Improve') to describe the desired outcome of overcoming the pain point.
-
-Dynamic Solutions Object: The solutions object must be dynamically generated. The keys of this object must correspond exactly to the LeanData products listed in the selectedProducts variable ({selectedProducts}).
-
-Product-Specific Solutions: For each product key in the solutions object, extract and list all specific actions, configurations, or benefits discussed. For example, under Account Matching, include details on how the customer wants to handle deduplication and merging of records. Under Integrations, include solutions related to third-party applications like Slack, Teams, and Zapier. Under BookIt, include discussions about form integration, automated scheduling, and the handoff module.
-
-Fallback for Solutions: If no specific solution items for a particular product are mentioned in the transcript, the value for that product's key should be an array containing a single string: "Specific solutions for this product were not discussed in detail.". In this case, you must also set the isFallback key to true.
-
-Professional Tone: The output should be suitable for a formal document, such as a Statement of Work (SOW).
-
-Call Transcript:
-{transcription}
-
-CRITICAL: You must respond with ONLY valid JSON. Do not include any introductory or explanatory text, markdown formatting, or code blocks.`;
-
-        // Apply variable substitution to fallback prompt
-        finalPrompt = fallbackPrompt
-          .replace(/\{customerName\}/g, customerName)
-          .replace(/\{transcription\}/g, transcript)
-          .replace(/\{selectedProducts\}/g, selectedProducts ? selectedProducts.join(', ') : 'None specified')
-          .replace(/\{existingDescription\}/g, existingDescription || '')
-          .replace(/\{existingObjectives\}/g, existingObjectives ? JSON.stringify(existingObjectives) : '[]');
-      } else {
-        // Use the prompt from the database, replacing placeholders
-        finalPrompt = aiPrompt.prompt_content
-          .replace(/\{customerName\}/g, customerName)
-          .replace(/\{transcription\}/g, transcript)
-          .replace(/\{selectedProducts\}/g, selectedProducts ? selectedProducts.join(', ') : '')
-          .replace(/\{existingDescription\}/g, existingDescription || '')
-          .replace(/\{existingObjectives\}/g, existingObjectives ? JSON.stringify(existingObjectives) : '[]');
-      }
-      
-      console.log('=== AFTER VARIABLE SUBSTITUTION ===');
-      console.log('Final prompt (first 500 chars):', finalPrompt.substring(0, 500));
+    if (promptError || !aiPrompt?.prompt_content) {
+      console.error('Failed to fetch AI prompt from database:', promptError);
+      throw new Error('Failed to fetch AI prompt from database. Please check the prompt configuration.');
     }
-
-    // Debug logging to see what's being sent
-    console.log('=== GEMINI PROMPT DEBUG ===');
-    console.log('Original customerName:', customerName);
-    console.log('Original selectedProducts:', selectedProducts);
-    console.log('Prompt contains customerName?', finalPrompt.includes(customerName));
-    console.log('Prompt contains selectedProducts?', selectedProducts ? selectedProducts.some(p => finalPrompt.includes(p)) : 'No products');
-    console.log('Prompt length:', finalPrompt.length);
-    console.log('=== END DEBUG ===');
+    
+    // Check if the database prompt has the required placeholders
+    const hasRequiredPlaceholders = aiPrompt.prompt_content.includes('{customerName}') && 
+                                 aiPrompt.prompt_content.includes('{transcription}') && 
+                                 aiPrompt.prompt_content.includes('{selectedProducts}');
+    
+    if (!hasRequiredPlaceholders) {
+      console.error('Database prompt missing required placeholders. Please update the prompt template.');
+      throw new Error('Database prompt is missing required placeholders. Please update the prompt template to include {customerName}, {transcription}, and {selectedProducts}.');
+    }
+    
+    // Use the prompt from the database, replacing placeholders
+    finalPrompt = aiPrompt.prompt_content
+      .replace(/\{customerName\}/g, customerName)
+      .replace(/\{transcription\}/g, transcript)
+      .replace(/\{selectedProducts\}/g, selectedProducts ? selectedProducts.join(', ') : '')
+      .replace(/\{existingDescription\}/g, existingDescription || '')
+      .replace(/\{existingObjectives\}/g, existingObjectives ? JSON.stringify(existingObjectives) : '[]');
 
     return this.executePrompt(finalPrompt, transcript, customerName, selectedProducts, existingDescription, existingObjectives);
   }
@@ -478,8 +338,6 @@ CRITICAL: You must respond with ONLY valid JSON. Do not include any introductory
     existingDescription?: string,
     existingObjectives?: string[]
   ): Promise<TranscriptionAnalysisResponse> {
-    // No more complex parsing - just simple JSON handling
-
     const startTime = Date.now();
     let geminiResponse = '';
     let parsedResult: Record<string, unknown> | undefined;
@@ -491,34 +349,58 @@ CRITICAL: You must respond with ONLY valid JSON. Do not include any introductory
       const content = response.text();
       geminiResponse = content || '';
 
-
-
       if (!content) {
         throw new Error('No content received from Gemini');
       }
 
-      // Simple JSON parsing - just get whatever the AI returns
+      // Enhanced response handling - support both JSON with HTML content and pure HTML
       try {
-        const parsed = JSON.parse(content);
-        parsedResult = parsed;
-        return parsed; // Return exactly what the AI gave us
-      } catch (parseError) {
-        console.error('JSON parsing error:', parseError);
-        console.error('Content that failed to parse:', content);
+        // Clean the response - remove any extra text or markdown
+        let cleanedContent = geminiResponse.trim();
         
-        // If JSON parsing fails, return a simple error response
-        return {
-          error: 'Failed to parse AI response',
-          rawContent: content
-        };
+        // Remove markdown code blocks if present
+        if (cleanedContent.startsWith('```json')) {
+          cleanedContent = cleanedContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanedContent.startsWith('```html')) {
+          cleanedContent = cleanedContent.replace(/^```html\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanedContent.startsWith('```')) {
+          cleanedContent = cleanedContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        
+        // Try to extract JSON if there's extra text
+        const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          cleanedContent = jsonMatch[0];
+        }
+        
+        // Try to parse as JSON first (our preferred format)
+        if (cleanedContent.startsWith('{') && cleanedContent.includes('}')) {
+          try {
+            const parsed = JSON.parse(cleanedContent);
+            console.log('AI response parsed successfully');
+            return parsed as TranscriptionAnalysisResponse;
+          } catch (jsonError) {
+            console.log('JSON parsing failed, trying HTML processing');
+            // Fall through to HTML processing
+          }
+        }
+
+        // If JSON parsing failed or content doesn't look like JSON, try HTML processing
+        if (cleanedContent.startsWith('<') || cleanedContent.includes('>')) {
+          console.log('Processing as HTML content');
+          return { html: cleanedContent, isFallback: false };
+        }
+
+        // If neither JSON nor HTML, throw error
+        throw new Error('Response does not appear to contain valid JSON or HTML');
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', parseError);
+        throw new Error(`Failed to parse AI response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
       }
     } catch (e) {
       error = e instanceof Error ? e : new Error(String(e));
-      console.error('Error analyzing transcription:', error);
-      return {
-        error: error.message,
-        rawContent: geminiResponse
-      };
+      console.error('Gemini API call failed:', error);
+      throw error;
     } finally {
       // Log the Gemini API call
       try {
@@ -535,7 +417,7 @@ CRITICAL: You must respond with ONLY valid JSON. Do not include any introductory
           parsedResult,
           error,
           this.modelName,
-          'API_KEY_PLACEHOLDER', // We'll need to get this from the config
+          'API_KEY_PLACEHOLDER',
           processingTime
         );
       } catch (loggingError) {
@@ -544,6 +426,34 @@ CRITICAL: You must respond with ONLY valid JSON. Do not include any introductory
     }
   }
 
+  /**
+   * Extract fallback content when JSON parsing fails
+   */
+  private extractFallbackContent(content: string): { objective: string; scopeItems: string[] } {
+    console.log('=== EXTRACTING FALLBACK CONTENT ===');
+    
+    // Try to find any structured content
+    const lines = content.split('\n').filter(line => line.trim().length > 0);
+    const scopeItems: string[] = [];
+    let objective = '';
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('-') || trimmed.startsWith('*') || trimmed.startsWith('•')) {
+        scopeItems.push(trimmed.substring(1).trim());
+      } else if (trimmed.length > 50 && !objective) {
+        objective = trimmed;
+      }
+    }
+    
+    console.log('Extracted objective:', objective);
+    console.log('Extracted scope items:', scopeItems);
+    
+    return {
+      objective: objective || 'Project objective could not be extracted',
+      scopeItems: scopeItems.length > 0 ? scopeItems : ['Manual lead routing and assignment processes']
+    };
+  }
 }
 
 export { GeminiClient, type GeminiBulletPoint, type GeminiGenerationResponse, type TranscriptionAnalysisResponse };

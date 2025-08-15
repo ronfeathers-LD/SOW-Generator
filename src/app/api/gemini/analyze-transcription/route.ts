@@ -22,7 +22,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Customer name is required' }, { status: 400 });
     }
 
-    const result = await analyzeTranscription(transcript, customerName);
+    const result = await analyzeTranscription(
+      transcript, 
+      customerName, 
+      selectedProducts, 
+      existingDescription, 
+      existingObjectives
+    );
 
     // Check if the result contains an error
     if (result.error) {

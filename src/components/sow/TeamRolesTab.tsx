@@ -232,28 +232,54 @@ export default function TeamRolesTab({
       const data = await response.json();
       const billingInfo = data.billingInfo;
 
-      setFormData({
+      // Preserve existing billing contact information if it exists
+      const existingBillingContact = formData.template?.billing_contact_name || '';
+      const existingBillingEmail = formData.template?.billing_email || '';
+
+      const updatedFormData = {
         ...formData,
         template: {
           ...(formData.template || {}),
           billing_company_name: billingInfo.companyName || formData.template?.customer_name || '',
-          billing_contact_name: billingInfo.billingContact || '',
           billing_address: billingInfo.billingAddress || '',
-          billing_email: billingInfo.billingEmail || '',
+          // Only update billing contact if we don't already have one
+          billing_contact_name: existingBillingContact || billingInfo.billingContact || '',
+          billing_email: existingBillingEmail || billingInfo.billingEmail || '',
         } as any,
-        pricing: {
-          ...(formData.pricing || {}),
-          roles: formData.pricing?.roles || [],
-          billing: {
-            ...(formData.pricing?.billing || {}),
-            company_name: billingInfo.companyName || formData.template?.customer_name || '',
-            billing_contact: billingInfo.billingContact || '',
-            billing_address: billingInfo.billingAddress || '',
-            billing_email: billingInfo.billingEmail || '',
-            po_number: formData.pricing?.billing?.po_number || ''
+      };
+
+      // Update local state
+      setFormData(updatedFormData);
+
+      // Save to database
+      if (formData.id) {
+        try {
+          const saveResponse = await fetch(`/api/sow/${formData.id}/tab-update`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              tab: 'Team & Roles',
+              data: {
+                template: {
+                  billing_company_name: billingInfo.companyName || formData.template?.customer_name || '',
+                  billing_address: billingInfo.billingAddress || '',
+                  billing_contact_name: existingBillingContact || billingInfo.billingContact || '',
+                  billing_email: existingBillingEmail || billingInfo.billingEmail || '',
+                }
+              }
+            }),
+          });
+
+          if (!saveResponse.ok) {
+            console.warn('Failed to save billing info to database, but local state was updated');
           }
+        } catch (saveError) {
+          console.warn('Error saving billing info to database:', saveError);
+          // Don't fail the whole operation if save fails
         }
-      });
+      }
 
       setBillingSuccess('Billing information loaded from Salesforce successfully!');
       setTimeout(() => setBillingSuccess(null), 3000);
@@ -273,26 +299,14 @@ export default function TeamRolesTab({
     // Update local form data
     setFormData({
       ...formData,
-              template: {
-          ...(formData.template || {}),
-          billing_contact_name: contactName,
-          billing_email: contactEmail,
-        } as any,
-      pricing: {
-        ...(formData.pricing || {}),
-        roles: formData.pricing?.roles || [],
-        billing: {
-          ...(formData.pricing?.billing || {}),
-          company_name: formData.pricing?.billing?.company_name || formData.template?.billing_company_name || '',
-          billing_contact: contactName,
-          billing_address: formData.pricing?.billing?.billing_address || formData.template?.billing_address || '',
-          billing_email: contactEmail,
-          po_number: formData.pricing?.billing?.po_number || formData.template?.purchase_order_number || ''
-        }
-      }
+      template: {
+        ...(formData.template || {}),
+        billing_contact_name: contactName,
+        billing_email: contactEmail,
+      } as any,
     });
 
-    // Try to save billing contact selection via tab-update, but don't fail if it doesn't work
+    // Try to save billing contact selection via tab-update
     if (formData.id) {
       try {
         console.log('Making API call to save billing contact...');
@@ -302,12 +316,6 @@ export default function TeamRolesTab({
             template: {
               billing_contact_name: contactName,
               billing_email: contactEmail,
-            },
-            pricing: {
-              billing: {
-                billing_contact: contactName,
-                billing_email: contactEmail,
-              }
             }
           }
         };
@@ -333,12 +341,8 @@ export default function TeamRolesTab({
         console.warn('Error saving billing contact immediately:', error);
         console.log('Billing contact will be saved when you navigate to another tab');
       }
-    } else {
-      console.warn('No formData.id available, billing contact will be saved when you navigate to another tab');
     }
 
-    setBillingSuccess('Billing contact selected successfully!');
-    setTimeout(() => setBillingSuccess(null), 3000);
     setShowBillingContactSelection(false);
   };
 
@@ -707,22 +711,10 @@ export default function TeamRolesTab({
                <label className="block text-sm font-medium text-gray-700">Company Name</label>
                <input
                  type="text"
-                 value={formData.pricing?.billing?.company_name || formData.template?.billing_company_name || ''}
+                 value={formData.template?.billing_company_name || ''}
                  onChange={(e) => setFormData({
                    ...formData,
                    template: { ...(formData.template || {}), billing_company_name: e.target.value } as any,
-                   pricing: {
-                     ...(formData.pricing || {}),
-                     roles: formData.pricing?.roles || [],
-                     billing: { 
-                       ...(formData.pricing?.billing || {}), 
-                       company_name: e.target.value,
-                       billing_contact: formData.pricing?.billing?.billing_contact || '',
-                       billing_address: formData.pricing?.billing?.billing_address || '',
-                       billing_email: formData.pricing?.billing?.billing_email || '',
-                       po_number: formData.pricing?.billing?.po_number || ''
-                     }
-                   }
                  })}
                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                  placeholder="Company name for billing"
@@ -732,22 +724,10 @@ export default function TeamRolesTab({
              <div>
                <label className="block text-sm font-medium text-gray-700">Billing Address</label>
                <textarea
-                 value={formData.pricing?.billing?.billing_address || formData.template?.billing_address || ''}
+                 value={formData.template?.billing_address || ''}
                  onChange={(e) => setFormData({
                    ...formData,
                    template: { ...(formData.template || {}), billing_address: e.target.value } as any,
-                   pricing: {
-                     ...(formData.pricing || {}),
-                     roles: formData.pricing?.roles || [],
-                     billing: { 
-                       ...(formData.pricing?.billing || {}), 
-                       company_name: formData.pricing?.billing?.company_name || '',
-                       billing_contact: formData.pricing?.billing?.billing_contact || '',
-                       billing_address: e.target.value,
-                       billing_email: formData.pricing?.billing?.billing_email || '',
-                       po_number: formData.pricing?.billing?.po_number || ''
-                     }
-                   }
                  })}
                  rows={3}
                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -759,22 +739,10 @@ export default function TeamRolesTab({
                <label className="block text-sm font-medium text-gray-700">Purchase Order Number</label>
                <input
                  type="text"
-                 value={formData.pricing?.billing?.po_number || formData.template?.purchase_order_number || ''}
+                 value={formData.template?.purchase_order_number || ''}
                  onChange={(e) => setFormData({
                    ...formData,
                    template: { ...(formData.template || {}), purchase_order_number: e.target.value } as any,
-                   pricing: {
-                     ...(formData.pricing || {}),
-                     roles: formData.pricing?.roles || [],
-                     billing: { 
-                       ...(formData.pricing?.billing || {}), 
-                       company_name: formData.pricing?.billing?.company_name || '',
-                       billing_contact: formData.pricing?.billing?.billing_contact || '',
-                       billing_address: formData.pricing?.billing?.billing_address || '',
-                       billing_email: formData.pricing?.billing?.billing_email || '',
-                       po_number: e.target.value
-                     }
-                   }
                  })}
                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                  placeholder="Purchase order number (optional)"
@@ -822,8 +790,8 @@ export default function TeamRolesTab({
                  )}
                </div>
                {/* Hidden fields to store the data */}
-               <input type="hidden" value={formData.pricing?.billing?.billing_contact || formData.template?.billing_contact_name || ''} />
-               <input type="hidden" value={formData.pricing?.billing?.billing_email || formData.template?.billing_email || ''} />
+               <input type="hidden" value={formData.template?.billing_contact_name || ''} />
+               <input type="hidden" value={formData.template?.billing_email || ''} />
              </div>
            </div>
          </div>

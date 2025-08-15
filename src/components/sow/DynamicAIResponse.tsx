@@ -36,7 +36,13 @@ export default function DynamicAIResponse({ aiResponse, customerName }: DynamicA
           </h4>
           <ul className="list-disc list-inside space-y-1">
             {value.map((item, index) => (
-              <li key={index} className="text-gray-700">{item}</li>
+              <li key={index} className="text-gray-700">
+                {typeof item === 'string' && item.includes('<') ? (
+                  <span dangerouslySetInnerHTML={{ __html: item }} />
+                ) : (
+                  item
+                )}
+              </li>
             ))}
           </ul>
         </div>
@@ -59,14 +65,30 @@ export default function DynamicAIResponse({ aiResponse, customerName }: DynamicA
     }
     
     if (typeof value === 'string') {
-      return (
-        <div key={key} className="mb-4">
-          <h4 className="text-md font-semibold text-gray-800 mb-2 capitalize">
-            {key.replace(/([A-Z])/g, ' $1').trim()}
-          </h4>
-          <p className="text-gray-700">{value}</p>
-        </div>
-      );
+      // Check if the string contains HTML tags
+      if (value.includes('<') && value.includes('>')) {
+        return (
+          <div key={key} className="mb-4">
+            <h4 className="text-md font-semibold text-gray-800 mb-2 capitalize">
+              {key.replace(/([A-Z])/g, ' $1').trim()}
+            </h4>
+            <div 
+              className="text-gray-700"
+              dangerouslySetInnerHTML={{ __html: value }}
+            />
+          </div>
+        );
+      } else {
+        // Plain text - render normally
+        return (
+          <div key={key} className="mb-4">
+            <h4 className="text-md font-semibold text-gray-800 mb-2 capitalize">
+              {key.replace(/([A-Z])/g, ' $1').trim()}
+            </h4>
+            <p className="text-gray-700">{value}</p>
+          </div>
+        );
+      }
     }
     
     return null;

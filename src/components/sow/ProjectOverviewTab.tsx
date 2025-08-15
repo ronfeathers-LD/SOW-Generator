@@ -12,13 +12,11 @@ interface Product {
 interface ProjectOverviewTabProps {
   formData: Partial<SOWData>;
   setFormData: (data: Partial<SOWData>) => void;
-  onValidationChange?: (isValid: boolean) => void;
 }
 
 export default function ProjectOverviewTab({
   formData,
   setFormData,
-  onValidationChange,
 }: ProjectOverviewTabProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -282,13 +280,8 @@ export default function ProjectOverviewTab({
     setValidationErrors(errors);
     const isValid = Object.keys(errors).length === 0;
     
-    // Notify parent component of validation status
-    if (onValidationChange) {
-      onValidationChange(isValid);
-    }
-    
     return isValid;
-  }, [formData, selectedProducts, onValidationChange, isAnyRoutingProductSelected]);
+  }, [formData, selectedProducts, isAnyRoutingProductSelected]);
 
   // Run validation whenever form data or selected products change
   useEffect(() => {

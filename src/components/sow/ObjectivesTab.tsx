@@ -176,27 +176,32 @@ export default function ObjectivesTab({
 
 
       // Convert objective paragraph to bullet points for TipTap editor
-      const convertObjectiveToBulletPoints = (objective: string): string => {
-        if (!objective || typeof objective !== 'string') return '';
+      const convertObjectiveToBulletPoints = (objectives: string[]): string => {
+        if (!objectives || !Array.isArray(objectives) || objectives.length === 0) return '';
         
-        // Split the objective into sentences and convert to bullet points
-        const sentences = objective.split(/[.!?]+/).filter(sentence => sentence.trim().length > 0);
+        // Check if objectives are already in HTML format
+        if (objectives.some(obj => typeof obj === 'string' && obj.includes('<li>'))) {
+          // If they're already HTML, extract the content and format properly for TipTap
+          return objectives
+            .map(obj => {
+              if (typeof obj === 'string' && obj.includes('<li>')) {
+                // Extract text content from <li> tags
+                const textContent = obj.replace(/<li>(.*?)<\/li>/, '$1').trim();
+                return textContent;
+              }
+              return obj;
+            })
+            .filter(obj => obj && typeof obj === 'string' && obj.trim().length > 0)
+            .map(obj => `• ${obj}`)
+            .join('\n');
+        }
         
-        if (sentences.length === 0) return '';
-        
-        let htmlValue = '<ul>';
-        sentences.forEach(sentence => {
-          const trimmedSentence = sentence.trim();
-          if (trimmedSentence.length > 0) {
-            htmlValue += `<li>${trimmedSentence}.</li>`;
-          }
-        });
-        htmlValue += '</ul>';
-        
-        return htmlValue;
+        // If they're plain text, convert to bullet points
+        return objectives
+          .filter(obj => obj && typeof obj === 'string' && obj.trim().length > 0)
+          .map(obj => `• ${obj}`)
+          .join('\n');
       };
-
-
 
       // Convert solutions to HTML format with proper product family groupings
       const convertSolutionsToHTML = (solutions: Record<string, string[]>): string => {
@@ -212,14 +217,21 @@ export default function ObjectivesTab({
             // Add items for this product family
             items.forEach(item => {
               if (typeof item === 'string' && item.trim()) {
-                // Check for nested content patterns (like "Target:" statements)
-                const targetMatch = item.match(/\.\s*Target:\s*(.+)$/);
-                if (targetMatch) {
-                  const mainObjective = item.replace(/\.\s*Target:\s*.+$/, '.');
-                  const target = targetMatch[1];
-                  html += `<li>${mainObjective}<ul><li>${target}</li></ul></li>\n`;
+                // Check if item is already HTML (contains <li> tags)
+                if (item.includes('<li>')) {
+                  // Extract text content from <li> tags
+                  const textContent = item.replace(/<li>(.*?)<\/li>/, '$1').trim();
+                  html += `<li>${textContent}</li>\n`;
                 } else {
-                  html += `<li>${item}</li>\n`;
+                  // Check for nested content patterns (like "Target:" statements)
+                  const targetMatch = item.match(/\.\s*Target:\s*(.+)$/);
+                  if (targetMatch) {
+                    const mainObjective = item.replace(/\.\s*Target:\s*.+$/, '.');
+                    const target = targetMatch[1];
+                    html += `<li>${mainObjective}<ul><li>${target}</li></ul></li>\n`;
+                  } else {
+                    html += `<li>${item}</li>\n`;
+                  }
                 }
               }
             });
@@ -252,6 +264,13 @@ export default function ObjectivesTab({
       Object.entries(result.solutions).forEach(([category, items]) => {
         if (Array.isArray(items) && items.length > 0) {
           const formattedItems = items.map(item => {
+            // Check if the item is already HTML (contains <li> tags)
+            if (typeof item === 'string' && item.includes('<li>')) {
+              // Extract the text content from the HTML
+              const textContent = item.replace(/<li>(.*?)<\/li>/, '$1').trim();
+              return `• ${textContent}`;
+            }
+            
             // Check for nested content patterns (like "Target:" statements or other sub-items)
             const targetMatch = item.match(/\.\s*Target:\s*(.+)$/);
             if (targetMatch) {
@@ -284,11 +303,17 @@ export default function ObjectivesTab({
           ...formData.scope!,
           deliverables: allScopeItems.join('\n\n')
         },
-        custom_deliverables_content: convertSolutionsToHTML(result.solutions),
+        // Store the AI response directly without processing - let the display component handle it
+        custom_deliverables_content: result.solutions ? convertSolutionsToHTML(result.solutions) : '',
         deliverables_content_edited: true,
         custom_objective_overview_content: result.objectiveOverview,
         objective_overview_content_edited: true,
-        custom_key_objectives_content: convertObjectiveToBulletPoints(result.painPoints.join('. ')),
+        // Store pain points as-is if they're already HTML, otherwise convert
+        custom_key_objectives_content: result.painPoints ? 
+          (result.painPoints.some((p: unknown) => typeof p === 'string' && p.includes('<li>')) ? 
+            result.painPoints.join('') : // If already HTML, join without processing
+            convertObjectiveToBulletPoints(result.painPoints) // If plain text, convert
+          ) : '',
         key_objectives_content_edited: true
       };
       

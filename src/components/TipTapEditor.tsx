@@ -29,24 +29,24 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
   const cleanHtmlForTipTap = useCallback((html: string): string => {
     if (!html) return '';
     
-    // If it's already HTML, return as is
+    // If it's already HTML, return as is - don't modify it
     if (isHtmlContent(html)) {
       return html;
     }
     
-    // If it's plain text, convert to basic HTML
+    // If it's plain text, convert to basic HTML but be conservative
     return html
       .split('\n')
       .map(line => {
         const trimmed = line.trim();
         if (!trimmed) return '';
         
-        // Handle bullet points
+        // Handle bullet points - don't wrap in <p> tags
         if (trimmed.startsWith('• ') || trimmed.startsWith('- ')) {
           return `<li>${trimmed.substring(2)}</li>`;
         }
         
-        // Handle numbered lists
+        // Handle numbered lists - don't wrap in <p> tags
         if (/^\d+\.\s/.test(trimmed)) {
           return `<li>${trimmed.replace(/^\d+\.\s/, '')}</li>`;
         }
@@ -57,6 +57,7 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
         // Handle italic text
         processed = processed.replace(/\*(.*?)\*/g, '<em>$1</em>');
         
+        // Only wrap in <p> if it's not a list item
         return `<p>${processed}</p>`;
       })
       .join('');
@@ -67,12 +68,12 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
       StarterKit.configure({
         listItem: {
           HTMLAttributes: {
-            class: 'list-item',
+            // Remove custom class to prevent wrapper elements
           },
         },
         paragraph: {
           HTMLAttributes: {
-            class: 'paragraph',
+            // Remove custom class to prevent wrapper elements
           },
         },
       }),
@@ -94,6 +95,13 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
         class: 'w-full min-h-[250px] p-3 focus:outline-none prose prose-sm max-w-none',
         placeholder: placeholder || '',
       },
+      // Disable automatic HTML cleaning and normalization
+      transformPastedHTML: (html) => html,
+      transformCopied: (slice) => slice,
+    },
+    // Disable automatic content processing
+    parseOptions: {
+      preserveWhitespace: 'full',
     },
     immediatelyRender: false,
   });
@@ -303,7 +311,7 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
       {/* Editor */}
       <EditorContent 
         editor={editor} 
-        className="prose prose-sm max-w-none"
+        className="w-full"
       />
       <style jsx>{`
         .ProseMirror table {
@@ -364,6 +372,28 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
         
         .ProseMirror li {
           margin: 0.25em 0;
+        }
+        
+        /* Prevent automatic paragraph wrapping in list items */
+        .ProseMirror ul li,
+        .ProseMirror ol li {
+          display: list-item;
+        }
+        
+        .ProseMirror ul li p,
+        .ProseMirror ol li p {
+          display: inline;
+          margin: 0;
+        }
+        
+        /* Remove extra spacing from paragraphs */
+        .ProseMirror p {
+          margin: 0.5em 0;
+        }
+        
+        /* Ensure list items don't get extra wrapper elements */
+        .ProseMirror li > p:only-child {
+          margin: 0;
         }
       `}</style>
     </div>
