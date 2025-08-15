@@ -14,7 +14,7 @@ export function createErrorResponse(error: unknown, customerName: string): never
  * Create a fallback response when AI analysis fails (for backward compatibility)
  * Note: This is deprecated - functions should throw errors instead
  */
-export function createFallbackResponse(customerName: string, scopeItems: string[]): never {
+export function createFallbackResponse(customerName: string): never {
   console.warn('createFallbackResponse is deprecated - functions should throw errors instead');
   throw new Error(`AI analysis failed for ${customerName}: Fallback responses are no longer supported`);
 }

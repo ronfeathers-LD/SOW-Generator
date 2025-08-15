@@ -17,8 +17,6 @@ export class ApprovalWorkflowService {
     try {
       const supabase = createServiceRoleClient();
       
-      console.log('Starting automatic approval workflow for SOW:', config.sowId);
-      
       // Check if approval workflow already exists
       const { data: existingApproval, error: checkError } = await supabase
         .from('sow_approvals')
@@ -33,7 +31,6 @@ export class ApprovalWorkflowService {
       
       // If approval workflow already exists, don't create another one
       if (existingApproval) {
-        console.log('Approval workflow already exists for SOW:', config.sowId);
         return;
       }
       
@@ -52,13 +49,8 @@ export class ApprovalWorkflowService {
       // Validate the SOW before creating approval workflow
       const validation = this.validateSOWForApproval(currentSOW);
       if (!validation.isValid) {
-        console.log('SOW validation failed, cannot start approval workflow:', validation);
-        console.log('Missing fields:', validation.missingFields);
-        console.log('Validation errors:', validation.errors);
-        return; // Don't proceed with approval workflow
+        return;
       }
-      
-      console.log('SOW validation passed, proceeding with approval workflow creation');
       
       // Create the approval record
       const { error: createError } = await supabase
@@ -77,8 +69,6 @@ export class ApprovalWorkflowService {
         console.error('Error creating approval record:', createError);
         throw new Error('Failed to create approval record');
       }
-      
-      console.log('Approval workflow started successfully for SOW:', config.sowId);
       
       // Update SOW status to indicate it's in review
       const { error: statusError } = await supabase
@@ -126,23 +116,21 @@ export class ApprovalWorkflowService {
       const supabase = createServiceRoleClient();
       
       // Get current SOW data
-      const { data: currentSOW, error: sowError } = await supabase
+      const { data: sow, error: sowError } = await supabase
         .from('sows')
         .select('*')
         .eq('id', sowId)
         .single();
       
-      if (sowError || !currentSOW) {
+      if (sowError || !sow) {
         console.error('Error fetching SOW data for status reset:', sowError);
         return;
       }
       
       // If SOW is "in_review" but validation fails, reset to "draft"
-      if (currentSOW.status === 'in_review') {
-        const validation = this.validateSOWForApproval(currentSOW);
+      if (sow.status === 'in_review') {
+        const validation = this.validateSOWForApproval(sow);
         if (!validation.isValid) {
-          console.log('SOW is incorrectly in review status, resetting to draft:', sowId);
-          
           // Reset status to draft
           const { error: resetError } = await supabase
             .from('sows')
@@ -154,8 +142,6 @@ export class ApprovalWorkflowService {
           
           if (resetError) {
             console.error('Error resetting SOW status:', resetError);
-          } else {
-            console.log('SOW status reset to draft successfully:', sowId);
           }
         }
       }
@@ -309,29 +295,21 @@ export class ApprovalWorkflowService {
         
         // If no approvals exist, the SOW shouldn't be in "in_review" status
         if (!approvals || approvals.length === 0) {
-          console.log('❌ Status inconsistency detected: SOW is "in_review" but has no approval workflow');
-          console.log('Resetting SOW status to "draft" for SOW:', sowId);
-          
-          // Reset status to draft
+          // Reset to draft status
           const { error: updateError } = await supabase
             .from('sows')
-            .update({ 
-              status: 'draft',
-              updated_at: new Date().toISOString()
-            })
+            .update({ status: 'draft' })
             .eq('id', sowId);
-          
+
           if (updateError) {
-            console.error('Error resetting SOW status:', updateError);
-          } else {
-            console.log('✅ SOW status reset to "draft" successfully:', sowId);
+            console.error('Error resetting SOW status to draft:', updateError);
           }
         } else {
-          console.log('✅ Status consistency check passed: SOW has valid approval workflow');
+          // SOW has valid approval workflow
         }
       }
     } catch (error) {
-      console.error('Error in status consistency check:', error);
+      console.error('Error checking SOW status consistency:', error);
     }
   }
 }

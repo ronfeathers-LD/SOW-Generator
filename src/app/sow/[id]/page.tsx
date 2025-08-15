@@ -27,16 +27,9 @@ function ValidationSubmitButton({ sow }: { sow: SOW }) {
 
   const checkValidation = useCallback(async () => {
     try {
-      console.log('🔍 Starting validation check for SOW:', sow.id);
-      
       // Use the client-safe validation utility
       const { validateSOWForApproval } = await import('@/lib/validation-utils');
       const validationResult = validateSOWForApproval(sow as unknown as Record<string, unknown>);
-      
-      console.log('✅ Validation result:', validationResult);
-      console.log('🔒 Is valid:', validationResult.isValid);
-      console.log('❌ Missing fields:', validationResult.missingFields);
-      console.log('⚠️ Validation errors:', validationResult.errors);
       
       setValidation(validationResult);
       return validationResult.isValid;
@@ -381,11 +374,11 @@ export default function SOWDetailsPage() {
           }) : [],
                       pricing: {
               roles: Array.isArray(data.pricingRoles) ? data.pricingRoles.map((role: unknown) => {
-                const roleObj = role as { role?: string; ratePerHour?: number; rate?: number; totalHours?: number; hours?: number };
+                const roleObj = role as { role?: string; ratePerHour?: number; rate?: number; totalHours?: number; hours?: number; rate_per_hour?: number; total_hours?: number };
                 return {
                   role: roleObj.role || '',
-                  ratePerHour: roleObj.ratePerHour || roleObj.rate || 0,
-                  totalHours: roleObj.totalHours || roleObj.hours || 0,
+                  ratePerHour: roleObj.ratePerHour || roleObj.rate || roleObj.rate_per_hour || 0,
+                  totalHours: roleObj.totalHours || roleObj.hours || roleObj.total_hours || 0,
                 };
               }) : [],
             billing: data.billingInfo || {
@@ -836,11 +829,9 @@ export default function SOWDetailsPage() {
                 <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold mb-6">2. SCOPE</h2>
                   <SOWScopePage 
-                    deliverables={sow.deliverables} 
-                    projectDescription={sow.projectDescription}
                     customContent={sow.custom_scope_content}
                     customDeliverablesContent={sow.custom_deliverables_content}
-                    isEdited={sow.scope_content_edited || sow.deliverables_content_edited}
+                    isEdited={sow.scope_content_edited}
                   />
                 </div>
 
@@ -924,7 +915,7 @@ export default function SOWDetailsPage() {
                   {/* Pricing Display Component */}
                   <PricingDisplay
                     pricingRoles={Array.isArray(sow.pricing.roles) ? sow.pricing.roles.map(role => ({
-                      role: role.role,
+                      role: role.role || '',
                       ratePerHour: role.ratePerHour || 0,
                       totalHours: role.totalHours || 0,
                       totalCost: (role.ratePerHour || 0) * (role.totalHours || 0)
@@ -933,7 +924,6 @@ export default function SOWDetailsPage() {
                     discountAmount={sow.pricing?.discount_amount || 0}
                     discountPercentage={sow.pricing?.discount_percentage || 0}
                     subtotal={sow.pricing?.subtotal || 0}
-
                     totalAmount={sow.pricing?.total_amount || 0}
                     autoCalculated={sow.pricing?.auto_calculated || false}
                     lastCalculated={sow.pricing?.last_calculated || null}

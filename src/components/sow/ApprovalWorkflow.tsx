@@ -481,12 +481,12 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
 
 
   if (loading) {
-    console.log('🔄 Rendering loading state');
     return (
-      <div className="bg-white shadow rounded-lg p-4">
-        <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded"></div>
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
         </div>
       </div>
     );
@@ -507,72 +507,27 @@ export default function ApprovalWorkflow({ sowId, sowAmount, onStatusChange, sho
     );
   }
 
-  if (!workflow) {
-    console.log('📝 Rendering no workflow state (this is where the debug box should be)');
+  if (!workflow || !workflow.current_stage) {
     return (
-      <div className="bg-white shadow rounded-lg p-4">
-        <h3 className="text-lg font-semibold mb-4">Approval Workflow</h3>
-        <p className="text-gray-600 mb-4">No approval workflow found for this SOW.</p>
-        
-        {/* Debug validation state */}
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs">
-          <p><strong>🔍 Validation Debug Info:</strong></p>
-          <p>Validation state: {validation ? 'Loaded' : 'Not loaded'}</p>
-          <p>Is valid: {validation?.isValid ? 'Yes' : 'No'}</p>
-          <p>Missing fields count: {validation?.missingFields?.length || 0}</p>
-          <p>Validation errors count: {validation?.errors?.length || 0}</p>
-          <p>Button disabled: {submitting || (validation?.isValid === false) ? 'Yes' : 'No'}</p>
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="text-center py-8">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Approval Workflow</h3>
+          <p className="text-gray-600 mb-4">
+            This SOW doesn&apos;t have an active approval workflow yet.
+          </p>
+          {workflow && workflow.approvals?.length === 0 && workflow.current_stage && (
+            <MissingEssentialInfoMessage />
+          )}
+          {workflow && workflow.approvals?.length === 0 && workflow.current_stage && (
+            <button
+              onClick={handleSubmitForApproval}
+              disabled={submitting || (validation?.isValid === false)}
+              className={`bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50`}
+            >
+              {submitting ? 'Submitting...' : 'Submit for Approval'}
+            </button>
+          )}
         </div>
-        
-        <button
-          onClick={handleSubmitForApproval}
-          disabled={submitting || (validation?.isValid === false)}
-          className={`px-4 py-2 rounded transition-colors ${
-            validation?.isValid === false
-              ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-          } disabled:opacity-50`}
-          title={
-            validation?.isValid === false
-              ? `Cannot submit: ${validation.missingFields.length} missing fields, ${validation.errors.length} validation errors`
-              : 'Click to submit SOW for approval'
-          }
-        >
-          {submitting ? 'Submitting...' : 'Submit for Approval'}
-        </button>
-        
-        {/* Show validation errors if button is disabled */}
-        {validation?.isValid === false && (
-          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm">
-            <p className="text-red-800 font-medium mb-2">❌ Cannot Submit for Approval:</p>
-            
-            {validation.missingFields.length > 0 && (
-              <div className="mb-2">
-                <p className="text-red-700 font-medium">Missing Required Fields:</p>
-                <ul className="text-red-600 ml-4 list-disc">
-                  {validation.missingFields.map((field, index) => (
-                    <li key={index}>{field}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {validation.errors.length > 0 && (
-              <div className="mb-2">
-                <p className="text-red-700 font-medium">Validation Errors:</p>
-                <ul className="text-red-600 ml-4 list-disc">
-                  {validation.errors.map((error, index) => (
-                    <li key={index}>{error}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            <p className="text-red-600 text-xs">
-              Complete all required fields above to enable submission for approval.
-            </p>
-          </div>
-        )}
       </div>
     );
   }

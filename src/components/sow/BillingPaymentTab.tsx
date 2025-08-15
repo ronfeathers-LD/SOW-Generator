@@ -87,9 +87,9 @@ export default function BillingPaymentTab({
         const savedRoles = rolesArray.map((role) => ({
           id: Math.random().toString(36).substr(2, 9), // Generate new ID for each role
           role: role.role,
-          ratePerHour: role.rate_per_hour,
-          totalHours: role.total_hours,
-          totalCost: role.rate_per_hour * role.total_hours,
+          ratePerHour: role.ratePerHour || role.rate_per_hour || 0,
+          totalHours: role.totalHours || role.total_hours || 0,
+          totalCost: (role.ratePerHour || role.rate_per_hour || 0) * (role.totalHours || role.total_hours || 0),
         }));
         
         // Simply use the saved roles directly - no need for complex merging
@@ -243,8 +243,9 @@ export default function BillingPaymentTab({
       if (role.role === 'Onboarding Specialist') {
         return {
           ...role,
+          ratePerHour: 200, // Set the base rate for Onboarding Specialist
           totalHours: totalProjectHours,
-          totalCost: role.ratePerHour * totalProjectHours,
+          totalCost: 200 * totalProjectHours,
         };
       }
       return role;

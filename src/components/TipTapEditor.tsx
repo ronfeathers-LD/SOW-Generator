@@ -31,8 +31,21 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
     
     // If it's already HTML, return as is - don't modify it
     if (isHtmlContent(html)) {
+      // Additional check: if it contains proper list structure, return unchanged
+      if (html.includes('<ul>') && html.includes('<li>')) {
+        console.log('TipTap: Preserving HTML list content unchanged:', html.substring(0, 100) + '...');
+        return html;
+      }
+      if (html.includes('<ol>') && html.includes('<li>')) {
+        console.log('TipTap: Preserving HTML ordered list content unchanged:', html.substring(0, 100) + '...');
+        return html;
+      }
+      // For other HTML content, return as is
+      console.log('TipTap: Preserving other HTML content unchanged:', html.substring(0, 100) + '...');
       return html;
     }
+    
+    console.log('TipTap: Processing plain text content:', html.substring(0, 100) + '...');
     
     // If it's plain text, convert to basic HTML but be conservative
     return html
@@ -87,7 +100,17 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
     content: cleanHtmlForTipTap(value),
     onUpdate: ({ editor }) => {
       if (!initializing && !isSettingContent.current && onChange) {
-        onChange(editor.getHTML());
+        // Get the HTML from TipTap
+        let html = editor.getHTML();
+        
+        // Clean up unwanted paragraph tags that TipTap adds around list items
+        // This happens because TipTap internally wraps list item content in paragraphs
+        html = html.replace(/<p>(<li[^>]*>.*?<\/li>)<\/p>/g, '$1');
+        
+        // Also clean up any empty paragraphs that might be left
+        html = html.replace(/<p><\/p>/g, '');
+        
+        onChange(html);
       }
     },
     editorProps: {

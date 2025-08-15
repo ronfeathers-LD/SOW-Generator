@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { SOWData } from '@/types/sow';
 import { getContentTemplate } from '@/lib/sow-content';
 import { createAllContentHandlers } from '@/lib/utils/contentHandlers';
@@ -27,9 +27,12 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
   const [initializing, setInitializing] = useState(true);
   const [activeSection, setActiveSection] = useState('intro');
   const [saving, setSaving] = useState<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState<{ [key: string]: 'success' | 'error' | null }>({});
-  const [unsavedChanges, setUnsavedChanges] = useState<{ [key: string]: boolean }>({});
+  const [saveStatus, setSaveStatus] = useState<Record<string, 'success' | 'error' | null>>({});
+  const [unsavedChanges, setUnsavedChanges] = useState<Record<string, boolean>>({});
   const [initializedSections, setInitializedSections] = useState<Set<string>>(new Set());
+  
+  // Ref to track when we need to notify parent after save
+  const shouldNotifyParent = useRef(false);
 
   useEffect(() => {
     async function loadTemplates() {
@@ -130,6 +133,14 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     }
   }, [unsavedChanges, onUnsavedChanges, loading, initializing]);
 
+  // Effect to notify parent after successful save
+  useEffect(() => {
+    if (shouldNotifyParent.current && onUnsavedChanges) {
+      onUnsavedChanges(false); // No unsaved changes after successful save
+      shouldNotifyParent.current = false;
+    }
+  }, [unsavedChanges, onUnsavedChanges]);
+
   // Create all content handlers using the factory
   const templates = {
     originalIntroTemplate,
@@ -215,15 +226,11 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
         // Clear unsaved changes for this section
         setUnsavedChanges(prev => {
           const newState = { ...prev, [sectionName]: false };
-          
-          // Notify parent component that unsaved changes have been updated
-          if (onUnsavedChanges) {
-            const anyUnsavedChanges = Object.values(newState).some(Boolean);
-            onUnsavedChanges(anyUnsavedChanges);
-          }
-          
           return newState;
         });
+        
+        // Mark that we need to notify parent after state update
+        shouldNotifyParent.current = true;
         setTimeout(() => {
           setSaveStatus({ ...saveStatus, [sectionName]: null });
         }, 3000);

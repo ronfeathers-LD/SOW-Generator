@@ -216,7 +216,7 @@ function SectionEditor({ section, template, onSave, saving }: SectionEditorProps
         is_active: template.is_active ?? true,
       });
     }
-  }, [template?.id, template?.default_content, template?.sort_order, template?.is_active, section.id, section.name, section.description, saving]);
+  }, [template, section.id, section.name, section.description, saving]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

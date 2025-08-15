@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { SOWData } from '@/types/sow';
 import { SalesforceContact } from '@/lib/salesforce';
 
@@ -82,66 +82,46 @@ export default function TeamRolesTab({
     await loadContacts(selectedAccount.id);
   };
 
-  const handleContactSelected = async (contact: SalesforceContact | null) => {
-    console.log('handleContactSelected called with:', contact);
-    console.log('formData.id:', formData.id);
-    
-    if (contact) {
-      // Update local form data for customer signer
-      setFormData({
-        ...formData,
-        template: {
-          ...(formData.template || {}),
-          customer_email: contact.Email || '',
-          customer_signature_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
-          customer_signature: contact.Title || '',
-        } as any,
-        // Also store the Salesforce contact ID
-        salesforce_contact_id: contact.Id,
+  const handleContactSelected = useCallback(async (contact: SalesforceContact) => {
+    if (!formData.id) {
+      console.error('No SOW ID available');
+      return;
+    }
+
+    // Update form data with selected contact
+    const updatedFormData = {
+      ...formData,
+      template: {
+        ...formData.template!,
+        customer_signature: contact.Title || '',
+        customer_email: contact.Email || ''
+      }
+    };
+    setFormData(updatedFormData);
+
+    // Save to database
+    try {
+      const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tab: 'Team & Roles',
+          template: {
+            customer_signature: contact.Title || '',
+            customer_email: contact.Email || ''
+          }
+        })
       });
 
-      // Asynchronously save the Customer Signer selection via tab-update
-      if (formData.id) {
-        try {
-          console.log('Making API call to save Customer Signer...');
-          const requestBody = {
-            tab: 'Team & Roles',
-            data: {
-              template: {
-                customer_signature_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
-                customer_email: contact.Email || '',
-                customer_signature: contact.Title || '',
-              },
-              salesforce_contact_id: contact.Id
-            }
-          };
-          console.log('Request body:', requestBody);
-          
-          const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody),
-          });
-
-          if (!response.ok) {
-            console.error('Failed to save Customer Signer, status:', response.status);
-            const errorText = await response.text();
-            console.error('Error response:', errorText);
-          } else {
-            console.log('Customer Signer saved successfully');
-          }
-        } catch (error) {
-          console.error('Error saving Customer Signer:', error);
-        }
-      } else {
-        console.warn('No formData.id available, skipping save');
+      if (!response.ok) {
+        throw new Error(`Failed to save customer signer: ${response.statusText}`);
       }
-
-      setShowSignerContactSelection(false);
+    } catch (error) {
+      console.error('Error saving customer signer:', error);
     }
-  };
+  }, [formData, setFormData]);
 
   const handleSecondSignerContactSelected = async (contact: SalesforceContact) => {
     // Update local form data for second signer
@@ -158,7 +138,6 @@ export default function TeamRolesTab({
     // Asynchronously save the Second Customer Signer selection via tab-update
     if (formData.id) {
       try {
-        console.log('Making API call to save Second Customer Signer...');
         const requestBody = {
           tab: 'Team & Roles',
           data: {
@@ -169,7 +148,6 @@ export default function TeamRolesTab({
             }
           }
         };
-        console.log('Request body:', requestBody);
         
                   const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
             method: 'PUT',
@@ -183,8 +161,6 @@ export default function TeamRolesTab({
           console.error('Failed to save Second Customer Signer, status:', response.status);
           const errorText = await response.text();
           console.error('Error response:', errorText);
-        } else {
-          console.log('Second Customer Signer saved successfully');
         }
       } catch (error) {
         console.error('Error saving Second Customer Signer:', error);
@@ -309,7 +285,6 @@ export default function TeamRolesTab({
     // Try to save billing contact selection via tab-update
     if (formData.id) {
       try {
-        console.log('Making API call to save billing contact...');
         const requestBody = {
           tab: 'Team & Roles',
           data: {
@@ -319,7 +294,6 @@ export default function TeamRolesTab({
             }
           }
         };
-        console.log('Request body:', requestBody);
         
         const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
           method: 'PUT',
@@ -333,13 +307,9 @@ export default function TeamRolesTab({
           console.warn('Failed to save billing contact immediately, status:', response.status);
           const errorText = await response.text();
           console.warn('Error response:', errorText);
-          console.log('Billing contact will be saved when you navigate to another tab');
-        } else {
-          console.log('Billing contact saved successfully');
         }
       } catch (error) {
         console.warn('Error saving billing contact immediately:', error);
-        console.log('Billing contact will be saved when you navigate to another tab');
       }
     }
 

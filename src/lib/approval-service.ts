@@ -95,23 +95,18 @@ export class ApprovalService {
         throw new Error('Failed to fetch approvals');
       }
 
-            // Super simple: No complex stages needed
-      const stages: ApprovalStage[] = [];
-      console.log('Using super simple approval system - no complex stages needed');
+      // Super simple: No complex stages needed
       
-      // Determine workflow state
-      const workflowState = this.determineWorkflowState(approvals || [], stages || []);
+      // Determine current stage and workflow state
+      const workflowState = this.determineWorkflowState(approvals);
       
-      // Debug user role and permissions
-      console.log('User details:', { email: user.email, role: user.role, id: user.id });
-      
+      // Calculate user permissions for the current stage
       const permissions = this.calculatePermissions(workflowState.currentStage, user);
-      console.log('Calculated permissions:', permissions);
-
+      
       return {
         sow_id: sowId,
         current_stage: workflowState.currentStage || undefined,
-        approvals: approvals || [],
+        approvals,
         can_approve: permissions.canApprove,
         can_reject: permissions.canReject,
         can_skip: permissions.canSkip,
@@ -255,8 +250,6 @@ export class ApprovalService {
               'approved',
               comments
             );
-            
-            console.log('Slack notification sent for SOW approval:', sowId);
           }
           // Note: We don't send notifications for reject/skip to reduce noise
         }
@@ -302,45 +295,40 @@ export class ApprovalService {
       const validation = validateSOWForApproval(sow);
 
       if (!validation.isValid) {
-        console.log('❌ SOW validation failed in startWorkflow, cannot create approval workflow');
-        console.log('Missing fields:', validation.missingFields);
-        console.log('Validation errors:', validation.errors);
-        throw new Error(`Cannot start approval workflow: SOW validation failed. Missing: ${validation.missingFields.join(', ')}. Errors: ${validation.errors.join(', ')}`);
+        return;
       }
-
-      console.log('✅ SOW validation passed in startWorkflow, proceeding with approval workflow creation');
 
       // Get required stages based on rules and amount
       const requiredStages = await this.getRequiredStages(sowAmount);
 
-          // Create approval records
-    const approvalRecords = requiredStages.map(stageId => ({
-      sow_id: sowId,
-      stage_id: stageId,
-      status: 'pending',
-      version: 1
-    }));
+      // Create approval records
+      const approvalRecords = requiredStages.map(stageId => ({
+        sow_id: sowId,
+        stage_id: stageId,
+        status: 'pending',
+        version: 1
+      }));
 
-    const { data: createdApprovals, error: insertError } = await supabase
-      .from('sow_approvals')
-      .insert(approvalRecords)
-      .select();
+      const { data: createdApprovals, error: insertError } = await supabase
+        .from('sow_approvals')
+        .insert(approvalRecords)
+        .select();
 
-    if (insertError) {
-      throw new Error('Failed to create approval workflow');
-    }
+      if (insertError) {
+        throw new Error('Failed to create approval workflow');
+      }
 
-    // Log workflow start for each approval (don't fail if audit logging fails)
-    if (createdApprovals) {
-      for (const approval of createdApprovals) {
-        try {
-          await AuditService.logWorkflowStarted(sowId, approval.id, approval.stage_id);
-        } catch (auditError) {
-          console.error('Audit logging failed for workflow start, but workflow was created:', auditError);
-          // Don't throw here as audit logging is not critical to the workflow creation
+      // Log workflow start for each approval (don't fail if audit logging fails)
+      if (createdApprovals) {
+        for (const approval of createdApprovals) {
+          try {
+            await AuditService.logWorkflowStarted(sowId, approval.id, approval.stage_id);
+          } catch (auditError) {
+            console.error('Audit logging failed for workflow start, but workflow was created:', auditError);
+            // Don't throw here as audit logging is not critical to the workflow creation
+          }
         }
       }
-    }
 
       // Update SOW status to in_review
       const { error: updateError } = await supabase
@@ -374,8 +362,6 @@ export class ApprovalService {
             'System',
             sowAmount
           );
-          
-          console.log('Slack notification sent for SOW submitted for approval:', sowId);
         }
       } catch (slackError) {
         console.error('Slack notification failed for workflow start, but workflow was created:', slackError);
@@ -391,11 +377,7 @@ export class ApprovalService {
   /**
    * Determine the current workflow state
    */
-  private static determineWorkflowState(approvals: SOWApproval[], stages: ApprovalStage[]) {
-    console.log('determineWorkflowState called with:');
-    console.log('  approvals:', approvals);
-    console.log('  stages:', stages);
-    
+  private static determineWorkflowState(approvals: SOWApproval[]) {
     // Super simple: Just check if there's any approval
     const hasApproval = approvals.some(approval => approval.status === 'approved');
     const hasRejection = approvals.some(approval => approval.status === 'rejected');
@@ -427,11 +409,8 @@ export class ApprovalService {
     // Simple role-based permissions
     const userRole = user.role;
     
-    console.log('calculatePermissions called with:', { userRole, currentStage: currentStage?.name });
-    
     // Admin and Manager can approve/reject
     if (userRole === 'admin' || userRole === 'manager') {
-      console.log('User has approval permissions');
       return {
         canApprove: true,
         canReject: true,
@@ -440,7 +419,6 @@ export class ApprovalService {
     }
     
     // Regular users cannot approve
-    console.log('User does not have approval permissions');
     return {
       canApprove: false,
       canReject: false,

@@ -299,8 +299,6 @@ Please provide a professional, 2-3 sentence project description that captures th
       .limit(1)
       .single();
 
-    let finalPrompt: string;
-
     if (promptError || !aiPrompt?.prompt_content) {
       console.error('Failed to fetch AI prompt from database:', promptError);
       throw new Error('Failed to fetch AI prompt from database. Please check the prompt configuration.');
@@ -317,7 +315,7 @@ Please provide a professional, 2-3 sentence project description that captures th
     }
     
     // Use the prompt from the database, replacing placeholders
-    finalPrompt = aiPrompt.prompt_content
+    const finalPrompt = aiPrompt.prompt_content
       .replace(/\{customerName\}/g, customerName)
       .replace(/\{transcription\}/g, transcript)
       .replace(/\{selectedProducts\}/g, selectedProducts ? selectedProducts.join(', ') : '')
@@ -340,7 +338,6 @@ Please provide a professional, 2-3 sentence project description that captures th
   ): Promise<TranscriptionAnalysisResponse> {
     const startTime = Date.now();
     let geminiResponse = '';
-    let parsedResult: Record<string, unknown> | undefined;
     let error: Error | undefined;
 
     try {
@@ -379,7 +376,7 @@ Please provide a professional, 2-3 sentence project description that captures th
             const parsed = JSON.parse(cleanedContent);
             console.log('AI response parsed successfully');
             return parsed as TranscriptionAnalysisResponse;
-          } catch (jsonError) {
+          } catch {
             console.log('JSON parsing failed, trying HTML processing');
             // Fall through to HTML processing
           }
@@ -414,7 +411,7 @@ Please provide a professional, 2-3 sentence project description that captures th
           transcript,
           prompt,
           geminiResponse,
-          parsedResult,
+          undefined, // No parsed result for this endpoint
           error,
           this.modelName,
           'API_KEY_PLACEHOLDER',

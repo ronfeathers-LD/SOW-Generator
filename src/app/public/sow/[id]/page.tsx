@@ -193,8 +193,6 @@ export default function PublicSOWPage() {
           isEdited={sow.intro_content_edited}
         />
         <SOWScopePage 
-          deliverables={sow.deliverables}
-          projectDescription={sow.projectDescription}
           customContent={sow.custom_scope_content}
           customDeliverablesContent={sow.custom_deliverables_content}
           isEdited={sow.scope_content_edited || sow.deliverables_content_edited}

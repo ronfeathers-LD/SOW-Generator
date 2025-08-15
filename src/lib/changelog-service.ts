@@ -99,18 +99,11 @@ export class ChangelogService {
     userId?: string
   ): Promise<void> {
     try {
-      console.log('💾 ChangelogService.logChanges called');
-      console.log('📝 SOW ID:', sowId);
-      console.log('👤 User ID:', userId);
-      console.log('🔄 Number of changes:', changes.length);
-      
       if (changes.length === 0) {
-        console.log('⚠️  No changes to log, returning early');
         return;
       }
 
       // Get current SOW version
-      console.log('🔍 Fetching SOW version info...');
       const { data: sow, error: sowError } = await supabase
         .from('sows')
         .select('version, parent_id')
@@ -121,8 +114,6 @@ export class ChangelogService {
         console.error('❌ Error fetching SOW version:', sowError);
         return;
       }
-
-      console.log('📊 SOW version info:', sow);
 
       const changelogEntries = changes.map(change => ({
         sow_id: sowId,
@@ -138,19 +129,14 @@ export class ChangelogService {
         parent_version_id: sow?.parent_id
       }));
 
-      console.log('📝 Prepared changelog entries:', changelogEntries);
-
-      console.log('💾 Inserting into sow_changelog table...');
-      const { data: insertResult, error } = await supabase
+      // Insert into sow_changelog table
+      const { error } = await supabase
         .from('sow_changelog')
         .insert(changelogEntries)
         .select();
 
       if (error) {
         console.error('❌ Error logging changes:', error);
-      } else {
-        console.log('✅ Successfully logged changes to database');
-        console.log('📊 Insert result:', insertResult);
       }
     } catch (error) {
       console.error('❌ Error in changelog service:', error);
@@ -422,10 +408,6 @@ export class ChangelogService {
     userId?: string,
     metadata?: Record<string, unknown>
   ): Promise<void> {
-    console.log('🔄 ChangelogService.compareSOWs called for SOW:', sowId);
-    console.log('👤 User ID:', userId);
-    console.log('📊 Metadata:', metadata);
-    
     const changes: ChangeDiff[] = [];
     
     // Get all unique field names from both objects
@@ -434,39 +416,24 @@ export class ChangelogService {
       ...Object.keys(newSOW)
     ]));
 
-    console.log('🔍 Total fields found:', allFields.length);
-    console.log('📝 All fields:', allFields);
-
     // Filter out internal/system fields that we don't want to track
     const excludedFields = new Set([
       'id', 'created_at', 'updated_at', 'is_latest', 'parent_id', 'version',
       'author_id', 'salesforce_account_id', 'salesforce_contact_id'
     ]);
 
-    console.log('🚫 Excluded fields:', Array.from(excludedFields));
-
     for (const field of allFields) {
       // Skip excluded fields
       if (excludedFields.has(field)) {
-        console.log(`⏭️  Skipping excluded field: ${field}`);
         continue;
       }
 
       const prevValue = previousSOW[field];
       const newValue = newSOW[field];
 
-      console.log(`🔍 Checking field: ${field}`);
-      console.log(`   Previous value:`, prevValue);
-      console.log(`   New value:`, newValue);
-      console.log(`   Has changed:`, this.hasChanged(prevValue, newValue));
-
       if (this.hasChanged(prevValue, newValue)) {
         const changeType = this.getChangeType(field);
         const diffSummary = this.generateDiffSummary(field, this.valueToString(prevValue), this.valueToString(newValue), changeType);
-        
-        console.log(`✅ Field changed: ${field}`);
-        console.log(`   Change type: ${changeType}`);
-        console.log(`   Diff summary: ${diffSummary}`);
         
         changes.push({
           field_name: field,
@@ -476,17 +443,11 @@ export class ChangelogService {
           diff_summary: diffSummary,
           metadata
         });
-      } else {
-        console.log(`❌ No change detected for field: ${field}`);
       }
     }
 
-    console.log(`📊 Total changes detected: ${changes.length}`);
     if (changes.length > 0) {
-      console.log('📝 Changes to log:', changes);
       await this.logChanges(sowId, changes, userId);
-    } else {
-      console.log('⚠️  No changes to log');
     }
   }
 
