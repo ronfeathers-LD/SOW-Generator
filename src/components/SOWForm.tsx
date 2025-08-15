@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { SOWData, SOWTemplate, BillingInfo } from '@/types/sow';
+import { SOWData, SOWTemplate } from '@/types/sow';
 import { SalesforceContact } from '@/lib/salesforce';
 import ProjectOverviewTab from './sow/ProjectOverviewTab';
 import CustomerInformationTab from './sow/CustomerInformationTab';
@@ -264,7 +264,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   const [selectedLeanDataSignatory, setSelectedLeanDataSignatory] = useState<string>('');
   const [selectedAccount, setSelectedAccount] = useState<{ id: string; name: string } | null>(null);
   const [selectedContact, setSelectedContact] = useState<SalesforceContact | null>(null);
-  const [selectedBillingContact, setSelectedBillingContact] = useState<SalesforceContact | null>(null);
+
   const [selectedOpportunity, setSelectedOpportunity] = useState<{
     id: string;
     name: string;
@@ -394,30 +394,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         });
       }
 
-      // Set selected billing contact if billing contact information exists
-      const hasBillingContactInfo = initialData.template?.billing_contact_name || 
-                                   initialData.pricing?.billing?.billing_contact ||
-                                   initialData.template?.billing_email ||
-                                   initialData.pricing?.billing?.billing_email;
-      
-      if (hasBillingContactInfo) {
-        const fullName = initialData.pricing?.billing?.billing_contact || initialData.template?.billing_contact_name || '';
-        const nameParts = fullName.trim().split(' ');
-        const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : '';
-        const lastName = nameParts.length > 0 ? nameParts[nameParts.length - 1] : fullName;
-        
-        const billingContactData = {
-          Id: '', // We don't store billing contact ID, so leave empty
-          FirstName: firstName,
-          LastName: lastName,
-          Email: initialData.pricing?.billing?.billing_email || initialData.template?.billing_email || '',
-          Title: '',
-          AccountId: initialData.salesforce_account_id || '',
-          Account: { Name: initialData.template?.customer_name || initialData.header?.client_name || '' }
-        };
-        
-        setSelectedBillingContact(billingContactData);
-      }
+
       
       // Set form data for second signer if it exists
       if (initialData.template?.customer_signature_name_2) {
@@ -576,47 +553,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
 
 
-  const handleBillingContactSelectedFromSalesforce = async (contact: SalesforceContact | null) => {
-    setSelectedBillingContact(contact);
-    
-    if (contact) {
-      // Auto-populate billing contact information
-      setFormData({
-        ...formData,
-        template: {
-          ...formData.template!,
-          billing_contact_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
-          billing_email: contact.Email || '',
-        },
-        pricing: {
-          ...(formData.pricing || {}),
-          billing: {
-            ...(formData.pricing?.billing || {}),
-            billing_contact: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
-            billing_email: contact.Email || '',
-          } as BillingInfo
-        } as { roles: { role: string; rate_per_hour: number; total_hours: number; }[]; billing: BillingInfo }
-      });
-    } else {
-      // Clear billing contact information when deselected
-      setFormData({
-        ...formData,
-        template: {
-          ...formData.template,
-          billing_contact_name: '',
-          billing_email: '',
-        } as SOWTemplate,
-        pricing: {
-          ...formData.pricing,
-          billing: {
-            ...formData.pricing?.billing,
-            billing_contact: '',
-            billing_email: '',
-          } as BillingInfo
-        } as { roles: { role: string; rate_per_hour: number; total_hours: number; }[]; billing: BillingInfo }
-      });
-    }
-  };
+
 
   // Helper function to generate Salesforce record links
   const getSalesforceLink = (recordId: string) => {
@@ -1114,10 +1051,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         <BillingPaymentTab
           formData={formData}
           setFormData={updateFormData}
-          selectedAccountId={selectedAccount?.id}
-          selectedAccount={selectedAccount}
-          selectedBillingContact={selectedBillingContact}
-          onBillingContactSelectedFromSalesforce={handleBillingContactSelectedFromSalesforce}
         />
       )}
 
