@@ -3,7 +3,6 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ChangelogService } from '@/lib/changelog-service';
-import { ApprovalWorkflowService } from '@/lib/approval-workflow-service';
 
 export async function PUT(
   request: Request,
@@ -43,7 +42,7 @@ export async function PUT(
           if (data.template.units_consumption !== undefined) updateData.units_consumption = data.template.units_consumption;
           
           // Handle BookIt Family Units
-          if (data.template.orchestration_units !== undefined) updateData.orchestration_units = data.template.orchestration_units;
+          if (data.template.number_of_units !== undefined) updateData.orchestration_units = data.template.number_of_units;
           if (data.template.bookit_forms_units !== undefined) updateData.bookit_forms_units = data.template.bookit_forms_units;
           if (data.template.bookit_links_units !== undefined) updateData.bookit_links_units = data.template.bookit_links_units;
           if (data.template.bookit_handoff_units !== undefined) updateData.bookit_handoff_units = data.template.bookit_handoff_units;
@@ -111,7 +110,7 @@ export async function PUT(
           if (data.template.customer_signature_name_2 !== undefined) updateData.customer_signature_name_2 = data.template.customer_signature_name_2;
           if (data.template.customer_signature_2 !== undefined) updateData.customer_signature_2 = data.template.customer_signature_2;
           if (data.template.customer_email_2 !== undefined) updateData.customer_email_2 = data.template.customer_email_2;
-          if (data.template.customer_signature_date_2 !== undefined) updateData.customer_signature_date_2 = data.template.customer_signature_date_2;
+
           // Billing contact information - store in billing_info JSONB field
           if (data.template.billing_contact_name !== undefined || data.template.billing_email !== undefined ||
               data.template.billing_company_name !== undefined || data.template.billing_address !== undefined ||
@@ -248,26 +247,6 @@ export async function PUT(
     } catch (changelogError) {
       console.error('❌ Error logging changes to changelog:', changelogError);
       // Don't fail the main operation if changelog logging fails
-    }
-
-    // Check if approval workflow should be started after this update
-    try {
-      // IMPORTANT: Validate the SOW before attempting to start approval workflow
-      const validation = ApprovalWorkflowService.validateSOWForApproval(updatedSOW);
-      
-      if (validation.isValid) {
-        const session = await getServerSession(authOptions);
-        await ApprovalWorkflowService.startApprovalWorkflow({
-          sowId: updatedSOW.id,
-          sowTitle: updatedSOW.sow_title || 'Untitled SOW',
-          clientName: updatedSOW.client_name || 'Unknown Client',
-          authorId: session?.user?.id || '',
-          authorEmail: session?.user?.email || ''
-        });
-      }
-    } catch (workflowError) {
-      console.error('Error starting approval workflow after tab update:', workflowError);
-      // Don't fail the main operation if approval workflow fails
     }
 
     return NextResponse.json({ 

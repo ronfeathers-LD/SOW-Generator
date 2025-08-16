@@ -11,8 +11,8 @@ import SOWOutOfScopePage from '@/components/sow/SOWOutOfScopePage';
 import SOWAssumptionsPage from '@/components/sow/SOWAssumptionsPage';
 import SOWProjectPhasesPage from '@/components/sow/SOWProjectPhasesPage';
 import SOWRolesPage from '@/components/sow/SOWRolesPage';
-import ApprovalWorkflow from '@/components/sow/ApprovalWorkflow';
 import PricingDisplay from '@/components/sow/PricingDisplay';
+import SimpleApproval from '@/components/sow/SimpleApproval';
 import { useSession } from 'next-auth/react';
 import { getStatusColor, getStatusLabel } from '@/lib/utils/statusUtils';
 
@@ -49,17 +49,24 @@ function ValidationSubmitButton({ sow }: { sow: SOW }) {
       }
 
       setSubmitting(true);
-      const response = await fetch(`/api/sow/${sow.id}/approvals`, {
-        method: 'POST',
+      
+      // Simply update the SOW status to 'in_review'
+      const response = await fetch(`/api/sow/${sow.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          sow_amount: ((sow.pricing as Record<string, unknown>)?.roles as Array<Record<string, unknown>> || []).reduce((total: number, role: Record<string, unknown>) => total + ((role.ratePerHour as number) * (role.totalHours as number)), 0)
+          status: 'in_review',
+          updated_at: new Date().toISOString()
         }),
       });
 
       if (response.ok) {
+        console.log('✅ SOW submitted for review successfully!');
+        // Show success message
+        alert('SOW submitted for review successfully!');
+        // Refresh the page to show the updated status
         window.location.reload();
       } else {
         const error = await response.text();
@@ -209,15 +216,14 @@ interface SOW {
   customer_signature_name_2?: string;
   customer_signature_2?: string;
   customer_email_2?: string;
-  customer_signature_date_2?: string;
+
   // Project Details
   products?: string[];
   number_of_units?: string;
   regions?: string;
   salesforce_tenants?: string;
   timeline_weeks?: string;
-  project_start_date?: string;
-  project_end_date?: string;
+
   units_consumption?: string;
   
   // BookIt Family Units
@@ -259,6 +265,11 @@ interface SOW {
     customer_signature?: string;
     customer_email?: string;
   };
+
+  // Approval/Rejection fields
+  approved_at?: string;
+  rejected_at?: string;
+  approval_comments?: string;
 }
 
 interface SOWVersion {
@@ -326,7 +337,7 @@ export default function SOWDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creatingVersion, setCreatingVersion] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
 
@@ -420,7 +431,7 @@ export default function SOWDetailsPage() {
           customer_signature_name_2: data.template?.customer_signature_name_2 || undefined,
           customer_signature_2: data.template?.customer_signature_2 || undefined,
           customer_email_2: data.template?.customer_email_2 || undefined,
-          customer_signature_date_2: data.template?.customer_signature_date_2 || undefined,
+
           salesforceAccountId: data.salesforce_account_id || undefined,
           
           // Template fields for billing and customer information
@@ -451,12 +462,11 @@ export default function SOWDetailsPage() {
           regions: data.template?.regions || data.regions || '',
           salesforce_tenants: data.template?.salesforce_tenants || data.salesforce_tenants || '',
           timeline_weeks: data.template?.timeline_weeks || data.timeline_weeks || '',
-          project_start_date: data.template?.start_date || data.project_start_date || '',
-          project_end_date: data.template?.end_date || data.project_end_date || '',
+
           units_consumption: data.template?.units_consumption || data.units_consumption || '',
           
           // BookIt Family Units
-          orchestration_units: data.template?.orchestration_units || data.orchestration_units || '',
+          orchestration_units: data.template?.number_of_units || data.orchestration_units || '',
           bookit_forms_units: data.template?.bookit_forms_units || data.bookit_forms_units || '',
           bookit_links_units: data.template?.bookit_links_units || data.bookit_links_units || '',
           bookit_handoff_units: data.template?.bookit_handoff_units || data.bookit_handoff_units || '',
@@ -469,7 +479,12 @@ export default function SOWDetailsPage() {
           roles_content_edited: data.roles_content_edited || false,
           deliverables_content_edited: data.deliverables_content_edited || false,
           objective_overview_content_edited: data.objective_overview_content_edited || false,
-          key_objectives_content_edited: data.key_objectives_content_edited || false
+          key_objectives_content_edited: data.key_objectives_content_edited || false,
+
+          // Approval/Rejection fields
+          approved_at: data.approved_at || undefined,
+          rejected_at: data.rejected_at || undefined,
+          approval_comments: data.approval_comments || undefined,
         };
         
         setSOW(parsedData);
@@ -546,46 +561,7 @@ export default function SOWDetailsPage() {
 
 
 
-  const handleHide = async () => {
-    if (!sow) return;
 
-    // Enhanced confirmation dialog
-    const confirmMessage = `Are you sure you want to hide "${sow.sowTitle}"?\n\n` +
-      `Status: ${sow.status}\n` +
-      `This action will hide this SOW and all its versions from the system.\n` +
-      `The data will be preserved but will no longer be visible.\n\n` +
-      `Type "HIDE" to confirm:`;
-    
-    const userInput = prompt(confirmMessage);
-    if (userInput !== 'HIDE') {
-      return;
-    }
-
-    setDeleting(true);
-    try {
-      const response = await fetch(`/api/sow/${params.id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to hide SOW');
-      }
-
-      const result = await response.json();
-      
-      // Show success message
-      alert(`SOW "${sow.sowTitle}" hidden successfully${result.hiddenVersions ? ` along with ${result.hiddenVersions} version(s)` : ''}.`);
-
-      // Redirect to the SOW list page
-      router.push('/sow');
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to hide SOW';
-      setError(errorMessage);
-      alert(`Error: ${errorMessage}`);
-      setDeleting(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -692,20 +668,6 @@ export default function SOWDetailsPage() {
 
             {/* Action Buttons */}
             <div className="mb-8 flex justify-end space-x-4">
-              {/* Delete Button - Always visible for admins */}
-              {isAdmin && (
-                <button
-                  onClick={handleHide}
-                  disabled={deleting}
-                  className="inline-flex items-center px-4 py-2 border border-red-600 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Delete SOW from the system"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  {deleting ? 'Deleting...' : 'Delete SOW'}
-                </button>
-              )}
               {isEditable && (
                 <Link
                   href={`/sow/${params.id}/edit`}
@@ -733,22 +695,7 @@ export default function SOWDetailsPage() {
                   This version is {sow.status === 'approved' ? 'approved' : 'rejected'} and cannot be modified. Create a new version to make changes.
                 </div>
               )}
-              {/* Legacy Hide SOW button - keeping for backward compatibility */}
-              {sow.status !== 'approved' && (
-                <button
-                  onClick={handleHide}
-                  disabled={deleting}
-                  className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Hide SOW from the system"
-                >
-                  {deleting ? 'Hiding...' : 'Hide SOW'}
-                </button>
-              )}
-              {sow.status === 'approved' && (
-                <span className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-50 cursor-not-allowed" title="Approved SOWs cannot be hidden">
-                  Hide SOW
-                </span>
-              )}
+
             </div>
 
             {/* Two Column Layout */}
@@ -771,7 +718,7 @@ export default function SOWDetailsPage() {
                       name: sow.customer_signature_name_2,
                       title: sow.customer_signature_2 || '',
                       email: sow.customer_email_2 || '',
-                      date: sow.customer_signature_date_2 || ''
+                      date: ''
                     } : undefined}
                     leandataSignature={{
                       name: "Agam Vasani",
@@ -812,8 +759,8 @@ export default function SOWDetailsPage() {
                       regions: sow.regions || '',
                       salesforce_tenants: sow.salesforce_tenants || '',
                       timeline_weeks: sow.timeline_weeks || '',
-                      start_date: sow.project_start_date ? new Date(sow.project_start_date) : new Date(sow.startDate),
-                      end_date: sow.project_end_date ? new Date(sow.project_end_date) : null,
+                      start_date: new Date(sow.startDate),
+                      end_date: null,
                       units_consumption: sow.units_consumption || '',
                       orchestration_units: sow.orchestration_units || '',
                       bookit_forms_units: sow.bookit_forms_units || '',
@@ -1036,37 +983,107 @@ export default function SOWDetailsPage() {
                 )} {/* Close sow-content-to-export */}
               </div> {/* Close lg:col-span-2 */}
 
-              {/* Approval Workflow - Right Column (1/3 width) */}
-              {isAdmin && (
-                <div className="lg:col-span-1">
-                  <div className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
-                    {sow.status === 'in_review' || sow.status === 'approved' || sow.status === 'rejected' ? (
-                      // Show full approval workflow with comments for SOWs in review
-                      <ApprovalWorkflow 
-                        sowId={sow.id} 
-                        sowAmount={sow.pricing?.roles?.reduce((total, role) => total + (role.ratePerHour * role.totalHours), 0)}
-                        showApprovalActions={true}
-                        onStatusChange={() => {
-                          // Refresh the SOW data when approval status changes
-                          window.location.reload();
-                        }}
-                      />
-                    ) : (
-                      // Show submit for review button for SOWs not in review
-                      <div className="bg-white shadow rounded-lg p-4">
-                        <h3 className="text-lg font-semibold mb-4">Approval Workflow</h3>
+              {/* Status and Actions - Right Column (1/3 width) */}
+              <div className="lg:col-span-1">
+                <div className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
+                  <div className="bg-white shadow rounded-lg p-4">
+                    <h3 className="text-lg font-semibold mb-4">SOW Status</h3>
+                    <div className="mb-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        sow.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                        sow.status === 'in_review' ? 'bg-blue-100 text-blue-800' :
+                        sow.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        sow.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {sow.status?.toUpperCase() || 'DRAFT'}
+                      </span>
+                    </div>
+                    
+                    {sow.status === 'draft' && (
+                      <>
                         <p className="text-gray-600 mb-4">
-                          This SOW is currently in <span className="font-medium">{sow.status}</span> status. 
-                          Submit it for review to start the approval process.
+                          This SOW is currently in draft status. Submit it for review when ready.
                         </p>
                         
-                        {/* Validation check and button */}
+                        {/* Validation check and button - anyone can submit */}
                         <ValidationSubmitButton sow={sow} />
+                      </>
+                    )}
+                    
+                    {sow.status === 'in_review' && (
+                      <>
+                        <p className="text-blue-600 mb-4">
+                          This SOW is currently under review.
+                        </p>
+                        
+                        {/* Show approval component only for managers/admins */}
+                        {isAdmin ? (
+                          <SimpleApproval
+                            sowId={sow.id}
+                            sowTitle={sow.sowTitle || 'Untitled SOW'}
+                            clientName={sow.clientName || 'Unknown Client'}
+                            onStatusChange={() => window.location.reload()}
+                          />
+                        ) : (
+                          <div className="space-y-3">
+                            <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                              <p className="text-sm text-blue-800">
+                                <strong>Waiting for approval:</strong> This SOW has been submitted for review and is waiting for a Manager or Admin to approve it.
+                              </p>
+                            </div>
+                            <div className="bg-gray-50 border border-gray-200 rounded p-3">
+                              <p className="text-xs text-gray-600">
+                                <strong>Approval Process:</strong> Once approved, this SOW will be ready for client signature. If rejected, it will return to draft status with feedback for improvements.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    
+                    {sow.status === 'approved' && (
+                      <div className="space-y-2">
+                        <p className="text-green-600 mb-2">
+                          This SOW has been approved.
+                        </p>
+                        {sow.approved_at && (
+                          <p className="text-sm text-gray-600">
+                            Approved on: {new Date(sow.approved_at).toLocaleDateString()}
+                          </p>
+                        )}
+                        {sow.approval_comments && (
+                          <div className="bg-green-50 border border-green-200 rounded p-3">
+                            <p className="text-sm text-green-800">
+                              <strong>Approval Comments:</strong> {sow.approval_comments}
+                            </p>
+                          </div>
+                        )}
+                        
+
+                      </div>
+                    )}
+                    
+                    {sow.status === 'draft' && sow.rejected_at && (
+                      <div className="space-y-2">
+                        <p className="text-red-600 mb-2">
+                          This SOW was rejected and returned to draft.
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Rejected on: {new Date(sow.rejected_at).toLocaleDateString()}
+                        </p>
+                        {sow.approval_comments && (
+                          <div className="bg-red-50 border border-red-200 rounded p-3">
+                            <p className="text-sm text-red-800">
+                              <strong>Rejection Comments:</strong> {sow.approval_comments}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
-              )}
+              </div>
               
 
             </div> {/* Close grid */}

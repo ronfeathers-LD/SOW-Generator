@@ -10,6 +10,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Database types based on your current schema
+export interface ClientRole {
+  role: string;
+  name: string;
+  contact: string;
+  responsibilities: string;
+}
+
 export interface SOW {
   id: string;
   created_at: string;
@@ -20,36 +27,14 @@ export interface SOW {
   client_title: string;
   client_email: string;
   signature_date: string;
-  deliverables: string;
-  start_date: string;
+  deliverables: string[];
+  projectDescription: string;
+  keyObjectives: string[];
+  startDate: string;
   duration: string;
-  client_roles: Record<string, unknown>;
-  pricing_roles: Record<string, unknown>;
-  billing_info: Record<string, unknown>;
-  access_requirements: string;
-  travel_requirements: string;
-  working_hours: string;
-  testing_responsibilities: string;
-  is_latest: boolean;
-  parent_id?: string;
+  clientRoles: ClientRole[];
+  // Note: access_requirements, travel_requirements, working_hours, testing_responsibilities columns have been removed
   version: number;
-  leandata_email: string;
-  leandata_name: string;
-  leandata_title: string;
-  client_signer_name: string;
-  content: string;
-  status: string;
-  title: string;
-  opportunity_amount?: number;
-  opportunity_close_date?: string;
-  opportunity_id?: string;
-  opportunity_name?: string;
-  opportunity_stage?: string;
-
-  objectives_description: string;
-  objectives_key_objectives: Record<string, unknown>;
-  avoma_transcription: string;
-  is_hidden: boolean;
 }
 
 export interface User {

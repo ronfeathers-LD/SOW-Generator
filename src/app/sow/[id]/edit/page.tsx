@@ -78,7 +78,7 @@ export default function EditSOWPage() {
               units_consumption: data.template?.units_consumption || '',
               
               // BookIt Family Units
-              orchestration_units: data.orchestration_units || '',
+              orchestration_units: data.template?.number_of_units || data.orchestration_units || '',
               bookit_forms_units: data.bookit_forms_units || '',
               bookit_links_units: data.bookit_links_units || '',
               bookit_handoff_units: data.bookit_handoff_units || '',
@@ -158,12 +158,7 @@ export default function EditSOWPage() {
               auto_calculated: data.pricing?.auto_calculated || false,
               last_calculated: data.pricing?.last_calculated || null,
             },
-            assumptions: {
-              access_requirements: data.access_requirements || '',
-              travel_requirements: data.travel_requirements || '',
-              working_hours: data.working_hours || '',
-              testing_responsibilities: data.testing_responsibilities || '',
-            },
+
             deliverables: data.deliverables || '',
             client_signer_name: data.client_signer_name || '',
             
@@ -174,7 +169,7 @@ export default function EditSOWPage() {
             custom_objectives_disclosure_content: data.custom_objectives_disclosure_content || null,
             custom_key_objectives_content: data.custom_key_objectives_content || null,
             custom_deliverables_content: data.custom_deliverables_content || null,
-            custom_assumptions_content: data.custom_assumptions_content || null,
+
             custom_project_phases_content: data.custom_project_phases_content || null,
             custom_roles_content: data.custom_roles_content || null,
             intro_content_edited: data.intro_content_edited || false,
@@ -183,7 +178,7 @@ export default function EditSOWPage() {
             objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false,
             key_objectives_content_edited: data.key_objectives_content_edited || false,
             deliverables_content_edited: data.deliverables_content_edited || false,
-            assumptions_content_edited: data.assumptions_content_edited || false,
+
             project_phases_content_edited: data.project_phases_content_edited || false,
             roles_content_edited: data.roles_content_edited || false,
           };

@@ -166,9 +166,9 @@ export default function SOWObjectivesPage({
             <div className="mt-6">
               <h4 className="text-lg font-semibold text-gray-900 mb-3">Product Units:</h4>
               <ul className="list-disc pl-6 prose prose-md max-w-none">
-                {projectDetails.number_of_units && (
+                {projectDetails.orchestration_units && (
                   <li>
-                    <strong>Orchestration Units:</strong> {projectDetails.number_of_units}
+                    <strong>Orchestration Units:</strong> {projectDetails.orchestration_units}
                   </li>
                 )}
                 {projectDetails.bookit_forms_units && (

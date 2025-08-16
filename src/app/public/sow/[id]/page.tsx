@@ -63,7 +63,7 @@ interface SOW {
   customer_signature_name_2?: string;
   customer_signature_2?: string;
   customer_email_2?: string;
-  customer_signature_date_2?: string;
+
   
   // Custom content tracking
   custom_intro_content?: string;
@@ -133,7 +133,7 @@ export default function PublicSOWPage() {
           customer_signature_name_2: data.customer_signature_name_2 || undefined,
           customer_signature_2: data.customer_signature_2 || undefined,
           customer_email_2: data.customer_email_2 || undefined,
-          customer_signature_date_2: data.customer_signature_date_2 || undefined,
+
           custom_intro_content: data.custom_intro_content || undefined,
           custom_scope_content: data.custom_scope_content || undefined,
           custom_roles_content: data.custom_roles_content || undefined,
@@ -179,7 +179,7 @@ export default function PublicSOWPage() {
             name: sow.customer_signature_name_2,
             title: sow.customer_signature_2 || '',
             email: sow.customer_signature_2 || '',
-            date: sow.customer_signature_date_2 || ''
+            date: ''
           } : undefined}
           leandataSignature={{
             name: 'Agam Vasani',

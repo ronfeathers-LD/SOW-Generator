@@ -113,27 +113,7 @@ export const SOW_VALIDATION_RULES: FieldValidation = {
     }
   },
   
-  project_start_date: {
-    required: true,
-    custom: (value) => {
-      const date = new Date(String(value));
-      if (isNaN(date.getTime())) {
-        return 'Invalid start date';
-      }
-      return null;
-    }
-  },
-  
-  project_end_date: {
-    required: true,
-    custom: (value) => {
-      const date = new Date(String(value));
-      if (isNaN(date.getTime())) {
-        return 'Invalid end date';
-      }
-      return null;
-    }
-  }
+
 };
 
 /**

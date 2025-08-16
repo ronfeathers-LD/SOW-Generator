@@ -19,9 +19,10 @@ interface SOW {
 function SOWListContent() {
   const [sows, setSows] = useState<SOW[]>([]);
   const [filteredSows, setFilteredSows] = useState<SOW[]>([]);
-  const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+ 
   const searchParams = useSearchParams();
   const statusFilter = searchParams.get('status');
 
@@ -287,7 +288,7 @@ function SOWListContent() {
                                   Edit
                                 </Link>
                               )}
-                              <Link
+                                                            <Link
                                 href={`/sow/${sow.id}`}
                                 className="text-indigo-600 hover:text-indigo-900"
                               >

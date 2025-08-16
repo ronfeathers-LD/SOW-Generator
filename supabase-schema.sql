@@ -8,7 +8,6 @@ CREATE TABLE IF NOT EXISTS sows (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   company_logo TEXT DEFAULT '',
   client_name TEXT NOT NULL,
-  sow_title TEXT NOT NULL,
   client_title TEXT DEFAULT '',
   client_email TEXT DEFAULT '',
   signature_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -18,10 +17,6 @@ CREATE TABLE IF NOT EXISTS sows (
   client_roles JSONB DEFAULT '[]',
   pricing_roles JSONB DEFAULT '[]',
   billing_info JSONB DEFAULT '{}',
-  access_requirements TEXT DEFAULT '',
-  travel_requirements TEXT DEFAULT '',
-  working_hours TEXT DEFAULT '',
-  testing_responsibilities TEXT DEFAULT '',
   addendums JSONB DEFAULT '[]',
   is_latest BOOLEAN DEFAULT true,
   parent_id UUID REFERENCES sows(id),
@@ -50,8 +45,6 @@ CREATE TABLE IF NOT EXISTS sows (
   regions TEXT DEFAULT '',
   salesforce_tenants TEXT DEFAULT '',
   timeline_weeks TEXT DEFAULT '',
-  project_start_date TIMESTAMP WITH TIME ZONE,
-  project_end_date TIMESTAMP WITH TIME ZONE,
   units_consumption TEXT DEFAULT '',
   
   -- BookIt Family Units (new)
@@ -91,77 +84,20 @@ CREATE TABLE IF NOT EXISTS sows (
   customer_signature_name_2 TEXT DEFAULT '',
   customer_signature_2 TEXT DEFAULT '',
   customer_email_2 TEXT DEFAULT '',
-  customer_signature_date_2 TIMESTAMP WITH TIME ZONE,
   
   -- Salesforce fields
   salesforce_account_id TEXT DEFAULT '',
   
   -- Author tracking
-  author_id UUID REFERENCES users(id)
-);
-
--- Create approval workflow tables
-CREATE TABLE IF NOT EXISTS approval_stages (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  sort_order INTEGER NOT NULL DEFAULT 0,
-  is_active BOOLEAN DEFAULT true,
-  requires_comment BOOLEAN DEFAULT false,
-  auto_approve BOOLEAN DEFAULT false,
-  assigned_role TEXT, -- Role assigned to this stage (manager, director, vp)
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS approval_rules (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  name TEXT NOT NULL,
-  condition_type TEXT NOT NULL, -- 'amount', 'product', etc.
-  condition_value TEXT NOT NULL, -- JSON string with condition details
-  stage_id UUID REFERENCES approval_stages(id),
-  sort_order INTEGER NOT NULL DEFAULT 0,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS sow_approvals (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  sow_id UUID REFERENCES sows(id) ON DELETE CASCADE,
-  stage_id UUID REFERENCES approval_stages(id),
-  approver_id UUID REFERENCES users(id),
-  status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'approved', 'rejected', 'skipped'
-  comments TEXT,
+  author_id UUID REFERENCES users(id),
+  
+  -- Approval tracking fields
+  approval_comments TEXT,
   approved_at TIMESTAMP WITH TIME ZONE,
   rejected_at TIMESTAMP WITH TIME ZONE,
-  skipped_at TIMESTAMP WITH TIME ZONE,
-  version INTEGER DEFAULT 1,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  approved_by UUID REFERENCES users(id),
+  rejected_by UUID REFERENCES users(id)
 );
-
-CREATE TABLE IF NOT EXISTS approval_comments (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  sow_id UUID REFERENCES sows(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES users(id),
-  comment TEXT NOT NULL,
-  is_internal BOOLEAN DEFAULT false,
-  parent_id UUID REFERENCES approval_comments(id), -- For threaded comments
-  version INTEGER DEFAULT 1,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Insert default approval stages
-INSERT INTO approval_stages (name, description, sort_order, requires_comment, assigned_role) VALUES
-  ('Manager Approval', 'First level approval by project manager', 1, false, 'manager'),
-  ('Director Approval', 'Second level approval by director (can override manager)', 2, true, 'director'),
-  ('VP Approval', 'Final approval by VP (can override director)', 3, true, 'vp')
-ON CONFLICT DO NOTHING;
-
--- Insert default approval rules (will be updated after stages are created)
--- Note: This will be handled by the migration endpoint to avoid subquery issues
 
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (
@@ -253,21 +189,6 @@ CREATE TABLE IF NOT EXISTS gemini_configs (
   last_error TEXT
 );
 
--- Create approval_audit_log table for tracking approval workflow actions
-CREATE TABLE IF NOT EXISTS approval_audit_log (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  sow_id UUID REFERENCES sows(id) ON DELETE CASCADE,
-  approval_id UUID REFERENCES sow_approvals(id) ON DELETE SET NULL,
-  user_id TEXT, -- Store the actual user identifier (Google OAuth ID, email, or UUID)
-  action TEXT NOT NULL,
-  previous_status TEXT,
-  new_status TEXT,
-  comments TEXT,
-  metadata JSONB DEFAULT '{}',
-  version INTEGER DEFAULT 1
-);
-
 -- Create sow_changelog table for tracking all SOW content changes
 CREATE TABLE IF NOT EXISTS sow_changelog (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -292,8 +213,6 @@ CREATE INDEX IF NOT EXISTS idx_sows_parent_id ON sows(parent_id);
 CREATE INDEX IF NOT EXISTS idx_comments_sow_id ON comments(sow_id);
 CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_approval_audit_log_sow_id ON approval_audit_log(sow_id);
-CREATE INDEX IF NOT EXISTS idx_approval_audit_log_user_id ON approval_audit_log(user_id);
 CREATE INDEX IF NOT EXISTS idx_sow_changelog_sow_id ON sow_changelog(sow_id);
 CREATE INDEX IF NOT EXISTS idx_sow_changelog_user_id ON sow_changelog(user_id);
 CREATE INDEX IF NOT EXISTS idx_sow_changelog_created_at ON sow_changelog(created_at DESC);
@@ -331,26 +250,10 @@ BEGIN
         CREATE TRIGGER update_gemini_configs_updated_at BEFORE UPDATE ON gemini_configs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
     END IF;
 
-    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_approval_audit_log_updated_at') THEN
-        CREATE TRIGGER update_approval_audit_log_updated_at BEFORE UPDATE ON approval_audit_log FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-    END IF;
-
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_sow_changelog_updated_at') THEN
         CREATE TRIGGER update_sow_changelog_updated_at BEFORE UPDATE ON sow_changelog FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
     END IF;
 
-    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_approval_stages_updated_at') THEN
-        CREATE TRIGGER update_approval_stages_updated_at BEFORE UPDATE ON approval_stages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_approval_rules_updated_at') THEN
-        CREATE TRIGGER update_approval_rules_updated_at BEFORE UPDATE ON approval_rules FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_sow_approvals_updated_at') THEN
-        CREATE TRIGGER update_sow_approvals_updated_at BEFORE UPDATE ON sow_approvals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_approval_comments_updated_at') THEN
-        CREATE TRIGGER update_approval_comments_updated_at BEFORE UPDATE ON approval_comments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-    END IF;
 END $$;
 
 -- Enable Row Level Security (RLS)
@@ -361,7 +264,6 @@ ALTER TABLE salesforce_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lean_data_signatories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE avoma_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gemini_configs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE approval_audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sow_changelog ENABLE ROW LEVEL SECURITY;
 
 
@@ -377,7 +279,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'sows' AND policyname = 'Users can create SOWs') THEN
         CREATE POLICY "Users can create SOWs" ON sows FOR INSERT WITH CHECK (true);
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'sows' AND policyname = 'Users can update SOWs') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'sows' AND policyname = 'Users can update SOWs') THEN
         CREATE POLICY "Users can update SOWs" ON sows FOR UPDATE USING (true);
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'sows' AND policyname = 'Users can delete SOWs') THEN
@@ -397,14 +299,6 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'gemini_configs' AND policyname = 'Admin access to gemini configs') THEN
         CREATE POLICY "Admin access to gemini configs" ON gemini_configs FOR ALL USING (true);
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'approval_audit_log' AND policyname = 'Users can view audit logs') THEN
-        CREATE POLICY "Users can view audit logs" ON approval_audit_log FOR SELECT USING (true);
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'approval_audit_log' AND policyname = 'Users can create audit logs') THEN
-        CREATE POLICY "Users can create audit logs" ON approval_audit_log FOR INSERT WITH CHECK (true);
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'sow_changelog' AND policyname = 'Users can view changelog') THEN

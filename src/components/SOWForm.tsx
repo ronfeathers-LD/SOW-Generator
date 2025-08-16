@@ -60,7 +60,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             units_consumption: initialData.template?.units_consumption || 'All units immediately',
             
             // BookIt Family Units
-            orchestration_units: initialData.template?.orchestration_units || '',
+            orchestration_units: initialData.template?.number_of_units || '',
             bookit_forms_units: initialData.template?.bookit_forms_units || '',
             bookit_links_units: initialData.template?.bookit_links_units || '',
             bookit_handoff_units: initialData.template?.bookit_handoff_units || '',
@@ -228,12 +228,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             discount_total: 0,
             total_amount: 0,
           },
-          assumptions: {
-            access_requirements: '',
-            travel_requirements: '',
-            working_hours: '',
-            testing_responsibilities: '',
-          },
+
           custom_deliverables_content: '',
           deliverables_content_edited: false,
           custom_objective_overview_content: '',
@@ -405,7 +400,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             customer_signature_name_2: initialData.template?.customer_signature_name_2 || '',
             customer_signature_2: initialData.template?.customer_signature_2 || '',
             customer_email_2: initialData.template?.customer_email_2 || '',
-            customer_signature_date_2: initialData.template?.customer_signature_date_2 || null,
+
           }
         }));
       }
@@ -737,7 +732,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               customer_signature_name_2: formData.template?.customer_signature_name_2,
               customer_signature_2: formData.template?.customer_signature_2,
               customer_email_2: formData.template?.customer_email_2,
-              customer_signature_date_2: formData.template?.customer_signature_date_2,
+
               // Billing contact information
               billing_contact_name: formData.template?.billing_contact_name,
               billing_email: formData.template?.billing_email,

@@ -49,9 +49,7 @@ export async function POST(
         updated_at: undefined, // Let Supabase set current timestamp
         signature_date: undefined, // Reset signature date
         start_date: undefined, // Reset project start date
-        project_start_date: undefined, // Reset project start date
-        project_end_date: undefined, // Reset project end date
-        customer_signature_date_2: undefined, // Reset second signature date
+
         
         // Reset content edit tracking flags
         intro_content_edited: false,

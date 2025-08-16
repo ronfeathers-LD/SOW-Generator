@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { supabaseApi } from '@/lib/supabase-api';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { ChangelogService } from '@/lib/changelog-service';
+import { supabaseApi } from '@/lib/supabase-api';
 import { getSlackService } from '@/lib/slack';
-import { ApprovalWorkflowService } from '@/lib/approval-workflow-service';
 
 export async function POST(request: Request) {
   try {
@@ -61,7 +61,6 @@ export async function POST(request: Request) {
         // Header Information
         company_logo: data.header?.company_logo || '',
         client_name: data.template?.customer_name || data.header?.client_name || '',
-        sow_title: data.template?.sow_title || data.header?.sow_title || 'Untitled SOW',
         
         // Client Signature Information
         client_title: data.client_signature?.title || '',
@@ -85,10 +84,7 @@ export async function POST(request: Request) {
         billing_info: data.pricing?.billing || {},
         
         // Project Assumptions
-        access_requirements: data.assumptions?.access_requirements || '',
-        travel_requirements: data.assumptions?.travel_requirements || '',
-        working_hours: data.assumptions?.working_hours || '',
-        testing_responsibilities: data.assumptions?.testing_responsibilities || '',
+        // Note: access_requirements, travel_requirements, working_hours, testing_responsibilities columns have been removed
         
         // LeanData Information
         leandata_name: data.template?.lean_data_name || 'Agam Vasani',
@@ -117,7 +113,7 @@ export async function POST(request: Request) {
         units_consumption: data.template?.units_consumption || '',
         
         // BookIt Family Units
-        orchestration_units: data.template?.orchestration_units || '',
+        orchestration_units: data.template?.number_of_units || '',
         bookit_forms_units: data.template?.bookit_forms_units || '',
         bookit_links_units: data.template?.bookit_links_units || '',
         bookit_handoff_units: data.template?.bookit_handoff_units || '',
@@ -174,62 +170,32 @@ export async function POST(request: Request) {
       // Don't fail the main operation if changelog logging fails
     }
 
-    // Send Slack notification for SOW creation (only for new SOWs)
+    // SOW created successfully
+    console.log('✅ SOW created successfully:', sow.id);
+
+    // Send Slack notification for new SOW creation
     try {
       const slackService = getSlackService();
       if (slackService) {
-        const sowTitle = data.template?.sow_title || data.header?.sowTitle || 'Untitled SOW';
-        const clientName = data.template?.customer_name || data.header?.client_name || data.selectedAccount?.name || 'Unknown Client';
-        const amount = data.template?.opportunity_amount || (data.selectedAccount?.amount ? Number(data.selectedAccount.amount) : undefined);
+        const sowTitle = sow.sow_title || 'Untitled SOW';
+        const clientName = sow.client_name || 'Unknown Client';
+        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+        const sowUrl = `${baseUrl}/sow/${sow.id}`;
 
-        await slackService.sendSOWCreationNotification(
-          sow.id,
-          sowTitle,
-          clientName,
-          session.user.name || session.user.email || 'Unknown User',
-          amount
+        await slackService.sendMessage(
+          `:new: *New SOW Created*\n\n` +
+          `*Client:* ${clientName}\n` +
+          `*Created by:* ${session.user.email}\n\n` +
+          `:link: <${sowUrl}|View SOW>\n\n` +
+          `This SOW is now in draft status and ready for completion.`
         );
-        
-        console.log('Slack notification sent for SOW creation:', sow.id);
       }
     } catch (slackError) {
-      console.error('Error sending Slack notification for SOW creation:', slackError);
+      console.error('Slack notification failed for SOW creation:', slackError);
       // Don't fail the main operation if Slack notification fails
     }
 
-    // Automatically start approval workflow ONLY if SOW passes validation
-    try {
-      // IMPORTANT: Validate the SOW before attempting to start approval workflow
-      const validation = ApprovalWorkflowService.validateSOWForApproval(sow);
-      
-      if (validation.isValid) {
-        console.log('✅ SOW validation passed, starting approval workflow');
-        await ApprovalWorkflowService.startApprovalWorkflow({
-          sowId: sow.id,
-          sowTitle: sow.sow_title || 'Untitled SOW',
-          clientName: sow.client_name || 'Unknown Client',
-          authorId: user.id,
-          authorEmail: session.user.email || ''
-        });
-        console.log('Approval workflow started automatically for SOW:', sow.id);
-      } else {
-        console.log('❌ SOW validation failed, NOT starting approval workflow');
-        console.log('Missing fields:', validation.missingFields);
-        console.log('Validation errors:', validation.errors);
-        console.log('SOW will remain in "draft" status until validation passes');
-      }
-    } catch (workflowError) {
-      console.error('Error starting approval workflow:', workflowError);
-      // Don't fail the main operation if approval workflow fails
-    }
-
-    // SOW created successfully
-    return NextResponse.json({ 
-      success: true, 
-      message: 'SOW saved successfully',
-      id: sow.id,
-      data: sow 
-    });
+    return NextResponse.json(sow);
   } catch (error) {
     console.error('Error saving SOW:', error);
     return NextResponse.json(
@@ -285,4 +251,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-} 
+}

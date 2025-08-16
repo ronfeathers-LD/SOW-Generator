@@ -545,7 +545,6 @@ export class ChangelogService {
       'custom_intro_content': 'Introduction Content',
       'custom_scope_content': 'Scope Content',
       'custom_objectives_disclosure_content': 'Objectives Disclosure Content',
-      'custom_assumptions_content': 'Assumptions Content',
       'custom_project_phases_content': 'Project Phases Content',
       'custom_roles_content': 'Roles Content',
       'custom_deliverables_content': 'Deliverables Content',
@@ -554,8 +553,8 @@ export class ChangelogService {
       'status': 'Status',
       'opportunity_amount': 'Opportunity Amount',
       'timeline_weeks': 'Timeline Weeks',
-      'start_date': 'Project Start Date',
-      'duration': 'Project Duration',
+      'start_date': 'Start Date',
+      'duration': 'Duration',
       'products': 'Products',
       'number_of_units': 'Number of Units',
       'regions': 'Regions',
@@ -587,16 +586,13 @@ export class ChangelogService {
       'opportunity_name': 'Opportunity Name',
       'opportunity_stage': 'Opportunity Stage',
       'opportunity_close_date': 'Opportunity Close Date',
-      'project_start_date': 'Project Start Date',
-      'project_end_date': 'Project End Date',
       'company_logo': 'Company Logo',
       'title': 'Title',
       'content': 'Content',
       'addendums': 'Addendums',
       'customer_signature_name_2': 'Second Customer Signer Name',
       'customer_signature_2': 'Second Customer Signature',
-      'customer_email_2': 'Second Customer Email',
-      'customer_signature_date_2': 'Second Customer Signature Date'
+      'customer_email_2': 'Second Customer Email'
     };
 
     // For any field not in the map, convert snake_case to Title Case

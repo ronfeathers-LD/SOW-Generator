@@ -31,7 +31,6 @@ export interface SOWTemplate {
   customer_signature_name_2?: string;
   customer_signature_2?: string;
   customer_email_2?: string;
-  customer_signature_date_2?: Date | null;
   
   // LeanData Information
   lean_data_name: string;
@@ -151,12 +150,7 @@ export interface SOWData {
   };
 
   // Project Assumptions
-  assumptions: {
-    access_requirements: string;
-    travel_requirements: string;
-    working_hours: string;
-    testing_responsibilities: string;
-  };
+  // Note: access_requirements, travel_requirements, working_hours, testing_responsibilities columns have been removed
 
   client_signer_name?: string;
   deliverables?: string;
@@ -198,7 +192,5 @@ export interface SOWData {
   objective_overview_content_edited?: boolean;
   key_objectives_content_edited?: boolean;
   
-  // Database date fields
-  project_start_date?: string;
-  project_end_date?: string;
+
 } 
