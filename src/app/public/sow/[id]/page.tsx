@@ -197,6 +197,57 @@ export default function PublicSOWPage() {
           customDeliverablesContent={sow.custom_deliverables_content}
           isEdited={sow.scope_content_edited || sow.deliverables_content_edited}
         />
+
+        {/* Project Timeline Display */}
+        {sow.timeline_weeks && (
+          <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+            <h2 className="text-3xl font-bold mb-6">6. PROJECT TIMELINE</h2>
+            <div className="bg-white shadow rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                <div className="grid grid-cols-3 gap-4 text-sm font-medium text-gray-700">
+                  <div>Phase</div>
+                  <div>Description</div>
+                  <div className="text-right">Duration</div>
+                </div>
+              </div>
+              
+              <div className="divide-y divide-gray-200">
+                {(() => {
+                  const totalWeeks = parseFloat(sow.timeline_weeks) || 0;
+                  const phaseDurations = {
+                    engage: 0.125, discovery: 0.25, build: 0.25, 
+                    test: 0.125, deploy: 0.125, hypercare: 0.125
+                  };
+                  
+                  const phases = [
+                    { name: 'ENGAGE', description: 'Project kickoff and planning', duration: Math.round(totalWeeks * phaseDurations.engage * 10) / 10 },
+                    { name: 'DISCOVERY', description: 'Requirements gathering and analysis', duration: Math.round(totalWeeks * phaseDurations.discovery * 10) / 10 },
+                    { name: 'BUILD', description: 'Solution development and configuration', duration: Math.round(totalWeeks * phaseDurations.build * 10) / 10 },
+                    { name: 'TEST', description: 'Quality assurance and validation', duration: Math.round(totalWeeks * phaseDurations.test * 10) / 10 },
+                    { name: 'DEPLOY', description: 'Production deployment and go-live', duration: Math.round(totalWeeks * phaseDurations.deploy * 10) / 10 },
+                    { name: 'HYPERCARE', description: 'Post-deployment support and transition', duration: Math.round(totalWeeks * phaseDurations.hypercare * 10) / 10 }
+                  ];
+                  
+                  return phases.map((phase, index) => (
+                    <div key={phase.name} className="px-6 py-4">
+                      <div className="grid grid-cols-3 gap-4 items-center">
+                        <div className="font-medium text-gray-900">
+                          {index + 1}. {phase.name}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {phase.description}
+                        </div>
+                        <div className="text-right font-medium text-gray-900">
+                          {phase.duration} {phase.duration === 1 ? 'week' : 'weeks'}
+                        </div>
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          </div>
+        )}
         <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
           <h2 className="text-3xl font-bold text-center mb-6">ROLES AND RESPONSIBILITIES</h2>
           <SOWRolesPage 

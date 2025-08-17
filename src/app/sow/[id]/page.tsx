@@ -780,11 +780,8 @@ export default function SOWDetailsPage() {
                     customDeliverablesContent={sow.custom_deliverables_content}
                     isEdited={sow.scope_content_edited}
                   />
-                </div>
 
               {/* SOW Out of Scope Page Section */}
-                <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
-                  <h2 className="text-3xl font-bold mb-6">3. OUT OF SCOPE</h2>
                   <SOWOutOfScopePage 
                     customContent={sow.custom_out_of_scope_content}
                     isEdited={sow.out_of_scope_content_edited}
@@ -856,8 +853,57 @@ export default function SOWDetailsPage() {
                       Hours are calculated based on product selection and unit counts, with automatic role assignment and project management inclusion where applicable.
                     </p>
                   </div>
-                  
 
+                  {/* Project Timeline Display */}
+                  {sow.timeline_weeks && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Project Timeline</h3>
+                      <div className="bg-white shadow rounded-lg overflow-hidden">
+                        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                          <div className="grid grid-cols-3 gap-4 text-sm font-medium text-gray-700">
+                            <div>Phase</div>
+                            <div>Description</div>
+                            <div className="text-right">Duration</div>
+                          </div>
+                        </div>
+                        
+                        <div className="divide-y divide-gray-200">
+                          {(() => {
+                            const totalWeeks = parseFloat(sow.timeline_weeks) || 0;
+                            const phaseDurations = {
+                              engage: 0.125, discovery: 0.25, build: 0.25, 
+                              test: 0.125, deploy: 0.125, hypercare: 0.125
+                            };
+                            
+                            const phases = [
+                              { name: 'ENGAGE', description: 'Project kickoff and planning', duration: Math.round(totalWeeks * phaseDurations.engage * 10) / 10 },
+                              { name: 'DISCOVERY', description: 'Requirements gathering and analysis', duration: Math.round(totalWeeks * phaseDurations.discovery * 10) / 10 },
+                              { name: 'BUILD', description: 'Solution development and configuration', duration: Math.round(totalWeeks * phaseDurations.build * 10) / 10 },
+                              { name: 'TEST', description: 'Quality assurance and validation', duration: Math.round(totalWeeks * phaseDurations.test * 10) / 10 },
+                              { name: 'DEPLOY', description: 'Production deployment and go-live', duration: Math.round(totalWeeks * phaseDurations.deploy * 10) / 10 },
+                              { name: 'HYPERCARE', description: 'Post-deployment support and transition', duration: Math.round(totalWeeks * phaseDurations.hypercare * 10) / 10 }
+                            ];
+                            
+                            return phases.map((phase, index) => (
+                              <div key={phase.name} className="px-6 py-4">
+                                <div className="grid grid-cols-3 gap-4 items-center">
+                                  <div className="font-medium text-gray-900">
+                                    {index + 1}. {phase.name}
+                                  </div>
+                                  <div className="text-sm text-gray-600">
+                                    {phase.description}
+                                  </div>
+                                  <div className="text-right font-medium text-gray-900">
+                                    {phase.duration} {phase.duration === 1 ? 'week' : 'weeks'}
+                                  </div>
+                                </div>
+                              </div>
+                            ));
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Pricing Display Component */}
                   <PricingDisplay
@@ -875,6 +921,8 @@ export default function SOWDetailsPage() {
                     autoCalculated={sow.pricing?.auto_calculated || false}
                     lastCalculated={sow.pricing?.last_calculated || null}
                   />
+
+
                   
                   <p className="mb-2 text-sm text-gray-700">LeanData shall notify Customer when costs are projected to exceed this estimate, providing the opportunity for Customer and LeanData to resolve jointly how to proceed. Hours listed above are to be consumed by the end date and cannot be extended.</p>
                   <p className="mb-2 text-sm text-gray-700">Any additional requests or mutually agreed-upon additional hours required to complete the tasks shall be documented in a change order Exhibit to this SOW and signed by both parties. <span className="font-bold">Additional hours will be billed at the Rate/Hr.</span></p>

@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
 import PricingCalculator from '@/components/sow/PricingCalculator';
 import PricingRolesAndDiscount from '@/components/sow/PricingRolesAndDiscount';
+import TimelineDisplay from '@/components/sow/TimelineDisplay';
 
 interface PricingRole {
   id: string;
@@ -297,6 +298,15 @@ export default function BillingPaymentTab({
             formData={formData as SOWData}
           />
         </div>
+
+        {/* Project Timeline */}
+        {formData.template?.timeline_weeks && (
+          <div className="bg-white shadow rounded-lg p-6">
+            <TimelineDisplay 
+              timelineWeeks={formData.template.timeline_weeks}
+            />
+          </div>
+        )}
       </div>
     </section>
   );
