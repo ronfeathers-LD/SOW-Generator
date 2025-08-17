@@ -98,7 +98,55 @@ class SlackService {
   }
 
   /**
-   * Send SOW approval notification
+   * Send a message with user mentions to Slack
+   * @param message The message text
+   * @param mentions Array of Slack user IDs to mention (e.g., ['U123456', 'U789012'])
+   * @param channel Optional channel override
+   */
+  async sendMessageWithMentions(message: string, mentions: string[] = [], channel?: string): Promise<boolean> {
+    try {
+      // Format mentions as Slack user mentions
+      const mentionText = mentions.map(userId => `<@${userId}>`).join(' ');
+      const fullMessage = mentions.length > 0 ? `${mentionText} ${message}` : message;
+
+      const payload: SlackMessage = {
+        text: fullMessage,
+        channel: channel || this.config.channel,
+        username: this.config.username || 'SOW Generator',
+        icon_emoji: this.config.iconEmoji || ':memo:'
+      };
+
+      console.log('📤 Sending Slack message with mentions:', {
+        webhookUrl: this.config.webhookUrl,
+        channel: payload.channel,
+        username: payload.username,
+        messageLength: fullMessage.length,
+        mentions: mentions.length
+      });
+
+      const response = await fetch(this.config.webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      console.log('📥 Slack response:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
+      return response.ok;
+    } catch (error) {
+      console.error('Error sending Slack message with mentions:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send SOW approval notification with optional user mentions
    */
   async sendApprovalNotification(
     sowId: string,
@@ -107,7 +155,8 @@ class SlackService {
     stageName: string,
     approverName: string,
     action: 'approved' | 'rejected' | 'skipped',
-    comments?: string
+    comments?: string,
+    mentions?: string[]
   ): Promise<boolean> {
     const actionEmoji = {
       approved: ':white_check_mark:',
@@ -189,11 +238,26 @@ class SlackService {
       ]
     });
 
+    // If mentions are provided, add them to the message
+    if (mentions && mentions.length > 0) {
+      const mentionText = mentions.map(userId => `<@${userId}>`).join(' ');
+      // Add mentions as a context block
+      blocks.push({
+        type: 'context',
+        elements: [
+          {
+            type: 'mrkdwn',
+            text: `Mentioned: ${mentionText}`
+          }
+        ]
+      });
+    }
+
     return this.sendRichMessage(blocks);
   }
 
   /**
-   * Send SOW status change notification
+   * Send SOW status change notification with optional user mentions
    */
   async sendStatusChangeNotification(
     sowId: string,
@@ -201,7 +265,8 @@ class SlackService {
     clientName: string,
     oldStatus: string,
     newStatus: string,
-    changedBy: string
+    changedBy: string,
+    mentions?: string[]
   ): Promise<boolean> {
     const blocks: SlackBlock[] = [
       {
@@ -264,18 +329,34 @@ class SlackService {
       }
     ];
 
+    // If mentions are provided, add them to the message
+    if (mentions && mentions.length > 0) {
+      const mentionText = mentions.map(userId => `<@${userId}>`).join(' ');
+      // Add mentions as a context block
+      blocks.push({
+        type: 'context',
+        elements: [
+          {
+            type: 'mrkdwn',
+            text: `Mentioned: ${mentionText}`
+          }
+        ]
+      });
+    }
+
     return this.sendRichMessage(blocks);
   }
 
   /**
-   * Send SOW creation notification
+   * Send SOW creation notification with optional user mentions
    */
   async sendSOWCreationNotification(
     sowId: string,
     sowTitle: string,
     clientName: string,
     createdBy: string,
-    amount?: number
+    amount?: number,
+    mentions?: string[]
   ): Promise<boolean> {
     const blocks: SlackBlock[] = [
       {
@@ -338,11 +419,26 @@ class SlackService {
       }
     ];
 
+    // If mentions are provided, add them to the message
+    if (mentions && mentions.length > 0) {
+      const mentionText = mentions.map(userId => `<@${userId}>`).join(' ');
+      // Add mentions as a context block
+      blocks.push({
+        type: 'context',
+        elements: [
+          {
+            type: 'mrkdwn',
+            text: `Mentioned: ${mentionText}`
+          }
+        ]
+      });
+    }
+
     return this.sendRichMessage(blocks);
   }
 
   /**
-   * Send approval request notification
+   * Send approval request notification with optional user mentions
    */
   async sendApprovalRequestNotification(
     sowId: string,
@@ -350,7 +446,8 @@ class SlackService {
     clientName: string,
     stageName: string,
     approverName: string,
-    amount?: number
+    amount?: number,
+    mentions?: string[]
   ): Promise<boolean> {
     const blocks: SlackBlock[] = [
       {
@@ -411,7 +508,100 @@ class SlackService {
       }
     ];
 
+    // If mentions are provided, add them to the message
+    if (mentions && mentions.length > 0) {
+      const mentionText = mentions.map(userId => `<@${userId}>`).join(' ');
+      // Add mentions as a context block
+      blocks.push({
+        type: 'context',
+        elements: [
+          {
+            type: 'mrkdwn',
+            text: `Mentioned: ${mentionText}`
+          }
+        ]
+      });
+    }
+
     return this.sendRichMessage(blocks);
+  }
+
+  /**
+   * Send a custom team message with mentions
+   * Useful for general team communication, updates, or custom notifications
+   */
+  async sendTeamMessage(
+    message: string,
+    mentions: string[] = [],
+    channel?: string,
+    title?: string
+  ): Promise<boolean> {
+    try {
+      const blocks: SlackBlock[] = [];
+      
+      // Add title if provided
+      if (title) {
+        blocks.push({
+          type: 'header',
+          text: {
+            type: 'plain_text',
+            text: title,
+            emoji: true
+          }
+        });
+      }
+
+      // Add message with mentions
+      const mentionText = mentions.map(userId => `<@${userId}>`).join(' ');
+      const fullMessage = mentions.length > 0 ? `${mentionText} ${message}` : message;
+      
+      blocks.push({
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: fullMessage
+        }
+      });
+
+      // Add timestamp
+      blocks.push({
+        type: 'context',
+        elements: [
+          {
+            type: 'mrkdwn',
+            text: `:clock1: Sent at ${new Date().toLocaleString()}`
+          }
+        ]
+      });
+
+      const payload: SlackMessage = {
+        blocks,
+        channel: channel || this.config.channel,
+        username: this.config.username || 'SOW Generator',
+        icon_emoji: this.config.iconEmoji || ':memo:'
+      };
+
+      console.log('📤 Sending team message with mentions:', {
+        webhookUrl: this.config.webhookUrl,
+        channel: payload.channel,
+        username: payload.username,
+        title,
+        mentions: mentions.length
+      });
+
+      const response = await fetch(this.config.webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      return response.ok;
+    } catch (error) {
+      console.error('Error sending team message:', error);
+      return false;
+    }
   }
 }
 

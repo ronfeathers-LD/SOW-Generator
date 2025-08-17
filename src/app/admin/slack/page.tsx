@@ -24,6 +24,15 @@ export default function SlackConfigPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Team message state
+  const [teamMessage, setTeamMessage] = useState({
+    message: '',
+    mentions: '',
+    channel: '',
+    title: ''
+  });
+  const [sendingTeamMessage, setSendingTeamMessage] = useState(false);
+
   // Redirect if not admin
   useEffect(() => {
     if (status === 'loading') return;
@@ -94,6 +103,51 @@ export default function SlackConfigPage() {
       setMessage({ type: 'error', text: 'Failed to send test message' });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const sendTeamMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSendingTeamMessage(true);
+    setMessage(null);
+
+    try {
+      // Parse mentions (comma-separated Slack user IDs)
+      const mentions = teamMessage.mentions
+        .split(',')
+        .map(m => m.trim())
+        .filter(m => m.length > 0);
+
+      const response = await fetch('/api/slack/team-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: teamMessage.message,
+          mentions,
+          channel: teamMessage.channel || undefined,
+          title: teamMessage.title || undefined
+        }),
+      });
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Team message sent successfully! Check your Slack channel.' });
+        // Clear the form
+        setTeamMessage({
+          message: '',
+          mentions: '',
+          channel: '',
+          title: ''
+        });
+      } else {
+        const error = await response.json();
+        setMessage({ type: 'error', text: error.message || 'Failed to send team message' });
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Failed to send team message' });
+    } finally {
+      setSendingTeamMessage(false);
     }
   };
 
@@ -239,6 +293,93 @@ export default function SlackConfigPage() {
             </form>
           </div>
 
+          {/* Team Message Form */}
+          <div className="mt-8 bg-white shadow rounded-lg">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Send Team Message</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Send a message to your team with optional user mentions
+              </p>
+            </div>
+            
+            <form onSubmit={sendTeamMessage} className="p-6 space-y-6">
+              {/* Message */}
+              <div>
+                <label htmlFor="teamMessage" className="block text-sm font-medium text-gray-700 mb-2">
+                  Message *
+                </label>
+                <textarea
+                  id="teamMessage"
+                  value={teamMessage.message}
+                  onChange={(e) => setTeamMessage({ ...teamMessage, message: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter your message here..."
+                  rows={3}
+                  required
+                />
+              </div>
+
+              {/* Mentions */}
+              <div>
+                <label htmlFor="mentions" className="block text-sm font-medium text-gray-700 mb-2">
+                  Slack User IDs to Mention
+                </label>
+                <input
+                  type="text"
+                  id="mentions"
+                  value={teamMessage.mentions}
+                  onChange={(e) => setTeamMessage({ ...teamMessage, mentions: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="U123456, U789012 (comma-separated)"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Enter Slack user IDs separated by commas. Users will be @mentioned in the message.
+                </p>
+              </div>
+
+              {/* Title (Optional) */}
+              <div>
+                <label htmlFor="teamMessageTitle" className="block text-sm font-medium text-gray-700 mb-2">
+                  Title (Optional)
+                </label>
+                <input
+                  type="text"
+                  id="teamMessageTitle"
+                  value={teamMessage.title}
+                  onChange={(e) => setTeamMessage({ ...teamMessage, title: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., Team Update, Important Notice"
+                />
+              </div>
+
+              {/* Channel Override (Optional) */}
+              <div>
+                <label htmlFor="teamMessageChannel" className="block text-sm font-medium text-gray-700 mb-2">
+                  Channel Override (Optional)
+                </label>
+                <input
+                  type="text"
+                  id="teamMessageChannel"
+                  value={teamMessage.channel}
+                  onChange={(e) => setTeamMessage({ ...teamMessage, channel: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="#general (leave empty for default)"
+                />
+              </div>
+
+              {/* Send Button */}
+              <div>
+                <button
+                  type="submit"
+                  disabled={sendingTeamMessage || !teamMessage.message}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-400"
+                >
+                  {sendingTeamMessage ? 'Sending...' : 'Send Team Message'}
+                </button>
+              </div>
+            </form>
+          </div>
+
           {/* Help Section */}
           <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-blue-900 mb-4">How to Set Up Slack Integration</h3>
@@ -266,6 +407,96 @@ export default function SlackConfigPage() {
               <div>
                 <h4 className="font-medium">5. Test the Integration</h4>
                 <p>Use the &quot;Test Connection&quot; button to verify everything is working correctly.</p>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-blue-200">
+              <h3 className="text-lg font-semibold text-blue-900 mb-4">How to Use @Mentions</h3>
+              <div className="space-y-4 text-sm text-blue-800">
+                <div>
+                  <h4 className="font-medium">Finding Slack User IDs</h4>
+                  <p>To mention users in Slack messages, you need their Slack user ID:</p>
+                  <ul className="list-disc ml-4 mt-2 space-y-1">
+                    <li>Right-click on a user&apos;s name in Slack and select &quot;Copy link&quot;</li>
+                    <li>The user ID is the part after the last slash (e.g., U1234567890)</li>
+                    <li>Or use the Slack API to get user information</li>
+                  </ul>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium">Using Mentions</h4>
+                  <p>Enter user IDs separated by commas in the mentions field. Users will be notified with @mentions in Slack.</p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium">Example</h4>
+                  <p>Mentions: <code className="bg-blue-100 px-1 rounded">U123456, U789012</code></p>
+                  <p>This will send: <code className="bg-blue-100 px-1 rounded">@user1 @user2 Your message here</code></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Examples */}
+          <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-yellow-900 mb-4">Quick Examples</h3>
+            <div className="space-y-4 text-sm text-yellow-800">
+              <div>
+                <h4 className="font-medium">Daily Standup Reminder</h4>
+                <p><strong>Message:</strong> "Daily standup starting now! Please join the meeting."</p>
+                <p><strong>Mentions:</strong> U123456, U789012 (your team members)</p>
+                <p><strong>Title:</strong> Daily Standup</p>
+              </div>
+              
+              <div>
+                <h4 className="font-medium">Urgent Alert</h4>
+                <p><strong>Message:</strong> "🚨 URGENT: System maintenance required - Immediate attention needed!"</p>
+                <p><strong>Mentions:</strong> U123456, U789012, U345678 (all relevant team members)</p>
+                <p><strong>Title:</strong> System Alert</p>
+                <p><strong>Channel:</strong> #alerts</p>
+              </div>
+              
+              <div>
+                <h4 className="font-medium">Meeting Invite</h4>
+                <p><strong>Message:</strong> "📅 Weekly review meeting starting in 5 minutes\n⏰ Time: 2:00 PM EST\n🔗 Link: [meeting link]"</p>
+                <p><strong>Mentions:</strong> U123456, U789012 (meeting participants)</p>
+                <p><strong>Title:</strong> Meeting Reminder</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Slack User ID Finder */}
+          <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-green-900 mb-4">Slack User ID Finder</h3>
+            <div className="space-y-4 text-sm text-green-800">
+              <div>
+                <h4 className="font-medium">Quick Reference</h4>
+                <p>Common Slack user ID formats:</p>
+                <ul className="list-disc ml-4 mt-2 space-y-1">
+                  <li><code className="bg-green-100 px-1 rounded">U1234567890</code> - Standard user ID</li>
+                  <li><code className="bg-green-100 px-1 rounded">W1234567890</code> - Workspace user ID</li>
+                  <li><code className="bg-green-100 px-1 rounded">U1234567890ABCD</code> - Extended user ID</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h4 className="font-medium">Finding Your Own User ID</h4>
+                <p>To find your Slack user ID:</p>
+                <ol className="list-decimal ml-4 mt-2 space-y-1">
+                  <li>Go to your Slack profile</li>
+                  <li>Click &quot;View profile&quot;</li>
+                  <li>Click &quot;More&quot; → &quot;Copy member ID&quot;</li>
+                </ol>
+              </div>
+              
+              <div>
+                <h4 className="font-medium">Finding Other User IDs</h4>
+                <p>To find another user&apos;s Slack user ID:</p>
+                <ol className="list-decimal ml-4 mt-2 space-y-1">
+                  <li>Right-click on their name in Slack</li>
+                  <li>Select &quot;Copy link&quot;</li>
+                  <li>The user ID is the last part of the URL</li>
+                </ol>
               </div>
             </div>
           </div>

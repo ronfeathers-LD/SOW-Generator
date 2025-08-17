@@ -52,6 +52,67 @@ The Slack integration will send notifications for:
 - **Status Changes**: When SOW status changes
 - **Approval Requests**: When someone needs to approve a SOW
 
+## New: @Mention Functionality
+
+### Team Messages with Mentions
+
+You can now send team messages with @mentions directly from the admin panel:
+
+1. Go to Admin → Slack
+2. Use the "Send Team Message" section
+3. Enter your message
+4. Add Slack user IDs to mention (comma-separated)
+5. Optionally add a title and channel override
+6. Send the message
+
+### Finding Slack User IDs
+
+To mention users in Slack, you need their Slack user ID:
+
+- **Right-click method**: Right-click on a user's name in Slack → "Copy link" → Extract the user ID from the URL
+- **Profile method**: Go to user profile → "More" → "Copy member ID"
+
+### Example Usage
+
+```
+Message: "Please review the latest SOW before the client meeting"
+Mentions: U123456, U789012
+Title: SOW Review Request
+Channel: #sow-reviews
+```
+
+This will send: `@user1 @user2 Please review the latest SOW before the client meeting`
+
+### Programmatic Usage
+
+You can also use mentions programmatically in your code:
+
+```typescript
+import { getSlackService } from '@/lib/slack';
+import { getTeamMentions, combineMentions } from '@/lib/slack-mention-utils';
+
+const slackService = getSlackService();
+if (slackService) {
+  // Send to managers
+  const managerMentions = getTeamMentions('MANAGERS');
+  await slackService.sendTeamMessage(
+    'Weekly review meeting starting in 5 minutes',
+    managerMentions,
+    '#meetings',
+    'Meeting Reminder'
+  );
+  
+  // Send urgent alert to entire team
+  const allMentions = getTeamMentions('ALL_TEAM');
+  await slackService.sendTeamMessage(
+    '🚨 URGENT: System maintenance required',
+    allMentions,
+    '#alerts',
+    'System Alert'
+  );
+}
+```
+
 ## Notification Format
 
 Notifications include:
@@ -61,6 +122,7 @@ Notifications include:
 - Comments (if provided)
 - Timestamps
 - Direct links to review SOWs
+- **User mentions** (when configured)
 
 ## Troubleshooting
 
@@ -70,11 +132,44 @@ Notifications include:
 2. **Channel Not Found**: Ensure the channel exists in your workspace
 3. **Permission Denied**: Make sure the webhook has access to the specified channel
 4. **Rate Limiting**: Slack has rate limits; if you're sending many notifications, they might be throttled
+5. **User IDs Not Working**: Ensure you're using the correct Slack user ID format (U1234567890)
 
-### Testing
+### Testing Mentions
 
-Use the "Test Connection" button in the admin panel to verify your setup. This will send a test message to your configured channel.
+1. Use the "Send Team Message" feature in the admin panel
+2. Start with your own Slack user ID to test
+3. Verify the message appears in Slack with the @mention
+4. Check that the mentioned user receives a notification
 
-### Logs
+## Advanced Configuration
 
-Check your application logs for any Slack-related errors. Failed notifications won't break the main application flow but will be logged for debugging.
+### Custom Team Roles
+
+You can customize team mention groups in `src/lib/slack-mention-utils.ts`:
+
+```typescript
+export const TEAM_MENTIONS = {
+  MANAGERS: ['U123456', 'U789012'],
+  SALES_TEAM: ['U345678', 'U901234'],
+  ENGINEERING: ['U567890', 'U123456'],
+  // Add your own team structures
+} as const;
+```
+
+### Integration with Existing Notifications
+
+All existing Slack notification methods now support optional mentions:
+
+```typescript
+// Send approval notification with mentions
+await slackService.sendApprovalNotification(
+  sowId, sowTitle, clientName, stageName, approverName, 
+  'approved', comments, ['U123456', 'U789012']
+);
+
+// Send status change with mentions
+await slackService.sendStatusChangeNotification(
+  sowId, sowTitle, clientName, oldStatus, newStatus, 
+  changedBy, ['U123456']
+);
+```
