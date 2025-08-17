@@ -40,10 +40,23 @@ export function validateSOWForApproval(sowData: { [key: string]: unknown }): SOW
   if (!objectiveOverview || objectiveOverview.trim() === '') {
     missingFields.push('Objective Overview');
   }
-  const keyObjectives = (sowData.custom_key_objectives_content as string) || (sowData.objectives as Record<string, unknown>)?.key_objectives as string || '';
-  if (!keyObjectives || keyObjectives.trim() === '') {
+  
+  // Handle keyObjectives as either custom content string or array of objectives
+  const customKeyObjectivesContent = sowData.custom_key_objectives_content as string;
+  const objectivesArray = (sowData.objectives as Record<string, unknown>)?.key_objectives as string[] | undefined;
+  
+  let keyObjectivesValid = false;
+  if (customKeyObjectivesContent && customKeyObjectivesContent.trim() !== '') {
+    keyObjectivesValid = true;
+  } else if (objectivesArray && Array.isArray(objectivesArray) && objectivesArray.length > 0) {
+    // Check if any objective in the array has content
+    keyObjectivesValid = objectivesArray.some(obj => obj && typeof obj === 'string' && obj.trim() !== '');
+  }
+  
+  if (!keyObjectivesValid) {
     missingFields.push('Key Objectives');
   }
+  
   const deliverables = (sowData.custom_deliverables_content as string) || (sowData.scope as Record<string, unknown>)?.deliverables as string || '';
   if (!deliverables || deliverables.trim() === '') {
     missingFields.push('Deliverables');
