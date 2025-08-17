@@ -30,6 +30,17 @@ export default function SOWTitlePage({
   clientSignature2,
   leandataSignature
 }: SOWTitlePageProps) {
+  // Debug logging
+  if (process.env.NODE_ENV === 'development') {
+    console.log('SOWTitlePage - Props:', {
+      clientName,
+      clientLogo,
+      clientSignature,
+      clientSignature2,
+      leandataSignature
+    });
+  }
+  
   return (
     <div className="max-w-7xl mx-auto">
       <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-white">
@@ -77,21 +88,33 @@ export default function SOWTitlePage({
               <div className="flex flex-col items-start">
                 <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
                 <div className="text-sm mt-2 text-left">
-                  {[
-                    <span key="name" className={!clientSignature?.name || clientSignature.name === 'Not Entered' ? 'text-red-600 font-bold' : ''}>
-                      {clientSignature?.name || '<FIRSTNAME LASTNAME>'}
-                    </span>,
-                    <span key="title" className={!clientSignature?.title || clientSignature?.title === 'Title Not Entered' ? 'text-red-600 font-bold' : ''}>
-                      {clientSignature?.title || '<TITLE>'}
-                    </span>
-                  ].filter(Boolean).map((item, index) => (
-                    <span key={`client-signature-${index}`}>
-                      {item}
-                      {index < 1 && clientSignature?.name && clientSignature?.title && ', '}
-                    </span>
-                  ))}
+                  {(() => {
+                    // Debug logging for signature validation
+                    if (process.env.NODE_ENV === 'development') {
+                      console.log('SOWTitlePage - Signature Validation:', {
+                        name: clientSignature?.name,
+                        title: clientSignature?.title,
+                        nameIsValid: !(!clientSignature?.name || clientSignature.name === 'Not Entered'),
+                        titleIsValid: !(!clientSignature?.title || clientSignature?.title === 'Title Not Entered')
+                      });
+                    }
+                    
+                    return [
+                      <span key="name" className={!clientSignature?.name || clientSignature.name === 'Not Entered' ? 'text-red-600 font-bold' : ''}>
+                        {clientSignature?.name || '<FIRSTNAME LASTNAME>'}
+                      </span>,
+                      <span key="title" className={!clientSignature?.title || clientSignature?.title === 'Title Not Entered' ? 'text-red-600 font-bold' : ''}>
+                        {clientSignature?.title || '<TITLE>'}
+                      </span>
+                    ].filter(Boolean).map((item, index) => (
+                      <span key={`client-signature-${index}`}>
+                        {item}
+                        {index < 1 && clientSignature?.name && clientSignature?.title && ', '}
+                      </span>
+                    ));
+                  })()}
                   <br />
-                  <span className={!clientSignature?.email || clientSignature?.email === 'EmailNot Entered' ? 'text-red-600 font-bold' : ''}>
+                  <span className={!clientSignature?.email || clientSignature?.email === 'Email Not Entered' ? 'text-red-600 font-bold' : ''}>
                     {clientSignature?.email || '<EMAIL>'}
                   </span>
                 </div>
@@ -129,9 +152,9 @@ export default function SOWTitlePage({
                       </span>
                     ))}
                     <br />
-                    <span className={!clientSignature2.email || clientSignature2.email === 'EmailNot Entered' ? 'text-red-600 font-bold' : ''}>
-                      {clientSignature2.email || '<EMAIL>'}
-                    </span>
+                    <span className={!clientSignature2.email || clientSignature2.email === 'Email Not Entered' ? 'text-red-600 font-bold' : ''}>
+                    {clientSignature2.email || '<EMAIL>'}
+                  </span>
                   </div>
                 </div>
                 {/* Date Line */}

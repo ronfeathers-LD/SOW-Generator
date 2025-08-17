@@ -42,12 +42,25 @@ class SlackService {
         icon_emoji: this.config.iconEmoji || ':memo:'
       };
 
+      console.log('📤 Sending Slack message:', {
+        webhookUrl: this.config.webhookUrl,
+        channel: payload.channel,
+        username: payload.username,
+        messageLength: message.length
+      });
+
       const response = await fetch(this.config.webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
+      });
+
+      console.log('📥 Slack response:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
       });
 
       return response.ok;
@@ -412,6 +425,13 @@ export function getSlackService(): SlackService | null {
       console.warn('SLACK_WEBHOOK_URL not configured - Slack notifications disabled');
       return null;
     }
+
+    console.log('🔧 Slack service configuration:', {
+      webhookUrl: webhookUrl ? 'SET' : 'NOT SET',
+      channel: process.env.SLACK_CHANNEL || 'NOT SET',
+      username: process.env.SLACK_USERNAME || 'NOT SET',
+      iconEmoji: process.env.SLACK_ICON_EMOJI || 'NOT SET'
+    });
 
     slackService = new SlackService({
       webhookUrl,

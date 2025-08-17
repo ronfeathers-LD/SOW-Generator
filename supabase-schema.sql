@@ -86,7 +86,6 @@ CREATE TABLE IF NOT EXISTS sows (
   
   -- Salesforce fields
   salesforce_account_id TEXT DEFAULT '',
-  salesforce_contact_id TEXT DEFAULT '',
   
   -- Author tracking
   author_id UUID REFERENCES users(id),
@@ -100,15 +99,6 @@ CREATE TABLE IF NOT EXISTS sows (
   
   -- Soft delete field
   is_hidden BOOLEAN DEFAULT false,
-  
-  -- LeanData signatory reference
-  leandata_signatory_id UUID REFERENCES lean_data_signatories(id),
-  
-  -- Assumption fields
-  access_requirements TEXT DEFAULT '',
-  travel_requirements TEXT DEFAULT '',
-  working_hours TEXT DEFAULT '',
-  testing_responsibilities TEXT DEFAULT '',
   
   -- SOW title field (renamed from title to sow_title for consistency)
   sow_title TEXT NOT NULL

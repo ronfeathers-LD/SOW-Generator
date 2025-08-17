@@ -13,6 +13,7 @@ import SOWProjectPhasesPage from '@/components/sow/SOWProjectPhasesPage';
 import SOWRolesPage from '@/components/sow/SOWRolesPage';
 import PricingDisplay from '@/components/sow/PricingDisplay';
 import SimpleApproval from '@/components/sow/SimpleApproval';
+import SOWComments from '@/components/sow/SOWComments';
 import { useSession } from 'next-auth/react';
 import { getStatusColor, getStatusLabel } from '@/lib/utils/statusUtils';
 
@@ -668,6 +669,19 @@ export default function SOWDetailsPage() {
 
             {/* Action Buttons */}
             <div className="mb-8 flex justify-end space-x-4">
+              {/* Print Button - Always visible */}
+              <Link
+                href={`/print-sow/${params.id}`}
+                target="_blank"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 print-button"
+                title="Open printable version in new tab"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Print SOW
+              </Link>
+              
               {isEditable && (
                 <Link
                   href={`/sow/${params.id}/edit`}
@@ -711,7 +725,7 @@ export default function SOWDetailsPage() {
                     clientSignature={{
                           name: findSignatory(salesforceData?.contacts_data)?.name || sow.clientSignerName || sow.clientSignature?.name || 'Not Entered',
     title: findSignatory(salesforceData?.contacts_data)?.title || sow.clientSignature?.title || sow.clientTitle || 'Title Not Entered',
-    email: findSignatory(salesforceData?.contacts_data)?.email || sow.clientSignature?.email || sow.clientEmail || 'EmailNot Entered',
+                          email: findSignatory(salesforceData?.contacts_data)?.email || sow.clientSignature?.email || sow.clientEmail || 'Email Not Entered',
                       date: sow.signatureDate || ''
                     }}
                     clientSignature2={sow.customer_signature_name_2 ? {
@@ -1151,6 +1165,11 @@ export default function SOWDetailsPage() {
                         )}
                       </div>
                     )}
+
+                    {/* Comments Section */}
+                    <div className="mt-6">
+                      <SOWComments sowId={sow.id} />
+                    </div>
                   </div>
                 </div>
               </div>

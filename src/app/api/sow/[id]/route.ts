@@ -261,7 +261,7 @@ export async function PUT(
 
             // Get SOW title from either direct field or template
             const clientName = sowDetails.client_name || 'Unknown Client';
-            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
             const sowUrl = `${baseUrl}/sow/${id}`;
 
             await slackService.sendMessage(
@@ -307,7 +307,7 @@ export async function PUT(
 
             // Get SOW title from either direct field or template
             const clientName = sowDetails.client_name || 'Unknown Client';
-            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
             const sowUrl = `${baseUrl}/sow/${id}`;
 
             await slackService.sendMessage(
@@ -327,7 +327,7 @@ export async function PUT(
     }
 
     // Send Slack notification when SOW is rejected
-    if (data.rejected_at && data.status === 'draft') {
+    if (data.rejected_at) {
       try {
         const slackService = getSlackService();
         if (slackService) {
@@ -353,7 +353,7 @@ export async function PUT(
             }
 
             const clientName = sowDetails.client_name || 'Unknown Client';
-            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
             const sowUrl = `${baseUrl}/sow/${id}`;
             const comments = data.approval_comments || 'No comments provided';
 
