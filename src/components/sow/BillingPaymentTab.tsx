@@ -195,10 +195,10 @@ export default function BillingPaymentTab({
     const hasRoutingProducts = routingProducts.some(product => selectedProducts.includes(product));
     
     if (hasRoutingProducts) {
-      // Count routing objects (first = 20 hours, additional = 5 hours each)
+      // Count routing objects (first = 15 hours, additional = 5 hours each)
       const routingObjectCount = routingProducts.filter(product => selectedProducts.includes(product)).length;
       if (routingObjectCount > 0) {
-        totalProjectHours += 20 + (Math.max(0, routingObjectCount - 1) * 5);
+        totalProjectHours += 15 + (Math.max(0, routingObjectCount - 1) * 5);
       }
     }
 
@@ -244,9 +244,9 @@ export default function BillingPaymentTab({
       if (role.role === 'Onboarding Specialist') {
         return {
           ...role,
-          ratePerHour: 200, // Set the base rate for Onboarding Specialist
+          ratePerHour: 250, // Set the base rate for Onboarding Specialist
           totalHours: totalProjectHours,
-          totalCost: 200 * totalProjectHours,
+          totalCost: 250 * totalProjectHours,
         };
       }
       return role;
@@ -260,9 +260,9 @@ export default function BillingPaymentTab({
       const pmRole: PricingRole = {
         id: Math.random().toString(36).substr(2, 9),
         role: 'Project Manager',
-        ratePerHour: 200, // Standard PM rate
+        ratePerHour: 250, // Standard PM rate
         totalHours: pmHours,
-        totalCost: 200 * pmHours,
+        totalCost: 250 * pmHours,
       };
       updatedRoles.push(pmRole);
     }

@@ -1021,7 +1021,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         />
       )}
 
-              {/* Pricing Section */}
+
+
+      {/* Pricing Section */}
         {activeTab === 'Pricing' && (
           <BillingPaymentTab
             formData={formData}

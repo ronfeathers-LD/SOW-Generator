@@ -408,7 +408,7 @@ export default function PricingRolesAndDiscount({
                 <p><strong>Total Amount:</strong> Subtotal - Discount</p>
                 <p><strong>Auto-Calculate:</strong> Routing objects + BookIt products + User groups = Total hours assigned to Onboarding Specialist</p>
                 <p><strong>Auto-Project Manager Role:</strong> Automatically added when 3+ products (excluding Lead to Account Matching, including BookIt Handoff with Smartrep as objects)</p>
-                <p><strong>Routing Objects:</strong> Lead/Contact Routing: 20h (first), 5h (additional)</p>
+                <p><strong>Routing Objects:</strong> Lead/Contact Routing: 15h (first), 5h (additional)</p>
                 <p><strong>BookIt Products:</strong> Forms (10h), Links (1h, no cost), Handoff (1h/5h/10h based on Smartrep)</p>
                 <p><strong>User Groups:</strong> Every 50 users/units = +5 hours</p>
               </div>

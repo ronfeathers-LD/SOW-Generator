@@ -88,7 +88,15 @@ async function getDashboardStats(session: Session) {
     try {
       const result = await supabase
         .from('sows')
-        .select('id, client_name, sow_title, status, created_at, author:users!sows_author_id_fkey(name)')
+        .select(`
+          id, 
+          client_name, 
+          sow_title, 
+          status, 
+          created_at, 
+          author:users!sows_author_id_fkey(name),
+          products:sow_products(product:products(name))
+        `)
         .eq('is_hidden', false)
         .order('created_at', { ascending: false })
         .limit(5);
@@ -106,7 +114,15 @@ async function getDashboardStats(session: Session) {
       try {
         const { data: fallbackRecent, error: fallbackError } = await supabase
           .from('sows')
-          .select('id, client_name, sow_title, status, created_at, author:users!sows_author_id_fkey(name)')
+          .select(`
+            id, 
+            client_name, 
+            sow_title, 
+            status, 
+            created_at, 
+            author:users!sows_author_id_fkey(name),
+            products:sow_products(product:products(name))
+          `)
           .eq('is_hidden', false)
           .order('created_at', { ascending: false })
           .limit(5);
@@ -355,23 +371,59 @@ export default async function Dashboard() {
               {dashboardData.recentSOWs.length > 0 ? (
                 <div className="space-y-4">
                   {dashboardData.recentSOWs.slice(0, 3).map((sow: unknown) => {
-                    const sowObj = sow as { id: string; sow_title?: string; client_name?: string; status: string };
+                    const sowObj = sow as { 
+                      id: string; 
+                      sow_title?: string; 
+                      client_name?: string; 
+                      status: string; 
+                      created_at: string;
+                      products?: Array<{ product: { name: string } }>;
+                    };
+                    
+                    // Format the created date
+                    const createdDate = sowObj.created_at ? new Date(sowObj.created_at).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    }) : 'Unknown date';
+                    
+                    // Extract product names
+                    const productNames = sowObj.products?.map(p => p.product?.name).filter(Boolean) || [];
+                    
                     return (
-                      <div key={sowObj.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">{sowObj.sow_title || 'Untitled SOW'}</h4>
-                          <p className="text-sm text-gray-500">{sowObj.client_name || 'No client'}</p>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(sowObj.status)}`}>
-                            {getStatusLabel(sowObj.status)}
-                          </span>
-                          <Link
-                            href={`/sow/${sowObj.id}`}
-                            className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
-                          >
-                            View
-                          </Link>
+                      <div key={sowObj.id} className="p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-900 text-lg mb-1">
+                              {sowObj.client_name || 'No client'}
+                            </h4>
+                            <p className="text-sm text-gray-600 mb-2">
+                              Created: {createdDate}
+                            </p>
+                            {productNames.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {productNames.map((productName, index) => (
+                                  <span 
+                                    key={index}
+                                    className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full"
+                                  >
+                                    {productName}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-3 ml-4">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(sowObj.status)}`}>
+                              {getStatusLabel(sowObj.status)}
+                            </span>
+                            <Link
+                              href={`/sow/${sowObj.id}`}
+                              className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                            >
+                              View
+                            </Link>
+                          </div>
                         </div>
                       </div>
                     );
@@ -393,19 +445,7 @@ export default async function Dashboard() {
 
 
 
-          {/* User Info */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">
-                  Logged in as: <span className="font-medium">{session.user.name || session.user.email}</span>
-                </p>
-                {isAdmin && (
-                  <p className="text-xs text-gray-500 mt-1">Role: Administrator</p>
-                )}
-              </div>
-            </div>
-          </div>
+
         </div>
       </main>
     </div>
