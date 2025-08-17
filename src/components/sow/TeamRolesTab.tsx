@@ -53,6 +53,8 @@ export default function TeamRolesTab({
     }
   }, [selectedAccount?.id, selectedContact, formData.template?.customer_signature_name, formData.salesforce_contact_id]);
 
+
+
   const loadContacts = async (accountId: string) => {
     setIsLoadingContacts(true);
     try {
@@ -93,8 +95,9 @@ export default function TeamRolesTab({
       ...formData,
       template: {
         ...formData.template!,
+        customer_signature_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
+        customer_email: contact.Email || '',
         customer_signature: contact.Title || '',
-        customer_email: contact.Email || ''
       }
     };
     setFormData(updatedFormData);
@@ -108,9 +111,12 @@ export default function TeamRolesTab({
         },
         body: JSON.stringify({
           tab: 'Team & Roles',
-          template: {
-            customer_signature: contact.Title || '',
-            customer_email: contact.Email || ''
+          data: {
+            template: {
+              customer_signature_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
+              customer_email: contact.Email || '',
+              customer_signature: contact.Title || '',
+            }
           }
         })
       });
@@ -121,6 +127,8 @@ export default function TeamRolesTab({
     } catch (error) {
       console.error('Error saving customer signer:', error);
     }
+
+    setShowSignerContactSelection(false);
   }, [formData, setFormData]);
 
   const handleSecondSignerContactSelected = async (contact: SalesforceContact) => {
@@ -351,16 +359,25 @@ export default function TeamRolesTab({
                           // Determine the contact name to display
                           let contactDisplay = 'No signer selected';
                           
-                          if (selectedContact?.FirstName || selectedContact?.LastName) {
-                            contactDisplay = `${selectedContact.FirstName || ''} ${selectedContact.LastName}`.trim();
-                          } else if (formData.template?.customer_signature_name) {
+                          // Check for existing contact information first
+                          if (formData.template?.customer_signature_name) {
                             contactDisplay = formData.template.customer_signature_name;
+                          } else if (selectedContact?.FirstName || selectedContact?.LastName) {
+                            contactDisplay = `${selectedContact.FirstName || ''} ${selectedContact.LastName}`.trim();
                           }
                           
                           return contactDisplay;
                         })()}
                       </p>
-                      {(selectedContact || formData.template?.customer_signature_name || formData.salesforce_contact_id) && (
+                      {/* Show additional signer info if we have any signer information */}
+                      {(formData.template?.customer_signature_name || 
+                        formData.template?.customer_email || 
+                        formData.template?.customer_signature || 
+                        formData.salesforce_contact_id ||
+                        selectedContact?.FirstName || 
+                        selectedContact?.LastName || 
+                        selectedContact?.Email || 
+                        selectedContact?.Title) && (
                         <div className="text-xs text-gray-600 space-y-1 mt-2">
                           {/* Show "Contact verified in Salesforce" if we have a Salesforce contact ID */}
                           {(selectedContact?.Id || formData.salesforce_contact_id) && (
@@ -410,7 +427,7 @@ export default function TeamRolesTab({
                       onClick={() => setShowSignerContactSelection(true)}
                       className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
                     >
-                      Change Signer
+                      {formData.template?.customer_signature_name ? 'Change Signer' : 'Select Signer'}
                     </button>
                   </div>
                 </div>
