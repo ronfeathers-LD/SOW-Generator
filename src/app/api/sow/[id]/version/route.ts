@@ -66,7 +66,6 @@ export async function POST(
         client_roles: originalSOW.client_roles ?? [],
         pricing_roles: originalSOW.pricing_roles ?? [],
         billing_info: originalSOW.billing_info ?? {},
-        testing_responsibilities: originalSOW.testing_responsibilities ?? '',
       })
       .select()
       .single();

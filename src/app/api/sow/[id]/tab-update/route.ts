@@ -182,12 +182,7 @@ export async function PUT(
           updateData.pricing_roles = pricingData;
         }
         
-        if (data.assumptions) {
-          if (data.assumptions.access_requirements !== undefined) updateData.access_requirements = data.assumptions.access_requirements;
-          if (data.assumptions.travel_requirements !== undefined) updateData.travel_requirements = data.assumptions.travel_requirements;
-          if (data.assumptions.working_hours !== undefined) updateData.working_hours = data.assumptions.working_hours;
-          if (data.assumptions.testing_responsibilities !== undefined) updateData.testing_responsibilities = data.assumptions.testing_responsibilities;
-        }
+        // Note: access_requirements, travel_requirements, working_hours, and testing_responsibilities columns have been removed from the schema
         break;
 
       case 'Content Editing':
