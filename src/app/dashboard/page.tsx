@@ -346,95 +346,47 @@ export default async function Dashboard() {
 
 
 
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Recent SOWs */}
-            <div className="bg-white shadow rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Recent SOWs</h3>
-              </div>
-              <div className="p-6">
-                {dashboardData.recentSOWs.length > 0 ? (
-                  <div className="space-y-4">
-                    {dashboardData.recentSOWs.map((sow: unknown) => {
-                      const sowObj = sow as { id: string; sow_title?: string; client_name?: string; status: string };
-                      return (
-                        <div key={sowObj.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-900">{sowObj.sow_title || 'Untitled SOW'}</h4>
-                            <p className="text-sm text-gray-500">{sowObj.client_name || 'No client'}</p>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(sowObj.status)}`}>
-                              {getStatusLabel(sowObj.status)}
-                            </span>
-                            <Link
-                              href={`/sow/${sowObj.id}`}
-                              className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
-                            >
-                              View
-                            </Link>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">No SOWs found</p>
-                )}
-                <div className="mt-4">
-                  <Link
-                    href="/sow"
-                    className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
-                  >
-                    View all SOWs →
-                  </Link>
-                </div>
-              </div>
+          {/* My Recent SOWs */}
+          <div className="bg-white shadow rounded-lg">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">My Recent SOWs</h3>
             </div>
-
-            {/* My Recent SOWs */}
-            <div className="bg-white shadow rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">My Recent SOWs</h3>
-              </div>
-              <div className="p-6">
-                {dashboardData.recentSOWs.length > 0 ? (
-                  <div className="space-y-4">
-                    {dashboardData.recentSOWs.slice(0, 3).map((sow: unknown) => {
-                      const sowObj = sow as { id: string; sow_title?: string; client_name?: string; status: string };
-                      return (
-                        <div key={sowObj.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-900">{sowObj.sow_title || 'Untitled SOW'}</h4>
-                            <p className="text-sm text-gray-500">{sowObj.client_name || 'No client'}</p>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(sowObj.status)}`}>
-                              {getStatusLabel(sowObj.status)}
-                            </span>
-                            <Link
-                              href={`/sow/${sowObj.id}`}
-                              className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
-                            >
-                              View
-                            </Link>
-                          </div>
+            <div className="p-6">
+              {dashboardData.recentSOWs.length > 0 ? (
+                <div className="space-y-4">
+                  {dashboardData.recentSOWs.slice(0, 3).map((sow: unknown) => {
+                    const sowObj = sow as { id: string; sow_title?: string; client_name?: string; status: string };
+                    return (
+                      <div key={sowObj.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">{sowObj.sow_title || 'Untitled SOW'}</h4>
+                          <p className="text-sm text-gray-500">{sowObj.client_name || 'No client'}</p>
                         </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">No SOWs found</p>
-                )}
-                <div className="mt-4">
-                  <Link
-                    href="/sow"
-                    className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
-                  >
-                    View all SOWs →
-                  </Link>
+                        <div className="flex items-center space-x-3">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(sowObj.status)}`}>
+                            {getStatusLabel(sowObj.status)}
+                          </span>
+                          <Link
+                            href={`/sow/${sowObj.id}`}
+                            className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                          >
+                            View
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
+              ) : (
+                <p className="text-gray-500 text-center py-4">No SOWs found</p>
+              )}
+              <div className="mt-4">
+                <Link
+                  href="/sow"
+                  className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                >
+                  View all SOWs →
+                </Link>
               </div>
             </div>
           </div>

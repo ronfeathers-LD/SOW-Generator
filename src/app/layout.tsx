@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import Providers from './providers'
 import Navigation from './components/Navigation'
+import Footer from './components/Footer'
 import JavaScriptRequired from './components/JavaScriptRequired'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -53,7 +54,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           <JavaScriptRequired />
-          <div className="min-h-screen bg-gray-50">
+          <div className="min-h-screen bg-gray-50 flex flex-col">
             <Navigation />
             
             {/* ALPHA Testing Banner - Temporarily Hidden */}
@@ -86,7 +87,9 @@ export default function RootLayout({
               </div>
             </div> */}
             
-            <main className="container mx-auto px-4 py-8">{children}</main>
+            <main className="container mx-auto px-4 py-8 flex-1">{children}</main>
+            
+            <Footer />
           </div>
         </Providers>
       </body>
