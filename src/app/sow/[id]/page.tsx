@@ -847,7 +847,15 @@ export default function SOWDetailsPage() {
                   <h2 className="text-3xl font-bold mb-6">5. PRICING</h2>
                   <div className="mb-6 p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
                     <p className="text-gray-700">
-                      The tasks above will be completed on a <strong>time and material basis</strong>, using the LeanData standard workday of 8 hours for a duration of <strong>{sow.timeline_weeks ? `${sow.timeline_weeks} weeks` : 'N/A'}</strong>.
+                      The tasks above will be completed on a <strong>time and material basis</strong>, using the LeanData standard workday of 8 hours for a duration of <strong>{sow.timeline_weeks ? (() => {
+                        const totalWeeks = parseFloat(sow.timeline_weeks) || 0;
+                        if (totalWeeks < 1) {
+                          const days = Math.ceil(totalWeeks * 7);
+                          return `${days} ${days === 1 ? 'day' : 'days'}`;
+                        } else {
+                          return `${totalWeeks} weeks`;
+                        }
+                      })() : 'N/A'}</strong>.
                     </p>
                     <p className="text-sm text-gray-600 mt-2">
                       Hours are calculated based on product selection and unit counts, with automatic role assignment and project management inclusion where applicable.
@@ -870,18 +878,32 @@ export default function SOWDetailsPage() {
                         <div className="divide-y divide-gray-200">
                           {(() => {
                             const totalWeeks = parseFloat(sow.timeline_weeks) || 0;
+                            
+                            // Helper function to format duration with appropriate units
+                            const formatDuration = (weeks: number) => {
+                              if (weeks < 1) {
+                                // Convert to days and round up to nearest day
+                                const days = Math.ceil(weeks * 7);
+                                return `${days} ${days === 1 ? 'day' : 'days'}`;
+                              } else {
+                                // Round to 1 decimal place for weeks
+                                const roundedWeeks = Math.round(weeks * 10) / 10;
+                                return `${roundedWeeks} ${roundedWeeks === 1 ? 'week' : 'weeks'}`;
+                              }
+                            };
+                            
                             const phaseDurations = {
                               engage: 0.125, discovery: 0.25, build: 0.25, 
                               test: 0.125, deploy: 0.125, hypercare: 0.125
                             };
                             
                             const phases = [
-                              { name: 'ENGAGE', description: 'Project kickoff and planning', duration: Math.round(totalWeeks * phaseDurations.engage * 10) / 10 },
-                              { name: 'DISCOVERY', description: 'Requirements gathering and analysis', duration: Math.round(totalWeeks * phaseDurations.discovery * 10) / 10 },
-                              { name: 'BUILD', description: 'Solution development and configuration', duration: Math.round(totalWeeks * phaseDurations.build * 10) / 10 },
-                              { name: 'TEST', description: 'Quality assurance and validation', duration: Math.round(totalWeeks * phaseDurations.test * 10) / 10 },
-                              { name: 'DEPLOY', description: 'Production deployment and go-live', duration: Math.round(totalWeeks * phaseDurations.deploy * 10) / 10 },
-                              { name: 'HYPERCARE', description: 'Post-deployment support and transition', duration: Math.round(totalWeeks * phaseDurations.hypercare * 10) / 10 }
+                              { name: 'ENGAGE', description: 'Project kickoff and planning', duration: totalWeeks * phaseDurations.engage },
+                              { name: 'DISCOVERY', description: 'Requirements gathering and analysis', duration: totalWeeks * phaseDurations.discovery },
+                              { name: 'BUILD', description: 'Solution development and configuration', duration: totalWeeks * phaseDurations.build },
+                              { name: 'TEST', description: 'Quality assurance and validation', duration: totalWeeks * phaseDurations.test },
+                              { name: 'DEPLOY', description: 'Production deployment and go-live', duration: totalWeeks * phaseDurations.deploy },
+                              { name: 'HYPERCARE', description: 'Post-deployment support and transition', duration: totalWeeks * phaseDurations.hypercare }
                             ];
                             
                             return phases.map((phase, index) => (
@@ -894,7 +916,7 @@ export default function SOWDetailsPage() {
                                     {phase.description}
                                   </div>
                                   <div className="text-right font-medium text-gray-900">
-                                    {phase.duration} {phase.duration === 1 ? 'week' : 'weeks'}
+                                    {formatDuration(phase.duration)}
                                   </div>
                                 </div>
                               </div>

@@ -147,7 +147,15 @@ export default function SOWObjectivesPage({
               Salesforce Tenants: {projectDetails.salesforce_tenants || 'N/A'}
             </li>
             <li>
-              Timeline: {projectDetails.timeline_weeks || 'N/A'} weeks
+              Timeline: {projectDetails.timeline_weeks ? (() => {
+                const totalWeeks = parseFloat(projectDetails.timeline_weeks) || 0;
+                if (totalWeeks < 1) {
+                  const days = Math.ceil(totalWeeks * 7);
+                  return `${days} ${days === 1 ? 'day' : 'days'}`;
+                } else {
+                  return `${totalWeeks} weeks`;
+                }
+              })() : 'N/A'}
             </li>
             <li>
               Start and End date: The start date of this SOW is one week after subscription start date and ends based on the number of weeks

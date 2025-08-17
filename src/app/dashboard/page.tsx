@@ -178,7 +178,6 @@ export default async function Dashboard() {
     redirect('/');
   }
 
-  const isAdmin = session.user?.role === 'admin';
   const dashboardData = await getDashboardStats(session);
 
 

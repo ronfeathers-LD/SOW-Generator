@@ -9,6 +9,29 @@ export default function TimelineDisplay({ timelineWeeks, className = '' }: Timel
   // Parse the timeline weeks to determine phase durations
   const totalWeeks = parseFloat(timelineWeeks) || 0;
   
+  // Helper function to format duration with appropriate units
+  const formatDuration = (weeks: number) => {
+    if (weeks < 1) {
+      // Convert to days and round up to nearest day
+      const days = Math.ceil(weeks * 7);
+      return `${days} ${days === 1 ? 'day' : 'days'}`;
+    } else {
+      // Round to 1 decimal place for weeks
+      const roundedWeeks = Math.round(weeks * 10) / 10;
+      return `${roundedWeeks} ${roundedWeeks === 1 ? 'week' : 'weeks'}`;
+    }
+  };
+
+  // Helper function to format total duration display
+  const formatTotalDuration = (weeks: number) => {
+    if (weeks < 1) {
+      const days = Math.ceil(weeks * 7);
+      return `${days} ${days === 1 ? 'day' : 'days'}`;
+    } else {
+      return `${weeks} weeks`;
+    }
+  };
+  
   // Define phase duration ratios based on typical project breakdowns
   // These can be adjusted based on your business logic
   const phaseDurations = {
@@ -24,32 +47,32 @@ export default function TimelineDisplay({ timelineWeeks, className = '' }: Timel
     {
       name: 'ENGAGE',
       description: 'Project kickoff and planning',
-      duration: Math.round(totalWeeks * phaseDurations.engage * 10) / 10
+      duration: totalWeeks * phaseDurations.engage
     },
     {
       name: 'DISCOVERY', 
       description: 'Requirements gathering and analysis',
-      duration: Math.round(totalWeeks * phaseDurations.discovery * 10) / 10
+      duration: totalWeeks * phaseDurations.discovery
     },
     {
       name: 'BUILD',
       description: 'Solution development and configuration',
-      duration: Math.round(totalWeeks * phaseDurations.build * 10) / 10
+      duration: totalWeeks * phaseDurations.build
     },
     {
       name: 'TEST',
       description: 'Quality assurance and validation',
-      duration: Math.round(totalWeeks * phaseDurations.test * 10) / 10
+      duration: totalWeeks * phaseDurations.test
     },
     {
       name: 'DEPLOY',
       description: 'Production deployment and go-live',
-      duration: Math.round(totalWeeks * phaseDurations.deploy * 10) / 10
+      duration: totalWeeks * phaseDurations.deploy
     },
     {
       name: 'HYPERCARE',
       description: 'Post-deployment support and transition',
-      duration: Math.round(totalWeeks * phaseDurations.hypercare * 10) / 10
+      duration: totalWeeks * phaseDurations.hypercare
     }
   ];
 
@@ -58,7 +81,7 @@ export default function TimelineDisplay({ timelineWeeks, className = '' }: Timel
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">Project Timeline</h3>
         <div className="text-sm text-gray-600">
-          Total Duration: <span className="font-medium">{totalWeeks} weeks</span>
+          Total Duration: <span className="font-medium">{formatTotalDuration(totalWeeks)}</span>
         </div>
       </div>
 
@@ -82,7 +105,7 @@ export default function TimelineDisplay({ timelineWeeks, className = '' }: Timel
                   {phase.description}
                 </div>
                 <div className="text-right font-medium text-gray-900">
-                  {phase.duration} {phase.duration === 1 ? 'week' : 'weeks'}
+                  {formatDuration(phase.duration)}
                 </div>
               </div>
             </div>
@@ -91,7 +114,7 @@ export default function TimelineDisplay({ timelineWeeks, className = '' }: Timel
       </div>
 
       <div className="text-xs text-gray-500 text-center">
-        Timeline breakdown based on {totalWeeks}-week project duration
+        Timeline breakdown based on {formatTotalDuration(totalWeeks)} project duration
       </div>
     </div>
   );
