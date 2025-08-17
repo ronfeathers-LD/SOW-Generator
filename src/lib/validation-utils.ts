@@ -36,13 +36,16 @@ export function validateSOWForApproval(sowData: { [key: string]: unknown }): SOW
   }
 
   // Objectives Tab validation
-  if (!sowData.custom_objective_overview_content || ((sowData.custom_objective_overview_content as string) || '').trim() === '') {
+  const objectiveOverview = (sowData.custom_objective_overview_content as string) || (sowData.objectives as Record<string, unknown>)?.description as string || '';
+  if (!objectiveOverview || objectiveOverview.trim() === '') {
     missingFields.push('Objective Overview');
   }
-  if (!sowData.custom_key_objectives_content || ((sowData.custom_key_objectives_content as string) || '').trim() === '') {
+  const keyObjectives = (sowData.custom_key_objectives_content as string) || (sowData.objectives as Record<string, unknown>)?.key_objectives as string || '';
+  if (!keyObjectives || keyObjectives.trim() === '') {
     missingFields.push('Key Objectives');
   }
-  if (!sowData.custom_deliverables_content || ((sowData.custom_deliverables_content as string) || '').trim() === '') {
+  const deliverables = (sowData.custom_deliverables_content as string) || (sowData.scope as Record<string, unknown>)?.deliverables as string || '';
+  if (!deliverables || deliverables.trim() === '') {
     missingFields.push('Deliverables');
   }
 
