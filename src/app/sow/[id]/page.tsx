@@ -417,7 +417,7 @@ export default function SOWDetailsPage() {
           },
 
           companyLogo: data.header?.company_logo || data.companyLogo || '',
-          clientName: data.template?.customer_name || data.client_name || data.header?.client_name || '',
+          clientName: data.template?.client_name || data.client_name || data.header?.client_name || '',
           clientSignature: data.template?.customer_signature_name ? {
             name: data.template.customer_signature_name,
             title: data.template.customer_signature || data.client_title || '',

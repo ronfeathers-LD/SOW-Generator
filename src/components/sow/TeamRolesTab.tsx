@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { SOWData } from '@/types/sow';
+import { SOWData, SOWTemplate } from '@/types/sow';
 import { SalesforceContact } from '@/lib/salesforce';
 
 interface TeamRolesTabProps {
@@ -216,16 +216,16 @@ export default function TeamRolesTab({
         ...formData,
         template: {
           ...(formData.template || {}),
-          billing_company_name: billingInfo.companyName || formData.template?.customer_name || '',
+                            billing_company_name: billingInfo.companyName || formData.template?.client_name || '',
           billing_address: billingInfo.billingAddress || '',
           // Only update billing contact if we don't already have one
           billing_contact_name: existingBillingContact || billingInfo.billingContact || '',
           billing_email: existingBillingEmail || billingInfo.billingEmail || '',
-        } as any,
+        },
       };
 
       // Update local state
-      setFormData(updatedFormData);
+      setFormData(updatedFormData as SOWData);
 
       // Save to database
       if (formData.id) {
@@ -239,7 +239,7 @@ export default function TeamRolesTab({
               tab: 'Team & Roles',
               data: {
                 template: {
-                  billing_company_name: billingInfo.companyName || formData.template?.customer_name || '',
+                  billing_company_name: billingInfo.companyName || formData.template?.client_name || '',
                   billing_address: billingInfo.billingAddress || '',
                   billing_contact_name: existingBillingContact || billingInfo.billingContact || '',
                   billing_email: existingBillingEmail || billingInfo.billingEmail || '',
@@ -279,7 +279,7 @@ export default function TeamRolesTab({
         ...(formData.template || {}),
         billing_contact_name: contactName,
         billing_email: contactEmail,
-      } as any,
+      } as SOWTemplate,
     });
 
     // Try to save billing contact selection via tab-update
@@ -684,7 +684,7 @@ export default function TeamRolesTab({
                  value={formData.template?.billing_company_name || ''}
                  onChange={(e) => setFormData({
                    ...formData,
-                   template: { ...(formData.template || {}), billing_company_name: e.target.value } as any,
+                   template: { ...(formData.template || {}), billing_company_name: e.target.value } as SOWTemplate,
                  })}
                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                  placeholder="Company name for billing"
@@ -695,10 +695,10 @@ export default function TeamRolesTab({
                <label className="block text-sm font-medium text-gray-700">Billing Address</label>
                <textarea
                  value={formData.template?.billing_address || ''}
-                 onChange={(e) => setFormData({
-                   ...formData,
-                   template: { ...(formData.template || {}), billing_address: e.target.value } as any,
-                 })}
+                                    onChange={(e) => setFormData({
+                     ...formData,
+                     template: { ...(formData.template || {}), billing_address: e.target.value } as SOWTemplate,
+                   })}
                  rows={3}
                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                  placeholder="Billing address"
@@ -710,10 +710,10 @@ export default function TeamRolesTab({
                <input
                  type="text"
                  value={formData.template?.purchase_order_number || ''}
-                 onChange={(e) => setFormData({
-                   ...formData,
-                   template: { ...(formData.template || {}), purchase_order_number: e.target.value } as any,
-                 })}
+                                    onChange={(e) => setFormData({
+                     ...formData,
+                     template: { ...(formData.template || {}), purchase_order_number: e.target.value } as SOWTemplate,
+                   })}
                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                  placeholder="Purchase order number (optional)"
                />

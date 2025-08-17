@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { SOWData } from '@/types/sow';
 
 interface PricingRole {
   id: string;
@@ -18,7 +19,7 @@ interface DiscountConfig {
 }
 
 interface PricingRolesAndDiscountProps {
-  formData: any;
+  formData: SOWData;
   pricingRoles: PricingRole[];
   setPricingRoles: (roles: PricingRole[]) => void;
   discountConfig: DiscountConfig;

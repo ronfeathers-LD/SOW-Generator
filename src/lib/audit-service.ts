@@ -135,7 +135,7 @@ export class AuditService {
         .from('approval_audit_log')
         .select(`
           *,
-          user:users(id, name, email)
+          user:users!approval_audit_log_user_id_fkey(id, name, email)
         `)
         .eq('sow_id', sowId)
         .order('created_at', { ascending: false });
@@ -227,7 +227,7 @@ export class AuditService {
         .from('approval_audit_log')
         .select(`
           *,
-          user:users(id, name, email)
+          user:users!approval_audit_log_user_id_fkey(id, name, email)
         `)
         .eq('sow_id', sowId);
 

@@ -21,7 +21,7 @@ interface TranscriptionAnalysisResponse {
   isFallback?: boolean;
   error?: string;
   rawContent?: string;
-  [key: string]: any; // Keep flexible for backward compatibility
+  [key: string]: unknown; // Keep flexible for backward compatibility
 }
 
 class GeminiClient {
@@ -322,7 +322,7 @@ Please provide a professional, 2-3 sentence project description that captures th
       .replace(/\{existingDescription\}/g, existingDescription || '')
       .replace(/\{existingObjectives\}/g, existingObjectives ? JSON.stringify(existingObjectives) : '[]');
 
-    return this.executePrompt(finalPrompt, transcript, customerName, selectedProducts, existingDescription, existingObjectives);
+    return this.executePrompt(finalPrompt, transcript, customerName);
   }
 
   /**
@@ -331,10 +331,7 @@ Please provide a professional, 2-3 sentence project description that captures th
   private async executePrompt(
     prompt: string,
     transcript: string,
-    customerName: string,
-    selectedProducts?: string[],
-    existingDescription?: string,
-    existingObjectives?: string[]
+    customerName: string
   ): Promise<TranscriptionAnalysisResponse> {
     const startTime = Date.now();
     let geminiResponse = '';

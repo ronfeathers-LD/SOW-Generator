@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { ChangelogService } from '@/lib/changelog-service';
 import { supabaseApi } from '@/lib/supabase-api';
 import { getSlackService } from '@/lib/slack';
@@ -60,7 +59,7 @@ export async function POST(request: Request) {
         
         // Header Information
         company_logo: data.header?.company_logo || '',
-        client_name: data.template?.customer_name || data.header?.client_name || '',
+        client_name: data.template?.client_name || data.header?.client_name || '',
         
         // Client Signature Information
         client_title: data.client_signature?.title || '',
@@ -177,7 +176,7 @@ export async function POST(request: Request) {
     try {
       const slackService = getSlackService();
       if (slackService) {
-        const sowTitle = sow.sow_title || 'Untitled SOW';
+    
         const clientName = sow.client_name || 'Unknown Client';
         const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
         const sowUrl = `${baseUrl}/sow/${sow.id}`;
@@ -221,7 +220,7 @@ export async function GET() {
       .from('sows')
       .select(`
         *,
-        author:users(name)
+        author:users!sows_author_id_fkey(name)
       `)
       .eq('is_hidden', false) // Only show non-hidden SOWs
       .order('created_at', { ascending: false });

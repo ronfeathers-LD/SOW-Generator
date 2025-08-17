@@ -21,7 +21,7 @@ export interface SOWTemplate {
   company_logo: string;
   
   // Customer Information
-  customer_name: string;
+  client_name: string;
   customer_signature_name: string;
   customer_signature: string;
   customer_email: string;

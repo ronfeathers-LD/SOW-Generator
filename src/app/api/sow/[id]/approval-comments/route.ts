@@ -31,7 +31,7 @@ export async function GET(
         version,
         created_at,
         updated_at,
-        user:users(id, name, email)
+        user:users!approval_comments_user_id_fkey(id, name, email)
       `)
       .eq('sow_id', sowId)
       .order('created_at', { ascending: true });

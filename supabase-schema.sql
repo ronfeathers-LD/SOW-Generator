@@ -27,7 +27,6 @@ CREATE TABLE IF NOT EXISTS sows (
   client_signer_name TEXT DEFAULT '',
   content TEXT DEFAULT '',
   status TEXT DEFAULT 'draft',
-  title TEXT NOT NULL,
   opportunity_amount DECIMAL(10,2),
   opportunity_close_date TIMESTAMP WITH TIME ZONE,
   opportunity_id TEXT,
@@ -96,7 +95,13 @@ CREATE TABLE IF NOT EXISTS sows (
   approved_at TIMESTAMP WITH TIME ZONE,
   rejected_at TIMESTAMP WITH TIME ZONE,
   approved_by UUID REFERENCES users(id),
-  rejected_by UUID REFERENCES users(id)
+  rejected_by UUID REFERENCES users(id),
+  
+  -- Soft delete field
+  is_hidden BOOLEAN DEFAULT false,
+  
+  -- SOW title field (renamed from title to sow_title for consistency)
+  sow_title TEXT NOT NULL
 );
 
 -- Create users table
@@ -137,6 +142,19 @@ CREATE TABLE IF NOT EXISTS comments (
   sow_id UUID REFERENCES sows(id) ON DELETE CASCADE,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   parent_id UUID REFERENCES comments(id) ON DELETE CASCADE
+);
+
+-- Create approval_comments table for threaded approval discussions
+CREATE TABLE IF NOT EXISTS approval_comments (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  sow_id UUID REFERENCES sows(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  comment TEXT NOT NULL,
+  is_internal BOOLEAN DEFAULT false,
+  parent_id UUID REFERENCES approval_comments(id) ON DELETE CASCADE,
+  version INTEGER DEFAULT 1
 );
 
 -- Create salesforce_configs table
@@ -187,6 +205,45 @@ CREATE TABLE IF NOT EXISTS gemini_configs (
   is_active BOOLEAN DEFAULT true,
   last_tested TIMESTAMP WITH TIME ZONE,
   last_error TEXT
+);
+
+-- Create approval_stages table
+CREATE TABLE IF NOT EXISTS approval_stages (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  name TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  sort_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true
+);
+
+-- Create sow_approvals table
+CREATE TABLE IF NOT EXISTS sow_approvals (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  sow_id UUID REFERENCES sows(id) ON DELETE CASCADE,
+  stage_id UUID REFERENCES approval_stages(id) ON DELETE CASCADE,
+  status TEXT DEFAULT 'pending',
+  approver_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  comments TEXT,
+  approved_at TIMESTAMP WITH TIME ZONE,
+  rejected_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Create approval_audit_log table for tracking approval actions
+CREATE TABLE IF NOT EXISTS approval_audit_log (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  sow_id UUID REFERENCES sows(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  action TEXT NOT NULL,
+  previous_status TEXT,
+  new_status TEXT,
+  comments TEXT,
+  metadata JSONB DEFAULT '{}'
 );
 
 -- Create sow_changelog table for tracking all SOW content changes
@@ -253,8 +310,27 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_sow_changelog_updated_at') THEN
         CREATE TRIGGER update_sow_changelog_updated_at BEFORE UPDATE ON sow_changelog FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_approval_stages_updated_at') THEN
+        CREATE TRIGGER update_approval_stages_updated_at BEFORE UPDATE ON approval_stages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_sow_approvals_updated_at') THEN
+        CREATE TRIGGER update_sow_approvals_updated_at BEFORE UPDATE ON sow_approvals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_approval_audit_log_updated_at') THEN
+        CREATE TRIGGER update_approval_audit_log_updated_at BEFORE UPDATE ON approval_audit_log FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_approval_comments_updated_at') THEN
+        CREATE TRIGGER update_approval_comments_updated_at BEFORE UPDATE ON approval_comments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
 
 END $$;
+
+-- Insert default approval stages
+INSERT INTO approval_stages (name, description, sort_order) VALUES
+  ('Legal Review', 'Legal team review and approval', 1),
+  ('Finance Review', 'Finance team review and approval', 2),
+  ('Executive Approval', 'Executive team final approval', 3)
+ON CONFLICT DO NOTHING;
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE sows ENABLE ROW LEVEL SECURITY;
@@ -264,6 +340,10 @@ ALTER TABLE salesforce_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lean_data_signatories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE avoma_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gemini_configs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE approval_stages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sow_approvals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE approval_audit_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE approval_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sow_changelog ENABLE ROW LEVEL SECURITY;
 
 
@@ -307,6 +387,18 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'sow_changelog' AND policyname = 'Users can create changelog entries') THEN
         CREATE POLICY "Users can create changelog entries" ON sow_changelog FOR INSERT WITH CHECK (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'approval_stages' AND policyname = 'Public read access to approval stages') THEN
+        CREATE POLICY "Public read access to approval stages" ON approval_stages FOR SELECT USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'sow_approvals' AND policyname = 'Public read access to sow approvals') THEN
+        CREATE POLICY "Public read access to sow approvals" ON sow_approvals FOR SELECT USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'approval_audit_log' AND policyname = 'Public read access to approval audit log') THEN
+        CREATE POLICY "Public read access to approval audit log" ON approval_audit_log FOR SELECT USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'approval_comments' AND policyname = 'Public read access to approval comments') THEN
+        CREATE POLICY "Public read access to approval comments" ON approval_comments FOR SELECT USING (true);
     END IF;
 
 END $$; 

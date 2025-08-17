@@ -41,7 +41,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               day: 'numeric' 
             })}`,
             company_logo: initialData.template?.company_logo || '',
-            customer_name: initialData.template?.customer_name || '',
+            client_name: initialData.template?.client_name || '',
             customer_signature_name: initialData.template?.customer_signature_name || '',
             customer_signature: initialData.template?.customer_signature || '',
             customer_email: initialData.template?.customer_email || '',
@@ -129,7 +129,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             company_logo: '',
             
             // Customer Information
-            customer_name: '',
+            client_name: '',
             customer_signature_name: '',
             customer_signature: '',
             customer_email: '',
@@ -330,11 +330,11 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       // Set selected account if available from initialData or if customer name exists
       if (initialData.selectedAccount) {
         setSelectedAccount(initialData.selectedAccount);
-      } else if (initialData.template?.customer_name || initialData.header?.client_name) {
+      } else if (initialData.template?.client_name || initialData.header?.client_name) {
         const accountId = initialData.salesforce_account_id || '';
         setSelectedAccount({
           id: accountId, // Use the Salesforce account ID if available
-          name: initialData.template?.customer_name || initialData.header?.client_name || ''
+          name: initialData.template?.client_name || initialData.header?.client_name || ''
         });
       }
       
@@ -359,7 +359,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           Email: initialData.template?.customer_email || initialData.client_signature?.email || '',
           Title: initialData.template?.customer_signature || initialData.client_signature?.title || '',
           AccountId: initialData.salesforce_account_id || '',
-          Account: { Name: initialData.template?.customer_name || initialData.header?.client_name || '' }
+          Account: { Name: initialData.template?.client_name || initialData.header?.client_name || '' }
         };
         
         setSelectedContact(contactData);
@@ -674,7 +674,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         case 'Customer Information':
           tabData = {
             template: {
-              customer_name: formData.template?.customer_name,
+              client_name: formData.template?.client_name,
               customer_signature_name: formData.template?.customer_signature_name,
               customer_email: formData.template?.customer_email,
               lean_data_name: formData.template?.lean_data_name,

@@ -61,7 +61,7 @@ export async function PUT(
       case 'Customer Information':
         // Handle customer information data
         if (data.template) {
-          if (data.template.customer_name !== undefined) updateData.client_name = data.template.customer_name;
+          if (data.template.client_name !== undefined) updateData.client_name = data.template.client_name;
           if (data.template.customer_email !== undefined) updateData.client_email = data.template.customer_email;
           if (data.template.lean_data_name !== undefined) updateData.leandata_name = data.template.lean_data_name;
           if (data.template.lean_data_title !== undefined) updateData.leandata_title = data.template.lean_data_title;

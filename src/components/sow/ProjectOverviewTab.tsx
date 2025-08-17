@@ -41,7 +41,7 @@ export default function ProjectOverviewTab({
 
   // Get the default title with created date
   const getDefaultTitle = (): string => {
-    const customerName = formData.template?.customer_name || '';
+    const customerName = formData.template?.client_name || '';
     const createdDate = formatCreatedDate(formData.created_at);
     
     if (customerName && createdDate) {

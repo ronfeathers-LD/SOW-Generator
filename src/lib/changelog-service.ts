@@ -261,10 +261,7 @@ export class ChangelogService {
     try {
       let query = supabase
         .from('sow_changelog')
-        .select(`
-          *,
-          user:users(id, name, email)
-        `)
+        .select('*')
         .eq('sow_id', sowId);
 
       // Apply filters
@@ -329,7 +326,7 @@ export class ChangelogService {
         changesByType[entry.change_type] = (changesByType[entry.change_type] || 0) + 1;
         
         // Count by user
-        const userName = entry.user?.name || 'Unknown';
+        const userName = entry.user_id || 'Unknown';
         changesByUser[userName] = (changesByUser[userName] || 0) + 1;
         
         // Count by field
@@ -341,7 +338,7 @@ export class ChangelogService {
       const timeline = changelog.slice(0, 20).map(entry => ({
         date: new Date(entry.created_at).toLocaleDateString(),
         action: entry.action,
-        user: entry.user?.name || 'Unknown',
+        user: entry.user_id || 'Unknown',
         field: entry.field_name || 'N/A'
       }));
 
@@ -381,7 +378,7 @@ export class ChangelogService {
       // Create CSV rows
       const csvRows = changelog.map(entry => [
         new Date(entry.created_at).toISOString(),
-        entry.user?.name || 'Unknown',
+        entry.user_id || 'Unknown',
         entry.action,
         entry.field_name || '',
         entry.change_type,

@@ -19,7 +19,7 @@ export default function ObjectivesTab({
   const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
 
   // Get customer name from selected account or form data
-  const customerName = selectedAccount?.name || formData.template?.customer_name || formData.header?.client_name || '';
+      const customerName = selectedAccount?.name || formData.template?.client_name || formData.header?.client_name || '';
 
 
 

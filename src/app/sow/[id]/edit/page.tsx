@@ -44,7 +44,7 @@ export default function EditSOWPage() {
             // Include selected account information if available
             selectedAccount: data.salesforce_account_id ? {
               id: data.salesforce_account_id,
-              name: data.client_name || data.template?.customer_name || '',
+              name: data.client_name || data.template?.client_name || '',
             } : null,
             // Use the template data from the API response
             template: data.template || {
@@ -53,7 +53,7 @@ export default function EditSOWPage() {
               company_logo: data.company_logo || '',
               
               // Customer Information
-              customer_name: data.client_name || '',
+              client_name: data.client_name || '',
               customer_signature_name: data.client_signer_name || '',
               customer_signature: data.client_title || '',
               customer_email: data.client_email || '',

@@ -1,11 +1,10 @@
 'use client';
 
 import React from 'react';
-
-
+import { SOWData } from '@/types/sow';
 
 interface PricingCalculatorProps {
-  formData: any; // Only formData is used
+  formData: SOWData; // Use proper SOWData type
 }
 
 export default function PricingCalculator({ 

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
-import { ChangelogService } from '@/lib/changelog-service';
 import { getSlackService } from '@/lib/slack';
 
 export async function GET(
@@ -47,7 +46,7 @@ export async function GET(
         },
       },
       template: {
-        customer_name: sow.client_name || '',
+        client_name: sow.client_name || '',
         customer_signature_name: sow.client_signer_name || '',
         customer_email: sow.client_email || '',
         customer_signature: sow.client_title || '', // Add this missing mapping!

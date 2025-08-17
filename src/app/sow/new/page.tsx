@@ -48,7 +48,7 @@ export default function NewSOWPage() {
               month: 'long', 
               day: 'numeric' 
             })}`,
-            customer_name: customerName,
+            client_name: customerName,
             lean_data_name: 'Agam Vasani',
             lean_data_title: 'VP Customer Success',
             lean_data_email: 'agam.vasani@leandata.com',

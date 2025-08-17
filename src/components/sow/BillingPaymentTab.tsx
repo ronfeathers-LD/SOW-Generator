@@ -73,14 +73,15 @@ export default function BillingPaymentTab({
 
       // Load saved pricing roles
       // Check if roles is an object with a roles array property, or if it's directly an array
-      let rolesArray: any[] = [];
+      let rolesArray: Array<{ role: string; ratePerHour?: number; rate_per_hour?: number; totalHours?: number; total_hours?: number }> = [];
       
       if (formData.pricing.roles && typeof formData.pricing.roles === 'object' && !Array.isArray(formData.pricing.roles)) {
         // If roles is an object, look for the roles array property
-        rolesArray = (formData.pricing.roles as any).roles || [];
+        const rolesObj = formData.pricing.roles as { roles?: Array<{ role: string; ratePerHour?: number; rate_per_hour?: number; totalHours?: number; total_hours?: number }> };
+        rolesArray = rolesObj.roles || [];
       } else if (Array.isArray(formData.pricing.roles)) {
         // If roles is directly an array, use it
-        rolesArray = formData.pricing.roles;
+        rolesArray = formData.pricing.roles as Array<{ role: string; ratePerHour?: number; rate_per_hour?: number; totalHours?: number; total_hours?: number }>;
       }
       
       if (rolesArray && rolesArray.length > 0) {
@@ -280,7 +281,7 @@ export default function BillingPaymentTab({
       <div className="space-y-6">
         {/* Pricing Roles and Discount */}
         <PricingRolesAndDiscount
-          formData={formData}
+          formData={formData as SOWData}
           pricingRoles={pricingRoles}
           setPricingRoles={setPricingRoles}
           discountConfig={discountConfig}
@@ -293,7 +294,7 @@ export default function BillingPaymentTab({
           <div className="bg-white shadow rounded-lg p-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-6">Pricing Calculator</h3>
           <PricingCalculator 
-            formData={formData as any}
+            formData={formData as SOWData}
           />
         </div>
       </div>

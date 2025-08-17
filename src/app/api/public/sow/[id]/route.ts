@@ -25,7 +25,7 @@ export async function GET(
     const transformedSow = {
       ...sow,
       template: {
-        customer_name: sow.client_name || '',
+        client_name: sow.client_name || '',
         customer_signature_name: sow.client_signer_name || '',
         customer_email: sow.client_email || '',
         lean_data_name: sow.leandata_name || '',
