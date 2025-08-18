@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get Slack service
-    const slackService = getSlackService();
+    const slackService = await getSlackService();
     if (!slackService) {
       return NextResponse.json({ error: 'Slack service not configured' }, { status: 500 });
     }

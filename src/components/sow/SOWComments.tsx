@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { hasMentions, formatCommentWithMentions } from '@/lib/mention-utils';
+import MentionAutocomplete from '@/components/ui/MentionAutocomplete';
+import { SlackUser } from '@/lib/slack-user-lookup';
 
 interface Comment {
   id: string;
@@ -104,79 +107,80 @@ export default function SOWComments({ sowId }: SOWCommentsProps) {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
+  const handleMentionSelect = (user: SlackUser) => {
+    console.log(`Selected user for mention: ${user.name} (${user.id})`);
+    // You can add additional logic here if needed
   };
 
-  const renderComment = (comment: Comment, isReply = false) => (
-    <div key={comment.id} className={`${isReply ? 'ml-6 border-l-2 border-gray-200 pl-4' : ''}`}>
-      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-3">
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex items-center space-x-2">
-            <span className="font-medium text-gray-900">
-              {comment.user.name || comment.user.email}
-            </span>
-            {comment.is_internal && (
-              <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                Internal
-              </span>
-            )}
-          </div>
-          <span className="text-sm text-gray-500">
-            {formatDate(comment.created_at)}
+  const renderComment = (comment: Comment, isReply: boolean = false) => (
+    <div key={comment.id} className={`border rounded-lg p-4 ${isReply ? 'ml-8 bg-gray-50' : 'bg-white'}`}>
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center space-x-2">
+          <span className="font-medium text-gray-900">
+            {comment.user.name || comment.user.email}
           </span>
+          <span className="text-sm text-gray-500">
+            {new Date(comment.created_at).toLocaleDateString()}
+          </span>
+          {hasMentions(comment.comment) && (
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              @mentions
+            </span>
+          )}
         </div>
-        
-        <div className="text-gray-700 mb-3">
-          {comment.comment}
-        </div>
-
-        {!isReply && (
-          <button
-            onClick={() => setReplyTo(comment.id)}
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-          >
-            Reply
-          </button>
-        )}
-
-        {replyTo === comment.id && (
-          <div className="mt-3 p-3 bg-gray-50 rounded border">
-            <textarea
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Write your reply..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              rows={2}
-            />
-            <div className="flex space-x-2 mt-2">
-              <button
-                onClick={() => handleSubmitReply(comment.id)}
-                disabled={isSubmitting || !replyText.trim()}
-                className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
-              >
-                {isSubmitting ? 'Sending...' : 'Send Reply'}
-              </button>
-              <button
-                onClick={() => {
-                  setReplyTo(null);
-                  setReplyText('');
-                }}
-                className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Render replies */}
-        {comment.replies && comment.replies.length > 0 && (
-          <div className="mt-3">
-            {comment.replies.map((reply) => renderComment(reply, true))}
-          </div>
-        )}
       </div>
+      
+      <div 
+        className="text-gray-700 mb-3"
+        dangerouslySetInnerHTML={{ 
+          __html: formatCommentWithMentions(comment.comment) 
+        }}
+      />
+      
+      {!isReply && (
+        <button
+          onClick={() => setReplyTo(comment.id)}
+          className="text-sm text-blue-600 hover:text-blue-800"
+        >
+          Reply
+        </button>
+      )}
+
+      {replyTo === comment.id && (
+        <div className="mt-3">
+          <MentionAutocomplete
+            value={replyText}
+            onChange={setReplyText}
+            onMentionSelect={handleMentionSelect}
+            placeholder="Write a reply..."
+            rows={2}
+          />
+          <div className="mt-2 space-x-2">
+            <button
+              onClick={() => handleSubmitReply(comment.id)}
+              disabled={isSubmitting || !replyText.trim()}
+              className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+              {isSubmitting ? 'Posting...' : 'Post Reply'}
+            </button>
+            <button
+              onClick={() => {
+                setReplyTo(null);
+                setReplyText('');
+              }}
+              className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {comment.replies && comment.replies.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {comment.replies.map((reply) => renderComment(reply, true))}
+        </div>
+      )}
     </div>
   );
 
@@ -184,21 +188,34 @@ export default function SOWComments({ sowId }: SOWCommentsProps) {
     <div className="bg-white shadow rounded-lg p-6">
       <h3 className="text-lg font-semibold mb-4">Comments & Discussion</h3>
       
+      {/* Mention help text */}
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <p className="text-sm text-blue-800">
+          💡 <strong>Tip:</strong> Use @username to mention team members. They'll receive Slack notifications!
+        </p>
+        <p className="text-xs text-blue-600 mt-1">
+          Start typing @ to see autocomplete suggestions for team members.
+        </p>
+      </div>
+      
       {/* Add new comment */}
       <form onSubmit={handleSubmitComment} className="mb-6">
         <div className="mb-3">
           <label htmlFor="newComment" className="block text-sm font-medium text-gray-700 mb-2">
             Add a comment
           </label>
-          <textarea
-            id="newComment"
+          <MentionAutocomplete
             value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Share your thoughts, questions, or feedback about this SOW..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            onChange={setNewComment}
+            onMentionSelect={handleMentionSelect}
+            placeholder="Share your thoughts, questions, or feedback about this SOW... Use @username to mention team members"
             rows={3}
-            required
           />
+          {hasMentions(newComment) && (
+            <div className="mt-2 text-sm text-blue-600">
+              ✨ Mentions detected! Team members will be notified via Slack.
+            </div>
+          )}
         </div>
         <button
           type="submit"

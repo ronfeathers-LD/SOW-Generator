@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { AuditService } from '@/lib/audit-service';
+import { SlackMentionService } from '@/lib/slack-mention-service';
 
 // GET - Fetch approval comments for a SOW
 export async function GET(
@@ -66,21 +67,9 @@ export async function GET(
     });
 
     // Sort top-level comments by creation date
-    topLevelComments.sort((a, b) => {
-      const aObj = a as { created_at: string };
-      const bObj = b as { created_at: string };
-      return new Date(aObj.created_at).getTime() - new Date(bObj.created_at).getTime();
-    });
-
-
-
-    
-    
-
-    if (error) {
-      console.error('Error fetching comments:', error);
-      return new NextResponse('Failed to fetch comments', { status: 500 });
-    }
+    topLevelComments.sort((a: any, b: any) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
 
     return NextResponse.json(topLevelComments);
   } catch (error) {
@@ -109,10 +98,10 @@ export async function POST(
       return new NextResponse('Comment is required', { status: 400 });
     }
 
-    // Get the SOW to check version (excluding hidden SOWs)
+    // Get the SOW to check version and get details for Slack notifications
     const { data: sow, error: sowError } = await supabase
       .from('sows')
-      .select('version')
+      .select('version, sow_title, client_name')
       .eq('id', sowId)
       .eq('is_hidden', false)
       .single();
@@ -124,7 +113,7 @@ export async function POST(
     // Get current user
     const { data: user } = await supabase
       .from('users')
-      .select('id')
+      .select('id, name, email')
       .eq('email', session.user.email!)
       .single();
 
@@ -176,6 +165,21 @@ export async function POST(
       false,
       parent_id || undefined
     );
+
+    // Send Slack notifications for @mentions (if any)
+    try {
+      const commentAuthor = user.name || user.email || 'Unknown User';
+      await SlackMentionService.sendMentionNotifications(
+        comment.trim(),
+        sowId,
+        sow.sow_title,
+        sow.client_name,
+        commentAuthor
+      );
+    } catch (mentionError) {
+      console.error('Error sending mention notifications:', mentionError);
+      // Don't fail the comment creation if mention notifications fail
+    }
 
     return NextResponse.json(newComment);
   } catch (error) {

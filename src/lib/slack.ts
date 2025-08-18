@@ -608,27 +608,87 @@ class SlackService {
 // Create a singleton instance
 let slackService: SlackService | null = null;
 
-export function getSlackService(): SlackService | null {
+export async function getSlackService(): Promise<SlackService | null> {
   if (!slackService) {
-    const webhookUrl = process.env.SLACK_WEBHOOK_URL;
-    if (!webhookUrl) {
-      console.warn('SLACK_WEBHOOK_URL not configured - Slack notifications disabled');
-      return null;
+    try {
+      // Try to get config from database first
+      const { createServiceRoleClient } = await import('./supabase-server');
+      const supabase = createServiceRoleClient();
+      
+      const { data: config, error } = await supabase
+        .from('slack_config')
+        .select('*')
+        .order('id', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error reading Slack config from database:', error);
+      }
+
+      let webhookUrl = '';
+      let channel = '';
+      let username = 'SOW Generator';
+      let iconEmoji = ':memo:';
+
+      if (config && config.webhook_url) {
+        // Use database config
+        webhookUrl = config.webhook_url;
+        channel = config.channel || '';
+        username = config.username || 'SOW Generator';
+        iconEmoji = config.icon_emoji || ':memo:';
+        
+        // Update environment variables for backward compatibility
+        process.env.SLACK_WEBHOOK_URL = webhookUrl;
+        process.env.SLACK_CHANNEL = channel;
+        process.env.SLACK_USERNAME = username;
+        process.env.SLACK_ICON_EMOJI = iconEmoji;
+        process.env.SLACK_BOT_TOKEN = config.bot_token || '';
+        process.env.SLACK_WORKSPACE_DOMAIN = config.workspace_domain || '';
+      } else {
+        // Fall back to environment variables
+        webhookUrl = process.env.SLACK_WEBHOOK_URL || '';
+        channel = process.env.SLACK_CHANNEL || '';
+        username = process.env.SLACK_USERNAME || 'SOW Generator';
+        iconEmoji = process.env.SLACK_ICON_EMOJI || ':memo:';
+      }
+
+      if (!webhookUrl) {
+        console.warn('SLACK_WEBHOOK_URL not configured - Slack notifications disabled');
+        return null;
+      }
+
+      console.log('🔧 Slack service configuration:', {
+        webhookUrl: webhookUrl ? 'SET' : 'NOT SET',
+        channel: channel || 'NOT SET',
+        username: username || 'NOT SET',
+        iconEmoji: iconEmoji || 'NOT SET',
+        source: config ? 'database' : 'environment'
+      });
+
+      slackService = new SlackService({
+        webhookUrl,
+        channel,
+        username,
+        iconEmoji
+      });
+    } catch (error) {
+      console.error('Error initializing Slack service:', error);
+      
+      // Fall back to environment variables if database fails
+      const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+      if (!webhookUrl) {
+        console.warn('SLACK_WEBHOOK_URL not configured - Slack notifications disabled');
+        return null;
+      }
+
+      slackService = new SlackService({
+        webhookUrl,
+        channel: process.env.SLACK_CHANNEL,
+        username: process.env.SLACK_USERNAME || 'SOW Generator',
+        iconEmoji: process.env.SLACK_ICON_EMOJI || ':memo:'
+      });
     }
-
-    console.log('🔧 Slack service configuration:', {
-      webhookUrl: webhookUrl ? 'SET' : 'NOT SET',
-      channel: process.env.SLACK_CHANNEL || 'NOT SET',
-      username: process.env.SLACK_USERNAME || 'NOT SET',
-      iconEmoji: process.env.SLACK_ICON_EMOJI || 'NOT SET'
-    });
-
-    slackService = new SlackService({
-      webhookUrl,
-      channel: process.env.SLACK_CHANNEL,
-      username: process.env.SLACK_USERNAME || 'SOW Generator',
-      iconEmoji: process.env.SLACK_ICON_EMOJI || ':memo:'
-    });
   }
   return slackService;
 }

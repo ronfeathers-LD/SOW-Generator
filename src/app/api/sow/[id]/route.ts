@@ -236,7 +236,7 @@ export async function PUT(
     // Send Slack notification when SOW is submitted for review
     if (data.status === 'in_review') {
       try {
-        const slackService = getSlackService();
+        const slackService = await getSlackService();
         if (slackService) {
           // Get SOW details for the notification
           const { data: sowDetails } = await supabase
@@ -282,7 +282,7 @@ export async function PUT(
     // Send Slack notification when SOW is approved
     if (data.status === 'approved') {
       try {
-        const slackService = getSlackService();
+        const slackService = await getSlackService();
         if (slackService) {
           // Get SOW details for the notification
           const { data: sowDetails } = await supabase
@@ -329,7 +329,7 @@ export async function PUT(
     // Send Slack notification when SOW is rejected
     if (data.rejected_at) {
       try {
-        const slackService = getSlackService();
+        const slackService = await getSlackService();
         if (slackService) {
           // Get SOW details for the notification
           const { data: sowDetails } = await supabase

@@ -11,7 +11,7 @@ export async function POST() {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const slackService = getSlackService();
+    const slackService = await getSlackService();
     if (!slackService) {
       return new NextResponse('Slack service not configured', { status: 400 });
     }

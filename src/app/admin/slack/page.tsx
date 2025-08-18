@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
+import MentionAutocomplete from '@/components/ui/MentionAutocomplete';
+import { SlackUser } from '@/lib/slack-user-lookup';
 
 interface SlackConfig {
   webhookUrl: string;
@@ -10,6 +12,8 @@ interface SlackConfig {
   username: string;
   iconEmoji: string;
   isEnabled: boolean;
+  botToken?: string;
+  workspaceDomain?: string;
 }
 
 export default function SlackConfigPage() {
@@ -22,7 +26,7 @@ export default function SlackConfigPage() {
     isEnabled: false
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string; warning?: string } | null>(null);
 
   // Team message state
   const [teamMessage, setTeamMessage] = useState({
@@ -40,10 +44,6 @@ export default function SlackConfigPage() {
       redirect('/admin');
     }
   }, [session, status]);
-
-  useEffect(() => {
-    loadConfig();
-  }, []);
 
   const loadConfig = async () => {
     try {
@@ -72,7 +72,14 @@ export default function SlackConfigPage() {
       });
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Slack configuration saved successfully!' });
+        const result = await response.json();
+        setMessage({ 
+          type: 'success', 
+          text: result.message,
+          warning: result.warning
+        });
+        // Refresh the status after saving
+        await checkSlackStatus();
       } else {
         const error = await response.json();
         setMessage({ type: 'error', text: error.message || 'Failed to save configuration' });
@@ -112,11 +119,35 @@ export default function SlackConfigPage() {
     setMessage(null);
 
     try {
-      // Parse mentions (comma-separated Slack user IDs)
-      const mentions = teamMessage.mentions
-        .split(',')
-        .map(m => m.trim())
-        .filter(m => m.length > 0);
+      // Extract mentions from the message text using the mention utils
+      const { extractMentions } = await import('@/lib/mention-utils');
+      const mentionedUsernames = extractMentions(teamMessage.message);
+      
+      // Get Slack user IDs for the mentioned usernames
+      let slackUserIds: string[] = [];
+      
+      if (mentionedUsernames.length > 0) {
+        try {
+          const response = await fetch('/api/slack/workspace-users');
+          if (response.ok) {
+            const slackUsers = await response.json();
+            
+            // Map usernames to Slack user IDs
+            slackUserIds = mentionedUsernames
+              .map(username => {
+                const user = slackUsers.find((u: SlackUser) => 
+                  u.name === username || 
+                  u.profile.display_name === username ||
+                  u.profile.real_name === username
+                );
+                return user?.id;
+              })
+              .filter(id => id) as string[];
+          }
+        } catch (error) {
+          console.error('Error getting Slack user IDs:', error);
+        }
+      }
 
       const response = await fetch('/api/slack/team-message', {
         method: 'POST',
@@ -125,7 +156,7 @@ export default function SlackConfigPage() {
         },
         body: JSON.stringify({
           message: teamMessage.message,
-          mentions,
+          mentions: slackUserIds,
           channel: teamMessage.channel || undefined,
           title: teamMessage.title || undefined
         }),
@@ -150,6 +181,65 @@ export default function SlackConfigPage() {
       setSendingTeamMessage(false);
     }
   };
+
+  const [testResults, setTestResults] = useState<{ success: boolean; user?: any; error?: string } | null>(null);
+  const [slackStatus, setSlackStatus] = useState<{
+    webhookConfigured: boolean;
+    botTokenConfigured: boolean;
+    canSendMessages: boolean;
+    canLookupUsers: boolean;
+  }>({
+    webhookConfigured: false,
+    botTokenConfigured: false,
+    canSendMessages: false,
+    canLookupUsers: false
+  });
+
+  const testUserLookup = async () => {
+    const username = document.getElementById('testUsername') as HTMLInputElement;
+    const usernameValue = username.value.trim();
+
+    if (!usernameValue) {
+      setTestResults({ success: false, error: 'Please enter a username or email to test.' });
+      return;
+    }
+
+    setTestResults(null); // Clear previous results
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`/api/slack/lookup?username=${encodeURIComponent(usernameValue)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTestResults({ success: true, user: data });
+      } else {
+        const error = await response.json();
+        setTestResults({ success: false, error: error.message || 'Failed to lookup user' });
+      }
+    } catch (error) {
+      setTestResults({ success: false, error: error instanceof Error ? error.message : 'Failed to lookup user' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Check Slack service status
+  const checkSlackStatus = async () => {
+    try {
+      const response = await fetch('/api/admin/slack/status');
+      if (response.ok) {
+        const status = await response.json();
+        setSlackStatus(status);
+      }
+    } catch (error) {
+      console.error('Error checking Slack status:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadConfig();
+    checkSlackStatus();
+  }, []);
 
   if (status === 'loading') {
     return <div>Loading...</div>;
@@ -248,6 +338,42 @@ export default function SlackConfigPage() {
                 </p>
               </div>
 
+              {/* Bot Token for @Mentions */}
+              <div>
+                <label htmlFor="botToken" className="block text-sm font-medium text-gray-700 mb-2">
+                  Bot Token (for @Mentions)
+                </label>
+                <input
+                  type="password"
+                  id="botToken"
+                  value={config.botToken || ''}
+                  onChange={(e) => setConfig({ ...config, botToken: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="xoxb-your-bot-token-here"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Required for @mention functionality. Get this from your Slack app settings.
+                </p>
+              </div>
+
+              {/* Workspace Domain */}
+              <div>
+                <label htmlFor="workspaceDomain" className="block text-sm font-medium text-gray-700 mb-2">
+                  Workspace Domain
+                </label>
+                <input
+                  type="text"
+                  id="workspaceDomain"
+                  value={config.workspaceDomain || ''}
+                  onChange={(e) => setConfig({ ...config, workspaceDomain: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="company.slack.com"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Your Slack workspace domain (e.g., company.slack.com)
+                </p>
+              </div>
+
               {/* Enable/Disable */}
               <div className="flex items-center">
                 <input
@@ -268,6 +394,11 @@ export default function SlackConfigPage() {
                   message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
                 }`}>
                   {message.text}
+                  {message.warning && (
+                    <div className="mt-2 p-2 bg-yellow-100 border border-yellow-300 rounded text-yellow-800 text-sm">
+                      ⚠️ {message.warning}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -289,8 +420,156 @@ export default function SlackConfigPage() {
                 >
                   {isLoading ? 'Testing...' : 'Test Connection'}
                 </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (config.botToken) {
+                      setIsLoading(true);
+                      try {
+                        const response = await fetch('/api/admin/slack/test-bot-token', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ botToken: config.botToken })
+                        });
+                        if (response.ok) {
+                          setMessage({ type: 'success', text: 'Bot token is valid! @mentions will work.' });
+                        } else {
+                          const error = await response.json();
+                          setMessage({ type: 'error', text: error.message || 'Bot token validation failed' });
+                        }
+                      } catch (_error) {
+                        setMessage({ type: 'error', text: 'Failed to validate bot token' });
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    } else {
+                      setMessage({ type: 'error', text: 'Please enter a bot token first' });
+                    }
+                  }}
+                  disabled={isLoading || !config.botToken}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-400"
+                >
+                  {isLoading ? 'Testing...' : 'Test Bot Token'}
+                </button>
               </div>
             </form>
+          </div>
+
+          {/* Slack Service Status */}
+          <div className="mt-8 bg-white shadow rounded-lg">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Slack Service Status</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Current status of Slack integration services
+              </p>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Webhook Status */}
+                <div className={`p-4 rounded-lg border ${
+                  slackStatus.webhookConfigured 
+                    ? 'bg-green-50 border-green-200' 
+                    : 'bg-red-50 border-red-200'
+                }`}>
+                  <div className="flex items-center">
+                    <div className={`w-3 h-3 rounded-full mr-3 ${
+                      slackStatus.webhookConfigured ? 'bg-green-500' : 'bg-red-500'
+                    }`}></div>
+                    <div>
+                      <h4 className="font-medium text-gray-900">Webhook Configuration</h4>
+                      <p className={`text-sm ${
+                        slackStatus.webhookConfigured ? 'text-green-700' : 'text-red-700'
+                      }`}>
+                        {slackStatus.webhookConfigured 
+                          ? '✅ Webhook URL is configured' 
+                          : '❌ Webhook URL is missing'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bot Token Status */}
+                <div className={`p-4 rounded-lg border ${
+                  slackStatus.botTokenConfigured 
+                    ? 'bg-green-50 border-green-200' 
+                    : 'bg-yellow-50 border-yellow-200'
+                }`}>
+                  <div className="flex items-center">
+                    <div className={`w-3 h-3 rounded-full mr-3 ${
+                      slackStatus.botTokenConfigured ? 'bg-green-500' : 'bg-yellow-500'
+                    }`}></div>
+                    <div>
+                      <h4 className="font-medium text-gray-900">Bot Token</h4>
+                      <p className={`text-sm ${
+                        slackStatus.botTokenConfigured ? 'text-green-700' : 'text-yellow-700'
+                      }`}>
+                        {slackStatus.botTokenConfigured 
+                          ? '✅ Bot token is configured' 
+                          : '⚠️ Bot token needed for @mentions'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Message Sending Status */}
+                <div className={`p-4 rounded-lg border ${
+                  slackStatus.canSendMessages 
+                    ? 'bg-green-50 border-green-200' 
+                    : 'bg-red-50 border-red-200'
+                }`}>
+                  <div className="flex items-center">
+                    <div className={`w-3 h-3 rounded-full mr-3 ${
+                      slackStatus.canSendMessages ? 'bg-green-500' : 'bg-red-500'
+                    }`}></div>
+                    <div>
+                      <h4 className="font-medium text-gray-900">Message Sending</h4>
+                      <p className={`text-sm ${
+                        slackStatus.canSendMessages ? 'text-green-700' : 'text-red-700'
+                      }`}>
+                        {slackStatus.canSendMessages 
+                          ? '✅ Can send messages to Slack' 
+                          : '❌ Cannot send messages'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* User Lookup Status */}
+                <div className={`p-4 rounded-lg border ${
+                  slackStatus.canLookupUsers 
+                    ? 'bg-green-50 border-green-200' 
+                    : 'bg-yellow-50 border-yellow-200'
+                }`}>
+                  <div className="flex items-center">
+                    <div className={`w-3 h-3 rounded-full mr-3 ${
+                      slackStatus.canLookupUsers ? 'bg-green-500' : 'bg-yellow-500'
+                    }`}></div>
+                    <div>
+                      <h4 className="font-medium text-gray-900">User Lookup</h4>
+                      <p className={`text-sm ${
+                        slackStatus.canLookupUsers ? 'text-green-700' : 'text-yellow-700'
+                      }`}>
+                        {slackStatus.canLookupUsers 
+                          ? '✅ Can lookup users for @mentions' 
+                          : '⚠️ User lookup not available'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Refresh Status Button */}
+              <div className="pt-4">
+                <button
+                  onClick={checkSlackStatus}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Refresh Status
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Team Message Form */}
@@ -319,21 +598,19 @@ export default function SlackConfigPage() {
                 />
               </div>
 
-              {/* Mentions */}
+              {/* Mentions with Autocomplete */}
               <div>
-                <label htmlFor="mentions" className="block text-sm font-medium text-gray-700 mb-2">
-                  Slack User IDs to Mention
+                <label htmlFor="teamMessageMentions" className="block text-sm font-medium text-gray-700 mb-2">
+                  Mention Team Members
                 </label>
-                <input
-                  type="text"
-                  id="mentions"
+                <MentionAutocomplete
                   value={teamMessage.mentions}
-                  onChange={(e) => setTeamMessage({ ...teamMessage, mentions: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="U123456, U789012 (comma-separated)"
+                  onChange={(value) => setTeamMessage({ ...teamMessage, mentions: value })}
+                  placeholder="Type @ to mention team members..."
+                  rows={2}
                 />
                 <p className="mt-1 text-sm text-gray-500">
-                  Enter Slack user IDs separated by commas. Users will be @mentioned in the message.
+                  Start typing @ to see autocomplete suggestions. Users will be @mentioned in the message.
                 </p>
               </div>
 
@@ -347,7 +624,7 @@ export default function SlackConfigPage() {
                   id="teamMessageTitle"
                   value={teamMessage.title}
                   onChange={(e) => setTeamMessage({ ...teamMessage, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
                   placeholder="e.g., Team Update, Important Notice"
                 />
               </div>
@@ -378,6 +655,137 @@ export default function SlackConfigPage() {
                 </button>
               </div>
             </form>
+          </div>
+
+          {/* User Lookup Testing */}
+          <div className="mt-8 bg-white shadow rounded-lg">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Test @Mention User Lookup</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Test the @mention functionality by looking up users in your Slack workspace
+              </p>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label htmlFor="testUsername" className="block text-sm font-medium text-gray-700 mb-2">
+                  Username to Test
+                </label>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    id="testUsername"
+                    placeholder="john.doe or john.doe@company.com"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        testUserLookup();
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={testUserLookup}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    Test Lookup
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const username = document.getElementById('testUsername') as HTMLInputElement;
+                      const usernameValue = username.value.trim();
+                      
+                      if (!usernameValue) {
+                        setTestResults({ success: false, error: 'Please enter a username to debug.' });
+                        return;
+                      }
+                      
+                      setTestResults(null);
+                      setIsLoading(true);
+                      
+                      try {
+                        const response = await fetch(`/api/slack/debug-lookup?username=${encodeURIComponent(usernameValue)}`);
+                        if (response.ok) {
+                          const data = await response.json();
+                          setTestResults({ 
+                            success: true, 
+                            user: data.debug,
+                            error: undefined
+                          });
+                        } else {
+                          const error = await response.json();
+                          setTestResults({ success: false, error: error.error || 'Debug lookup failed' });
+                        }
+                      } catch (error) {
+                        setTestResults({ success: false, error: error instanceof Error ? error.message : 'Debug lookup failed' });
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    }}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    Debug
+                  </button>
+                </div>
+                <p className="mt-1 text-sm text-gray-500">
+                  Enter a username (e.g., john.doe) or email to test the lookup. Use Debug for detailed troubleshooting.
+                </p>
+                <p className="mt-1 text-sm text-blue-600">
+                  💡 <strong>Tip:</strong> The system automatically tries different username variations (e.g., "ronfeathers" → "ron.feathers", "ron_feathers")
+                </p>
+              </div>
+
+              {/* Test Results */}
+              {testResults && (
+                <div className={`p-3 rounded-md ${
+                  testResults.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                }`}>
+                  {testResults.success ? (
+                    <div>
+                      {testResults.user?.profile ? (
+                        // Regular user lookup result
+                        <>
+                          <p className="font-medium">✅ User Found!</p>
+                          <p><strong>Name:</strong> {testResults.user?.profile.real_name || testResults.user?.name}</p>
+                          <p><strong>Slack ID:</strong> {testResults.user?.id}</p>
+                          <p><strong>Email:</strong> {testResults.user?.profile.email || 'Not provided'}</p>
+                        </>
+                      ) : testResults.user?.debug ? (
+                        // Debug information
+                        <>
+                          <p className="font-medium">🔍 Debug Information</p>
+                          <div className="mt-2 space-y-2 text-sm">
+                            <div><strong>Username:</strong> {testResults.user.debug.username}</div>
+                            <div><strong>Bot Token:</strong> {testResults.user.debug.botTokenConfigured ? '✅ Configured' : '❌ Not Configured'}</div>
+                            <div><strong>Token Valid:</strong> {testResults.user.debug.tokenValid ? '✅ Yes' : '❌ No'}</div>
+                            <div><strong>Total Users:</strong> {testResults.user.debug.totalUsers}</div>
+                            {testResults.user.debug.workspaceInfo && (
+                              <div><strong>Workspace:</strong> {testResults.user.debug.workspaceInfo.name} ({testResults.user.debug.workspaceInfo.domain})</div>
+                            )}
+                            <div className="mt-2">
+                              <strong>Lookup Results:</strong>
+                              <div className="ml-4 space-y-1">
+                                <div>By Username: {testResults.user.debug.lookupResults.byUsername?.success ? '✅' : '❌'} {testResults.user.debug.lookupResults.byUsername?.error || 'Success'}</div>
+                                <div>By Email: {testResults.user.debug.lookupResults.byEmail?.success ? '✅' : '❌'} {testResults.user.debug.lookupResults.byEmail?.error || 'Success'}</div>
+                                <div>From All Users: {testResults.user.debug.lookupResults.fromAllUsers?.success ? '✅' : '❌'} {testResults.user.debug.lookupResults.fromAllUsers?.error || 'Success'}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        // Fallback for other success cases
+                        <p>✅ Operation completed successfully</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="font-medium">❌ User Not Found</p>
+                      <p>{testResults.error}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Help Section */}
@@ -414,24 +822,41 @@ export default function SlackConfigPage() {
               <h3 className="text-lg font-semibold text-blue-900 mb-4">How to Use @Mentions</h3>
               <div className="space-y-4 text-sm text-blue-800">
                 <div>
-                  <h4 className="font-medium">Finding Slack User IDs</h4>
-                  <p>To mention users in Slack messages, you need their Slack user ID:</p>
+                  <h4 className="font-medium">Automatic User Lookup with Autocomplete</h4>
+                  <p>The system now automatically looks up users in your Slack workspace when you use @mentions:</p>
                   <ul className="list-disc ml-4 mt-2 space-y-1">
-                    <li>Right-click on a user&apos;s name in Slack and select &quot;Copy link&quot;</li>
-                    <li>The user ID is the part after the last slash (e.g., U1234567890)</li>
-                    <li>Or use the Slack API to get user information</li>
+                    <li>Type <code className="bg-blue-100 px-1 rounded">@</code> to see autocomplete suggestions</li>
+                    <li>Use arrow keys to navigate through user suggestions</li>
+                    <li>Press Enter or click to select a user</li>
+                    <li>System finds the user in Slack automatically</li>
+                    <li>User gets notified via Slack with @mention</li>
+                    <li>No manual configuration needed!</li>
                   </ul>
                 </div>
                 
                 <div>
-                  <h4 className="font-medium">Using Mentions</h4>
-                  <p>Enter user IDs separated by commas in the mentions field. Users will be notified with @mentions in Slack.</p>
+                  <h4 className="font-medium">Supported Formats</h4>
+                  <ul className="list-disc ml-4 mt-2 space-y-1">
+                    <li><code className="bg-blue-100 px-1 rounded">@john.doe</code> - Username</li>
+                    <li><code className="bg-blue-100 px-1 rounded">@john.doe@company.com</code> - Full email</li>
+                    <li><code className="bg-blue-100 px-1 rounded">@john-doe</code> - With hyphens</li>
+                  </ul>
                 </div>
                 
                 <div>
-                  <h4 className="font-medium">Example</h4>
-                  <p>Mentions: <code className="bg-blue-100 px-1 rounded">U123456, U789012</code></p>
-                  <p>This will send: <code className="bg-blue-100 px-1 rounded">@user1 @user2 Your message here</code></p>
+                  <h4 className="font-medium">Example Usage</h4>
+                  <p>Comment: <code className="bg-blue-100 px-1 rounded">@john.doe @sarah.smith Can you both review the pricing section?</code></p>
+                  <p>Result: Both users get notified in Slack with @mentions</p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium">Keyboard Navigation</h4>
+                  <ul className="list-disc ml-4 mt-2 space-y-1">
+                    <li><strong>@</strong> - Start typing to see suggestions</li>
+                    <li><strong>↑↓</strong> - Navigate through suggestions</li>
+                    <li><strong>Enter</strong> - Select highlighted user</li>
+                    <li><strong>Escape</strong> - Close suggestions</li>
+                  </ul>
                 </div>
               </div>
             </div>

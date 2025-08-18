@@ -174,9 +174,11 @@ export async function POST(request: Request) {
 
     // Send Slack notification for new SOW creation
     try {
-      const slackService = getSlackService();
-      if (slackService) {
-    
+      // Get Slack service
+      const slackService = await getSlackService();
+      if (!slackService) {
+        console.warn('Slack service not configured - cannot send notifications');
+      } else {
         const clientName = sow.client_name || 'Unknown Client';
         const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
         const sowUrl = `${baseUrl}/sow/${sow.id}`;
