@@ -33,19 +33,14 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
     if (isHtmlContent(html)) {
       // Additional check: if it contains proper list structure, return unchanged
       if (html.includes('<ul>') && html.includes('<li>')) {
-        console.log('TipTap: Preserving HTML list content unchanged:', html.substring(0, 100) + '...');
         return html;
       }
       if (html.includes('<ol>') && html.includes('<li>')) {
-        console.log('TipTap: Preserving HTML ordered list content unchanged:', html.substring(0, 100) + '...');
         return html;
       }
       // For other HTML content, return as is
-      console.log('TipTap: Preserving other HTML content unchanged:', html.substring(0, 100) + '...');
       return html;
     }
-    
-    console.log('TipTap: Processing plain text content:', html.substring(0, 100) + '...');
     
     // If it's plain text, convert to basic HTML but be conservative
     return html

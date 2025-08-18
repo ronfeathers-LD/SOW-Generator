@@ -64,7 +64,6 @@ function ValidationSubmitButton({ sow }: { sow: SOW }) {
       });
 
       if (response.ok) {
-        console.log('✅ SOW submitted for review successfully!');
         // Show success message
         alert('SOW submitted for review successfully!');
         // Refresh the page to show the updated status

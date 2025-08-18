@@ -108,7 +108,6 @@ export default function SOWComments({ sowId }: SOWCommentsProps) {
   };
 
   const handleMentionSelect = (user: SlackUser) => {
-    console.log(`Selected user for mention: ${user.name} (${user.id})`);
     // You can add additional logic here if needed
   };
 

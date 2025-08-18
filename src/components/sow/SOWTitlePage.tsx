@@ -30,17 +30,6 @@ export default function SOWTitlePage({
   clientSignature2,
   leandataSignature
 }: SOWTitlePageProps) {
-  // Debug logging
-  if (process.env.NODE_ENV === 'development') {
-    console.log('SOWTitlePage - Props:', {
-      clientName,
-      clientLogo,
-      clientSignature,
-      clientSignature2,
-      leandataSignature
-    });
-  }
-  
   return (
     <div className="max-w-7xl mx-auto">
       <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-white">
@@ -89,16 +78,6 @@ export default function SOWTitlePage({
                 <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
                 <div className="text-sm mt-2 text-left">
                   {(() => {
-                    // Debug logging for signature validation
-                    if (process.env.NODE_ENV === 'development') {
-                      console.log('SOWTitlePage - Signature Validation:', {
-                        name: clientSignature?.name,
-                        title: clientSignature?.title,
-                        nameIsValid: !(!clientSignature?.name || clientSignature.name === 'Not Entered'),
-                        titleIsValid: !(!clientSignature?.title || clientSignature?.title === 'Title Not Entered')
-                      });
-                    }
-                    
                     return [
                       <span key="name" className={!clientSignature?.name || clientSignature.name === 'Not Entered' ? 'text-red-600 font-bold' : ''}>
                         {clientSignature?.name || '<FIRSTNAME LASTNAME>'}

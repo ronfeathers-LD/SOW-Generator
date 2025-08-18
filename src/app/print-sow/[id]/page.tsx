@@ -250,27 +250,15 @@ export default function PrintableSOWPage() {
         
         setSOW(parsedData);
         
-        // Debug: Log the parsed data to see what we're working with
-        console.log('Printable SOW - Parsed Data:', parsedData);
-        console.log('Printable SOW - Signature Data:', {
-          clientSignature: parsedData.clientSignature,
-          clientSignerName: parsedData.clientSignerName,
-          clientTitle: parsedData.clientTitle,
-          clientEmail: parsedData.clientEmail,
-          signatureDate: parsedData.signatureDate,
-          template: parsedData.template
-        });
-        
         // Fetch Salesforce data if available
         try {
           const sfResponse = await fetch(`/api/sow/${params.id}/salesforce-data`);
           if (sfResponse.ok) {
             const sfData = await sfResponse.json();
             setSalesforceData(sfData);
-            console.log('Printable SOW - Salesforce Data:', sfData);
           }
         } catch {
-          console.log('No Salesforce data available');
+          // No Salesforce data available
         }
         
       } catch (error) {

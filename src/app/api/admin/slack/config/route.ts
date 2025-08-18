@@ -145,7 +145,6 @@ export async function POST(request: Request) {
     let result;
     if (existingConfig && existingConfig.length > 0) {
       // Update existing config
-      console.log('Updating existing Slack config with ID:', existingConfig[0].id);
       result = await supabase
         .from('slack_config')
         .update(dbConfig)
@@ -153,7 +152,6 @@ export async function POST(request: Request) {
         .select();
     } else {
       // Insert new config
-      console.log('Inserting new Slack config');
       result = await supabase
         .from('slack_config')
         .insert(dbConfig)
@@ -170,8 +168,6 @@ export async function POST(request: Request) {
       });
       return new NextResponse(`Failed to save configuration: ${result.error.message}`, { status: 500 });
     }
-
-    console.log('Slack config saved successfully:', result.data);
 
     return NextResponse.json({ 
       success: true, 

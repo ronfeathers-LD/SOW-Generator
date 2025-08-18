@@ -40,12 +40,10 @@ export default function SalesforceIntegration({ onCustomerSelected, onContactSel
   const checkConfigStatus = async () => {
     try {
       setIsCheckingConfig(true);
-      console.log('🔍 Checking Salesforce configuration status...');
       const response = await fetch('/api/salesforce/status');
       
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Salesforce status response:', data);
         setConfigStatus({
           isConfigured: data.isConfigured,
           isActive: data.isActive,
@@ -62,7 +60,7 @@ export default function SalesforceIntegration({ onCustomerSelected, onContactSel
       console.error('❌ Error checking Salesforce config status:', error);
       // Don't set error state for network failures - just log them
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.log('🌐 Network error - Salesforce API may not be available yet');
+        // Network error - Salesforce API may not be available yet
       }
       setConfigStatus({
         isConfigured: false,
