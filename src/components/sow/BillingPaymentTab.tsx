@@ -211,7 +211,7 @@ export default function BillingPaymentTab({
   }, [calculateTotals, pricingRoles, discountConfig, onBeforeSave]);
 
   // Auto-calculate hours based on selected products and units
-  const autoCalculateHours = useCallback(async () => {
+  const autoCalculateHours = async () => {
     
     
     if (!formData.template?.products || formData.template.products.length === 0) {
@@ -362,7 +362,7 @@ export default function BillingPaymentTab({
     } finally {
       setIsAutoCalculating(false);
     }
-  }, [formData.template?.products, formData.template?.number_of_units, formData.template?.units_consumption, formData.template?.bookit_forms_units, formData.template?.bookit_links_units, formData.template?.bookit_handoff_units, calculateTotals, discountConfig.type, discountConfig.amount, discountConfig.percentage, setFormData, pricingRoles, formData]);
+  };
 
   return (
     <section className="space-y-6">

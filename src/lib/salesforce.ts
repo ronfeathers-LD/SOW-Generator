@@ -201,7 +201,7 @@ class SalesforceClient {
         if (derivedInstanceUrl) {
   
           // Set the instance URL manually
-          (this.conn as any).instanceUrl = derivedInstanceUrl;
+          (this.conn as { instanceUrl?: string }).instanceUrl = derivedInstanceUrl;
         } else {
           throw new Error('Salesforce authentication succeeded but no instance URL was returned and could not be derived from login URL');
         }
