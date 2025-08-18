@@ -40,6 +40,7 @@ export default function SOWTitlePage({
               src="/images/leandata-logo.png"
               alt="LeanData logo"
               fill
+              sizes="(max-width: 768px) 100vw, 320px"
               className="object-contain"
               priority
             />
@@ -62,6 +63,7 @@ export default function SOWTitlePage({
                 src={clientLogo ?? ''}
                 alt={`${clientName} logo`}
                 fill
+                sizes="(max-width: 768px) 100vw, 384px"
                 className="object-contain"
               />
             </div>
