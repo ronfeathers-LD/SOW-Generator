@@ -547,7 +547,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
 
   // Helper function to generate Salesforce record links
-  const getSalesforceLink = (recordId: string, _recordType: 'Account' | 'Contact' | 'Opportunity') => {
+  const getSalesforceLink = (recordId: string) => {
     return `${salesforceInstanceUrl}/${recordId}`;
   };
 

@@ -199,7 +199,7 @@ class SalesforceClient {
         }
         
         if (derivedInstanceUrl) {
-          console.log('Derived instance URL from login URL:', derivedInstanceUrl);
+  
           // Set the instance URL manually
           (this.conn as any).instanceUrl = derivedInstanceUrl;
         } else {
@@ -207,7 +207,7 @@ class SalesforceClient {
         }
       }
       
-      console.log('Salesforce authentication completed successfully. Instance URL:', this.conn.instanceUrl);
+      
       // Authentication successful
     } catch (error) {
       console.error('Salesforce authentication failed:', error);
@@ -340,7 +340,7 @@ class SalesforceClient {
         ORDER BY FirstName, LastName
       `;
       
-      console.log('Executing Salesforce query with instance URL:', this.conn.instanceUrl);
+      
       const result = await this.conn.query(query);
       return result.records as SalesforceContact[];
     } catch (error) {
@@ -496,12 +496,7 @@ class SalesforceClient {
     const hasInstanceUrl = !!this.conn.instanceUrl;
     const hasAccessToken = !!this.conn.accessToken;
     
-    console.log('Salesforce authentication check:', {
-      hasInstanceUrl,
-      hasAccessToken,
-      instanceUrl: this.conn.instanceUrl,
-      accessToken: this.conn.accessToken ? 'present' : 'missing'
-    });
+
     
     return !!(hasInstanceUrl && hasAccessToken);
   }

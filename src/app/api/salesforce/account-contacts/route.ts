@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get stored Salesforce configuration
-    console.log('Fetching Salesforce configuration from database...');
+
     
     const { data: config, error: configError } = await supabase
       .from('salesforce_configs')
@@ -70,16 +70,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Salesforce config found:', {
-      hasUsername: !!config.username,
-      hasPassword: !!config.password,
-      hasSecurityToken: !!config.security_token,
-      loginUrl: config.login_url,
-      isActive: config.is_active
-    });
+
 
     // Authenticate with Salesforce using stored credentials
-    console.log('Authenticating with Salesforce using login URL:', config.login_url);
     try {
       await salesforceClient.authenticate(config.username, config.password, config.security_token || undefined, config.login_url);
     } catch (authError) {
@@ -102,10 +95,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Salesforce authentication successful, instance URL:', salesforceClient.getInstanceUrl());
 
-    // Get contacts for the account
-    console.log('Fetching contacts for account:', accountId);
+
+    // Get contacts for account
     const contacts = await salesforceClient.getAccountContacts(accountId);
 
 
