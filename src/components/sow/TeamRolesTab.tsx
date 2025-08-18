@@ -316,6 +316,154 @@ export default function TeamRolesTab({
     setShowBillingContactSelection(false);
   };
 
+  // Clear primary signer function
+  const clearPrimarySigner = async () => {
+    if (!formData.id) {
+      console.error('No SOW ID available');
+      return;
+    }
+
+    // Update local form data
+    const updatedFormData = {
+      ...formData,
+      template: {
+        ...formData.template!,
+        customer_signature: '',
+        customer_email: '',
+        customer_signature_name: ''
+      },
+      salesforce_contact_id: undefined
+    };
+    setFormData(updatedFormData);
+
+    // Save to database
+    try {
+      const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tab: 'Team & Roles',
+          template: {
+            customer_signature: '',
+            customer_email: '',
+            customer_signature_name: ''
+          },
+          salesforce_contact_id: null
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to clear primary signer: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Error clearing primary signer:', error);
+    }
+  };
+
+  // Clear secondary signer function
+  const clearSecondarySigner = async () => {
+    if (!formData.id) {
+      console.error('No SOW ID available');
+      return;
+    }
+
+    // Update local form data
+    const updatedFormData = {
+      ...formData,
+      template: {
+        ...formData.template!,
+        customer_signature_name_2: '',
+        customer_email_2: '',
+        customer_signature_2: ''
+      }
+    };
+    setFormData(updatedFormData);
+
+    // Save to database
+    try {
+      const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tab: 'Team & Roles',
+          template: {
+            customer_signature_name_2: '',
+            customer_email_2: '',
+            customer_signature_2: ''
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to clear secondary signer: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Error clearing secondary signer:', error);
+    }
+  };
+
+  // Clear billing contact function
+  const clearBillingContact = async () => {
+    if (!formData.id) {
+      console.error('No SOW ID available');
+      return;
+    }
+
+    // Update local form data
+    const updatedFormData = {
+      ...formData,
+      template: {
+        ...formData.template!,
+        billing_contact_name: '',
+        billing_email: ''
+      }
+    };
+    setFormData(updatedFormData);
+
+    // Save to database
+    try {
+      const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tab: 'Team & Roles',
+          template: {
+            billing_contact_name: '',
+            billing_email: ''
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to clear billing contact: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Error clearing billing contact:', error);
+    }
+  };
+
+  // Clear client role contact function
+  const clearRoleContact = (roleIndex: number) => {
+    const newRoles = [...(formData.roles?.client_roles || [])];
+    newRoles[roleIndex] = { 
+      ...newRoles[roleIndex], 
+      name: '',
+      email: '',
+      salesforce_contact_id: undefined,
+      contact_title: '',
+      role: ''
+    };
+    setFormData({
+      ...formData,
+      roles: { ...formData.roles!, client_roles: newRoles }
+    });
+  };
 
 
   return (
@@ -405,13 +553,24 @@ export default function TeamRolesTab({
                         </div>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowSignerContactSelection(true)}
-                      className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
-                    >
-                      Change Signer
-                    </button>
+                    <div className="flex space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowSignerContactSelection(true)}
+                        className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                      >
+                        Change Signer
+                      </button>
+                      {(selectedContact || formData.template?.customer_signature_name || formData.salesforce_contact_id) && (
+                        <button
+                          type="button"
+                          onClick={clearPrimarySigner}
+                          className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200"
+                        >
+                          Clear Signer
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -518,13 +677,24 @@ export default function TeamRolesTab({
                         </div>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowSecondSignerContactSelection(true)}
-                      className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
-                    >
-                      {formData.template?.customer_signature_name_2 ? 'Change Signer' : 'Select Signer'}
-                    </button>
+                    <div className="flex space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowSecondSignerContactSelection(true)}
+                        className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                      >
+                        {formData.template?.customer_signature_name_2 ? 'Change Signer' : 'Select Signer'}
+                      </button>
+                      {formData.template?.customer_signature_name_2 && (
+                        <button
+                          type="button"
+                          onClick={clearSecondarySigner}
+                          className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200"
+                        >
+                          Clear Signer
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -720,48 +890,63 @@ export default function TeamRolesTab({
              </div>
 
              {/* Billing Contact Selection */}
-             <div>
-               <label className="block text-sm font-medium text-gray-700">Billing Contact</label>
-               <div className="flex items-center space-x-4">
-                 {/* Select Contact Button */}
-                 {selectedAccount && (
-                   <button
-                     type="button"
-                     onClick={() => setShowBillingContactSelection(true)}
-                     className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                   >
-                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                     </svg>
-                     Select Contact
-                   </button>
-                 )}
-                 {/* Warning or Selected Contact Card - Same line as button */}
-                 {!formData.template?.billing_contact_name ? (
-                   <div className="flex-1 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                     <div className="flex items-center">
-                       <svg className="h-5 w-5 text-yellow-400 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                         <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                       </svg>
-                       <span className="text-sm text-yellow-800">
-                         <strong>Warning:</strong> No billing contact selected. Please select a billing contact to proceed.
-                       </span>
+             <div className="space-y-4">
+               <h4 className="text-md font-semibold text-blue-800">Billing Contact</h4>
+               <p className="text-sm text-gray-600">
+                 Select the billing contact for this SOW
+               </p>
+               
+               {!selectedAccount ? (
+                 <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                   <p className="text-sm text-yellow-800">
+                     Please select a customer account first in the Customer Information tab.
+                   </p>
+                 </div>
+               ) : (
+                 <div className="space-y-4">
+                   {/* Current Billing Contact Display */}
+                   <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+                     <div className="flex items-center justify-between">
+                       <div>
+                         <h4 className="font-medium text-gray-900">Current Billing Contact</h4>
+                         <p className="text-sm text-gray-600">
+                           {formData.template?.billing_contact_name || 'No billing contact selected'}
+                         </p>
+                         {formData.template?.billing_contact_name && (
+                           <div className="text-xs text-gray-600 space-y-1 mt-2">
+                             {formData.template?.billing_email && (
+                               <div className="flex items-center">
+                                 <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                 </svg>
+                                 <span>Email: {formData.template.billing_email}</span>
+                               </div>
+                             )}
+                           </div>
+                         )}
+                       </div>
+                       <div className="flex space-x-2">
+                         <button
+                           type="button"
+                           onClick={() => setShowBillingContactSelection(true)}
+                           className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                         >
+                           {formData.template?.billing_contact_name ? 'Change Contact' : 'Select Contact'}
+                         </button>
+                         {formData.template?.billing_contact_name && (
+                           <button
+                             type="button"
+                             onClick={clearBillingContact}
+                             className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200"
+                           >
+                             Clear Contact
+                           </button>
+                         )}
+                       </div>
                      </div>
                    </div>
-                 ) : (
-                   <div className="flex-1 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                     <div className="text-sm text-blue-800">
-                       <strong>Selected:</strong> {formData.template?.billing_contact_name}
-                       {formData.template?.billing_email && (
-                         <span className="ml-2 text-blue-600">({formData.template?.billing_email})</span>
-                       )}
-                     </div>
-                   </div>
-                 )}
-               </div>
-               {/* Hidden fields to store the data */}
-               <input type="hidden" value={formData.template?.billing_contact_name || ''} />
-               <input type="hidden" value={formData.template?.billing_email || ''} />
+                 </div>
+               )}
              </div>
            </div>
          </div>
@@ -840,13 +1025,24 @@ export default function TeamRolesTab({
                             </div>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setShowRoleContactSelection(index)}
-                          className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
-                        >
-                          Change Contact
-                        </button>
+                        <div className="flex space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowRoleContactSelection(index)}
+                            className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                          >
+                            Change Contact
+                          </button>
+                          {role.name && (
+                            <button
+                              type="button"
+                              onClick={() => clearRoleContact(index)}
+                              className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200"
+                            >
+                              Clear Contact
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
 

@@ -467,7 +467,7 @@ export default function SlackConfigPage() {
                           const error = await response.json();
                           setMessage({ type: 'error', text: error.message || 'Bot token validation failed' });
                         }
-                      } catch (_error) {
+                      } catch {
                         setMessage({ type: 'error', text: 'Failed to validate bot token' });
                       } finally {
                         setIsLoading(false);
@@ -760,7 +760,7 @@ export default function SlackConfigPage() {
                   Enter a username (e.g., john.doe) or email to test the lookup. Use Debug for detailed troubleshooting.
                 </p>
                 <p className="mt-1 text-sm text-blue-600">
-                  💡 <strong>Tip:</strong> The system automatically tries different username variations (e.g., "ronfeathers" → "ron.feathers", "ron_feathers")
+                  💡 <strong>Tip:</strong> The system automatically tries different username variations (e.g., &ldquo;ronfeathers&rdquo; → &ldquo;ron.feathers&rdquo;, &ldquo;ron_feathers&rdquo;)
                 </p>
               </div>
 
@@ -828,12 +828,12 @@ export default function SlackConfigPage() {
               
               <div>
                 <h4 className="font-medium">2. Enable Incoming Webhooks</h4>
-                <p>In your app settings, go to &quot;Incoming Webhooks&quot; and activate them.</p>
+                <p>In your app settings, go to &ldquo;Incoming Webhooks&rdquo; and activate them.</p>
               </div>
               
               <div>
                 <h4 className="font-medium">3. Create a Webhook</h4>
-                <p>Click &quot;Add New Webhook to Workspace&quot; and choose the channel where you want to receive notifications.</p>
+                <p>Click &ldquo;Add New Webhook to Workspace&rdquo; and choose the channel where you want to receive notifications.</p>
               </div>
               
               <div>
@@ -843,7 +843,7 @@ export default function SlackConfigPage() {
               
               <div>
                 <h4 className="font-medium">5. Test the Integration</h4>
-                <p>Use the &quot;Test Connection&quot; button to verify everything is working correctly.</p>
+                <p>Use the &ldquo;Test Connection&rdquo; button to verify everything is working correctly.</p>
               </div>
             </div>
 
@@ -897,14 +897,14 @@ export default function SlackConfigPage() {
             <div className="space-y-4 text-sm text-yellow-800">
               <div>
                 <h4 className="font-medium">Daily Standup Reminder</h4>
-                <p><strong>Message:</strong> "Daily standup starting now! Please join the meeting."</p>
+                <p><strong>Message:</strong> &ldquo;Daily standup starting now! Please join the meeting.&rdquo;</p>
                 <p><strong>Mentions:</strong> U123456, U789012 (your team members)</p>
                 <p><strong>Title:</strong> Daily Standup</p>
               </div>
               
               <div>
                 <h4 className="font-medium">Urgent Alert</h4>
-                <p><strong>Message:</strong> "🚨 URGENT: System maintenance required - Immediate attention needed!"</p>
+                <p><strong>Message:</strong> &ldquo;🚨 URGENT: System maintenance required - Immediate attention needed!&rdquo;</p>
                 <p><strong>Mentions:</strong> U123456, U789012, U345678 (all relevant team members)</p>
                 <p><strong>Title:</strong> System Alert</p>
                 <p><strong>Channel:</strong> #alerts</p>
@@ -912,7 +912,7 @@ export default function SlackConfigPage() {
               
               <div>
                 <h4 className="font-medium">Meeting Invite</h4>
-                <p><strong>Message:</strong> "📅 Weekly review meeting starting in 5 minutes\n⏰ Time: 2:00 PM EST\n🔗 Link: [meeting link]"</p>
+                <p><strong>Message:</strong> &ldquo;📅 Weekly review meeting starting in 5 minutes\n⏰ Time: 2:00 PM EST\n🔗 Link: [meeting link]&rdquo;</p>
                 <p><strong>Mentions:</strong> U123456, U789012 (meeting participants)</p>
                 <p><strong>Title:</strong> Meeting Reminder</p>
               </div>
@@ -938,8 +938,8 @@ export default function SlackConfigPage() {
                 <p>To find your Slack user ID:</p>
                 <ol className="list-decimal ml-4 mt-2 space-y-1">
                   <li>Go to your Slack profile</li>
-                  <li>Click &quot;View profile&quot;</li>
-                  <li>Click &quot;More&quot; → &quot;Copy member ID&quot;</li>
+                  <li>Click &ldquo;View profile&rdquo;</li>
+                  <li>Click &ldquo;More&rdquo; → &ldquo;Copy member ID&rdquo;</li>
                 </ol>
               </div>
               
@@ -948,7 +948,7 @@ export default function SlackConfigPage() {
                 <p>To find another user&apos;s Slack user ID:</p>
                 <ol className="list-decimal ml-4 mt-2 space-y-1">
                   <li>Right-click on their name in Slack</li>
-                  <li>Select &quot;Copy link&quot;</li>
+                  <li>Select &ldquo;Copy link&rdquo;</li>
                   <li>The user ID is the last part of the URL</li>
                 </ol>
               </div>

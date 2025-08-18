@@ -261,8 +261,7 @@ export default function PrintableSOWPage() {
           } else {
             // console.log('Salesforce API response not ok:', sfResponse.status, sfResponse.statusText);
           }
-        } catch (_error) {
-          // console.log('Error fetching Salesforce data:', _error);
+        } catch {
           // No Salesforce data available
         }
         

@@ -113,7 +113,7 @@ export class SlackUserLookupService {
             } else {
               console.log(`Email lookup error: ${data.error}`);
             }
-          } catch (_emailError) {
+          } catch {
             console.log(`Email lookup failed for ${variation}, continuing...`);
           }
         }

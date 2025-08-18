@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { hasMentions, formatCommentWithMentions } from '@/lib/mention-utils';
 import MentionAutocomplete from '@/components/ui/MentionAutocomplete';
-import { SlackUser } from '@/lib/slack-user-lookup';
 
 interface Comment {
   id: string;
@@ -107,7 +106,7 @@ export default function SOWComments({ sowId }: SOWCommentsProps) {
     }
   };
 
-  const handleMentionSelect = (_user: SlackUser) => {
+  const handleMentionSelect = () => {
     // You can add additional logic here if needed
   };
 
@@ -190,7 +189,7 @@ export default function SOWComments({ sowId }: SOWCommentsProps) {
       {/* Mention help text */}
       <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-sm text-blue-800">
-          💡 <strong>Tip:</strong> Use @username to mention team members. They'll receive Slack notifications!
+          💡 <strong>Tip:</strong> Use @username to mention team members. They&apos;ll receive Slack notifications!
         </p>
         <p className="text-xs text-blue-600 mt-1">
           Start typing @ to see autocomplete suggestions for team members.
