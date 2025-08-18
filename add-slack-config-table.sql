@@ -13,16 +13,31 @@ CREATE TABLE IF NOT EXISTS slack_config (
 );
 
 -- Create a unique constraint to ensure only one config record
-ALTER TABLE slack_config ADD CONSTRAINT IF NOT EXISTS unique_slack_config UNIQUE (id);
+-- Note: PostgreSQL doesn't support IF NOT EXISTS for ADD CONSTRAINT
+-- We'll handle this by checking if the constraint exists first
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'unique_slack_config'
+    ) THEN
+        ALTER TABLE slack_config ADD CONSTRAINT unique_slack_config UNIQUE (id);
+    END IF;
+EXCEPTION
+    WHEN duplicate_object THEN
+        -- Constraint already exists, do nothing
+        NULL;
+END $$;
 
 -- Insert default configuration if table is empty
+-- Note: We'll insert empty values and let the application handle environment variables
 INSERT INTO slack_config (webhook_url, channel, username, icon_emoji, is_enabled)
 SELECT 
-    COALESCE(ENV('SLACK_WEBHOOK_URL'), ''),
-    COALESCE(ENV('SLACK_CHANNEL'), ''),
-    COALESCE(ENV('SLACK_USERNAME'), 'SOW Generator'),
-    COALESCE(ENV('SLACK_ICON_EMOJI'), ':memo:'),
-    CASE WHEN ENV('SLACK_WEBHOOK_URL') IS NOT NULL THEN true ELSE false END
+    '', -- webhook_url (will be set via admin interface)
+    '', -- channel (will be set via admin interface)
+    'SOW Generator', -- username (default)
+    ':memo:', -- icon_emoji (default)
+    false -- is_enabled (will be enabled when webhook is configured)
 WHERE NOT EXISTS (SELECT 1 FROM slack_config);
 
 -- Grant permissions
