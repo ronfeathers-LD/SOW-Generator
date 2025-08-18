@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       .from('sows')
       .insert({
         // Required fields
-        title: data.header?.sowTitle || 'Untitled SOW',
+        sow_title: data.template?.sow_title || data.header?.sow_title || 'Untitled SOW',
         status: 'draft',
         
         // Header Information
