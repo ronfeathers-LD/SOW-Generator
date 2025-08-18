@@ -102,33 +102,36 @@ export async function PUT(
 
       case 'Team & Roles':
         // Handle team and roles data
-        if (data.template) {
-          if (data.template.customer_signature_name !== undefined) updateData.client_signer_name = data.template.customer_signature_name;
-          if (data.template.customer_email !== undefined) updateData.client_email = data.template.customer_email;
-          if (data.template.customer_signature !== undefined) updateData.client_title = data.template.customer_signature;
+        // Check if data.template exists, otherwise look for template data at the top level
+        const templateData = data.template || data;
+        
+        if (templateData) {
+          if (templateData.customer_signature_name !== undefined) updateData.client_signer_name = templateData.customer_signature_name;
+          if (templateData.customer_email !== undefined) updateData.client_email = templateData.customer_email;
+          if (templateData.customer_signature !== undefined) updateData.client_title = templateData.customer_signature;
           // Second signer information
-          if (data.template.customer_signature_name_2 !== undefined) updateData.customer_signature_name_2 = data.template.customer_signature_name_2;
-          if (data.template.customer_signature_2 !== undefined) updateData.customer_signature_2 = data.template.customer_signature_2;
-          if (data.template.customer_email_2 !== undefined) updateData.customer_email_2 = data.template.customer_email_2;
+          if (templateData.customer_signature_name_2 !== undefined) updateData.customer_signature_name_2 = templateData.customer_signature_name_2;
+          if (templateData.customer_signature_2 !== undefined) updateData.customer_signature_2 = templateData.customer_signature_2;
+          if (templateData.customer_email_2 !== undefined) updateData.customer_email_2 = templateData.customer_email_2;
 
           // Billing contact information - store in billing_info JSONB field
-          if (data.template.billing_contact_name !== undefined || data.template.billing_email !== undefined ||
-              data.template.billing_company_name !== undefined || data.template.billing_address !== undefined ||
-              data.template.purchase_order_number !== undefined) {
+          if (templateData.billing_contact_name !== undefined || templateData.billing_email !== undefined ||
+              templateData.billing_company_name !== undefined || templateData.billing_address !== undefined ||
+              templateData.purchase_order_number !== undefined) {
             // Get existing billing_info or create new object
             const existingBillingInfo = updateData.billing_info || {};
             updateData.billing_info = {
               ...existingBillingInfo,
-              billing_contact: data.template.billing_contact_name !== undefined ? 
-                data.template.billing_contact_name : (existingBillingInfo as Record<string, unknown>).billing_contact,
-              billing_email: data.template.billing_email !== undefined ? 
-                data.template.billing_email : (existingBillingInfo as Record<string, unknown>).billing_email,
-              company_name: data.template.billing_company_name !== undefined ? 
-                data.template.billing_company_name : (existingBillingInfo as Record<string, unknown>).company_name,
-              billing_address: data.template.billing_address !== undefined ? 
-                data.template.billing_address : (existingBillingInfo as Record<string, unknown>).billing_address,
-              po_number: data.template.purchase_order_number !== undefined ? 
-                data.template.purchase_order_number : (existingBillingInfo as Record<string, unknown>).po_number,
+              billing_contact: templateData.billing_contact_name !== undefined ? 
+                templateData.billing_contact_name : (existingBillingInfo as Record<string, unknown>).billing_contact,
+              billing_email: templateData.billing_email !== undefined ? 
+                templateData.billing_email : (existingBillingInfo as Record<string, unknown>).billing_email,
+              company_name: templateData.billing_company_name !== undefined ? 
+                templateData.billing_company_name : (existingBillingInfo as Record<string, unknown>).company_name,
+              billing_address: templateData.billing_address !== undefined ? 
+                templateData.billing_address : (existingBillingInfo as Record<string, unknown>).billing_address,
+              po_number: templateData.purchase_order_number !== undefined ? 
+                templateData.purchase_order_number : (existingBillingInfo as Record<string, unknown>).po_number,
             };
           }
         }

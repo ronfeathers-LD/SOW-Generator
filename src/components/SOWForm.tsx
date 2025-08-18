@@ -547,7 +547,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
 
   // Helper function to generate Salesforce record links
-  const getSalesforceLink = (recordId: string) => {
+  const getSalesforceLink = (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => {
     return `${salesforceInstanceUrl}/${recordId}`;
   };
 
@@ -736,6 +736,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               // Billing contact information
               billing_contact_name: formData.template?.billing_contact_name,
               billing_email: formData.template?.billing_email,
+              billing_company_name: formData.template?.billing_company_name,
+              billing_address: formData.template?.billing_address,
+              purchase_order_number: formData.template?.purchase_order_number,
             },
             // Save Salesforce contact ID
             salesforce_contact_id: selectedContact?.Id || null,

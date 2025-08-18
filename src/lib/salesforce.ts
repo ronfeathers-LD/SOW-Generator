@@ -157,16 +157,20 @@ class SalesforceClient {
     
     try {
       // Authentication attempt started
+      console.log('Salesforce authentication attempt started with login URL:', this.conn.loginUrl);
       
       // Try authentication with password + security token first
       try {
         await this.conn.login(username, password + (securityToken || ''));
+        console.log('Salesforce authentication successful with password + security token');
         // Authentication successful with password + token
       } catch (error) {
         // If that fails, try with password only (in case token is already appended)
         if (error instanceof Error && error.message.includes('INVALID_LOGIN')) {
+          console.log('First authentication attempt failed, trying with password only');
           // First attempt failed, trying with password only
           await this.conn.login(username, password);
+          console.log('Salesforce authentication successful with password only');
           // Authentication successful with password only
         } else {
           throw error;
@@ -175,9 +179,35 @@ class SalesforceClient {
       
       // Verify that the connection has a valid instance URL after authentication
       if (!this.conn.instanceUrl) {
-        throw new Error('Salesforce authentication succeeded but no instance URL was returned');
+        // If jsforce didn't set the instance URL, try to derive it from the login URL
+        console.warn('Salesforce connection missing instance URL, attempting to derive from login URL');
+        
+        // Try to extract instance URL from the login URL used for authentication
+        const loginUrl = this.conn.loginUrl || '';
+        let derivedInstanceUrl = '';
+        
+        if (loginUrl.includes('login.salesforce.com')) {
+          derivedInstanceUrl = 'https://na1.salesforce.com';
+        } else if (loginUrl.includes('test.salesforce.com')) {
+          derivedInstanceUrl = 'https://na1.salesforce.com';
+        } else {
+          // For custom domains, try to extract the instance
+          const match = loginUrl.match(/https:\/\/([^.]+)\.salesforce\.com/);
+          if (match) {
+            derivedInstanceUrl = `https://${match[1]}.salesforce.com`;
+          }
+        }
+        
+        if (derivedInstanceUrl) {
+          console.log('Derived instance URL from login URL:', derivedInstanceUrl);
+          // Set the instance URL manually
+          (this.conn as any).instanceUrl = derivedInstanceUrl;
+        } else {
+          throw new Error('Salesforce authentication succeeded but no instance URL was returned and could not be derived from login URL');
+        }
       }
       
+      console.log('Salesforce authentication completed successfully. Instance URL:', this.conn.instanceUrl);
       // Authentication successful
     } catch (error) {
       console.error('Salesforce authentication failed:', error);
@@ -463,7 +493,17 @@ class SalesforceClient {
    * Check if the connection is properly authenticated
    */
   isAuthenticated(): boolean {
-    return !!(this.conn.instanceUrl && this.conn.accessToken);
+    const hasInstanceUrl = !!this.conn.instanceUrl;
+    const hasAccessToken = !!this.conn.accessToken;
+    
+    console.log('Salesforce authentication check:', {
+      hasInstanceUrl,
+      hasAccessToken,
+      instanceUrl: this.conn.instanceUrl,
+      accessToken: this.conn.accessToken ? 'present' : 'missing'
+    });
+    
+    return !!(hasInstanceUrl && hasAccessToken);
   }
 }
 
