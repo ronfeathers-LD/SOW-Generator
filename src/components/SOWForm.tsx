@@ -547,7 +547,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
 
   // Helper function to generate Salesforce record links
-  const getSalesforceLink = (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => {
+  const getSalesforceLink = (recordId: string, _recordType: 'Account' | 'Contact' | 'Opportunity') => {
     return `${salesforceInstanceUrl}/${recordId}`;
   };
 
@@ -1061,8 +1061,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         />
       )}
 
-      {/* Submit Button - Hidden for Content Editing tab since each section has its own save button */}
-      {activeTab !== 'Content Editing' && (
+      {/* Submit Button - Hidden for Content Editing and Team & Roles tabs since they have auto-save */}
+      {activeTab !== 'Content Editing' && activeTab !== 'Team & Roles' && (
         <div className="flex justify-end">
           <button
             type="submit"

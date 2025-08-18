@@ -26,6 +26,7 @@ interface PricingRolesAndDiscountProps {
   setDiscountConfig: (config: DiscountConfig) => void;
   autoCalculateHours: () => void;
   ensureFormDataUpToDate: () => void;
+  isAutoCalculating?: boolean;
 }
 
 export default function PricingRolesAndDiscount({
@@ -36,6 +37,7 @@ export default function PricingRolesAndDiscount({
   setDiscountConfig,
   autoCalculateHours,
   ensureFormDataUpToDate,
+  isAutoCalculating = false,
 }: PricingRolesAndDiscountProps) {
   const [showCalculationFormulas, setShowCalculationFormulas] = useState(false);
   const [showRoleSuggestions, setShowRoleSuggestions] = useState(false);
@@ -98,10 +100,20 @@ export default function PricingRolesAndDiscount({
         <button
           type="button"
           onClick={autoCalculateHours}
-          disabled={!formData.template?.products || formData.template.products.length === 0}
+          disabled={!formData.template?.products || formData.template.products.length === 0 || isAutoCalculating}
           className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Calculate Hours Based on Selected Products
+          {isAutoCalculating ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Calculating Hours...
+            </>
+          ) : (
+            'Calculate Hours Based on Selected Products'
+          )}
         </button>
         
         {/* Calculation Formulas Link */}
@@ -264,12 +276,37 @@ export default function PricingRolesAndDiscount({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Discount Amount ($)</label>
               <input
-                type="number"
-                value={discountConfig.amount}
-                onChange={(e) => updateDiscount('amount', parseFloat(e.target.value) || 0)}
+                type="text"
+                inputMode="decimal"
+                value={discountConfig.amount === 0 ? '' : discountConfig.amount.toString()}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Remove leading zeros and non-numeric characters except decimal point
+                  const cleanValue = value.replace(/^0+/, '').replace(/[^\d.]/g, '');
+                  
+                  // Handle decimal point properly
+                  if (cleanValue === '' || cleanValue === '.') {
+                    updateDiscount('amount', 0);
+                  } else if (cleanValue.includes('.')) {
+                    // Ensure only one decimal point and max 2 decimal places
+                    const parts = cleanValue.split('.');
+                    if (parts.length === 2 && parts[1].length <= 2) {
+                      updateDiscount('amount', parseFloat(cleanValue) || 0);
+                    }
+                  } else {
+                    // Integer value
+                    updateDiscount('amount', parseInt(cleanValue) || 0);
+                  }
+                }}
+                onBlur={(e) => {
+                  // Format the value on blur (when user leaves the field)
+                  const value = parseFloat(e.target.value) || 0;
+                  if (value > 0) {
+                    e.target.value = value.toFixed(2);
+                  }
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                step="0.01"
-                min="0"
+                placeholder="0.00"
               />
             </div>
           )}
@@ -277,13 +314,41 @@ export default function PricingRolesAndDiscount({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Discount Percentage (%)</label>
               <input
-                type="number"
-                value={discountConfig.percentage}
-                onChange={(e) => updateDiscount('percentage', parseFloat(e.target.value) || 0)}
+                type="text"
+                inputMode="decimal"
+                value={discountConfig.percentage === 0 ? '' : discountConfig.percentage.toString()}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Remove leading zeros and non-numeric characters except decimal point
+                  const cleanValue = value.replace(/^0+/, '').replace(/[^\d.]/g, '');
+                  
+                  // Handle decimal point properly
+                  if (cleanValue === '' || cleanValue === '.') {
+                    updateDiscount('percentage', 0);
+                  } else if (cleanValue.includes('.')) {
+                    // Ensure only one decimal point and max 2 decimal places
+                    const parts = cleanValue.split('.');
+                    if (parts.length === 2 && parts[1].length <= 2) {
+                      const numValue = parseFloat(cleanValue) || 0;
+                      // Limit to 100%
+                      updateDiscount('percentage', Math.min(numValue, 100));
+                    }
+                  } else {
+                    // Integer value
+                    const numValue = parseInt(cleanValue) || 0;
+                    // Limit to 100%
+                    updateDiscount('percentage', Math.min(numValue, 100));
+                  }
+                }}
+                onBlur={(e) => {
+                  // Format the value on blur (when user leaves the field)
+                  const value = parseFloat(e.target.value) || 0;
+                  if (value > 0) {
+                    e.target.value = value.toFixed(2);
+                  }
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                step="0.01"
-                min="0"
-                max="100"
+                placeholder="0.00"
               />
             </div>
           )}

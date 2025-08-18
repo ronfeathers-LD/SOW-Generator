@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
 import PricingCalculator from '@/components/sow/PricingCalculator';
 import PricingRolesAndDiscount from '@/components/sow/PricingRolesAndDiscount';
-import TimelineDisplay from '@/components/sow/TimelineDisplay';
+import LoadingModal from '@/components/ui/LoadingModal';
 
 interface PricingRole {
   id: string;
@@ -58,6 +58,8 @@ export default function BillingPaymentTab({
     percentage: 0,
     initialized: false,
   });
+  
+  const [isAutoCalculating, setIsAutoCalculating] = useState(false);
 
   // Load saved pricing data when component mounts
   useEffect(() => {
@@ -99,6 +101,32 @@ export default function BillingPaymentTab({
       }
     }
   }, [formData.pricing, discountConfig.initialized]); // Removed pricingRoles from dependencies to avoid circular dependency
+
+  // Sync pricing roles when form data changes (for auto-calculate updates)
+  useEffect(() => {
+    if (formData.pricing?.roles && Array.isArray(formData.pricing.roles)) {
+      const rolesArray = formData.pricing.roles;
+      if (rolesArray.length > 0) {
+        const updatedRoles = rolesArray.map((role) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          role: role.role,
+          ratePerHour: role.rate_per_hour || 0,
+          totalHours: role.total_hours || 0,
+          totalCost: (role.rate_per_hour || 0) * (role.total_hours || 0),
+        }));
+        
+        // Only update if the roles have actually changed
+        setPricingRoles(prev => {
+          const hasChanged = JSON.stringify(prev) !== JSON.stringify(updatedRoles);
+          if (hasChanged) {
+            console.log('🔄 Syncing pricing roles from form data:', updatedRoles);
+            return updatedRoles;
+          }
+          return prev;
+        });
+      }
+    }
+  }, [formData.pricing?.roles]);
 
 
 
@@ -183,10 +211,19 @@ export default function BillingPaymentTab({
   }, [calculateTotals, pricingRoles, discountConfig, onBeforeSave]);
 
   // Auto-calculate hours based on selected products and units
-  const autoCalculateHours = useCallback(() => {
+  const autoCalculateHours = useCallback(async () => {
+    console.log('🔧 Auto-calculate function called');
+    console.log('Selected products:', formData.template?.products);
+    console.log('Number of units:', formData.template?.number_of_units);
+    
     if (!formData.template?.products || formData.template.products.length === 0) {
+      console.log('❌ No products selected, returning early');
       return;
     }
+    
+    setIsAutoCalculating(true);
+    
+    try {
 
     const selectedProducts = formData.template.products;
     let totalProjectHours = 0;
@@ -200,30 +237,36 @@ export default function BillingPaymentTab({
       const routingObjectCount = routingProducts.filter(product => selectedProducts.includes(product)).length;
       if (routingObjectCount > 0) {
         totalProjectHours += 15 + (Math.max(0, routingObjectCount - 1) * 5);
+        console.log(`📊 Routing products: ${routingObjectCount} objects = ${totalProjectHours} hours`);
       }
     }
 
     // Handle Lead to Account Matching (conditional - only if it's the only product)
     if (selectedProducts.includes('Lead to Account Matching') && selectedProducts.length === 1) {
       totalProjectHours += 15; // 15 hours if standalone
+      console.log('📊 Lead to Account Matching (standalone): +15 hours');
     }
 
     // Handle BookIt products
     if (selectedProducts.includes('BookIt for Forms')) {
       totalProjectHours += 10; // Base BookIt for Forms hours
+      console.log('📊 BookIt for Forms: +10 hours');
       
       // BookIt Handoff adds 5 hours when combined with BookIt for Forms
       if (selectedProducts.includes('BookIt Handoff (with Smartrep)')) {
         totalProjectHours += 5;
+        console.log('📊 BookIt Handoff (with Smartrep): +5 hours');
       }
     }
 
     // Handle other BookIt products (no-cost items, but count hours)
     if (selectedProducts.includes('BookIt Links')) {
       totalProjectHours += 1;
+      console.log('📊 BookIt Links: +1 hour');
     }
     if (selectedProducts.includes('BookIt Handoff (without Smartrep)')) {
       totalProjectHours += 1;
+      console.log('📊 BookIt Handoff (without Smartrep): +1 hour');
     }
 
     // Add user group hours (every 50 users/units adds 5 hours)
@@ -235,10 +278,12 @@ export default function BillingPaymentTab({
     if (totalUnits >= 50) {
       const userGroupHours = Math.floor(totalUnits / 50) * 5;
       totalProjectHours += userGroupHours;
+      console.log(`📊 User groups: ${totalUnits} units = ${userGroupHours} hours`);
     }
 
     // Calculate PM hours (25% of total project hours, rounded up, minimum 10 hours)
     const pmHours = Math.max(10, Math.ceil(totalProjectHours * 0.25));
+    console.log(`📊 Total project hours: ${totalProjectHours}, PM hours: ${pmHours}`);
 
     // Update the Onboarding Specialist role with calculated hours
     const updatedRoles = pricingRoles.map(role => {
@@ -266,13 +311,61 @@ export default function BillingPaymentTab({
         totalCost: 250 * pmHours,
       };
       updatedRoles.push(pmRole);
+      console.log('👥 Added Project Manager role');
     }
 
-    setPricingRoles(updatedRoles);
-    
-    // Trigger total calculation
-    calculateTotals();
-  }, [formData.template?.products, formData.template?.number_of_units, formData.template?.units_consumption, formData.template?.bookit_forms_units, formData.template?.bookit_links_units, formData.template?.bookit_handoff_units, pricingRoles, setPricingRoles, calculateTotals]);
+      console.log('📝 Updating pricing roles with calculated hours');
+      
+      // Update pricing roles and then calculate totals in the same render cycle
+      setPricingRoles(updatedRoles);
+      
+      // Calculate totals immediately with the updated roles
+      const newSubtotal = updatedRoles.reduce((sum, role) => sum + role.totalCost, 0);
+      let newDiscountTotal = 0;
+      if (discountConfig.type === 'fixed') {
+        newDiscountTotal = discountConfig.amount;
+      } else if (discountConfig.type === 'percentage') {
+        newDiscountTotal = newSubtotal * (discountConfig.percentage / 100);
+      }
+      const newTotalAmount = newSubtotal - newDiscountTotal;
+      
+      // Update form data directly
+      const updatedFormData: Partial<SOWData> = {
+        ...formData,
+        pricing: {
+          ...(formData.pricing || {}),
+          roles: updatedRoles.map(role => ({
+            role: role.role,
+            rate_per_hour: role.ratePerHour,
+            total_hours: role.totalHours,
+          })),
+          discount_type: discountConfig.type,
+          discount_amount: discountConfig.amount,
+          discount_percentage: discountConfig.percentage,
+          subtotal: newSubtotal,
+          discount_total: newDiscountTotal,
+          total_amount: newTotalAmount,
+          billing: formData.pricing?.billing || {
+            company_name: '',
+            billing_contact: '',
+            billing_address: '',
+            billing_email: '',
+            po_number: '',
+          },
+          auto_calculated: true,
+          last_calculated: new Date().toISOString(),
+        },
+      };
+      setFormData(updatedFormData);
+      
+      console.log('💰 Updated form data with new totals:', { newSubtotal, newDiscountTotal, newTotalAmount });
+      console.log('✅ Auto-calculate completed successfully');
+    } catch (error) {
+      console.error('❌ Error during auto-calculate:', error);
+    } finally {
+      setIsAutoCalculating(false);
+    }
+  }, [formData.template?.products, formData.template?.number_of_units, formData.template?.units_consumption, formData.template?.bookit_forms_units, formData.template?.bookit_links_units, formData.template?.bookit_handoff_units, calculateTotals, discountConfig.type, discountConfig.amount, discountConfig.percentage, setFormData, pricingRoles, formData]);
 
   return (
     <section className="space-y-6">
@@ -289,6 +382,7 @@ export default function BillingPaymentTab({
           setDiscountConfig={setDiscountConfig}
           autoCalculateHours={autoCalculateHours}
           ensureFormDataUpToDate={ensureFormDataUpToDate}
+          isAutoCalculating={isAutoCalculating}
         />
 
         {/* Pricing Calculator */}
@@ -299,15 +393,15 @@ export default function BillingPaymentTab({
           />
         </div>
 
-        {/* Project Timeline */}
-        {formData.template?.timeline_weeks && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <TimelineDisplay 
-              timelineWeeks={formData.template.timeline_weeks}
-            />
-          </div>
-        )}
+
       </div>
+      
+      {/* Loading Modal for Auto-Calculate */}
+      <LoadingModal 
+        isOpen={isAutoCalculating} 
+        operation="processing"
+        message="Calculating project hours based on selected products and units..."
+      />
     </section>
   );
 } 
