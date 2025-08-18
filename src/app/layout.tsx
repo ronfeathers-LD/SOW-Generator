@@ -58,7 +58,7 @@ export default function RootLayout({
             <Navigation />
             
             {/* ALPHA Testing Banner */}
-            <div className="bg-gradient-to-r from-orange-100 to-red-100 text-orange-800 py-2 px-4 shadow-sm border border-orange-200">
+            <div className="bg-gradient-to-r from-orange-100 to-red-100 text-orange-800 py-2 px-4 shadow-sm border border-orange-200 print-sow-hide">
               <div className="container mx-auto flex items-center justify-center space-x-2">
                 <div className="animate-pulse">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

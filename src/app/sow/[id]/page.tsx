@@ -719,25 +719,21 @@ export default function SOWDetailsPage() {
               {/* Title Page Section */}
                 <div id="title-page" className="mb-12">
                   <SOWTitlePage
+                    title={sow.sowTitle || 'SOW Title Not Available'}
                     clientName={salesforceData?.account_data?.name || sow.clientName}
-                    clientLogo={sow.companyLogo}
+                    companyLogo={sow.companyLogo}
                     clientSignature={{
                           name: findSignatory(salesforceData?.contacts_data)?.name || sow.clientSignerName || sow.clientSignature?.name || 'Not Entered',
-    title: findSignatory(salesforceData?.contacts_data)?.title || sow.clientSignature?.title || sow.clientTitle || 'Title Not Entered',
+                          title: findSignatory(salesforceData?.contacts_data)?.title || sow.clientSignature?.title || sow.clientTitle || 'Title Not Entered',
                           email: findSignatory(salesforceData?.contacts_data)?.email || sow.clientSignature?.email || sow.clientEmail || 'Email Not Entered',
-                      date: sow.signatureDate || ''
-                    }}
+                          date: sow.signatureDate || ''
+                        }}
                     clientSignature2={sow.customer_signature_name_2 ? {
                       name: sow.customer_signature_name_2,
                       title: sow.customer_signature_2 || '',
                       email: sow.customer_email_2 || '',
                       date: ''
                     } : undefined}
-                    leandataSignature={{
-                      name: "Agam Vasani",
-                      title: "VP Customer Success",
-                      email: "agam.vasani@leandata.com"
-                    }}
                   />
                 </div>
 

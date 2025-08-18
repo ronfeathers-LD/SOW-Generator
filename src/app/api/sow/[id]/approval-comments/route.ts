@@ -67,9 +67,11 @@ export async function GET(
     });
 
     // Sort top-level comments by creation date
-    topLevelComments.sort((a: any, b: any) => 
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    );
+    topLevelComments.sort((a, b) => {
+      const aComment = a as { created_at: string };
+      const bComment = b as { created_at: string };
+      return new Date(aComment.created_at).getTime() - new Date(bComment.created_at).getTime();
+    });
 
     return NextResponse.json(topLevelComments);
   } catch (error) {

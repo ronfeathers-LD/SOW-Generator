@@ -191,6 +191,8 @@ export default function PrintableSOWPage() {
         // Parse JSON fields with safe defaults
         const parsedData = {
           ...data,
+          // Fix field mapping - API returns snake_case, we need camelCase
+          clientName: data.client_name || data.clientName || '',
           deliverables: data.deliverables ? data.deliverables.split('\n').filter(Boolean) : [],
           projectDescription: data.objectives?.description || '',
           keyObjectives: Array.isArray(data.objectives?.key_objectives) ? data.objectives.key_objectives : [],
@@ -256,13 +258,16 @@ export default function PrintableSOWPage() {
           if (sfResponse.ok) {
             const sfData = await sfResponse.json();
             setSalesforceData(sfData);
+          } else {
+            // console.log('Salesforce API response not ok:', sfResponse.status, sfResponse.statusText);
           }
-        } catch {
+        } catch (_error) {
+          // console.log('Error fetching Salesforce data:', _error);
           // No Salesforce data available
         }
         
       } catch (error) {
-        console.error('Error fetching SOW:', error);
+        // console.error('Error fetching SOW:', error);
         setError(error instanceof Error ? error.message : 'Failed to fetch SOW');
       } finally {
         setLoading(false);
@@ -277,7 +282,8 @@ export default function PrintableSOWPage() {
     if (sow && !loading) {
       // Small delay to ensure content is rendered
       const timer = setTimeout(() => {
-        window.print();
+        // Don't auto-print, let user control it
+        // window.print();
       }, 500);
       
       return () => clearTimeout(timer);
@@ -323,28 +329,43 @@ export default function PrintableSOWPage() {
 
   return (
     <div className="min-h-screen bg-white print:bg-white">
-      {/* Print Header - Only visible when printing */}
-      <div className="hidden print:block print:mb-8 print:border-b print:border-gray-300 print:pb-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">{sow.sowTitle}</h1>
-          <p className="text-sm text-gray-600 mt-2">
-            Version {sow.version} • Generated on {new Date().toLocaleDateString()}
-          </p>
-        </div>
-      </div>
-
-              {/* SOW Content - Full Width Layout */}
-        <div className="w-full max-w-none print:max-w-none">
-          {/* Title Page Section */}
-          <div id="title-page" className="mb-12 print:mb-8 page-break-inside-avoid">
+      {/* SOW Content */}
+      <div className="print-layout">
+        {/* Title Page Section */}
+        <div id="title-page" className="mb-12 print:mb-8 page-break-inside-avoid print:page-break-inside-avoid print:min-h-screen print:flex print:flex-col print:justify-center">
           <SOWTitlePage
-            clientName={salesforceData?.account_data?.name || sow.clientName}
-            clientLogo={sow.companyLogo}
+            title={sow.sowTitle || 'SOW Title Not Available'}
+            clientName={(() => {
+              const sfAccountName = salesforceData?.account_data?.name;
+              const sowClientName = sow.clientName;
+              if (sfAccountName && sfAccountName.trim()) {
+                return sfAccountName.trim();
+              }
+              if (salesforceData?.contacts_data && salesforceData.contacts_data.length > 0) {
+                const firstContact = salesforceData.contacts_data[0];
+                if (firstContact.email) {
+                  const emailDomain = firstContact.email.split('@')[1];
+                  if (emailDomain) {
+                    const companyName = emailDomain
+                      .split('.')[0]
+                      .split('-')
+                      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                      .join(' ');
+                    return companyName;
+                  }
+                }
+              }
+              if (sowClientName && sowClientName.trim()) {
+                return sowClientName.trim();
+              }
+              return 'Client Name Not Available';
+            })()}
+            companyLogo={sow.companyLogo}
             clientSignature={{
               name: findSignatory(salesforceData?.contacts_data)?.name || sow.clientSignerName || sow.clientSignature?.name || 'Not Entered',
               title: findSignatory(salesforceData?.contacts_data)?.title || sow.clientSignature?.title || sow.clientTitle || 'Title Not Entered',
               email: findSignatory(salesforceData?.contacts_data)?.email || sow.clientSignature?.email || sow.clientEmail || 'Email Not Entered',
-              date: sow.signatureDate || ''
+              date: ''
             }}
             clientSignature2={sow.customer_signature_name_2 ? {
               name: sow.customer_signature_name_2,
@@ -352,49 +373,18 @@ export default function PrintableSOWPage() {
               email: sow.customer_email_2 || '',
               date: ''
             } : undefined}
-            leandataSignature={{
-              name: "Agam Vasani",
-              title: "VP Customer Success",
-              email: "agam.vasani@leandata.com"
-            }}
           />
           
           {/* Debug: Show signature data for troubleshooting */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="hidden print:hidden bg-yellow-50 border border-yellow-200 rounded p-4 mt-4 text-sm">
-              <h4 className="font-bold mb-2">Debug: Signature Data</h4>
-              <pre className="text-xs overflow-auto">
-                {JSON.stringify({
-                  clientName: salesforceData?.account_data?.name || sow.clientName,
-                  clientSignature: {
-                    name: findSignatory(salesforceData?.contacts_data)?.name || sow.clientSignerName || sow.clientSignature?.name || 'Not Entered',
-                    title: findSignatory(salesforceData?.contacts_data)?.title || sow.clientSignature?.title || sow.clientTitle || 'Title Not Entered',
-                    email: findSignatory(salesforceData?.contacts_data)?.email || sow.clientSignature?.email || sow.clientEmail || 'Email Not Entered',
-                    date: sow.signatureDate || ''
-                  },
-                  clientSignature2: sow.customer_signature_name_2 ? {
-                    name: sow.customer_signature_name_2,
-                    title: sow.customer_signature_2 || '',
-                    email: sow.customer_email_2 || '',
-                    date: ''
-                  } : undefined,
-                  salesforceData: salesforceData,
-                  sowSignatureFields: {
-                    clientSignerName: sow.clientSignerName,
-                    clientTitle: sow.clientTitle,
-                    clientEmail: sow.clientEmail,
-                    signatureDate: sow.signatureDate,
-                    template: sow.template
-                  }
-                }, null, 2)}
-              </pre>
-            </div>
-          )}
+          {/* Debug information removed for production */}
         </div>
 
+        {/* Page Break Before Content - Only in print */}
+        <div className="hidden print:block print:page-break-before print:page-break-before-always print:min-h-0"></div>
+
         {/* SOW Intro Page Section */}
-        <div className="bg-white p-8 mb-12 print:mb-8 print:p-6 page-break-inside-avoid">
-          <h2 className="text-3xl font-bold text-center mb-6 print:text-2xl">LEANDATA, INC. STATEMENT OF WORK</h2>
+        <div className="bg-white p-8 mb-12 print:mb-8 print:p-6 page-break-inside-avoid print:page-break-inside-avoid print-section">
+          <h2 className="text-3xl font-bold text-center mb-6 print:text-2xl print:mb-4">LEANDATA, INC. STATEMENT OF WORK</h2>
           <SOWIntroPage 
             clientName={salesforceData?.account_data?.name || sow.clientName}
             customContent={sow.custom_intro_content}
@@ -403,8 +393,8 @@ export default function PrintableSOWPage() {
         </div>
 
         {/* SOW Objectives Page Section */}
-        <div className="bg-white p-8 mb-12 print:mb-8 print:p-6 page-break-inside-avoid">
-          <h2 className="text-3xl font-bold mb-6 print:text-2xl">1. OBJECTIVE</h2>
+        <div className="bg-white p-8 mb-12 print:mb-8 print:p-6 page-break-inside-avoid print:page-break-inside-avoid print-section">
+          <h2 className="text-3xl font-bold mb-6 print:text-2xl print:mb-4">1. OBJECTIVE</h2>
           <SOWObjectivesPage 
             deliverables={sow.deliverables} 
             keyObjectives={sow.keyObjectives}
@@ -433,8 +423,8 @@ export default function PrintableSOWPage() {
         </div>
 
         {/* SOW Scope Page Section */}
-        <div className="bg-white p-8 mb-12 print:mb-8 print:p-6 page-break-inside-avoid">
-          <h2 className="text-3xl font-bold mb-6 print:text-2xl">2. SCOPE</h2>
+        <div className="bg-white p-8 mb-12 print:mb-8 print:p-6 page-break-inside-avoid print:page-break-inside-avoid print-section">
+          <h2 className="text-3xl font-bold mb-6 print:text-2xl print:mb-4">2. SCOPE</h2>
           <SOWScopePage 
             customContent={sow.custom_scope_content}
             customDeliverablesContent={sow.custom_deliverables_content}
@@ -449,8 +439,8 @@ export default function PrintableSOWPage() {
         </div>
 
         {/* SOW Project Phases Page Section */}
-        <div className="bg-white p-8 mb-12 print:mb-8 print:p-6 page-break-inside-avoid">
-          <h2 className="text-3xl font-bold mb-6 print:text-2xl">3. PROJECT PHASES, ACTIVITIES AND ARTIFACTS</h2>
+        <div className="bg-white p-8 mb-12 print:mb-8 print:p-6 page-break-inside-avoid print:page-break-inside-avoid print-section">
+          <h2 className="text-3xl font-bold mb-6 print:text-2xl print:mb-4">3. PROJECT PHASES, ACTIVITIES AND ARTIFACTS</h2>
           <div className="formatSOWTable">
             <SOWProjectPhasesPage 
               customContent={sow.custom_project_phases_content}
@@ -459,18 +449,13 @@ export default function PrintableSOWPage() {
           </div>
         </div>
 
-        {/* SOW Assumptions Page Section */}
-        <div className="bg-white p-8 mb-12 print:mb-8 print:p-6 page-break-inside-avoid">
-          <h2 className="text-3xl font-bold mb-6 print:text-2xl">4. ASSUMPTIONS</h2>
-          <SOWAssumptionsPage 
-            customContent={sow.custom_assumptions_content}
-            isEdited={sow.assumptions_content_edited}
-          />
-        </div>
-
         {/* Roles and Responsibilities Section */}
-        <div className="bg-white p-8 mb-12 print:mb-8 print:p-6">
-          <h2 className="text-3xl font-bold mb-6 print:text-2xl">5. ROLES AND RESPONSIBILITIES</h2>
+        <div className="bg-white p-8 mb-12 print:mb-8 print:p-6 page-break-inside-avoid print:page-break-inside-avoid print-section">
+          <h2 className="text-3xl font-bold mb-6 print:text-2xl print:mb-4">4. ROLES AND RESPONSIBILITIES</h2>
+          
+          {/* Debug: Show roles data for troubleshooting */}
+          {/* Debug information removed for production */}
+          
           <div className="formatSOWTable">
             <SOWRolesPage 
               customContent={sow.custom_roles_content}
@@ -480,25 +465,25 @@ export default function PrintableSOWPage() {
           
           {/* Client Roles Table */}
           {Array.isArray(sow.clientRoles) && sow.clientRoles.length > 0 && (
-            <div className="overflow-x-auto print:overflow-visible">
+            <div className="overflow-x-auto print:overflow-visible print:mt-6">
               <div className="formatSOWTable">
-                <table className="min-w-full divide-y border print:w-full">
+                <table className="min-w-full divide-y border print:w-full print:border-collapse print-optimized-table">
                   <thead className="bg-gray-50 print:bg-gray-100">
                     <tr>
-                      <th className="uppercase tracking-wider px-6 py-4 print:px-4 print:py-2">Role (Title)</th>
-                      <th className="uppercase tracking-wider px-6 py-4 print:px-4 print:py-2">Name</th>
-                      <th className="uppercase tracking-wider px-6 py-4 print:px-4 print:py-2">Email</th>
-                      <th className="uppercase tracking-wider px-6 py-4 print:px-4 print:py-2">Responsibilities</th>
+                      <th className="uppercase tracking-wider px-6 py-4 print:px-4 print:py-2 print:border print:border-gray-300">Role (Title)</th>
+                      <th className="uppercase tracking-wider px-6 py-4 print:px-4 print:py-2 print:border print:border-gray-300">Name</th>
+                      <th className="uppercase tracking-wider px-6 py-4 print:px-4 print:py-2 print:border print:border-gray-300">Email</th>
+                      <th className="uppercase tracking-wider px-6 py-4 print:px-4 print:py-2 print:border print:border-gray-300">Responsibilities</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-gray-200 print:divide-y-0">
                     {sow.clientRoles.map((role, idx) => (
-                      <tr key={idx}>
-                        <td className="px-6 py-4 whitespace-nowrap text-gray-700 print:px-4 print:py-2">{role.role || role.contact_title || 'N/A'}</td>
-                        <td className="px-6 py-4 print:px-4 print:py-2">{role.name || 'N/A'}</td>
-                        <td className="px-6 py-4 print:px-4 print:py-2">{role.email || 'N/A'}</td>
-                        <td className="px-6 py-4 print:px-4 print:py-2">
-                          <div className="whitespace-pre-wrap max-w-md">
+                      <tr key={idx} className="print:border-b print:border-gray-300">
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-700 print:px-4 print:py-2 print:border print:border-gray-300">{role.role || role.contact_title || 'N/A'}</td>
+                        <td className="px-6 py-4 print:px-4 print:py-2 print:border print:border-gray-300">{role.name || 'N/A'}</td>
+                        <td className="px-6 py-4 print:px-4 print:py-2 print:border print:border-gray-300">{role.email || 'N/A'}</td>
+                        <td className="px-6 py-4 print:px-4 print:py-2 print:border print:border-gray-300">
+                          <div className="whitespace-pre-wrap max-w-md print:max-w-none">
                             {role.responsibilities || ''}
                           </div>
                         </td>
@@ -512,10 +497,10 @@ export default function PrintableSOWPage() {
         </div>
 
         {/* Pricing Section */}
-        <div className="bg-white p-8 mb-12 print:mb-8 print:p-6">
-          <h2 className="text-3xl font-bold mb-6 print:text-2xl">6. PRICING</h2>
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500 print:bg-gray-100">
-            <p className="text-gray-700">
+        <div className="bg-white p-8 mb-12 print:mb-8 print:p-6 page-break-inside-avoid print:page-break-inside-avoid print-section">
+          <h2 className="text-3xl font-bold mb-6 print:text-2xl print:mb-4">5. PRICING</h2>
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500 print:bg-gray-100 print:border-l-4 print:border-blue-500 print:rounded-none">
+            <p className="text-gray-700 print:text-gray-900">
               The tasks above will be completed on a <strong>time and material basis</strong>, using the LeanData standard workday of 8 hours for a duration of <strong>{sow.timeline_weeks ? (() => {
                 const totalWeeks = parseFloat(sow.timeline_weeks) || 0;
                 if (totalWeeks < 1) {
@@ -526,14 +511,14 @@ export default function PrintableSOWPage() {
                 }
               })() : 'N/A'}</strong>.
             </p>
-            <p className="text-sm text-gray-600 mt-2">
+            <p className="text-sm text-gray-600 mt-2 print:text-sm print:text-gray-700">
               Hours are calculated based on product selection and unit counts, with automatic role assignment and project management inclusion where applicable.
             </p>
           </div>
 
           {/* Project Timeline Display */}
           {sow.timeline_weeks && (
-            <div className="mb-6">
+            <div className="mb-6 print:mb-4">
               <TimelineDisplay timelineWeeks={sow.timeline_weeks} />
             </div>
           )}
@@ -549,34 +534,66 @@ export default function PrintableSOWPage() {
             discountType={(sow.pricing?.discount_type === 'fixed' || sow.pricing?.discount_type === 'percentage') ? sow.pricing.discount_type : 'none'}
             discountAmount={sow.pricing?.discount_amount || 0}
             discountPercentage={sow.pricing?.discount_percentage || 0}
-            subtotal={sow.pricing?.subtotal || 0}
-            totalAmount={sow.pricing?.total_amount || 0}
+            subtotal={(() => {
+              // Calculate subtotal from pricing roles
+              if (Array.isArray(sow.pricing.roles)) {
+                return sow.pricing.roles.reduce((total, role) => {
+                  const roleCost = (role.ratePerHour || 0) * (role.totalHours || 0);
+                  return total + roleCost;
+                }, 0);
+              }
+              return sow.pricing?.subtotal || 0;
+            })()}
+            totalAmount={(() => {
+              // Calculate total amount including discounts
+              const calculatedSubtotal = (() => {
+                if (Array.isArray(sow.pricing.roles)) {
+                  return sow.pricing.roles.reduce((total, role) => {
+                    const roleCost = (role.ratePerHour || 0) * (role.totalHours || 0);
+                    return total + roleCost;
+                  }, 0);
+                }
+                return sow.pricing?.subtotal || 0;
+              })();
+              
+              // Apply discount if any
+              if (sow.pricing?.discount_type === 'fixed') {
+                return Math.max(0, calculatedSubtotal - (sow.pricing.discount_amount || 0));
+              } else if (sow.pricing?.discount_type === 'percentage') {
+                const discountMultiplier = 1 - ((sow.pricing.discount_percentage || 0) / 100);
+                return calculatedSubtotal * discountMultiplier;
+              }
+              
+              return calculatedSubtotal;
+            })()}
             autoCalculated={sow.pricing?.auto_calculated || false}
             lastCalculated={sow.pricing?.last_calculated || null}
           />
 
-          <p className="mb-2 text-sm text-gray-700">LeanData shall notify Customer when costs are projected to exceed this estimate, providing the opportunity for Customer and LeanData to resolve jointly how to proceed. Hours listed above are to be consumed by the end date and cannot be extended.</p>
-          <p className="mb-2 text-sm text-gray-700">Any additional requests or mutually agreed-upon additional hours required to complete the tasks shall be documented in a change order Exhibit to this SOW and signed by both parties. <span className="font-bold">Additional hours will be billed at the Rate/Hr.</span></p>
+          <div className="mt-6 print:mt-4 space-y-2 print:space-y-1">
+            <p className="text-sm text-gray-700 print:text-sm print:text-gray-900">LeanData shall notify Customer when costs are projected to exceed this estimate, providing the opportunity for Customer and LeanData to resolve jointly how to proceed. Hours listed above are to be consumed by the end date and cannot be extended.</p>
+            <p className="text-sm text-gray-700 print:text-sm print:text-gray-900">Any additional requests or mutually agreed-upon additional hours required to complete the tasks shall be documented in a change order Exhibit to this SOW and signed by both parties. <span className="font-bold">Additional hours will be billed at the Rate/Hr.</span></p>
+          </div>
           
           {/* Billing Information */}
-          <div className="mt-8 p-6 bg-gray-50 rounded-lg print:bg-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Billing Information</h3>
+          <div className="mt-8 p-6 bg-gray-50 rounded-lg print:bg-gray-100 print:rounded-none print:mt-6">
+            <div className="flex items-center justify-between mb-4 print:mb-3">
+              <h3 className="text-lg font-semibold text-gray-900 print:text-lg">Billing Information</h3>
               {sow.salesforceAccountId && (
-                <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full print:bg-blue-200">
+                <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full print:bg-blue-200 print:text-blue-900">
                   From Salesforce
                 </span>
               )}
             </div>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
-              <dt className="font-semibold text-gray-700">Company Name:</dt>
-              <dd className="text-gray-900">{sow.template?.billing_company_name || 'N/A'}</dd>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm print:gap-x-4 print:gap-y-2">
+              <dt className="font-semibold text-gray-700 print:text-gray-900">Company Name:</dt>
+              <dd className="text-gray-900 print:text-gray-900">{sow.template?.billing_company_name || 'N/A'}</dd>
               
-              <dt className="font-semibold text-gray-700">Billing Contact Name:</dt>
-              <dd className="text-gray-900">{sow.template?.billing_contact_name || 'N/A'}</dd>
+              <dt className="font-semibold text-gray-700 print:text-gray-900">Billing Contact Name:</dt>
+              <dd className="text-gray-900 print:text-gray-900">{sow.template?.billing_contact_name || 'N/A'}</dd>
               
-              <dt className="font-semibold text-gray-700">Billing Address:</dt>
-              <dd className="text-gray-900">
+              <dt className="font-semibold text-gray-700 print:text-gray-900">Billing Address:</dt>
+              <dd className="text-gray-900 print:text-gray-900">
                 {(sow.template?.billing_address || 'N/A')
                   .split(',')
                   .map((line: string, idx: number) => (
@@ -584,22 +601,22 @@ export default function PrintableSOWPage() {
                   ))}
               </dd>
               
-              <dt className="font-semibold text-gray-700">Billing Email:</dt>
-              <dd className="text-gray-900">{sow.template?.billing_email || 'N/A'}</dd>
+              <dt className="font-semibold text-gray-700 print:text-gray-900">Billing Email:</dt>
+              <dd className="text-gray-900 print:text-gray-900">{sow.template?.billing_email || 'N/A'}</dd>
               
-              <dt className="font-semibold text-gray-700">Purchase Order Number:</dt>
-              <dd className="text-gray-900">{sow.template?.purchase_order_number || 'PO provided by customer'}</dd>
+              <dt className="font-semibold text-gray-700 print:text-gray-900">Purchase Order Number:</dt>
+              <dd className="text-gray-900 print:text-gray-900">{sow.template?.purchase_order_number || 'PO provided by customer'}</dd>
               
-              <dt className="font-semibold text-gray-700">Payment Terms:</dt>
-              <dd className="text-gray-900">Net 30</dd>
+              <dt className="font-semibold text-gray-700 print:text-gray-900">Payment Terms:</dt>
+              <dd className="text-gray-900 print:text-gray-900">Net 30</dd>
               
-              <dt className="font-semibold text-gray-700">Currency:</dt>
-              <dd className="text-gray-900">USD</dd>
+              <dt className="font-semibold text-gray-700 print:text-gray-900">Currency:</dt>
+              <dd className="text-gray-900 print:text-gray-900">USD</dd>
             </dl>
             
             {/* Payment Terms Note */}
-            <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200 print:bg-yellow-100">
-              <p className="text-sm text-yellow-800">
+            <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200 print:bg-yellow-100 print:rounded-none print:mt-3">
+              <p className="text-sm text-yellow-800 print:text-yellow-900">
                 <strong>Payment Terms:</strong> Net 30 • 
                 <strong>Currency:</strong> USD • 
                 <strong>Billing Cycle:</strong> Monthly or upon completion of major milestones
@@ -607,13 +624,14 @@ export default function PrintableSOWPage() {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Print Footer - Only visible when printing */}
-      <div className="hidden print:block print:mt-8 print:pt-4 print:border-t print:border-gray-300">
-        <div className="text-center text-sm text-gray-600">
-          <p>End of Statement of Work</p>
-          <p className="mt-1">Generated by LeanData SOW Generator</p>
+        {/* SOW Assumptions Page Section */}
+        <div className="bg-white p-8 mb-12 print:mb-8 print:p-6 page-break-inside-avoid print:page-break-inside-avoid print-section">
+          <h2 className="text-3xl font-bold mb-6 print:text-2xl print:mb-4">6. ASSUMPTIONS</h2>
+          <SOWAssumptionsPage 
+            customContent={sow.custom_assumptions_content}
+            isEdited={sow.assumptions_content_edited}
+          />
         </div>
       </div>
     </div>

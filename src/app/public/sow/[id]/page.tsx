@@ -172,20 +172,16 @@ export default function PublicSOWPage() {
     <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <SOWTitlePage 
+          title={sow.sowTitle || 'SOW Title Not Available'}
           clientName={sow.clientName}
-          clientLogo={sow.companyLogo}
+          companyLogo={sow.companyLogo}
           clientSignature={sow.clientSignature}
           clientSignature2={sow.customer_signature_name_2 ? {
             name: sow.customer_signature_name_2,
             title: sow.customer_signature_2 || '',
-            email: sow.customer_signature_2 || '',
+            email: sow.customer_email_2 || '',
             date: ''
           } : undefined}
-          leandataSignature={{
-            name: 'Agam Vasani',
-            title: 'VP Customer Success',
-            email: 'agam.vasani@leandata.com'
-          }}
         />
         <SOWIntroPage 
           clientName={sow.clientName}

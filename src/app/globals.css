@@ -1,6 +1,32 @@
+/* Global styles */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom CSS variables */
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
 
 /* Normalize paragraph margins */
 p {
@@ -475,84 +501,37 @@ ol {
   margin: 0.25rem 0;
 }
 
-/* Print-specific styles for SOW */
-@media print {
-  /* Hide navigation, footer, and other non-essential elements */
-  nav, footer, .Navigation, .Footer {
-    display: none !important;
-  }
-  
-  /* Ensure full width and proper page breaks */
-  body {
-    margin: 0;
-    padding: 0;
-    background: white !important;
-    color: black !important;
-  }
-  
-  /* Optimize page breaks */
-  .page-break-before {
-    page-break-before: always;
-  }
-  
-  .page-break-after {
-    page-break-after: always;
-  }
-  
-  .page-break-inside-avoid {
-    page-break-inside: avoid;
-  }
-  
-  /* Ensure tables don't break across pages */
-  table {
-    page-break-inside: avoid;
-  }
-  
-  /* Optimize headings for print */
-  h1, h2, h3, h4, h5, h6 {
-    page-break-after: avoid;
-    page-break-inside: avoid;
-  }
-  
-  /* Ensure proper spacing in print */
-  .print-optimized {
-    margin: 0;
-    padding: 0.5in;
-  }
-  
-  /* Hide print button when printing */
-  .print-button {
-    display: none !important;
-  }
-  
-  /* Ensure background colors print properly */
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-  
-  /* Optimize font sizes for print */
-  .print-text-sm {
-    font-size: 10pt !important;
-  }
-  
-  .print-text-base {
-    font-size: 12pt !important;
-  }
-  
-  .print-text-lg {
-    font-size: 14pt !important;
-  }
-  
-  .print-text-xl {
-    font-size: 16pt !important;
-  }
-  
-  .print-text-2xl {
-    font-size: 18pt !important;
-  }
-  
-  .print-text-3xl {
-    font-size: 20pt !important;
-  }
+/* Hide navigation, footer, and Alpha testing banner on print-sow route */
+body.print-sow-route .print-sow-hide,
+body.print-sow-route nav,
+body.print-sow-route .Navigation,
+body.print-sow-route nav[class*="bg-gradient-to-r"],
+body.print-sow-route .bg-gradient-to-r,
+body.print-sow-route footer,
+body.print-sow-route .Footer {
+  display: none !important;
+}
+
+/* Fallback using CSS variable */
+body[style*="--print-sow-active: true"] .print-sow-hide,
+body[style*="--print-sow-active: true"] nav,
+body[style*="--print-sow-active: true"] .Navigation,
+body[style*="--print-sow-active: true"] nav[class*="bg-gradient-to-r"],
+body[style*="--print-sow-active: true"] .bg-gradient-to-r,
+body[style*="--print-sow-active: true"] footer,
+body[style*="--print-sow-active: true"] .Footer {
+  display: none !important;
+}
+
+/* Layout adjustments for print-sow route */
+body.print-sow-route {
+  padding: 0 !important;
+  margin: 0 !important;
+  background: white !important;
+}
+
+body[style*="--print-sow-active: true"] {
+  padding: 0 !important;
+  margin: 0 !important;
+  background: white !important;
 }

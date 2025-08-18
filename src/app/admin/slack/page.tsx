@@ -182,7 +182,36 @@ export default function SlackConfigPage() {
     }
   };
 
-  const [testResults, setTestResults] = useState<{ success: boolean; user?: any; error?: string } | null>(null);
+  const [testResults, setTestResults] = useState<{ 
+    success: boolean; 
+    user?: { 
+      id: string; 
+      name: string; 
+      email?: string; 
+      team_id?: string; 
+      profile?: { 
+        display_name?: string; 
+        real_name?: string; 
+        email?: string 
+      };
+      debug?: {
+        username: string;
+        botTokenConfigured: boolean;
+        tokenValid: boolean;
+        totalUsers: number;
+        workspaceInfo?: {
+          name: string;
+          domain: string;
+        };
+        lookupResults: {
+          byUsername?: { success: boolean; error?: string };
+          byEmail?: { success: boolean; error?: string };
+          fromAllUsers?: { success: boolean; error?: string };
+        };
+      };
+    } | null; 
+    error?: string 
+  } | null>(null);
   const [slackStatus, setSlackStatus] = useState<{
     webhookConfigured: boolean;
     botTokenConfigured: boolean;

@@ -141,6 +141,48 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     }
   }, [unsavedChanges, onUnsavedChanges]);
 
+  // Initialize form fields with default templates if no custom content exists
+  useEffect(() => {
+    if (!loading && !initializing && formData.id) {
+      // Only initialize if we have templates and no existing custom content
+      const updates: Partial<SOWData> = {};
+      
+      if (!formData.custom_intro_content && originalIntroTemplate) {
+        updates.custom_intro_content = originalIntroTemplate;
+      }
+      
+      if (!formData.custom_scope_content && originalScopeTemplate) {
+        updates.custom_scope_content = originalScopeTemplate;
+      }
+      
+      if (!formData.custom_out_of_scope_content && originalOutOfScopeTemplate) {
+        updates.custom_out_of_scope_content = originalOutOfScopeTemplate;
+      }
+      
+      if (!formData.custom_objectives_disclosure_content && originalObjectivesDisclosureTemplate) {
+        updates.custom_objectives_disclosure_content = originalObjectivesDisclosureTemplate;
+      }
+      
+      if (!formData.custom_assumptions_content && originalAssumptionsTemplate) {
+        updates.custom_assumptions_content = originalAssumptionsTemplate;
+      }
+      
+      if (!formData.custom_project_phases_content && originalProjectPhasesTemplate) {
+        updates.custom_project_phases_content = originalProjectPhasesTemplate;
+      }
+      
+      if (!formData.custom_roles_content && originalRolesTemplate) {
+        updates.custom_roles_content = originalRolesTemplate;
+      }
+      
+      // Apply updates if any
+      if (Object.keys(updates).length > 0) {
+        console.log('Initializing form fields with default templates:', updates);
+        setFormData({ ...formData, ...updates });
+      }
+    }
+  }, [loading, initializing, formData, originalIntroTemplate, originalScopeTemplate, originalOutOfScopeTemplate, originalObjectivesDisclosureTemplate, originalAssumptionsTemplate, originalProjectPhasesTemplate, originalRolesTemplate, setFormData]);
+
   // Create all content handlers using the factory
   const templates = {
     originalIntroTemplate,

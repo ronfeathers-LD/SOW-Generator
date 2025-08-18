@@ -107,7 +107,7 @@ export default function SOWComments({ sowId }: SOWCommentsProps) {
     }
   };
 
-  const handleMentionSelect = (user: SlackUser) => {
+  const handleMentionSelect = (_user: SlackUser) => {
     // You can add additional logic here if needed
   };
 
@@ -207,7 +207,7 @@ export default function SOWComments({ sowId }: SOWCommentsProps) {
             value={newComment}
             onChange={setNewComment}
             onMentionSelect={handleMentionSelect}
-            placeholder="Share your thoughts, questions, or feedback about this SOW... Use @username to mention team members"
+            placeholder="Share your thoughts, questions, or feedback about this SOW... Use &quot;@username&quot; to mention team members"
             rows={3}
           />
           {hasMentions(newComment) && (
