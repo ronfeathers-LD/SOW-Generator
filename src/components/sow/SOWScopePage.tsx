@@ -21,7 +21,7 @@ export default function SOWScopePage({
             </p>
           </div>
           
-          <div className="text-base leading-relaxed">
+          <div id="sow-content-scope" className="text-base leading-relaxed">
             {customContent ? (
               <div dangerouslySetInnerHTML={{ __html: customContent }} />
             ) : (
@@ -30,7 +30,7 @@ export default function SOWScopePage({
           </div>
         </div>
       ) : (
-        <div className="text-base leading-relaxed">
+        <div id="sow-content-scope" className="text-base leading-relaxed">
           {customContent ? (
             <div dangerouslySetInnerHTML={{ __html: customContent }} />
           ) : (
@@ -41,7 +41,7 @@ export default function SOWScopePage({
       
       {/* Deliverables Content */}
       {customDeliverablesContent && (
-        <div className="mt-6 text-base leading-relaxed">
+        <div id="sow-content-deliverables" className="mt-6 text-base leading-relaxed">
           <div dangerouslySetInnerHTML={{ __html: customDeliverablesContent }} />
         </div>
       )}

@@ -32,12 +32,14 @@ export default function SOWAssumptionsPage({
           </div>
           
           <div 
+            id="sow-content-assumptions"
             className="text-base leading-relaxed sow-content"
             dangerouslySetInnerHTML={{ __html: content }}
           />
         </div>
       ) : (
         <div 
+          id="sow-content-assumptions"
           className="text-base leading-relaxed sow-content"
           dangerouslySetInnerHTML={{ __html: content }}
         />

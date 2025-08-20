@@ -44,12 +44,14 @@ export default function SOWIntroPage({ clientName, customContent, isEdited }: SO
           </div>
           
           <div 
+            id="sow-content-intro"
             className="text-base leading-relaxed sow-content"
             dangerouslySetInnerHTML={{ __html: content }} 
           />
         </div>
       ) : (
         <div 
+          id="sow-content-intro"
           className="text-base leading-relaxed sow-content"
           dangerouslySetInnerHTML={{ __html: content }} 
         />

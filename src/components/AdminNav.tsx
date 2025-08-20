@@ -20,14 +20,6 @@ export default function AdminNav() {
         <div className="flex items-center space-x-4">
           <span className="text-sm font-medium">Admin Panel</span>
           
-          {/* Dashboard */}
-          <Link 
-            href="/admin"
-            className="text-sm hover:text-indigo-200 transition-colors"
-          >
-            Dashboard
-          </Link>
-
           {/* API Config Dropdown */}
           <div className="relative">
             <div className="flex items-center">
@@ -56,13 +48,6 @@ export default function AdminNav() {
               <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
                 <div className="py-1">
                   <Link 
-                    href="/admin/salesforce"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setIsApiConfigOpen(false)}
-                  >
-                    Salesforce Config
-                  </Link>
-                  <Link 
                     href="/admin/avoma"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     onClick={() => setIsApiConfigOpen(false)}
@@ -75,6 +60,27 @@ export default function AdminNav() {
                     onClick={() => setIsApiConfigOpen(false)}
                   >
                     Gemini AI Config
+                  </Link>
+                  <Link 
+                    href="/admin/google-drive"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsApiConfigOpen(false)}
+                  >
+                    Google Drive Config
+                  </Link>
+                  <Link 
+                    href="/admin/salesforce"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsApiConfigOpen(false)}
+                  >
+                    Salesforce Config
+                  </Link>
+                  <Link 
+                    href="/admin/slack"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsApiConfigOpen(false)}
+                  >
+                    Slack Config
                   </Link>
                 </div>
               </div>
@@ -102,27 +108,6 @@ export default function AdminNav() {
               <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
                 <div className="py-1">
                   <Link 
-                    href="/admin/leandata-signatories"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setIsConfigOpen(false)}
-                  >
-                    LeanData Signatories
-                  </Link>
-                  <Link 
-                    href="/admin/sow-content-templates"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setIsConfigOpen(false)}
-                  >
-                    Content Templates
-                  </Link>
-                  <Link 
-                    href="/admin/products"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setIsConfigOpen(false)}
-                  >
-                    Products
-                  </Link>
-                  <Link 
                     href="/admin/ai-prompts"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     onClick={() => setIsConfigOpen(false)}
@@ -136,10 +121,39 @@ export default function AdminNav() {
                   >
                     Approval Stages
                   </Link>
+                  <Link 
+                    href="/admin/sow-content-templates"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsConfigOpen(false)}
+                  >
+                    Content Templates
+                  </Link>
+                  <Link 
+                    href="/admin/leandata-signatories"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsConfigOpen(false)}
+                  >
+                    LeanData Signatories
+                  </Link>
+                  <Link 
+                    href="/admin/products"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsConfigOpen(false)}
+                  >
+                    Products
+                  </Link>
                 </div>
               </div>
             )}
           </div>
+
+          {/* Dashboard */}
+          <Link 
+            href="/admin"
+            className="text-sm hover:text-indigo-200 transition-colors"
+          >
+            Dashboard
+          </Link>
 
           {/* User Management */}
           <Link 

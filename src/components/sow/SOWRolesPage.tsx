@@ -29,12 +29,14 @@ export default function SOWRolesPage({ customContent, isEdited }: SOWRolesPagePr
           </div>
           
           <div 
+            id="sow-content-roles"
             className="text-base leading-relaxed sow-content"
             dangerouslySetInnerHTML={{ __html: content }} 
           />
         </div>
       ) : (
         <div 
+          id="sow-content-roles"
           className="text-base leading-relaxed sow-content"
           dangerouslySetInnerHTML={{ __html: content }} 
         />

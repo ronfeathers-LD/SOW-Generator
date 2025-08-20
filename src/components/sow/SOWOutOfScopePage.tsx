@@ -19,20 +19,20 @@ export default function SOWOutOfScopePage({
             </p>
           </div>
           
-          <div className="text-base leading-relaxed">
+          <div id="sow-content-out-of-scope" className="text-base leading-relaxed">
             {customContent ? (
               <div dangerouslySetInnerHTML={{ __html: customContent }} />
             ) : (
-              <p className="text-gray-600 italic">No custom out of scope content found</p>
+              <p className="text-gray-600 italic">No custom out-of-scope content found</p>
             )}
           </div>
         </div>
       ) : (
-        <div className="text-base leading-relaxed">
+        <div id="sow-content-out-of-scope" className="text-base leading-relaxed">
           {customContent ? (
             <div dangerouslySetInnerHTML={{ __html: customContent }} />
           ) : (
-            <p className="text-gray-600 italic">No custom out of scope content found</p>
+            <p className="text-gray-600 italic">No custom out-of-scope content found</p>
           )}
         </div>
       )}

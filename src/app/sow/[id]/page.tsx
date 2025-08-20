@@ -14,6 +14,7 @@ import SOWRolesPage from '@/components/sow/SOWRolesPage';
 import PricingDisplay from '@/components/sow/PricingDisplay';
 import SimpleApproval from '@/components/sow/SimpleApproval';
 import SOWComments from '@/components/sow/SOWComments';
+import SaveToGoogleDrive from '@/components/sow/SaveToGoogleDrive';
 import { useSession } from 'next-auth/react';
 import { getStatusColor, getStatusLabel } from '@/lib/utils/statusUtils';
 
@@ -418,6 +419,7 @@ export default function SOWDetailsPage() {
 
           companyLogo: data.header?.company_logo || data.companyLogo || '',
           clientName: data.template?.client_name || data.client_name || data.header?.client_name || '',
+          sowTitle: data.sow_title || data.title || 'Untitled SOW',
           clientSignature: data.template?.customer_signature_name ? {
             name: data.template.customer_signature_name,
             title: data.template.customer_signature || data.client_title || '',
@@ -739,7 +741,7 @@ export default function SOWDetailsPage() {
 
 
               {/* SOW Intro Page Section */}
-                <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                <div id="content-introduction" className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold text-center mb-6">LEANDATA, INC. STATEMENT OF WORK</h2>
                   <SOWIntroPage 
                     clientName={salesforceData?.account_data?.name || sow.clientName}
@@ -750,7 +752,7 @@ export default function SOWDetailsPage() {
 
 
               {/* SOW Objectives Page Section */}
-                <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                <div id="content-objectives" className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold  mb-6">1. OBJECTIVE</h2>
                   <SOWObjectivesPage 
                     deliverables={sow.deliverables} 
@@ -782,7 +784,7 @@ export default function SOWDetailsPage() {
 
 
               {/* SOW Scope Page Section */}
-                <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                <div id="content-scope" className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold mb-6">2. SCOPE</h2>
                   <SOWScopePage 
                     customContent={sow.custom_scope_content}
@@ -798,7 +800,7 @@ export default function SOWDetailsPage() {
                 </div>
 
               {/* SOW Project Phases Page Section */}
-                <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                <div id="content-project-phases" className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold mb-6">3. PROJECT PHASES, ACTIVITIES AND ARTIFACTS</h2>
                   <div className="formatSOWTable">
                   <SOWProjectPhasesPage 
@@ -809,7 +811,7 @@ export default function SOWDetailsPage() {
                 </div>
 
               {/* Roles and Responsibilities Section */}
-                <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                <div id="content-roles" className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold mb-6">4. ROLES AND RESPONSIBILITIES</h2>
                   <div className="formatSOWTable">
                   <SOWRolesPage 
@@ -852,7 +854,7 @@ export default function SOWDetailsPage() {
                 </div>
 
               {/* Pricing Section */}
-                <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                <div id="content-pricing" className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold mb-6">5. PRICING</h2>
                   <div className="mb-6 p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
                     <p className="text-gray-700">
@@ -1013,7 +1015,7 @@ export default function SOWDetailsPage() {
               </div>
 
               {/* Assumptions Section */}
-                <div className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                <div id="content-assumptions" className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold mb-6">6. ASSUMPTIONS</h2>
                   <SOWAssumptionsPage 
                     customContent={sow.custom_assumptions_content}
@@ -1122,24 +1124,33 @@ export default function SOWDetailsPage() {
                     )}
                     
                     {sow.status === 'approved' && (
-                      <div className="space-y-2">
-                        <p className="text-green-600 mb-2">
-                          This SOW has been approved.
-                        </p>
-                        {sow.approved_at && (
-                          <p className="text-sm text-gray-600">
-                            Approved on: {new Date(sow.approved_at).toLocaleDateString()}
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <p className="text-green-600 mb-2">
+                            This SOW has been approved.
                           </p>
-                        )}
-                        {sow.approval_comments && (
-                          <div className="bg-green-50 border border-green-200 rounded p-3">
-                            <p className="text-sm text-green-800">
-                              <strong>Approval Comments:</strong> {sow.approval_comments}
+                          {sow.approved_at && (
+                            <p className="text-sm text-gray-600">
+                              Approved on: {new Date(sow.approved_at).toLocaleDateString()}
                             </p>
-                          </div>
-                        )}
-                        
+                          )}
+                          {sow.approval_comments && (
+                            <div className="bg-green-50 border border-green-200 rounded p-3">
+                              <p className="text-sm text-green-800">
+                                <strong>Approval Comments:</strong> {sow.approval_comments}
+                              </p>
+                            </div>
+                          )}
+                        </div>
 
+                        {/* Save to Google Drive Button */}
+                        <div className="pt-4 border-t border-gray-200">
+                          <SaveToGoogleDrive 
+                            sowId={sow.id}
+                            customerName={sow.clientName || 'Unknown Customer'}
+                            sowTitle={sow.sowTitle || 'Untitled SOW'}
+                          />
+                        </div>
                       </div>
                     )}
                     

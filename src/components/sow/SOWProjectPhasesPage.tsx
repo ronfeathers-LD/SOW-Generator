@@ -17,6 +17,7 @@ export default function SOWProjectPhasesPage({ customContent, isEdited }: SOWPro
           
           {/* Project Phases Content */}
           <div 
+            id="sow-content-project-phases"
             className="text-base leading-relaxed sow-content"
             dangerouslySetInnerHTML={{ __html: customContent || '' }}
           />
@@ -24,6 +25,7 @@ export default function SOWProjectPhasesPage({ customContent, isEdited }: SOWPro
       ) : (
         /* Project Phases Content */
         <div 
+          id="sow-content-project-phases"
           className="text-base leading-relaxed sow-content"
           dangerouslySetInnerHTML={{ __html: customContent || '' }}
         />

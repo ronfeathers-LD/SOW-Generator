@@ -32,6 +32,7 @@ export default function SOWObjectivesDisclosurePage({
       )}
       
       <div 
+        id="sow-content-objectives-disclosure"
         className="text-base leading-relaxed sow-content"
         dangerouslySetInnerHTML={{ __html: content }}
       />
