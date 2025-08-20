@@ -1,5 +1,3 @@
-import React from 'react';
-
 export const ContentSkeleton: React.FC = () => (
   <div className="prose max-w-none text-left">
     <div className="animate-pulse">

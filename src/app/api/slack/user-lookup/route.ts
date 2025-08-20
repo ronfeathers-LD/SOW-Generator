@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
-  console.log('🔍 User lookup API called');
+
   
   try {
     // Check if we can get the session
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const username = searchParams.get('username');
-    console.log('🔍 Username parameter:', username);
+
 
     if (!username) {
       console.log('❌ No username provided');

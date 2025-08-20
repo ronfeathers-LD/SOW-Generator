@@ -5,15 +5,6 @@ export async function POST(request: NextRequest) {
   try {
     const { transcript, customerName, selectedProducts, existingDescription, existingObjectives } = await request.json();
 
-    // Debug logging to see what's being received
-    console.log('=== ANALYZE TRANSCRIPTION API DEBUG ===');
-    console.log('Received transcript length:', transcript ? transcript.length : 'undefined');
-    console.log('Received customerName:', customerName);
-    console.log('Received selectedProducts:', selectedProducts);
-    console.log('Received existingDescription:', existingDescription);
-    console.log('Received existingObjectives:', existingObjectives);
-    console.log('=== END API DEBUG ===');
-
     if (!transcript) {
       return NextResponse.json({ error: 'Transcription is required' }, { status: 400 });
     }

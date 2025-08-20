@@ -7,12 +7,7 @@ export async function GET(request: Request) {
   try {
     // Check authentication and admin role
     const session = await getServerSession(authOptions);
-    
-    console.log('🔍 Admin changelog API - Session check:');
-    console.log('👤 Session exists:', !!session);
-    console.log('👤 User exists:', !!session?.user);
-    console.log('👤 User email:', session?.user?.email);
-    console.log('👤 User role:', session?.user?.role);
+  
     
     if (!session?.user) {
       console.log('❌ No session or user found');

@@ -20,20 +20,6 @@ export default function UserManagementPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Slack mapping state
-  // const [slackMappings, setSlackMappings] = useState<Array<{
-  //   id: string;
-  //   email: string;
-  //   name: string;
-  //   slackUserId: string;
-  //   slackUsername: string;
-  // }>>([]);
-  // const [editingSlackMapping, setEditingSlackMapping] = useState<string | null>(null);
-  // const [slackMappingForm, setSlackMappingForm] = useState({
-  //   slackUserId: '',
-  //   slackUsername: ''
-  // });
-
   useEffect(() => {
     if (status === 'loading') return;
     
@@ -68,46 +54,6 @@ export default function UserManagementPage() {
       setLoading(false);
     }
   };
-
-  // const fetchSlackMappings = async () => {
-  //   try {
-  //     const response = await fetch('/api/admin/users/slack-mappings');
-  //     if (response.ok) {
-  //       const data = await response.json();
-  //       setSlackMappings(data);
-  //     }
-  //   } catch (error) {
-  //     console.error('Error fetching Slack mappings:', error);
-  //   }
-  // };
-
-  // const updateSlackMapping = async (userId: string) => {
-  //   try {
-  //     const response = await fetch('/api/admin/users/slack-mappings', {
-  //       method: 'PUT',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({
-  //         userId,
-  //         slackUserId: slackMappingForm.slackUserId,
-  //         slackUsername: slackMappingForm.slackUsername
-  //       }),
-  //     });
-
-  //     if (response.ok) {
-  //       setSuccess('Slack mapping updated successfully');
-  //       setEditingSlackMapping(null);
-  //       setSlackMappingForm({ slackUserId: '', slackUsername: '' });
-  //       fetchSlackMappings();
-  //     } else {
-  //       setError('Failed to update Slack mapping');
-  //     }
-  //   } catch (error) {
-  //     console.error('Error updating Slack mapping:', error);
-  //       setError('Failed to update Slack mapping');
-  //   }
-  // };
 
   const updateUserRole = async (userId: string, newRole: string) => {
     try {

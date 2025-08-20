@@ -1,4 +1,4 @@
-import React from 'react';
+
 import Image from 'next/image';
 
 interface SOWTitlePageProps {
@@ -73,10 +73,10 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
         {/* Client Signature */}
         <div>
           <p className="my-2 text-sm">This SOW is accepted by {clientName}:</p>
-          <div className="grid grid-cols-2 gap-8 items-end">
+          <div className="grid grid-cols-2 gap-4 items-end">
             {/* Signature Line */}
             <div className="flex flex-col items-start">
-              <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
+              <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
               <div className="text-sm mt-2 text-left">
                 {[
                   <span key="name" className={!clientSignature?.name || clientSignature.name === 'Not Entered' ? 'text-red-600 font-bold' : ''}>
@@ -147,7 +147,7 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
           <div className="grid grid-cols-2 gap-8 items-end">
             {/* Signature Line */}
             <div className="flex flex-col items-start">
-              <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
+              <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
               <div className="text-sm mt-2 text-left">
                 {['Agam Vasani', 'VP Customer Success'].filter(Boolean).join(', ')}
                 <br />

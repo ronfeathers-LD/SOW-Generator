@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 /**
  * LoadingModal - A reusable loading modal component that prevents user interaction
@@ -106,7 +106,7 @@ export const LoadingModal: React.FC<LoadingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[60]">
       <div className={`relative top-20 mx-auto p-6 border ${sizeClasses[size]} shadow-lg rounded-md bg-white`}>
         <div className="text-center">
           {/* Enhanced Loading Spinner */}
