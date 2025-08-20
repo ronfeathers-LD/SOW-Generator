@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
 import { createClient } from '@supabase/supabase-js';
 import { launchPuppeteerBrowser } from '@/lib/pdf-generator';
 

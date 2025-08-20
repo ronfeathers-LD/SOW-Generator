@@ -1,10 +1,10 @@
-import puppeteer from 'puppeteer';
+import puppeteer, { Browser } from 'puppeteer';
 
 /**
  * Robust Puppeteer browser launcher that handles production environments
  * Falls back to bundled Chromium if system Chrome is not available
  */
-export async function launchPuppeteerBrowser() {
+export async function launchPuppeteerBrowser(): Promise<Browser> {
   const launchOptions = {
     headless: true,
     args: [
@@ -132,7 +132,7 @@ interface SOWData {
 }
 
 export class PDFGenerator {
-  private browser: any = null;
+  private browser: Browser | null = null;
 
   async initialize() {
     if (!this.browser) {
