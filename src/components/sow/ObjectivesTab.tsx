@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { SOWData } from '@/types/sow';
 import TipTapEditor from '../TipTapEditor';
+import LoadingModal from '../ui/LoadingModal';
 
 interface ObjectivesTabProps {
   formData: Partial<SOWData>;
@@ -17,9 +18,53 @@ export default function ObjectivesTab({
   const [isFetchingTranscription, setIsFetchingTranscription] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
+  
+  // Rotating messages for analysis process
+  const [currentAnalysisMessage, setCurrentAnalysisMessage] = useState(0);
+  const [analysisMessageTimer, setAnalysisMessageTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Get customer name from selected account or form data
-      const customerName = selectedAccount?.name || formData.template?.client_name || formData.header?.client_name || '';
+  const customerName = selectedAccount?.name || formData.template?.client_name || formData.header?.client_name || '';
+
+  // Clever messages for the analysis process
+  const analysisMessages = [
+    "🤖 AI is analyzing your scoping call...",
+    "🧠 Extracting key pain points and objectives...",
+    "💡 Identifying business challenges and opportunities...",
+    "🎯 Mapping solutions to LeanData products...",
+    "📝 Crafting compelling project descriptions...",
+    "🔍 Analyzing customer needs and requirements...",
+    "💼 Structuring deliverables and timelines...",
+    "🚀 Preparing your SOW foundation...",
+    "📊 Organizing project scope and objectives...",
+    "✨ Almost there, finalizing your analysis..."
+  ];
+
+  // Function to start rotating messages
+  const startAnalysisMessages = () => {
+    const timer = setInterval(() => {
+      setCurrentAnalysisMessage(prev => (prev + 1) % analysisMessages.length);
+    }, 3000); // Change message every 3 seconds
+    setAnalysisMessageTimer(timer);
+  };
+
+  // Function to stop rotating messages
+  const stopAnalysisMessages = () => {
+    if (analysisMessageTimer) {
+      clearInterval(analysisMessageTimer);
+      setAnalysisMessageTimer(null);
+    }
+    setCurrentAnalysisMessage(0);
+  };
+
+  // Cleanup effect for timers
+  React.useEffect(() => {
+    return () => {
+      if (analysisMessageTimer) {
+        clearInterval(analysisMessageTimer);
+      }
+    };
+  }, [analysisMessageTimer]);
 
 
 
@@ -141,6 +186,7 @@ export default function ObjectivesTab({
 
     setIsAnalyzing(true);
     setAnalysisError(null);
+    startAnalysisMessages(); // Start rotating messages
 
     try {
       const response = await fetch('/api/gemini/analyze-transcription', {
@@ -406,6 +452,7 @@ export default function ObjectivesTab({
       }
     } finally {
       setIsAnalyzing(false);
+      stopAnalysisMessages(); // Stop rotating messages
     }
   };
 
@@ -814,6 +861,19 @@ INTEGRATIONS
             </div>
         </div>
       </div>
+      
+      {/* Loading Modals */}
+      <LoadingModal 
+        isOpen={isFetchingTranscription} 
+        operation="loading"
+        message="Fetching transcription from Avoma..."
+      />
+      
+      <LoadingModal 
+        isOpen={isAnalyzing} 
+        operation="processing"
+        message={analysisMessages[currentAnalysisMessage]}
+      />
     </section>
   );
 } 

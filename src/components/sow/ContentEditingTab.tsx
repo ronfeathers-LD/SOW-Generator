@@ -5,6 +5,7 @@ import { SOWData } from '@/types/sow';
 import { getContentTemplate } from '@/lib/sow-content';
 import { createAllContentHandlers } from '@/lib/utils/contentHandlers';
 import TipTapEditor from '../TipTapEditor';
+import LoadingModal from '../ui/LoadingModal';
 
 interface ContentEditingTabProps {
   formData: Partial<SOWData>;
@@ -818,6 +819,13 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
           </ul>
         </div>
       </div>
+      
+      {/* Loading Modal for Content Saving */}
+      <LoadingModal 
+        isOpen={saving !== null} 
+        operation="saving"
+        message={`Saving ${saving ? sections.find(s => s.id === saving)?.name || 'content' : 'content'}...`}
+      />
     </div>
   );
 }

@@ -44,6 +44,14 @@ export default function TeamRolesTab({
   const [isClearingContact, setIsClearingContact] = useState(false);
   const [isSavingBillingContact, setIsSavingBillingContact] = useState(false);
   const [isClearingBillingContact, setIsClearingBillingContact] = useState(false);
+  
+  // Loading states for client roles operations
+  const [isSavingClientRoles, setIsSavingClientRoles] = useState(false);
+  const [clientRolesSaveError, setClientRolesSaveError] = useState<string | null>(null);
+  const [clientRolesSaveSuccess, setClientRolesSaveSuccess] = useState<string | null>(null);
+  
+  // Debounced save for responsibilities
+  const [responsibilitiesSaveTimeout, setResponsibilitiesSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Load contacts when account is selected and set initial contact selection state
   useEffect(() => {
@@ -72,6 +80,15 @@ export default function TeamRolesTab({
       setShowSecondSignerSection(true);
     }
   }, [formData.template?.customer_signature_name_2]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (responsibilitiesSaveTimeout) {
+        clearTimeout(responsibilitiesSaveTimeout);
+      }
+    };
+  }, [responsibilitiesSaveTimeout]);
 
   const loadContacts = async (accountId: string) => {
     setIsLoadingContacts(true);
@@ -259,7 +276,7 @@ export default function TeamRolesTab({
     }
   };
 
-  const handleContactSelectedForRole = (contact: SalesforceContact, roleIndex: number) => {
+  const handleContactSelectedForRole = async (contact: SalesforceContact, roleIndex: number) => {
     const newRoles = [...(formData.roles?.client_roles || [])];
     newRoles[roleIndex] = { 
       ...newRoles[roleIndex], 
@@ -274,6 +291,9 @@ export default function TeamRolesTab({
       roles: { ...formData.roles!, client_roles: newRoles }
     });
     setShowRoleContactSelection(null);
+    
+    // Save to database
+    await saveClientRoles();
   };
 
   // Billing information functions
@@ -354,6 +374,68 @@ export default function TeamRolesTab({
     }
   };
 
+  const saveClientRoles = async () => {
+    if (!formData.id) {
+      console.error('No SOW ID available for client roles save');
+      return;
+    }
+
+    setIsSavingClientRoles(true);
+    setClientRolesSaveError(null);
+    setClientRolesSaveSuccess(null);
+
+    try {
+      const requestBody = {
+        tab: 'Team & Roles',
+        data: {
+          roles: formData.roles
+        }
+      };
+
+      const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save client roles: ${response.statusText}`);
+      }
+      await response.json(); // Just consume the response
+      setClientRolesSaveSuccess('Client roles saved successfully!');
+      setTimeout(() => setClientRolesSaveSuccess(null), 3000);
+    } catch (error) {
+      setClientRolesSaveError('Failed to save client roles to database');
+      console.error('Error saving client roles:', error);
+    } finally {
+      setIsSavingClientRoles(false);
+    }
+  };
+
+  // Debounced save for responsibilities
+  const debouncedSaveResponsibilities = (roleIndex: number, responsibilities: string) => {
+    // Clear existing timeout
+    if (responsibilitiesSaveTimeout) {
+      clearTimeout(responsibilitiesSaveTimeout);
+    }
+    
+    // Set new timeout for 1.5 second delay
+    const timeout = setTimeout(async () => {
+      const newRoles = [...(formData.roles?.client_roles || [])];
+      newRoles[roleIndex] = { ...newRoles[roleIndex], responsibilities };
+      setFormData({
+        ...formData,
+        roles: { ...formData.roles!, client_roles: newRoles }
+      });
+      
+      // Save to database
+      await saveClientRoles();
+    }, 1500);
+    
+    setResponsibilitiesSaveTimeout(timeout);
+  };
 
 
   // Clear primary signer function
@@ -506,7 +588,7 @@ export default function TeamRolesTab({
   };
 
   // Clear client role contact function
-  const clearRoleContact = (roleIndex: number) => {
+  const clearRoleContact = async (roleIndex: number) => {
     const newRoles = [...(formData.roles?.client_roles || [])];
     newRoles[roleIndex] = { 
       ...newRoles[roleIndex], 
@@ -520,6 +602,9 @@ export default function TeamRolesTab({
       ...formData,
       roles: { ...formData.roles!, client_roles: newRoles }
     });
+    
+    // Save to database
+    await saveClientRoles();
   };
 
 
@@ -1182,12 +1267,35 @@ export default function TeamRolesTab({
        </div>
      </div>
      
-     {/* Client Roles */}
+           {/* Client Roles */}
      <div className="bg-white shadow rounded-lg p-6">
        <h3 className="text-lg font-semibold mb-4">Client Roles & Responsibilities</h3>
        <p className="text-sm text-gray-600 mb-4">
          Define the roles and responsibilities for the client team
        </p>
+       
+       {/* Success/Error Messages */}
+       {clientRolesSaveSuccess && (
+         <div className="mb-4 bg-green-50 border border-green-200 rounded-md p-3">
+           <div className="flex items-center">
+             <svg className="h-4 w-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+             </svg>
+             <span className="text-sm text-green-800">{clientRolesSaveSuccess}</span>
+           </div>
+         </div>
+       )}
+       
+       {clientRolesSaveError && (
+         <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-3">
+           <div className="flex items-center">
+             <svg className="h-4 w-4 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+             </svg>
+             <span className="text-sm text-red-800">{clientRolesSaveError}</span>
+           </div>
+         </div>
+       )}
         {formData.roles?.client_roles?.map((role, index) => (
           <div key={index} className="border border-gray-200 rounded-md p-4 mb-4">
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -1350,30 +1458,64 @@ export default function TeamRolesTab({
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Responsibilities</label>
-                    <textarea
-                      value={role.responsibilities}
-                      onChange={(e) => {
-                        const newRoles = [...(formData.roles?.client_roles || [])];
-                        newRoles[index] = { ...role, responsibilities: e.target.value };
-                        setFormData({
-                          ...formData,
-                          roles: { ...formData.roles!, client_roles: newRoles }
-                        });
-                      }}
-                      rows={4}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                      placeholder="Describe the responsibilities for this role..."
-                    />
+                    <div className="relative">
+                      <textarea
+                        value={role.responsibilities}
+                        onChange={(e) => {
+                          // Update local state immediately for responsive UI
+                          const newRoles = [...(formData.roles?.client_roles || [])];
+                          newRoles[index] = { ...role, responsibilities: e.target.value };
+                          setFormData({
+                            ...formData,
+                            roles: { ...formData.roles!, client_roles: newRoles }
+                          });
+                          
+                          // Debounced save to database (waits 1.5 seconds after user stops typing)
+                          debouncedSaveResponsibilities(index, e.target.value);
+                        }}
+                        rows={4}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        placeholder="Describe the responsibilities for this role..."
+                      />
+                      {/* Show saving indicator when debounced save is active */}
+                      {responsibilitiesSaveTimeout && (
+                        <div className="absolute top-2 right-2">
+                          <div className="flex items-center text-xs text-gray-500">
+                            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Waiting...
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Show actual saving indicator */}
+                      {isSavingClientRoles && (
+                        <div className="absolute top-2 right-2">
+                          <div className="flex items-center text-xs text-blue-500">
+                            <svg className="animate-spin h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Saving...
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="flex justify-end">
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         const newRoles = formData.roles?.client_roles.filter((_, i) => i !== index) || [];
                         setFormData({
                           ...formData,
                           roles: { ...formData.roles!, client_roles: newRoles }
                         });
+                        
+                        // Save to database
+                        await saveClientRoles();
                       }}
                       className="text-red-600 hover:text-red-800 text-sm font-medium"
                     >
@@ -1387,7 +1529,7 @@ export default function TeamRolesTab({
         ))}
         <button
           type="button"
-          onClick={() => {
+          onClick={async () => {
             const newRoles = [...(formData.roles?.client_roles || []), {
               role: '',
               name: '',
@@ -1398,6 +1540,9 @@ export default function TeamRolesTab({
               ...formData,
               roles: { ...formData.roles!, client_roles: newRoles }
             });
+            
+            // Save to database
+            await saveClientRoles();
           }}
           className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
@@ -1443,6 +1588,12 @@ export default function TeamRolesTab({
         isOpen={isClearingBillingContact} 
         operation="updating"
         message="Clearing billing contact information..."
+      />
+
+      <LoadingModal 
+        isOpen={isSavingClientRoles} 
+        operation="saving"
+        message="Saving client roles to the database..."
       />
 
     </section>
