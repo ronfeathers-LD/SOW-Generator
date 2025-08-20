@@ -216,12 +216,31 @@ export async function POST(
     
   } catch (error) {
     console.error('❌ Error generating PDF:', error);
+    
+    // Provide more helpful error messages for common issues
+    let errorMessage = 'Failed to generate PDF';
+    let errorDetails = error instanceof Error ? error.message : 'Unknown error';
+    let statusCode = 500;
+    
+    if (error instanceof Error) {
+      if (error.message.includes('Failed to launch any browser')) {
+        errorMessage = 'PDF generation failed - browser not available';
+        errorDetails = 'The system cannot launch a browser for PDF generation. This is usually a server configuration issue.';
+        statusCode = 503; // Service Unavailable
+      } else if (error.message.includes('timeout')) {
+        errorMessage = 'PDF generation timed out';
+        errorDetails = 'The PDF generation process took too long to complete.';
+        statusCode = 408; // Request Timeout
+      }
+    }
+    
     return NextResponse.json(
       { 
-        error: 'Failed to generate PDF',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage,
+        details: errorDetails,
+        suggestion: 'If this issue persists, please contact support or try again later.'
       },
-      { status: 500 }
+      { status: statusCode }
     );
   }
 }

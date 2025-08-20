@@ -18,9 +18,13 @@ export async function launchPuppeteerBrowser(): Promise<Browser> {
       '--disable-extensions',
       '--disable-background-timer-throttling',
       '--disable-backgrounding-occluded-windows',
-      '--disable-renderer-backgrounding'
+      '--disable-renderer-backgrounding',
+      '--disable-web-security',
+      '--disable-features=VizDisplayCompositor',
+      '--disable-ipc-flooding-protection'
     ],
-    timeout: 30000
+    timeout: 60000, // Increased timeout
+    ignoreDefaultArgs: ['--disable-extensions']
   };
 
   try {
@@ -40,21 +44,43 @@ export async function launchPuppeteerBrowser(): Promise<Browser> {
         executablePath: '/usr/bin/chromium-browser'
       });
     } catch (error2) {
-      console.log('⚠️ Alternative Chrome paths not found, trying bundled Chromium...');
+      console.log('⚠️ Alternative Chrome paths not found, trying bundled Chromium with minimal args...');
       
       try {
-        // Fallback to bundled Chromium
+        // Try with minimal args for bundled Chromium
         return await puppeteer.launch({
-          ...launchOptions,
-          // Let Puppeteer use its bundled Chromium
+          headless: true,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage'
+          ],
+          timeout: 60000
         });
       } catch (error3) {
-        console.error('❌ All Puppeteer launch attempts failed:', {
-          productionChrome: error instanceof Error ? error.message : String(error),
-          alternativeChrome: error2 instanceof Error ? error2.message : String(error2),
-          bundledChromium: error3 instanceof Error ? error3.message : String(error3)
-        });
-        throw new Error('Failed to launch any browser for PDF generation. Please ensure Chrome/Chromium is available.');
+        console.log('⚠️ Bundled Chromium failed, trying with no args...');
+        
+        try {
+          // Last resort - try with no custom args
+          return await puppeteer.launch({
+            headless: true,
+            timeout: 60000
+          });
+        } catch (error4) {
+          console.error('❌ All Puppeteer launch attempts failed:', {
+            productionChrome: error instanceof Error ? error.message : String(error),
+            alternativeChrome: error2 instanceof Error ? error2.message : String(error2),
+            bundledChromium: error3 instanceof Error ? error3.message : String(error3),
+            noArgs: error4 instanceof Error ? error4.message : String(error4)
+          });
+          
+          // Provide more helpful error message
+          throw new Error(
+            'Failed to launch any browser for PDF generation. ' +
+            'This usually means Chrome/Chromium is not available in the production environment. ' +
+            'Please ensure the postinstall script runs: "puppeteer browsers install chrome"'
+          );
+        }
       }
     }
   }

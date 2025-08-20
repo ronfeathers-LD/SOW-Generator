@@ -152,4 +152,40 @@ DATABASE_URL="your-production-database-url"
 # Google Drive (if using)
 GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
-``` 
+
+### Troubleshooting PDF Generation
+
+If you encounter "Failed to launch any browser" errors:
+
+1. **Check Chrome installation**:
+   ```bash
+   which google-chrome-stable
+   which chromium-browser
+   ```
+
+2. **Verify Puppeteer browsers**:
+   ```bash
+   npx puppeteer browsers list
+   ```
+
+3. **Reinstall browsers**:
+   ```bash
+   npm run install-chrome
+   npm run install-chromium
+   ```
+
+4. **Check environment variables**:
+   - Ensure `NODE_ENV=production`
+   - Check if any custom Chrome paths are set
+
+5. **Common production paths**:
+   - `/usr/bin/google-chrome-stable`
+   - `/usr/bin/chromium-browser`
+   - `/opt/google/chrome/chrome` (some cloud environments)
+
+6. **Force browser installation**:
+   ```bash
+   # Clear Puppeteer cache and reinstall
+   rm -rf ~/.cache/puppeteer
+   npm run postinstall
+   ``` 

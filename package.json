@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "puppeteer browsers install chrome"
+    "postinstall": "puppeteer browsers install chrome || puppeteer browsers install chromium || echo 'Warning: Failed to install browsers. PDF generation may not work.'",
+    "install-chrome": "puppeteer browsers install chrome",
+    "install-chromium": "puppeteer browsers install chromium",
+    "install-browsers": "puppeteer browsers install chrome && puppeteer browsers install chromium"
   },
   "repository": {
     "type": "git",
