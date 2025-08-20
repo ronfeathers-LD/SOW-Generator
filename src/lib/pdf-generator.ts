@@ -1,4 +1,64 @@
-import puppeteer, { Browser } from 'puppeteer';
+import puppeteer from 'puppeteer';
+
+/**
+ * Robust Puppeteer browser launcher that handles production environments
+ * Falls back to bundled Chromium if system Chrome is not available
+ */
+export async function launchPuppeteerBrowser() {
+  const launchOptions = {
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',
+      '--disable-extensions',
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding'
+    ],
+    timeout: 30000
+  };
+
+  try {
+    // First try with production Chrome path (common in production environments)
+    console.log('🔍 Attempting to launch production Chrome...');
+    return await puppeteer.launch({
+      ...launchOptions,
+      executablePath: '/usr/bin/google-chrome-stable'
+    });
+  } catch (error) {
+    console.log('⚠️ Production Chrome not found, trying alternative paths...');
+    
+    try {
+      // Try alternative Chrome paths
+      return await puppeteer.launch({
+        ...launchOptions,
+        executablePath: '/usr/bin/chromium-browser'
+      });
+    } catch (error2) {
+      console.log('⚠️ Alternative Chrome paths not found, trying bundled Chromium...');
+      
+      try {
+        // Fallback to bundled Chromium
+        return await puppeteer.launch({
+          ...launchOptions,
+          // Let Puppeteer use its bundled Chromium
+        });
+      } catch (error3) {
+        console.error('❌ All Puppeteer launch attempts failed:', {
+          productionChrome: error instanceof Error ? error.message : String(error),
+          alternativeChrome: error2 instanceof Error ? error2.message : String(error2),
+          bundledChromium: error3 instanceof Error ? error3.message : String(error3)
+        });
+        throw new Error('Failed to launch any browser for PDF generation. Please ensure Chrome/Chromium is available.');
+      }
+    }
+  }
+}
 
 interface SOWData {
   id: string;
@@ -72,7 +132,7 @@ interface SOWData {
 }
 
 export class PDFGenerator {
-  private browser: Browser | null = null;
+  private browser: any = null;
 
   async initialize() {
     if (!this.browser) {

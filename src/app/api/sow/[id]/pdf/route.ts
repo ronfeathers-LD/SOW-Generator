@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import puppeteer from 'puppeteer';
 import { createClient } from '@supabase/supabase-js';
+import { launchPuppeteerBrowser } from '@/lib/pdf-generator';
 
 // TypeScript interfaces for SOW data
 interface SOWRole {
@@ -169,11 +170,8 @@ export async function POST(
     // Generate the exact same HTML as the print page (server-side rendered)
     const html = generatePrintPageHTML(sowData);
     
-    // Launch Puppeteer
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-    });
+    // Launch Puppeteer using robust launcher
+    const browser = await launchPuppeteerBrowser();
     
     const page = await browser.newPage();
     

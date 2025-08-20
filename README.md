@@ -88,4 +88,68 @@ The `NEXT_PUBLIC_SALESFORCE_INSTANCE_URL` environment variable is used to genera
 
 - Configure Salesforce integration settings
 - Manage LeanData signators
-- View and manage SOW documents 
+- View and manage SOW documents
+
+## Production Deployment
+
+### PDF Generation Setup
+
+The SOW Generator uses Puppeteer for PDF generation. In production environments, you need to ensure Chrome/Chromium is available:
+
+#### Option 1: Install System Chrome (Recommended)
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install -y google-chrome-stable
+
+# CentOS/RHEL
+sudo yum install -y google-chrome-stable
+
+# Alpine Linux
+apk add --no-cache chromium
+```
+
+#### Option 2: Use Puppeteer's Bundled Chromium
+The application will automatically fall back to Puppeteer's bundled Chromium if system Chrome is not available.
+
+#### Option 3: Docker Environment
+If running in Docker, use a base image with Chrome:
+```dockerfile
+FROM node:18-slim
+
+# Install Chrome dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
+    ca-certificates \
+    procps \
+    libxss1 \
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install dependencies and build
+COPY package*.json ./
+RUN npm ci --only=production
+RUN npm run build
+
+# Start the application
+CMD ["npm", "start"]
+```
+
+### Environment Variables for Production
+
+Ensure these environment variables are set in production:
+
+```env
+# Production-specific
+NODE_ENV="production"
+NEXTAUTH_URL="https://your-domain.com"
+DATABASE_URL="your-production-database-url"
+
+# Google Drive (if using)
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+``` 
