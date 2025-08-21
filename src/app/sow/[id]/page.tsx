@@ -947,17 +947,7 @@ export default function SOWDetailsPage() {
                     </p>
                   </div>
 
-                  {/* Debug Pricing Data - remove this later */}
-                  <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <h4 className="font-semibold text-yellow-800 mb-2">Debug: Pricing Data</h4>
-                    <div className="text-sm text-yellow-700">
-                      <div>Discount Type: {sow.pricing?.discount_type || 'undefined'}</div>
-                      <div>Discount Amount: {sow.pricing?.discount_amount || 'undefined'}</div>
-                      <div>Discount Percentage: {sow.pricing?.discount_percentage || 'undefined'}</div>
-                      <div>Subtotal: {sow.pricing?.subtotal || 'undefined'}</div>
-                      <div>Total Amount: {sow.pricing?.total_amount || 'undefined'}</div>
-                    </div>
-                  </div>
+
 
                   {/* Pricing Display Component */}
                   <PricingDisplay
