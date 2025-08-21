@@ -25,12 +25,58 @@ export interface SlackUserLookupResult {
 export class SlackUserLookupService {
   private static botToken: string | undefined;
   private static baseUrl = 'https://slack.com/api';
+  
+  // Cache for user data with TTL
+  private static userCache: {
+    data: SlackUser[];
+    timestamp: number;
+    ttl: number; // Time to live in milliseconds (5 minutes)
+  } | null = null;
+  
+  private static readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   /**
    * Initialize the service with Slack bot token
    */
   static initialize(botToken: string) {
     this.botToken = botToken;
+  }
+
+  /**
+   * Check if cache is valid
+   */
+  private static isCacheValid(): boolean {
+    if (!this.userCache) return false;
+    const now = Date.now();
+    return (now - this.userCache.timestamp) < this.userCache.ttl;
+  }
+
+  /**
+   * Get cached users if available and valid
+   */
+  private static getCachedUsers(): SlackUser[] | null {
+    if (this.isCacheValid()) {
+      return this.userCache!.data;
+    }
+    return null;
+  }
+
+  /**
+   * Set cache with current timestamp
+   */
+  private static setCache(users: SlackUser[]): void {
+    this.userCache = {
+      data: users,
+      timestamp: Date.now(),
+      ttl: this.CACHE_TTL
+    };
+  }
+
+  /**
+   * Clear cache (useful for testing or manual refresh)
+   */
+  static clearCache(): void {
+    this.userCache = null;
   }
 
   /**
@@ -132,6 +178,35 @@ export class SlackUserLookupService {
   }
 
   /**
+   * Get a user by Slack user ID (most efficient method)
+   */
+  static async getUserById(userId: string): Promise<SlackUser | null> {
+    if (!this.botToken) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/users.info?user=${userId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.botToken}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.ok && data.user) {
+        return data.user;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error('Error fetching user by ID:', error);
+      return null;
+    }
+  }
+
+  /**
    * Look up a user by email address
    */
   static async lookupUserByEmail(email: string): Promise<SlackUserLookupResult> {
@@ -182,6 +257,12 @@ export class SlackUserLookupService {
       throw new Error('Slack bot token not configured');
     }
 
+    // Check cache first
+    const cachedUsers = this.getCachedUsers();
+    if (cachedUsers) {
+      return cachedUsers;
+    }
+
     try {
       const response = await fetch(`${this.baseUrl}/users.list`, {
         method: 'GET',
@@ -194,9 +275,14 @@ export class SlackUserLookupService {
 
       if (data.ok && data.members) {
         // Filter out bots and deleted users
-        return data.members.filter((user: SlackUser) => 
+        const filteredUsers = data.members.filter((user: SlackUser) => 
           !user.is_bot && !user.deleted
         );
+        
+        // Cache the filtered users
+        this.setCache(filteredUsers);
+        
+        return filteredUsers;
       } else {
         throw new Error(data.error || 'Failed to fetch users');
       }

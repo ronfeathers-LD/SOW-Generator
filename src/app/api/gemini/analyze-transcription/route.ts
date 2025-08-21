@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { analyzeTranscription } from '@/lib/gemini';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const { transcript, customerName, selectedProducts, existingDescription, existingObjectives } = await request.json();
 
     if (!transcript) {

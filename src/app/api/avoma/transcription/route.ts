@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { AvomaClient, getAvomaConfig } from '@/lib/avoma';
 import { logRequest } from '@/lib/simple-api-logger';
  
@@ -7,6 +9,11 @@ export async function POST(request: NextRequest) {
   await logRequest(request);
   
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const { meetingUuid, avomaUrl } = await request.json();
 
     // Get Avoma configuration from database

@@ -813,15 +813,22 @@ export default function SOWDetailsPage() {
               {/* Roles and Responsibilities Section */}
                 <div id="content-roles" className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold mb-6">4. ROLES AND RESPONSIBILITIES</h2>
-                  <div className="formatSOWTable">
-                  <SOWRolesPage 
-                    customContent={sow.custom_roles_content}
-                    isEdited={sow.roles_content_edited}
-                  />
+                  
+                  {/* LeanData Roles */}
+                  <div className="mb-8">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">LeanData Roles</h3>
+                    <div className="formatSOWTable">
+                      <SOWRolesPage 
+                        customContent={sow.custom_roles_content}
+                        isEdited={sow.roles_content_edited}
+                      />
+                    </div>
                   </div>
                   
                   {/* Client Roles Table */}
                   {Array.isArray(sow.clientRoles) && sow.clientRoles.length > 0 && (
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4">Client Roles</h3>
                       <div className="overflow-x-auto">
                         <div className="formatSOWTable">
                         <table className="min-w-full divide-y border">
@@ -850,29 +857,14 @@ export default function SOWDetailsPage() {
                         </table>
                         </div>
                         </div>
+                      </div>
                   )}
                 </div>
 
               {/* Pricing Section */}
                 <div id="content-pricing" className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold mb-6">5. PRICING</h2>
-                  <div className="mb-6 p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
-                    <p className="text-gray-700">
-                      The tasks above will be completed on a <strong>time and material basis</strong>, using the LeanData standard workday of 8 hours for a duration of <strong>{sow.timeline_weeks ? (() => {
-                        const totalWeeks = parseFloat(sow.timeline_weeks) || 0;
-                        if (totalWeeks < 1) {
-                          const days = Math.ceil(totalWeeks * 7);
-                          return `${days} ${days === 1 ? 'day' : 'days'}`;
-                        } else {
-                          return `${totalWeeks} weeks`;
-                        }
-                      })() : 'N/A'}</strong>.
-                    </p>
-                    <p className="text-sm text-gray-600 mt-2">
-                      Hours are calculated based on product selection and unit counts, with automatic role assignment and project management inclusion where applicable.
-                    </p>
-                  </div>
-
+                  
                   {/* Project Timeline Display */}
                   {sow.timeline_weeks && (
                     <div className="mb-6">
@@ -938,6 +930,35 @@ export default function SOWDetailsPage() {
                     </div>
                   )}
                   
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+                    <p className="text-gray-700">
+                      The tasks above will be completed on a <strong>time and material basis</strong>, using the LeanData standard workday of 8 hours for a duration of <strong>{sow.timeline_weeks ? (() => {
+                        const totalWeeks = parseFloat(sow.timeline_weeks) || 0;
+                        if (totalWeeks < 1) {
+                          const days = Math.ceil(totalWeeks * 7);
+                          return `${days} ${days === 1 ? 'day' : 'days'}`;
+                        } else {
+                          return `${totalWeeks} weeks`;
+                        }
+                      })() : 'N/A'}</strong>.
+                    </p>
+                    <p className="text-sm text-gray-600 mt-2">
+                      Hours are calculated based on product selection and unit counts, with automatic role assignment and project management inclusion where applicable.
+                    </p>
+                  </div>
+
+                  {/* Debug Pricing Data - remove this later */}
+                  <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <h4 className="font-semibold text-yellow-800 mb-2">Debug: Pricing Data</h4>
+                    <div className="text-sm text-yellow-700">
+                      <div>Discount Type: {sow.pricing?.discount_type || 'undefined'}</div>
+                      <div>Discount Amount: {sow.pricing?.discount_amount || 'undefined'}</div>
+                      <div>Discount Percentage: {sow.pricing?.discount_percentage || 'undefined'}</div>
+                      <div>Subtotal: {sow.pricing?.subtotal || 'undefined'}</div>
+                      <div>Total Amount: {sow.pricing?.total_amount || 'undefined'}</div>
+                    </div>
+                  </div>
+
                   {/* Pricing Display Component */}
                   <PricingDisplay
                     pricingRoles={Array.isArray(sow.pricing.roles) ? sow.pricing.roles.map(role => ({
@@ -954,7 +975,6 @@ export default function SOWDetailsPage() {
                     autoCalculated={sow.pricing?.auto_calculated || false}
                     lastCalculated={sow.pricing?.last_calculated || null}
                   />
-
 
                   
                   <p className="mb-2 text-sm text-gray-700">LeanData shall notify Customer when costs are projected to exceed this estimate, providing the opportunity for Customer and LeanData to resolve jointly how to proceed. Hours listed above are to be consumed by the end date and cannot be extended.</p>
@@ -1145,11 +1165,46 @@ export default function SOWDetailsPage() {
 
                         {/* Save to Google Drive Button */}
                         <div className="pt-4 border-t border-gray-200">
-                          <SaveToGoogleDrive 
-                            sowId={sow.id}
-                            customerName={sow.clientName || 'Unknown Customer'}
-                            sowTitle={sow.sowTitle || 'Untitled SOW'}
-                          />
+                          <div className="flex gap-3">
+                            <SaveToGoogleDrive 
+                              sowId={sow.id}
+                              customerName={sow.clientName || 'Unknown Customer'}
+                              sowTitle={sow.sowTitle || 'Untitled SOW'}
+                            />
+                            
+                            {/* Download PDF Button */}
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(`/api/sow/${sow.id}/pdf`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' }
+                                  });
+
+                                  if (!response.ok) {
+                                    throw new Error('Failed to generate PDF');
+                                  }
+
+                                  // Create blob and download
+                                  const blob = await response.blob();
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `${sow.sowTitle || 'SOW'} - ${sow.clientName || 'Client'}.pdf`;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  window.URL.revokeObjectURL(url);
+                                  document.body.removeChild(a);
+                                } catch (error) {
+                                  console.error('Error downloading PDF:', error);
+                                  alert('Failed to download PDF. Please try again.');
+                                }
+                              }}
+                              className="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
+                            >
+                              📄 Download PDF to your Computer
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}

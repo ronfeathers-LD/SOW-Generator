@@ -1,4 +1,22 @@
 import puppeteer, { Browser } from 'puppeteer';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+/**
+ * Convert LeanData logo to base64 for PDF embedding
+ */
+function getLeanDataLogoBase64(): string {
+  try {
+    const logoPath = join(process.cwd(), 'public', 'images', 'leandata-logo.png');
+    const logoBuffer = readFileSync(logoPath);
+    const base64Logo = logoBuffer.toString('base64');
+    return `data:image/png;base64,${base64Logo}`;
+  } catch (error) {
+    console.warn('⚠️ Could not load LeanData logo, using fallback:', error);
+    // Fallback to a simple styled div if logo can't be loaded
+    return '';
+  }
+}
 
 /**
  * Robust Puppeteer browser launcher that handles production environments
@@ -86,6 +104,31 @@ export async function launchPuppeteerBrowser(): Promise<Browser> {
   }
 }
 
+interface PricingRole {
+  role?: string;
+  name?: string;
+  ratePerHour?: number;
+  rate_per_hour?: number;
+  totalHours?: number;
+  total_hours?: number;
+}
+
+interface ClientRole {
+  role?: string;
+  contact_title?: string;
+  name?: string;
+  email?: string;
+  responsibilities?: string;
+}
+
+interface BillingInfo {
+  company_name?: string;
+  billing_contact?: string;
+  billing_address?: string;
+  billing_email?: string;
+  po_number?: string;
+}
+
 interface SOWData {
   id: string;
   sow_title?: string;
@@ -97,14 +140,18 @@ interface SOWData {
   signature_date?: string;
   deliverables?: string;
   objectives_description?: string;
-  objectives_key_objectives?: string[];
+  objectives_key_objectives?: string[] | string;
   content?: string;
-  client_roles?: string;
-  pricing_roles?: string;
-  billing_info?: string;
+  client_roles?: string | ClientRole[] | { roles?: ClientRole[] };
+  pricing_roles?: string | PricingRole[] | { roles?: PricingRole[] };
+  pricing_total?: number;
+  pricing_subtotal?: number;
+  pricing_discount?: number;
+  pricing_discount_type?: string;
+  billing_info?: string | BillingInfo;
   start_date?: string;
   timeline_weeks?: string;
-  products?: string[];
+  products?: string[] | string;
   number_of_units?: string;
   regions?: string;
   salesforce_tenants?: string;
@@ -123,18 +170,7 @@ interface SOWData {
   custom_deliverables_content?: string;
   custom_objective_overview_content?: string;
   custom_key_objectives_content?: string;
-  template?: {
-    name?: string;
-    description?: string;
-    client_name?: string;
-    client_email?: string;
-    client_phone?: string;
-    client_address?: string;
-    client_city?: string;
-    client_state?: string;
-    client_zip?: string;
-    client_country?: string;
-  };
+  template?: Record<string, string | number | boolean>;
   customer_signature_name_2?: string;
   customer_signature_2?: string;
   customer_email_2?: string;
@@ -214,28 +250,43 @@ export class PDFGenerator {
     const title = sowData.sow_title || 'Untitled SOW';
     const clientName = sowData.client_name || 'Unknown Client';
     const companyLogo = sowData.company_logo || '';
+    const leanDataLogoBase64 = getLeanDataLogoBase64();
     
-    // Parse JSONB fields safely
-    const objectives = this.parseJSONField(sowData.objectives_key_objectives, []);
-    const clientRoles = this.parseJSONField(sowData.client_roles, []);
-    const pricingRoles = this.parseJSONField(sowData.pricing_roles, []);
-    const billingInfo = this.parseJSONField(sowData.billing_info, {} as {
-      company_name?: string;
-      billing_contact?: string;
-      billing_address?: string;
-      billing_email?: string;
-      po_number?: string;
-    });
+    // Parse objectives that might be stored as HTML
+    const objectives = this.parseObjectives(sowData.objectives_key_objectives);
+    const clientRoles = this.parseJSONField(sowData.client_roles, []) as ClientRole[];
+    // Parse pricing roles - handle both direct array and nested structure
+    let pricingRoles: PricingRole[] = [];
+    if (sowData.pricing_roles) {
+      if (Array.isArray(sowData.pricing_roles)) {
+        pricingRoles = sowData.pricing_roles;
+      } else if (typeof sowData.pricing_roles === 'object' && sowData.pricing_roles && 'roles' in sowData.pricing_roles && Array.isArray(sowData.pricing_roles.roles)) {
+        pricingRoles = sowData.pricing_roles.roles;
+      } else {
+        pricingRoles = this.parseJSONField(sowData.pricing_roles, []);
+      }
+    }
+    
+
+    const billingInfo = this.parseJSONField(sowData.billing_info, {} as BillingInfo);
+    
+    // Helper function to replace placeholders in content
+    const replacePlaceholders = (content: string) => {
+      return content
+        .replace(/\{clientName\}/g, clientName)
+        .replace(/\{CLIENT_NAME\}/g, clientName)
+        .replace(/\{ClientName\}/g, clientName);
+    };
     
     // Use custom content fields when available, fallback to basic fields
-    const introContent = sowData.custom_intro_content || sowData.objectives_description || 'ERROR - No Content Found for Introduction';
-    const scopeContent = sowData.custom_scope_content || 'ERROR - No Content Found for Scope';
-    const outOfScopeContent = sowData.custom_out_of_scope_content || '';
-    const assumptionsContent = sowData.custom_assumptions_content || 'ERROR - No Content Found for Assumptions';
-    const projectPhasesContent = sowData.custom_project_phases_content || 'ERROR - No Content Found for Project Phases';
-    const rolesContent = sowData.custom_roles_content || 'ERROR - No Content Found for Roles and Responsibilities';
-    const deliverablesContent = sowData.custom_deliverables_content || 'ERROR - No Content Found for Deliverables';
-    const keyObjectivesContent = sowData.custom_objectives_disclosure_content || sowData.custom_key_objectives_content || 'ERROR - No Content Found for Key Objectives';
+    const introContent = replacePlaceholders(sowData.custom_intro_content || sowData.objectives_description || 'Project introduction and overview content will be defined during the project planning phase.');
+    const scopeContent = replacePlaceholders(sowData.custom_scope_content || 'Project scope and deliverables will be detailed during the project kickoff and requirements gathering phase.');
+    const outOfScopeContent = replacePlaceholders(sowData.custom_out_of_scope_content || '');
+    const assumptionsContent = replacePlaceholders(sowData.custom_assumptions_content || 'Project assumptions and prerequisites will be documented during the project planning phase.');
+    const projectPhasesContent = replacePlaceholders(sowData.custom_project_phases_content || 'Project phases, activities, and artifacts will be detailed in the project plan developed during kickoff.');
+    const rolesContent = replacePlaceholders(sowData.custom_roles_content || 'Roles and responsibilities will be defined during the project planning phase based on the specific requirements of this engagement.');
+    const deliverablesContent = replacePlaceholders(sowData.custom_deliverables_content || 'Project deliverables will be detailed during the project planning phase based on the specific requirements and scope.');
+    const keyObjectivesContent = replacePlaceholders(sowData.custom_objectives_disclosure_content || sowData.custom_key_objectives_content || 'Key objectives and success criteria will be defined during the project kickoff and planning phase.');
     
     // Get template data
     const leanDataName = sowData.leandata_name || 'Agam Vasani';
@@ -243,9 +294,9 @@ export class PDFGenerator {
     const leanDataEmail = sowData.leandata_email || 'agam.vasani@leandata.com';
     
     // Create a proper project overview from available data
-    const projectOverview = sowData.project_description || 
+    const projectOverview = replacePlaceholders(sowData.project_description || 
                            sowData.objectives_description || 
-                           `ERROR - No Content Found for Project Overview`;
+                           `Project overview and objectives will be defined during the project planning phase based on the specific requirements and goals of this engagement.`);
 
     return `
       <!DOCTYPE html>
@@ -263,11 +314,11 @@ export class PDFGenerator {
             }
             
             .content-page {
-              page-break-after: always;
-              padding: 40px;
-              min-height: 100vh;
+              padding: 20px 40px;
               box-sizing: border-box;
             }
+            
+
             
             .title-page {
               text-align: center;
@@ -275,7 +326,7 @@ export class PDFGenerator {
               flex-direction: column;
               justify-content: center;
               min-height: 100vh;
-              padding: 40px;
+              padding: 20px 40px;
               box-sizing: border-box;
             }
             
@@ -364,7 +415,7 @@ export class PDFGenerator {
               font-size: 24px;
               font-weight: 700;
               color: #111827;
-              margin-bottom: 24px;
+              margin-bottom: 16px;
               border-bottom: 2px solid #E5E7EB;
               padding-bottom: 8px;
             }
@@ -374,7 +425,7 @@ export class PDFGenerator {
             }
             
             .content {
-              margin-bottom: 24px;
+              margin-bottom: 16px;
             }
             
             .content h3 {
@@ -464,11 +515,7 @@ export class PDFGenerator {
               color: #111827;
             }
             
-            @media print {
-              .content-page {
-                page-break-after: always;
-              }
-            }
+
           </style>
         </head>
         <body>
@@ -477,9 +524,10 @@ export class PDFGenerator {
             <div class="title-page">
               <!-- LeanData Logo -->
               <div class="logo" style="margin-bottom: 24px;">
-                <div style="width: 100%; height: 100%; background: #1F2937; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; border-radius: 8px;">
-                  LEANDATA
-                </div>
+                ${leanDataLogoBase64 ? 
+                  `<img src="${leanDataLogoBase64}" alt="LeanData Logo" style="width: 120px; height: 60px; object-fit: contain;">` :
+                  `<div style="width: 120px; height: 60px; background: #1F2937; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; border-radius: 8px;">LEANDATA</div>`
+                }
               </div>
               
               <!-- LeanData Delivery Methodology -->
@@ -494,11 +542,9 @@ export class PDFGenerator {
               </div>
               
               <!-- Optional Client Logo -->
-              ${companyLogo ? `
+              ${companyLogo && companyLogo.trim().length > 0 ? `
               <div class="client-logo">
-                <div style="width: 100%; height: 100%; background: #F3F4F6; color: #6B7280; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; border: 2px dashed #D1D5DB; border-radius: 8px;">
-                  ${clientName} LOGO
-                </div>
+                <img src="${companyLogo}" alt="${clientName} Logo" style="width: 120px; height: 60px; object-fit: contain;">
               </div>
               ` : ''}
               
@@ -566,6 +612,7 @@ export class PDFGenerator {
 
           <!-- PAGE 2: SOW INTRO -->
           <div class="content-page">
+            <h2 class="section-title center">LEANDATA, INC. STATEMENT OF WORK</h2>
             <div class="content">
               ${introContent}
             </div>
@@ -582,9 +629,9 @@ export class PDFGenerator {
             </div>
             
             <!-- Key Objectives Section -->
-            ${objectives && objectives.length > 0 ? `
             <div class="content">
               <h3>Key Objectives:</h3>
+              ${objectives && objectives.length > 0 ? `
               <div class="text-gray-700 leading-relaxed">
                 ${objectives.map((objective: string) => {
                   const trimmedObjective = objective.trim();
@@ -595,8 +642,13 @@ export class PDFGenerator {
                   </div>`;
                 }).join('')}
               </div>
+              ` : `
+              <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; color: #6b7280;">
+                <strong>Key Objectives</strong><br>
+                Key objectives will be defined during the project kickoff and planning phase based on the specific requirements and goals of this engagement.
+              </div>
+              `}
             </div>
-            ` : ''}
             
             <!-- Project Details Section -->
             <div class="content">
@@ -650,7 +702,6 @@ export class PDFGenerator {
             
             <!-- Deliverables content -->
             <div class="content">
-              <h3>Deliverables</h3>
               ${deliverablesContent}
             </div>
             
@@ -695,9 +746,9 @@ export class PDFGenerator {
                   </tr>
                 </thead>
                 <tbody>
-                  ${clientRoles.map((role: { title?: string; name?: string; email?: string; responsibilities?: string }) => `
+                  ${clientRoles.map((role: { role?: string; contact_title?: string; name?: string; email?: string; responsibilities?: string }) => `
                     <tr>
-                      <td style="border: 1px solid #d1d5db; padding: 12px;">${role.title || 'N/A'}</td>
+                      <td style="border: 1px solid #d1d5db; padding: 12px;">${role.role || role.contact_title || 'N/A'}</td>
                       <td style="border: 1px solid #d1d5db; padding: 12px;">${role.name || 'N/A'}</td>
                       <td style="border: 1px solid #d1d5db; padding: 12px;">${role.email || 'N/A'}</td>
                       <td style="border: 1px solid #d1d5db; padding: 12px;">${role.responsibilities || 'N/A'}</td>
@@ -712,12 +763,6 @@ export class PDFGenerator {
           <!-- PAGE 7: PRICING -->
           <div class="content-page">
             <h2 class="section-title">5. PRICING</h2>
-            
-            <!-- Pricing Introduction -->
-            <div class="content">
-              <p>The tasks above will be completed on a time and material basis, using the LeanData standard workday of 8 hours for a duration of <strong>${sowData.timeline_weeks || 'X'} weeks</strong>.</p>
-              <p>Hours are calculated based on product selection and unit counts, with automatic role assignment and project management inclusion where applicable.</p>
-            </div>
             
             <!-- Project Timeline -->
             ${sowData.timeline_weeks ? `
@@ -767,6 +812,16 @@ export class PDFGenerator {
             </div>
             ` : ''}
             
+            <!-- Pricing Introduction -->
+            <div class="content">
+              <p>The tasks above will be completed on a time and material basis, using the LeanData standard workday of 8 hours for a duration of <strong>${sowData.timeline_weeks || 'X'} weeks</strong>.</p>
+              <p>Hours are calculated based on product selection and unit counts, with automatic role assignment and project management inclusion where applicable.</p>
+            </div>
+            
+
+            
+
+            
             <!-- Pricing Roles -->
             ${pricingRoles && pricingRoles.length > 0 ? `
             <div class="content">
@@ -781,16 +836,46 @@ export class PDFGenerator {
                   </tr>
                 </thead>
                 <tbody>
-                  ${pricingRoles.map((role: { role?: string; ratePerHour?: number; totalHours?: number }) => `
+                  ${pricingRoles.map((role: PricingRole) => `
                     <tr>
-                      <td style="border: 1px solid #d1d5db; padding: 12px; font-weight: 600;">${role.role || 'N/A'}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 12px;">$${(role.ratePerHour || 0).toFixed(2)}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 12px;">${role.totalHours || 0}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 12px; font-weight: 600;">$${(role.ratePerHour || 0) * (role.totalHours || 0)}</td>
+                      <td style="border: 1px solid #d1d5db; padding: 12px; font-weight: 600;">${role.role || role.name || 'N/A'}</td>
+                      <td style="border: 1px solid #d1d5db; padding: 12px;">$${(role.ratePerHour || role.rate_per_hour || 0).toFixed(2)}</td>
+                      <td style="border: 1px solid #d1d5db; padding: 12px;">${role.totalHours || role.total_hours || 0}</td>
+                      <td style="border: 1px solid #d1d5db; padding: 12px; font-weight: 600;">$${(role.ratePerHour || role.rate_per_hour || 0) * (role.totalHours || role.total_hours || 0)}</td>
                     </tr>
                   `).join('')}
                 </tbody>
               </table>
+              
+              <!-- Pricing Summary -->
+              ${sowData.pricing_total ? `
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin-top: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-weight: 600; color: #374151;">Subtotal:</span>
+                  <span style="color: #6b7280;">$${(sowData.pricing_subtotal || 0).toLocaleString()}</span>
+                </div>
+                ${sowData.pricing_discount && sowData.pricing_discount_type && sowData.pricing_discount_type !== 'none' ? `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-weight: 600; color: #374151;">Discount:</span>
+                  <span style="color: #6b7280;">-$${(sowData.pricing_discount || 0).toLocaleString()}</span>
+                </div>
+                ` : ''}
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+                  <span style="font-weight: 700; color: #1e293b; font-size: 18px;">Total:</span>
+                  <span style="font-weight: 700; color: #1e293b; font-size: 18px;">$${((sowData.pricing_subtotal || 0) - (sowData.pricing_discount_type && sowData.pricing_discount_type !== 'none' ? (sowData.pricing_discount || 0) : 0)).toLocaleString()}</span>
+                </div>
+              </div>
+              
+              <!-- Contractual Terms -->
+              <div style="margin-top: 16px;">
+                <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.5;">
+                  LeanData shall notify Customer when costs are projected to exceed this estimate, providing the opportunity for Customer and LeanData to resolve jointly how to proceed. Hours listed above are to be consumed by the end date and cannot be extended.
+                </p>
+                <p style="margin: 0; font-size: 14px; line-height: 1.5;">
+                  Any additional requests or mutually agreed-upon additional hours required to complete the tasks shall be documented in a change order Exhibit to this SOW and signed by both parties. Additional hours will be billed at the Rate/Hr.
+                </p>
+              </div>
+              ` : ''}
             </div>
             ` : ''}
             
@@ -798,7 +883,6 @@ export class PDFGenerator {
             <div class="content">
               <h3>Billing Information</h3>
               <div class="billing-info">
-                <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">From Salesforce</h4>
                 <div class="billing-grid">
                   <div>
                     <div class="billing-label">Company Name:</div>
@@ -881,6 +965,44 @@ export class PDFGenerator {
     }
     
     return defaultValue;
+  }
+
+  // Helper method to parse objectives that might be stored as HTML
+  private parseObjectives(field: unknown): string[] {
+    if (!field) return [];
+    
+    if (Array.isArray(field)) {
+      return field;
+    }
+    
+    if (typeof field === 'string') {
+      // Check if it's HTML content
+      if (field.includes('<ul>') || field.includes('<li>')) {
+        // Extract text content from HTML
+        const textContent = field
+          .replace(/<ul>/g, '')
+          .replace(/<\/ul>/g, '')
+          .replace(/<li>/g, '')
+          .replace(/<\/li>/g, '\n')
+          .trim();
+        
+        // Split by newlines and filter out empty lines
+        return textContent.split('\n').filter(line => line.trim().length > 0);
+      }
+      
+      // Try to parse as JSON first
+      try {
+        const parsed = JSON.parse(field);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      } catch {
+        // If not JSON, treat as plain text
+        return field.split('\n').filter(line => line.trim().length > 0);
+      }
+    }
+    
+    return [];
   }
 
   async close() {

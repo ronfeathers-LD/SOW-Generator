@@ -148,7 +148,10 @@ export default function PrintSOWPage() {
   const downloadPDF = async () => {
     if (!sow) return;
     
+    console.log('🚀 Starting PDF generation...');
     setDownloadingPDF(true);
+    console.log('📊 downloadingPDF state set to:', true);
+    
     try {
       const response = await fetch(`/api/sow/${params.id}/pdf`, {
         method: 'POST',
@@ -173,6 +176,7 @@ export default function PrintSOWPage() {
       console.error('Error downloading PDF:', error);
       alert('Failed to download PDF. Please try again.');
     } finally {
+      console.log('📊 PDF generation complete, setting downloadingPDF to:', false);
       setDownloadingPDF(false);
     }
   };
@@ -602,7 +606,7 @@ export default function PrintSOWPage() {
               </div>
             </div>
           )}
-          
+
           {/* Pricing Display Component */}
           <PricingDisplay
             pricingRoles={Array.isArray(sow.pricing?.roles) ? sow.pricing.roles.map(role => ({
@@ -697,6 +701,23 @@ export default function PrintSOWPage() {
           >
             {downloadingPDF ? 'Generating PDF...' : 'Download PDF'}
           </button>
+        </div>
+
+        {/* Loading Modal */}
+        {downloadingPDF && (
+          <div className="fixed inset-0 bg-red-500 bg-opacity-90 flex items-center justify-center z-[9999]" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+            <div className="bg-white rounded-lg p-8 max-w-md mx-4 text-center shadow-2xl">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Generating PDF</h3>
+              <p className="text-gray-600">Please wait while we prepare your document...</p>
+              <p className="text-sm text-gray-500 mt-2">This may take a few moments</p>
+            </div>
+          </div>
+        )}
+        
+        {/* Debug info - remove this later */}
+        <div className="mt-4 print:hidden text-xs text-gray-500">
+          Debug: downloadingPDF = {downloadingPDF ? 'true' : 'false'}
         </div>
 
       </div>

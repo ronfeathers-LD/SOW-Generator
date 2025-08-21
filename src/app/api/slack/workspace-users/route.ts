@@ -3,8 +3,34 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { SlackMentionService } from '@/lib/slack-mention-service';
 
-export async function GET() {
+// Simple in-memory rate limiting (in production, use Redis or similar)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 10; // Max 10 requests per minute per IP
+
+export async function GET(request: Request) {
   try {
+    // Rate limiting check
+    const clientIP = request.headers.get('x-forwarded-for') || 
+                    request.headers.get('x-real-ip') || 
+                    'unknown';
+    
+    const now = Date.now();
+    const clientData = rateLimitMap.get(clientIP);
+    
+    if (clientData && now < clientData.resetTime) {
+      if (clientData.count >= MAX_REQUESTS_PER_WINDOW) {
+        return NextResponse.json({ 
+          error: 'Rate limited. Too many requests.',
+          users: []
+        }, { status: 429 });
+      }
+      clientData.count++;
+    } else {
+      // Reset or initialize rate limit for this client
+      rateLimitMap.set(clientIP, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    }
+    
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -19,10 +45,15 @@ export async function GET() {
       }, { status: 200 }); // Return 200 with empty users array instead of error
     }
 
-    // Get all users from Slack workspace
-    const users = await SlackMentionService.getSlackWorkspaceUsers();
+    // Get only users from Slack workspace who are in our system (much more efficient)
+    const users = await SlackMentionService.getSystemSlackUsers();
     
-    return NextResponse.json({ users });
+    // Add cache headers to reduce client-side requests
+    const response = NextResponse.json({ users });
+    response.headers.set('Cache-Control', 'public, max-age=300'); // Cache for 5 minutes
+    response.headers.set('ETag', `"${users.length}-${Date.now()}"`); // Simple ETag
+    
+    return response;
 
   } catch (error) {
     console.error('Error fetching Slack workspace users:', error);
