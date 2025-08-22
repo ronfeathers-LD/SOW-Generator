@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { PDFGenerator } from '@/lib/pdf-generator';
+import { existsSync } from 'fs';
+import { join } from 'path';
 
 export async function GET(
   request: Request,
@@ -14,9 +16,8 @@ export async function GET(
     console.log('📁 Current working directory:', process.cwd());
     
     // Test file system access
-    const fs = require('fs');
-    const logoPath = require('path').join(process.cwd(), 'public', 'images', 'leandata-logo.png');
-    const logoExists = fs.existsSync(logoPath);
+    const logoPath = join(process.cwd(), 'public', 'images', 'leandata-logo.png');
+    const logoExists = existsSync(logoPath);
     
     // Test browser availability
     let browserTest = 'Not tested';

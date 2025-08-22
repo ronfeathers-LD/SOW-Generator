@@ -1,5 +1,5 @@
 import puppeteer, { Browser } from 'puppeteer';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
 
@@ -12,8 +12,7 @@ function getLeanDataLogoBase64(): string {
     console.log('🔍 Looking for logo at:', logoPath);
     
     // Check if file exists before trying to read it
-    const fs = require('fs');
-    if (!fs.existsSync(logoPath)) {
+    if (!existsSync(logoPath)) {
       console.warn('⚠️ Logo file not found at:', logoPath);
       return '';
     }
@@ -211,7 +210,7 @@ export class PDFGenerator {
     if (!this.browser) {
       try {
         this.browser = await launchPuppeteerBrowser();
-      } catch (error) {
+      } catch {
         console.log('⚠️ Browser launch failed, attempting to install Chrome...');
         
         // Try to install Chrome if it's not available
@@ -234,7 +233,7 @@ export class PDFGenerator {
               execSync('apt-get update && apt-get install -y google-chrome-stable', { stdio: 'inherit' });
               console.log('✅ Chrome installed via apt-get, retrying browser launch...');
               this.browser = await launchPuppeteerBrowser();
-            } catch (aptError) {
+            } catch {
               console.log('⚠️ apt-get installation failed, trying yum...');
               
               // Try using yum if available (CentOS/RHEL)
@@ -242,7 +241,7 @@ export class PDFGenerator {
                 execSync('yum install -y google-chrome-stable', { stdio: 'inherit' });
                 console.log('✅ Chrome installed via yum, retrying browser launch...');
                 this.browser = await launchPuppeteerBrowser();
-              } catch (yumError) {
+              } catch {
                 throw new Error('All Chrome installation methods failed');
               }
             }
