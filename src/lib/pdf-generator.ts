@@ -1,4 +1,6 @@
 import puppeteer, { Browser } from 'puppeteer';
+import puppeteerCore from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -203,83 +205,67 @@ interface SOWData {
 }
 
 export class PDFGenerator {
-  private browser: Browser | null = null;
+  private browser: any = null;
 
   async initialize() {
     if (!this.browser) {
       try {
-        // For serverless environments, use bundled Chromium with serverless-optimized settings
-        console.log('🚀 Launching bundled Chromium for serverless environment...');
-        
-        this.browser = await puppeteer.launch({
-          headless: true,
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process',
-            '--disable-extensions',
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-renderer-backgrounding',
-            '--disable-web-security',
-            '--disable-features=VizDisplayCompositor',
-            '--disable-ipc-flooding-protection',
-            '--memory-pressure-off',
-            '--max_old_space_size=4096'
-          ],
-          timeout: 60000,
-          // Force use of bundled Chromium
-          executablePath: undefined,
-          // Serverless-specific settings
-          ignoreDefaultArgs: ['--disable-extensions']
-        });
-        
-        console.log('✅ Bundled Chromium launched successfully');
-      } catch (error) {
-        console.error('❌ Failed to launch bundled Chromium:', error);
-        
-        // Try with minimal configuration as last resort
-        try {
-          console.log('🔄 Trying minimal Chromium configuration...');
-          this.browser = await puppeteer.launch({
+        if (process.env.NODE_ENV === 'production') {
+          // Use Vercel-optimized approach for production
+          console.log('🚀 Launching Vercel-optimized Chromium...');
+          
+          this.browser = await puppeteerCore.launch({
+            args: [
+              ...chromium.args,
+              '--hide-scrollbars',
+              '--disable-web-security',
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage',
+              '--disable-gpu',
+              '--no-first-run',
+              '--no-zygote',
+              '--single-process',
+              '--disable-extensions',
+              '--disable-background-timer-throttling',
+              '--disable-backgrounding-occluded-windows',
+              '--disable-renderer-backgrounding',
+              '--disable-features=VizDisplayCompositor',
+              '--disable-ipc-flooding-protection',
+              '--memory-pressure-off',
+              '--max_old_space_size=4096'
+            ],
+            defaultViewport: { width: 1200, height: 1600 },
+            executablePath: await chromium.executablePath(),
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox'],
             timeout: 60000
           });
-          console.log('✅ Minimal Chromium configuration successful');
-        } catch (minimalError) {
-          console.error('❌ Even minimal configuration failed:', minimalError);
           
-          // Try browserless mode as final fallback
-          try {
-            console.log('🌐 Trying browserless mode...');
-            
-            // Check if we have a browserless endpoint configured
-            const browserlessEndpoint = process.env.BROWSERLESS_ENDPOINT || 'https://chrome.browserless.io';
-            
-            if (browserlessEndpoint && browserlessEndpoint !== 'https://chrome.browserless.io') {
-              // Connect to custom browserless service
-              this.browser = await puppeteer.connect({
-                browserWSEndpoint: browserlessEndpoint,
-                defaultViewport: { width: 1200, height: 1600 }
-              });
-              console.log('✅ Connected to custom browserless service');
-            } else {
-              throw new Error('No browserless service configured');
-            }
-          } catch (browserlessError) {
-            console.error('❌ Browserless mode also failed:', browserlessError);
-            throw new Error(
-              'Failed to launch any browser for PDF generation. ' +
-              'This appears to be a serverless environment with strict browser restrictions. ' +
-              'Consider using a different PDF generation approach or upgrading to a full server environment.'
-            );
-          }
+          console.log('✅ Vercel-optimized Chromium launched successfully');
+        } else {
+          // Use full puppeteer for local development
+          console.log('🚀 Launching full Puppeteer for local development...');
+          
+          this.browser = await puppeteer.launch({
+            headless: true,
+            args: [
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage'
+            ],
+            timeout: 60000
+          });
+          
+          console.log('✅ Full Puppeteer launched successfully');
         }
+      } catch (error) {
+        console.error('❌ Failed to launch browser:', error);
+        
+        // Fallback to HTML generation if browser fails
+        throw new Error(
+          'Failed to launch browser for PDF generation. ' +
+          'Falling back to HTML generation for serverless environments.'
+        );
       }
     }
   }
