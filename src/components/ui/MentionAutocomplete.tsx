@@ -23,7 +23,7 @@ export default function MentionAutocomplete({
   disabled = false
 }: MentionAutocompleteProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [suggestions, setSuggestions] = useState<SlackUser[]>([]);
+
   const [filteredSuggestions, setFilteredSuggestions] = useState<SlackUser[]>([]);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -31,6 +31,7 @@ export default function MentionAutocomplete({
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const latestSuggestionsRef = useRef<SlackUser[]>([]);
 
   // Load Slack users when component mounts
   useEffect(() => {
@@ -42,11 +43,22 @@ export default function MentionAutocomplete({
       setIsLoading(true);
       const response = await fetch('/api/slack/workspace-users');
       if (response.ok) {
-        const users = await response.json();
-        setSuggestions(users);
+        const data = await response.json();
+        // The API returns { users: [...] }, so we need to extract the users array
+        if (data.users && Array.isArray(data.users)) {
+          latestSuggestionsRef.current = data.users; // Update ref with latest data
+          console.log('Loaded Slack users:', data.users.length); // Debug log
+        } else {
+          console.warn('Invalid users data received:', data);
+          latestSuggestionsRef.current = [];
+        }
+      } else {
+        console.error('Failed to fetch Slack users:', response.status);
+        latestSuggestionsRef.current = [];
       }
     } catch (error) {
       console.error('Error loading Slack users:', error);
+      latestSuggestionsRef.current = [];
     } finally {
       setIsLoading(false);
     }
@@ -66,15 +78,24 @@ export default function MentionAutocomplete({
     
     if (mentionMatch) {
       const query = mentionMatch[1].toLowerCase();
-      const filtered = suggestions.filter(user => 
-        user.name.toLowerCase().includes(query) ||
-        user.profile.display_name?.toLowerCase().includes(query) ||
-        user.profile.real_name?.toLowerCase().includes(query) ||
-        user.profile.email?.toLowerCase().includes(query)
-      );
-      setFilteredSuggestions(filtered);
-      setShowSuggestions(filtered.length > 0);
-      setSelectedIndex(0);
+      // Use the ref to get the latest suggestions data
+      const currentSuggestions = latestSuggestionsRef.current;
+      
+      // Ensure suggestions is an array before filtering and not still loading
+      if (Array.isArray(currentSuggestions) && !isLoading) {
+        const filtered = currentSuggestions.filter(user => 
+          user.name.toLowerCase().includes(query) ||
+          user.profile.display_name?.toLowerCase().includes(query) ||
+          user.profile.real_name?.toLowerCase().includes(query) ||
+          user.profile.email?.toLowerCase().includes(query)
+        );
+        setFilteredSuggestions(filtered);
+        setShowSuggestions(filtered.length > 0);
+        setSelectedIndex(0);
+      } else {
+        setFilteredSuggestions([]);
+        setShowSuggestions(false);
+      }
     } else {
       setShowSuggestions(false);
     }
@@ -156,15 +177,18 @@ export default function MentionAutocomplete({
         disabled={disabled}
       />
       
+
+      
       {/* @Mention Suggestions */}
       {showSuggestions && (
         <div
           ref={suggestionsRef}
           className="absolute z-50 w-80 max-h-60 bg-white border border-gray-200 rounded-md shadow-lg overflow-y-auto"
           style={{
-            top: '100%',
+            position: 'absolute',
+            top: 'calc(100% - 160px)',
             left: 0,
-            marginTop: '2px'
+            zIndex: 50
           }}
         >
           {isLoading ? (
@@ -203,6 +227,7 @@ export default function MentionAutocomplete({
                         {user.profile.email && ` • ${user.profile.email}`}
                       </div>
                     </div>
+
                   </div>
                 </div>
               ))}

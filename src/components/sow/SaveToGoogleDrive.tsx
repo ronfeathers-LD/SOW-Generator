@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import LoadingModal from '@/components/ui/LoadingModal';
 
 interface SaveToGoogleDriveProps {
@@ -188,9 +189,10 @@ export default function SaveToGoogleDrive({ sowId, customerName, sowTitle }: Sav
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+        className="w-full bg-white text-gray-700 px-3 py-2 rounded border border-gray-300 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:border-blue-500 flex items-center justify-center"
       >
-        💾 Save to Google Drive
+        <Image src="/google-drive-icon.svg.png" alt="Google Drive" width={16} height={16} className="mr-1.5" />
+        Save to Customer Folder
       </button>
 
       {/* Loading Modal */}

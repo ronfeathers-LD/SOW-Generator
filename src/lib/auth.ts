@@ -108,8 +108,10 @@ export const authOptions: NextAuthOptions = {
           }
           
           if (dbUser) {
-        user.role = dbUser.role;
+            user.role = dbUser.role;
             logger.log('User processed successfully:', dbUser.email, 'Role:', dbUser.role);
+            
+
           }
       }
       return true;

@@ -183,19 +183,8 @@ export default function SOWComments({ sowId }: SOWCommentsProps) {
   );
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
+    <div className="bg-white ">
       <h3 className="text-lg font-semibold mb-4">Comments & Discussion</h3>
-      
-      {/* Mention help text */}
-      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-        <p className="text-sm text-blue-800">
-          💡 <strong>Tip:</strong> Use @username to mention team members. They&apos;ll receive Slack notifications!
-        </p>
-        <p className="text-xs text-blue-600 mt-1">
-          Start typing @ to see autocomplete suggestions for team members.
-        </p>
-      </div>
-      
       {/* Add new comment */}
       <form onSubmit={handleSubmitComment} className="mb-6">
         <div className="mb-3">

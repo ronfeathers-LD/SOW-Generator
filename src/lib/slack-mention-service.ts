@@ -179,95 +179,9 @@ export class SlackMentionService {
     }
   }
 
-  /**
-   * Get only users from Slack workspace who are in our system
-   * This is much more efficient than fetching all workspace users
-   */
-  static async getSystemSlackUsers(): Promise<SlackUser[]> {
-    try {
-      const botToken = process.env.SLACK_BOT_TOKEN;
-      if (!botToken) {
-        throw new Error('SLACK_BOT_TOKEN not configured');
-      }
 
-      // Get users from our database who have Slack IDs
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
 
-      const { data: systemUsers, error } = await supabase
-        .from('users')
-        .select('email, slack_user_id')
-        .not('slack_user_id', 'is', null);
 
-      if (error) {
-        console.error('Error fetching system users:', error);
-        throw error;
-      }
-
-      if (!systemUsers || systemUsers.length === 0) {
-        return [];
-      }
-
-      // Initialize Slack service
-      SlackUserLookupService.initialize(botToken);
-      
-      // Fetch only the specific users we need from Slack
-      const slackUsers: SlackUser[] = [];
-      
-      for (const systemUser of systemUsers) {
-        try {
-          // Try to get user by Slack ID first (most efficient)
-          if (systemUser.slack_user_id) {
-            const user = await SlackUserLookupService.getUserById(systemUser.slack_user_id);
-            if (user) {
-              slackUsers.push(user);
-              continue;
-            }
-          }
-          
-          // Fallback: try by email if Slack ID lookup failed
-          if (systemUser.email) {
-            const result = await SlackUserLookupService.lookupUserByEmail(systemUser.email);
-            if (result.success && result.user) {
-              slackUsers.push(result.user);
-            }
-          }
-        } catch (error) {
-          console.warn(`Failed to fetch Slack user for ${systemUser.email}:`, error);
-          // Continue with other users
-        }
-      }
-
-      return slackUsers;
-
-    } catch (error) {
-      console.error('Error fetching system Slack users:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get all users from Slack workspace (for admin interfaces)
-   * @deprecated Use getSystemSlackUsers() instead for better performance
-   */
-  static async getSlackWorkspaceUsers(): Promise<SlackUser[]> {
-    try {
-      const botToken = process.env.SLACK_BOT_TOKEN;
-      if (!botToken) {
-        throw new Error('SLACK_BOT_TOKEN not configured');
-      }
-
-      SlackUserLookupService.initialize(botToken);
-      return await SlackUserLookupService.getAllUsers();
-
-    } catch (error) {
-      console.error('Error fetching Slack workspace users:', error);
-      throw error;
-    }
-  }
 
   /**
    * Test the Slack user lookup functionality

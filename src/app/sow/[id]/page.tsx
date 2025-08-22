@@ -16,7 +16,7 @@ import SimpleApproval from '@/components/sow/SimpleApproval';
 import SOWComments from '@/components/sow/SOWComments';
 import SaveToGoogleDrive from '@/components/sow/SaveToGoogleDrive';
 import { useSession } from 'next-auth/react';
-import { getStatusColor, getStatusLabel } from '@/lib/utils/statusUtils';
+
 
 // Validation Submit Button Component
 function ValidationSubmitButton({ sow }: { sow: SOW }) {
@@ -337,7 +337,7 @@ export default function SOWDetailsPage() {
   const [versions, setVersions] = useState<SOWVersion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [creatingVersion, setCreatingVersion] = useState(false);
+
 
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
@@ -524,26 +524,7 @@ export default function SOWDetailsPage() {
     fetchSOW();
   }, [params.id]);
 
-  const handleCreateVersion = async () => {
-    try {
-      setCreatingVersion(true);
-      const response = await fetch(`/api/sow/${params.id}/version`, {
-        method: 'POST'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create new version');
-      }
-      
-      const newVersion = await response.json();
-      router.push(`/sow/${newVersion.id}`);
-    } catch (err) {
-      console.error('Error creating new version:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create new version');
-    } finally {
-      setCreatingVersion(false);
-    }
-  };
+
 
   const isEditable = useMemo(() => {
     if (!sow) return false;
@@ -551,11 +532,7 @@ export default function SOWDetailsPage() {
     return sow.status === 'draft';
   }, [sow]);
 
-  const canCreateNewVersion = useMemo(() => {
-    if (!sow) return false;
-    // Can create new version from approved or rejected SOWs
-    return sow.status === 'approved' || sow.status === 'rejected';
-  }, [sow]);
+
 
 
 
@@ -567,54 +544,38 @@ export default function SOWDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">Loading...</div>
-        </div>
-      </div>
+      <div className="text-center">Loading...</div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center text-red-600">{error}</div>
-        </div>
-      </div>
+      <div className="text-center text-red-600">{error}</div>
     );
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading SOW...</p>
-          </div>
-        </div>
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Loading SOW...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="bg-red-50 border border-red-200 rounded-md p-4">
-              <h3 className="text-lg font-medium text-red-800">Error Loading SOW</h3>
-              <p className="mt-2 text-red-700">{error}</p>
-              <div className="mt-4">
-                <Link
-                  href="/sow"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200"
-                >
-                  Back to SOWs
-                </Link>
-              </div>
-            </div>
+      <div className="text-center">
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <h3 className="text-lg font-medium text-red-800">Error Loading SOW</h3>
+          <p className="mt-2 text-red-700">{error}</p>
+          <div className="mt-4">
+            <Link
+              href="/sow"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200"
+            >
+              Back to SOWs
+            </Link>
           </div>
         </div>
       </div>
@@ -623,21 +584,17 @@ export default function SOWDetailsPage() {
 
   if (!sow) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-              <h3 className="text-lg font-medium text-yellow-800">SOW Not Found</h3>
-              <p className="mt-2 text-yellow-700">The requested SOW could not be found.</p>
-              <div className="mt-4">
-                <Link
-                  href="/sow"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
-                >
-                  Back to SOWs
-                </Link>
-              </div>
-            </div>
+      <div className="text-center">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+          <h3 className="text-lg font-medium text-yellow-800">SOW Not Found</h3>
+          <p className="mt-2 text-yellow-700">The requested SOW could not be found.</p>
+          <div className="mt-4">
+            <Link
+              href="/sow"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
+            >
+              Back to SOWs
+            </Link>
           </div>
         </div>
       </div>
@@ -645,73 +602,111 @@ export default function SOWDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {sow && (
           <>
-            <div className="mb-8 flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">{sow.sowTitle}</h1>
-                <div className="flex items-center space-x-2 mt-1">
-                  <p className="text-sm text-gray-500">Version {sow.version}</p>
-                  {(sow.status === 'approved' || sow.status === 'rejected') && (
-                    <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
-                      Immutable
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(sow.status)}`}>
-                  {getStatusLabel(sow.status)}
-                </span>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="mb-8 flex justify-end space-x-4">
-              {/* Print Button - Always visible */}
-              <Link
-                href={`/print-sow/${params.id}`}
-                target="_blank"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 print-button"
-                title="Open printable version in new tab"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-                Print SOW
-              </Link>
-              
-              {isEditable && (
-                <Link
-                  href={`/sow/${params.id}/edit`}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Edit SOW
-                </Link>
-              )}
-              {canCreateNewVersion && (
+                        <div className="mb-8 flex justify-between items-center">
+              <h1 className="text-2xl font-bold text-gray-900">
+                View SOW
+              </h1>
+              <div className="flex items-center space-x-3">
+                {isEditable && (
+                  <Link
+                    href={`/sow/${params.id}/edit`}
+                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Edit
+                  </Link>
+                )}
                 <button
-                  onClick={handleCreateVersion}
-                  disabled={creatingVersion}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`/api/sow/${sow.id}/pdf`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                      });
+
+                      if (!response.ok) {
+                        throw new Error('Failed to generate PDF');
+                      }
+
+                      // Create blob and download
+                      const blob = await response.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${sow.sowTitle || 'SOW'} - ${sow.clientName || 'Client'}.pdf`;
+                      document.body.appendChild(a);
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                      document.body.removeChild(a);
+                    } catch (error) {
+                      console.error('Error downloading PDF:', error);
+                      alert('Failed to download PDF. Please try again.');
+                    }
+                  }}
+                  className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  title="Download PDF to your computer"
                 >
-                  {creatingVersion ? 'Creating...' : 'Create New Version'}
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Download PDF
                 </button>
-              )}
-              {!isEditable && !canCreateNewVersion && sow.status === 'in_review' && (
-                <div className="text-sm text-gray-600 italic">
-                  SOW is in review - use the Approval Workflow to approve or reject
-                </div>
-              )}
-              {canCreateNewVersion && (
-                <div className="text-sm text-gray-600 italic">
-                  This version is {sow.status === 'approved' ? 'approved' : 'rejected'} and cannot be modified. Create a new version to make changes.
-                </div>
-              )}
+                {/* Print button hidden */}
+                <button
+                  onClick={async () => {
+                    if (!sow) return;
+                    
+                    // Enhanced confirmation dialog
+                    const confirmMessage = `Are you sure you want to delete "${sow.sowTitle || 'this SOW'}"?\n\n` +
+                      `This action will permanently hide this SOW and all its versions from the system.\n` +
+                      `The data will be preserved but will no longer be visible.\n\n` +
+                      `Type "DELETE" to confirm:`;
+                    
+                    const userInput = prompt(confirmMessage);
+                    if (userInput !== 'DELETE') {
+                      return;
+                    }
+
+                    try {
+                      const response = await fetch(`/api/sow/${params.id}`, {
+                        method: 'DELETE',
+                      });
+
+                      if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to delete SOW');
+                      }
+
+                      const result = await response.json();
+                      
+                      // Show success message
+                      alert(`SOW "${sow.sowTitle || 'SOW'}" deleted successfully${result.hiddenVersions ? ` along with ${result.hiddenVersions} version(s)` : ''}.`);
+
+                      // Redirect to the SOW list page
+                      router.push('/sow');
+                    } catch (err) {
+                      const errorMessage = err instanceof Error ? err.message : 'Failed to delete SOW';
+                      alert(`Error: ${errorMessage}`);
+                    }
+                  }}
+                  className="inline-flex items-center px-3 py-1 border border-red-600 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  title="Delete SOW from the system"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete
+                </button>
+              </div>
 
             </div>
+
+
 
             {/* Two Column Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -1079,17 +1074,6 @@ export default function SOWDetailsPage() {
                 <div className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
                   <div className="bg-white shadow rounded-lg p-4">
                     <h3 className="text-lg font-semibold mb-4">SOW Status</h3>
-                    <div className="mb-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        sow.status === 'draft' ? 'bg-gray-100 text-gray-800' :
-                        sow.status === 'in_review' ? 'bg-blue-100 text-blue-800' :
-                        sow.status === 'approved' ? 'bg-green-100 text-green-800' :
-                        sow.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {sow.status?.toUpperCase() || 'DRAFT'}
-                      </span>
-                    </div>
                     
                     {sow.status === 'draft' && (
                       <>
@@ -1153,6 +1137,35 @@ export default function SOWDetailsPage() {
                           )}
                         </div>
 
+                        {/* New Revision Button */}
+                        <div className="pt-4 border-t border-gray-200">
+                          <button
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(`/api/sow/${sow.id}/version`, {
+                                  method: 'POST'
+                                });
+                                
+                                if (!response.ok) {
+                                  throw new Error('Failed to create new version');
+                                }
+                                
+                                const newVersion = await response.json();
+                                window.location.href = `/sow/${newVersion.id}`;
+                              } catch (err) {
+                                console.error('Error creating new version:', err);
+                                alert('Failed to create new version. Please try again.');
+                              }
+                            }}
+                            className="w-full bg-indigo-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 mb-3"
+                          >
+                            <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Create New Revision
+                          </button>
+                        </div>
+
                         {/* Save to Google Drive Button */}
                         <div className="pt-4 border-t border-gray-200">
                           <div className="flex gap-3">
@@ -1162,38 +1175,7 @@ export default function SOWDetailsPage() {
                               sowTitle={sow.sowTitle || 'Untitled SOW'}
                             />
                             
-                            {/* Download PDF Button */}
-                            <button
-                              onClick={async () => {
-                                try {
-                                  const response = await fetch(`/api/sow/${sow.id}/pdf`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' }
-                                  });
 
-                                  if (!response.ok) {
-                                    throw new Error('Failed to generate PDF');
-                                  }
-
-                                  // Create blob and download
-                                  const blob = await response.blob();
-                                  const url = window.URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url;
-                                  a.download = `${sow.sowTitle || 'SOW'} - ${sow.clientName || 'Client'}.pdf`;
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  window.URL.revokeObjectURL(url);
-                                  document.body.removeChild(a);
-                                } catch (error) {
-                                  console.error('Error downloading PDF:', error);
-                                  alert('Failed to download PDF. Please try again.');
-                                }
-                              }}
-                              className="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
-                            >
-                              📄 Download PDF to your Computer
-                            </button>
                           </div>
                         </div>
                       </div>
@@ -1230,6 +1212,5 @@ export default function SOWDetailsPage() {
           </>
         )}
       </div>
-    </div>
   );
 } 
