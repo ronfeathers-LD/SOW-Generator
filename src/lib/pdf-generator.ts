@@ -1,6 +1,7 @@
 import puppeteer, { Browser } from 'puppeteer';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { execSync } from 'child_process';
 
 /**
  * Convert LeanData logo to base64 for PDF embedding
@@ -8,8 +9,18 @@ import { join } from 'path';
 function getLeanDataLogoBase64(): string {
   try {
     const logoPath = join(process.cwd(), 'public', 'images', 'leandata-logo.png');
+    console.log('🔍 Looking for logo at:', logoPath);
+    
+    // Check if file exists before trying to read it
+    const fs = require('fs');
+    if (!fs.existsSync(logoPath)) {
+      console.warn('⚠️ Logo file not found at:', logoPath);
+      return '';
+    }
+    
     const logoBuffer = readFileSync(logoPath);
     const base64Logo = logoBuffer.toString('base64');
+    console.log('✅ Logo loaded successfully, size:', logoBuffer.length, 'bytes');
     return `data:image/png;base64,${base64Logo}`;
   } catch (error) {
     console.warn('⚠️ Could not load LeanData logo, using fallback:', error);
@@ -138,7 +149,7 @@ interface SOWData {
   client_title?: string;
   client_email?: string;
   signature_date?: string;
-  deliverables?: string;
+  deliverables?: string[] | string;
   objectives_description?: string;
   objectives_key_objectives?: string[] | string;
   content?: string;
@@ -198,51 +209,123 @@ export class PDFGenerator {
 
   async initialize() {
     if (!this.browser) {
-      this.browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
+      try {
+        this.browser = await launchPuppeteerBrowser();
+      } catch (error) {
+        console.log('⚠️ Browser launch failed, attempting to install Chrome...');
+        
+        // Try to install Chrome if it's not available
+        try {
+          console.log('📦 Installing Chrome via puppeteer...');
+          execSync('npx puppeteer browsers install chrome', { stdio: 'inherit' });
+          console.log('✅ Chrome installation completed, retrying browser launch...');
+          
+          // Try launching again after installation
+          this.browser = await launchPuppeteerBrowser();
+        } catch (installError) {
+          console.error('❌ Chrome installation failed:', installError);
+          
+          // Try alternative installation methods
+          try {
+            console.log('🔄 Trying alternative Chrome installation methods...');
+            
+            // Try using apt-get if available (Ubuntu/Debian)
+            try {
+              execSync('apt-get update && apt-get install -y google-chrome-stable', { stdio: 'inherit' });
+              console.log('✅ Chrome installed via apt-get, retrying browser launch...');
+              this.browser = await launchPuppeteerBrowser();
+            } catch (aptError) {
+              console.log('⚠️ apt-get installation failed, trying yum...');
+              
+              // Try using yum if available (CentOS/RHEL)
+              try {
+                execSync('yum install -y google-chrome-stable', { stdio: 'inherit' });
+                console.log('✅ Chrome installed via yum, retrying browser launch...');
+                this.browser = await launchPuppeteerBrowser();
+              } catch (yumError) {
+                throw new Error('All Chrome installation methods failed');
+              }
+            }
+          } catch (altInstallError) {
+            console.error('❌ All Chrome installation methods failed:', altInstallError);
+            
+            // Final fallback: try to use bundled Chromium
+            try {
+              console.log('🔄 Final fallback: trying bundled Chromium...');
+              this.browser = await puppeteer.launch({
+                headless: true,
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+                timeout: 60000
+              });
+              console.log('✅ Bundled Chromium launched successfully');
+            } catch (bundledError) {
+              console.error('❌ Even bundled Chromium failed:', bundledError);
+              throw new Error(
+                'Failed to launch browser and all Chrome installation methods failed. ' +
+                'Please ensure the production environment has sufficient permissions and internet access.'
+              );
+            }
+          }
+        }
+      }
     }
   }
 
   async generateSOWPDF(sowData: SOWData): Promise<Uint8Array> {
-    await this.initialize();
-    
-    if (!this.browser) {
-      throw new Error('Browser not initialized');
-    }
-
-    const page = await this.browser.newPage();
+    console.log('🚀 Starting PDF generation for SOW:', sowData.id);
     
     try {
-      // Generate HTML content for the SOW
-      const htmlContent = this.generateSOWHTML(sowData);
+      await this.initialize();
       
-      // Set content and wait for any dynamic content to load
-      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      if (!this.browser) {
+        throw new Error('Browser not initialized');
+      }
+
+      console.log('✅ Browser initialized successfully');
+      const page = await this.browser.newPage();
+      console.log('✅ New page created');
       
-      // Set viewport for consistent rendering
-      await page.setViewport({ width: 1200, height: 1600 });
-      
-      // Generate PDF
-      const pdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: {
-          top: '0.5in',
-          right: '0.5in',
-          bottom: '0.5in',
-          left: '0.5in'
-        }
-      });
-      
-      return new Uint8Array(pdfBuffer);
-      
+      try {
+        // Generate HTML content for the SOW
+        console.log('📝 Generating HTML content...');
+        const htmlContent = this.generateSOWHTML(sowData);
+        console.log('✅ HTML content generated, length:', htmlContent.length);
+        
+        // Set content and wait for any dynamic content to load
+        console.log('🌐 Setting page content...');
+        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+        console.log('✅ Page content set successfully');
+        
+        // Set viewport for consistent rendering
+        await page.setViewport({ width: 1200, height: 1600 });
+        console.log('✅ Viewport set');
+        
+        // Generate PDF
+        console.log('📄 Generating PDF...');
+        const pdfBuffer = await page.pdf({
+          format: 'A4',
+          printBackground: true,
+          margin: {
+            top: '0.5in',
+            right: '0.5in',
+            bottom: '0.5in',
+            left: '0.5in'
+          }
+        });
+        
+        console.log('✅ PDF generated successfully, size:', pdfBuffer.length, 'bytes');
+        return new Uint8Array(pdfBuffer);
+        
+      } catch (error) {
+        console.error('❌ Error during PDF generation process:', error);
+        throw error;
+      } finally {
+        await page.close();
+        console.log('✅ Page closed');
+      }
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      console.error('❌ Fatal error in PDF generation:', error);
       throw error;
-    } finally {
-      await page.close();
     }
   }
 
@@ -251,6 +334,8 @@ export class PDFGenerator {
     const clientName = sowData.client_name || 'Unknown Client';
     const companyLogo = sowData.company_logo || '';
     const leanDataLogoBase64 = getLeanDataLogoBase64();
+    
+
     
     // Parse objectives that might be stored as HTML
     const objectives = this.parseObjectives(sowData.objectives_key_objectives);

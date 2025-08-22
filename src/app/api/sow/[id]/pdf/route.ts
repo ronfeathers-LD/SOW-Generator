@@ -2,12 +2,70 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { PDFGenerator } from '@/lib/pdf-generator';
 
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    
+    console.log('🧪 PDF environment test for SOW:', id);
+    console.log('🌍 Environment:', process.env.NODE_ENV);
+    console.log('📁 Current working directory:', process.cwd());
+    
+    // Test file system access
+    const fs = require('fs');
+    const logoPath = require('path').join(process.cwd(), 'public', 'images', 'leandata-logo.png');
+    const logoExists = fs.existsSync(logoPath);
+    
+    // Test browser availability
+    let browserTest = 'Not tested';
+    try {
+      const { launchPuppeteerBrowser } = await import('@/lib/pdf-generator');
+      const browser = await launchPuppeteerBrowser();
+      browserTest = 'Success';
+      await browser.close();
+    } catch (error) {
+      browserTest = `Failed: ${error instanceof Error ? error.message : String(error)}`;
+    }
+    
+    return NextResponse.json({
+      status: 'Environment test completed',
+      environment: process.env.NODE_ENV,
+      workingDirectory: process.cwd(),
+      logoFileExists: logoExists,
+      logoPath: logoPath,
+      browserTest: browserTest,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Environment test failed:', error);
+    return NextResponse.json(
+      { 
+        error: 'Environment test failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
+    
+    console.log('🚀 PDF generation request for SOW:', id);
+    console.log('🌍 Environment:', process.env.NODE_ENV);
+    console.log('📁 Current working directory:', process.cwd());
+    
+    // Check if we're in production and warn about potential Chrome issues
+    if (process.env.NODE_ENV === 'production') {
+      console.log('⚠️ Production environment detected - Chrome installation may be required');
+    }
     
     // Create Supabase client
     const supabase = createClient(
@@ -30,7 +88,7 @@ export async function POST(
       );
     }
 
-
+    console.log('✅ SOW data fetched successfully');
 
     // Transform the data to match the PDFGenerator interface
     const transformedData = {
@@ -97,32 +155,53 @@ export async function POST(
       purchase_order_number: sowData.purchase_order_number || ''
     };
 
-
-    
     // Use the working PDFGenerator class
     const pdfGenerator = new PDFGenerator();
-    const pdfBuffer = await pdfGenerator.generateSOWPDF(transformedData);
     
-
-    
-    // Clean up
-    await pdfGenerator.close();
-    
-    // Return the PDF as a response
-    return new NextResponse(pdfBuffer, {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="SOW-${id}.pdf"`
-      }
-    });
+    try {
+      // Generate the PDF with timeout
+      console.log('⏱️ Starting PDF generation with timeout...');
+      const pdfBuffer = await Promise.race([
+        pdfGenerator.generateSOWPDF(transformedData),
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('PDF generation timeout after 60 seconds')), 60000)
+        )
+      ]);
+      
+      console.log('✅ PDF generated successfully, size:', pdfBuffer.length, 'bytes');
+      
+      // Return the PDF as a response
+      return new NextResponse(pdfBuffer, {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="SOW-${id}.pdf"`
+        }
+      });
+    } finally {
+      // Clean up
+      await pdfGenerator.close();
+      console.log('✅ PDF generator cleaned up');
+    }
     
   } catch (error) {
     console.error('❌ Error generating PDF:', error);
     
+    // Provide more specific error messages for common issues
+    let errorMessage = 'Failed to generate PDF';
+    let errorDetails = error instanceof Error ? error.message : 'Unknown error';
+    
+    if (errorDetails.includes('Could not find Chrome') || errorDetails.includes('Chrome installation')) {
+      errorMessage = 'PDF generation failed: Chrome browser not available. The system is attempting to install Chrome automatically.';
+      errorDetails = 'Browser installation in progress. Please try again in a few minutes.';
+    } else if (errorDetails.includes('timeout')) {
+      errorMessage = 'PDF generation failed: Request timed out. The PDF may be too complex or the system is under heavy load.';
+    }
+    
     return NextResponse.json(
       { 
-        error: 'Failed to generate PDF',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage,
+        details: errorDetails,
+        suggestion: 'If this persists, contact support with the error details above.'
       },
       { status: 500 }
     );
