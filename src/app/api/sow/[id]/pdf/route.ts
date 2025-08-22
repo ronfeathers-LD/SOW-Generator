@@ -176,13 +176,27 @@ export async function POST(
       
       console.log('✅ PDF generated successfully, size:', pdfBuffer.length, 'bytes');
       
-      // Return the PDF as a response
-      return new NextResponse(pdfBuffer, {
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="SOW-${id}.pdf"`
-        }
-      });
+      // Check if this is an alternative format (HTML instead of PDF)
+      const isHTML = pdfBuffer.length > 0 && 
+        new TextDecoder().decode(pdfBuffer.slice(0, 100)).includes('<!DOCTYPE html>');
+      
+      if (isHTML) {
+        console.log('📄 Returning HTML format for client-side PDF conversion');
+        return new NextResponse(pdfBuffer, {
+          headers: {
+            'Content-Type': 'text/html',
+            'Content-Disposition': `attachment; filename="SOW-${id}.html"`
+          }
+        });
+      } else {
+        // Return the PDF as a response
+        return new NextResponse(pdfBuffer, {
+          headers: {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="SOW-${id}.pdf"`
+          }
+        });
+      }
     } finally {
       // Clean up
       await pdfGenerator.close();
@@ -203,7 +217,7 @@ export async function POST(
       errorMessage = 'PDF generation failed: Request timed out. The PDF may be too complex or the system is under heavy load.';
     } else if (errorDetails.includes('serverless environment') || errorDetails.includes('strict browser restrictions')) {
       errorMessage = 'PDF generation failed: Serverless environment detected with browser restrictions.';
-      errorDetails = 'This environment does not support browser-based PDF generation. Consider upgrading to a full server environment or using an alternative PDF service.';
+      errorDetails = 'The system attempted alternative PDF generation methods. If you received an HTML file, you can convert it to PDF using your browser\'s print function or online PDF converters.';
     }
     
     return NextResponse.json(

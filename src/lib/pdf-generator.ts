@@ -253,11 +253,32 @@ export class PDFGenerator {
           console.log('✅ Minimal Chromium configuration successful');
         } catch (minimalError) {
           console.error('❌ Even minimal configuration failed:', minimalError);
-          throw new Error(
-            'Failed to launch any browser for PDF generation. ' +
-            'This appears to be a serverless environment with strict browser restrictions. ' +
-            'Consider using a different PDF generation approach or upgrading to a full server environment.'
-          );
+          
+          // Try browserless mode as final fallback
+          try {
+            console.log('🌐 Trying browserless mode...');
+            
+            // Check if we have a browserless endpoint configured
+            const browserlessEndpoint = process.env.BROWSERLESS_ENDPOINT || 'https://chrome.browserless.io';
+            
+            if (browserlessEndpoint && browserlessEndpoint !== 'https://chrome.browserless.io') {
+              // Connect to custom browserless service
+              this.browser = await puppeteer.connect({
+                browserWSEndpoint: browserlessEndpoint,
+                defaultViewport: { width: 1200, height: 1600 }
+              });
+              console.log('✅ Connected to custom browserless service');
+            } else {
+              throw new Error('No browserless service configured');
+            }
+          } catch (browserlessError) {
+            console.error('❌ Browserless mode also failed:', browserlessError);
+            throw new Error(
+              'Failed to launch any browser for PDF generation. ' +
+              'This appears to be a serverless environment with strict browser restrictions. ' +
+              'Consider using a different PDF generation approach or upgrading to a full server environment.'
+            );
+          }
         }
       }
     }
@@ -317,8 +338,29 @@ export class PDFGenerator {
       }
     } catch (error) {
       console.error('❌ Fatal error in PDF generation:', error);
+      
+      // If browser-based generation fails, try alternative approach
+      if (error instanceof Error && error.message.includes('browser restrictions')) {
+        console.log('🔄 Attempting alternative PDF generation method...');
+        return this.generatePDFAlternative(sowData);
+      }
+      
       throw error;
     }
+  }
+
+  /**
+   * Alternative PDF generation method for serverless environments
+   * This generates a simple HTML file that can be converted to PDF by the client
+   */
+  private generatePDFAlternative(sowData: SOWData): Uint8Array {
+    console.log('📄 Generating alternative PDF format (HTML file)...');
+    
+    const htmlContent = this.generateSOWHTML(sowData);
+    const htmlBytes = new TextEncoder().encode(htmlContent);
+    
+    console.log('✅ Alternative HTML content generated, size:', htmlBytes.length, 'bytes');
+    return htmlBytes;
   }
 
   private generateSOWHTML(sowData: SOWData): string {
