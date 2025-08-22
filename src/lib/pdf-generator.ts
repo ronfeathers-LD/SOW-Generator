@@ -1,7 +1,6 @@
 import puppeteer, { Browser } from 'puppeteer';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { execSync } from 'child_process';
 
 /**
  * Convert LeanData logo to base64 for PDF embedding
@@ -209,62 +208,56 @@ export class PDFGenerator {
   async initialize() {
     if (!this.browser) {
       try {
-        this.browser = await launchPuppeteerBrowser();
-      } catch {
-        console.log('⚠️ Browser launch failed, attempting to install Chrome...');
+        // For serverless environments, use bundled Chromium with serverless-optimized settings
+        console.log('🚀 Launching bundled Chromium for serverless environment...');
         
-        // Try to install Chrome if it's not available
+        this.browser = await puppeteer.launch({
+          headless: true,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--disable-extensions',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor',
+            '--disable-ipc-flooding-protection',
+            '--memory-pressure-off',
+            '--max_old_space_size=4096'
+          ],
+          timeout: 60000,
+          // Force use of bundled Chromium
+          executablePath: undefined,
+          // Serverless-specific settings
+          ignoreDefaultArgs: ['--disable-extensions']
+        });
+        
+        console.log('✅ Bundled Chromium launched successfully');
+      } catch (error) {
+        console.error('❌ Failed to launch bundled Chromium:', error);
+        
+        // Try with minimal configuration as last resort
         try {
-          console.log('📦 Installing Chrome via puppeteer...');
-          execSync('npx puppeteer browsers install chrome', { stdio: 'inherit' });
-          console.log('✅ Chrome installation completed, retrying browser launch...');
-          
-          // Try launching again after installation
-          this.browser = await launchPuppeteerBrowser();
-        } catch (installError) {
-          console.error('❌ Chrome installation failed:', installError);
-          
-          // Try alternative installation methods
-          try {
-            console.log('🔄 Trying alternative Chrome installation methods...');
-            
-            // Try using apt-get if available (Ubuntu/Debian)
-            try {
-              execSync('apt-get update && apt-get install -y google-chrome-stable', { stdio: 'inherit' });
-              console.log('✅ Chrome installed via apt-get, retrying browser launch...');
-              this.browser = await launchPuppeteerBrowser();
-            } catch {
-              console.log('⚠️ apt-get installation failed, trying yum...');
-              
-              // Try using yum if available (CentOS/RHEL)
-              try {
-                execSync('yum install -y google-chrome-stable', { stdio: 'inherit' });
-                console.log('✅ Chrome installed via yum, retrying browser launch...');
-                this.browser = await launchPuppeteerBrowser();
-              } catch {
-                throw new Error('All Chrome installation methods failed');
-              }
-            }
-          } catch (altInstallError) {
-            console.error('❌ All Chrome installation methods failed:', altInstallError);
-            
-            // Final fallback: try to use bundled Chromium
-            try {
-              console.log('🔄 Final fallback: trying bundled Chromium...');
-              this.browser = await puppeteer.launch({
-                headless: true,
-                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-                timeout: 60000
-              });
-              console.log('✅ Bundled Chromium launched successfully');
-            } catch (bundledError) {
-              console.error('❌ Even bundled Chromium failed:', bundledError);
-              throw new Error(
-                'Failed to launch browser and all Chrome installation methods failed. ' +
-                'Please ensure the production environment has sufficient permissions and internet access.'
-              );
-            }
-          }
+          console.log('🔄 Trying minimal Chromium configuration...');
+          this.browser = await puppeteer.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox'],
+            timeout: 60000
+          });
+          console.log('✅ Minimal Chromium configuration successful');
+        } catch (minimalError) {
+          console.error('❌ Even minimal configuration failed:', minimalError);
+          throw new Error(
+            'Failed to launch any browser for PDF generation. ' +
+            'This appears to be a serverless environment with strict browser restrictions. ' +
+            'Consider using a different PDF generation approach or upgrading to a full server environment.'
+          );
         }
       }
     }

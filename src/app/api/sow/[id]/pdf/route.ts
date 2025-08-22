@@ -66,6 +66,11 @@ export async function POST(
     // Check if we're in production and warn about potential Chrome issues
     if (process.env.NODE_ENV === 'production') {
       console.log('⚠️ Production environment detected - Chrome installation may be required');
+      
+      // Check if this is a serverless environment
+      if (process.cwd() === '/var/task') {
+        console.log('🚨 Serverless environment detected (/var/task) - limited browser capabilities');
+      }
     }
     
     // Create Supabase client
@@ -196,6 +201,9 @@ export async function POST(
       errorDetails = 'Browser installation in progress. Please try again in a few minutes.';
     } else if (errorDetails.includes('timeout')) {
       errorMessage = 'PDF generation failed: Request timed out. The PDF may be too complex or the system is under heavy load.';
+    } else if (errorDetails.includes('serverless environment') || errorDetails.includes('strict browser restrictions')) {
+      errorMessage = 'PDF generation failed: Serverless environment detected with browser restrictions.';
+      errorDetails = 'This environment does not support browser-based PDF generation. Consider upgrading to a full server environment or using an alternative PDF service.';
     }
     
     return NextResponse.json(
