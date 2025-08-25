@@ -215,8 +215,29 @@ export default function ObjectivesTab({
       }
 
       // Validate the response structure
-      if (!result.objectiveOverview || !result.painPoints || !result.solutions) {
+      if (!result.objectiveOverview || !result.solutions) {
         throw new Error('Invalid response format from AI analysis');
+      }
+      
+      // Handle both painPoints and overcomingActions for backward compatibility
+      let painPoints: string[] = [];
+      
+      if (result.painPoints) {
+        painPoints = Array.isArray(result.painPoints) ? result.painPoints : [result.painPoints];
+      } else if (result.overcomingActions) {
+        if (Array.isArray(result.overcomingActions)) {
+          painPoints = result.overcomingActions;
+        } else if (typeof result.overcomingActions === 'string') {
+          // If overcomingActions is HTML, extract text content
+          if (result.overcomingActions.includes('<li>')) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = result.overcomingActions;
+            const listItems = tempDiv.querySelectorAll('li');
+            painPoints = Array.from(listItems).map(item => item.textContent?.trim() || '').filter(item => item !== '');
+          } else {
+            painPoints = [result.overcomingActions];
+          }
+        }
       }
 
 
@@ -379,8 +400,6 @@ export default function ObjectivesTab({
       }
       
       // Convert pain points to key objectives format
-      const painPoints = result.painPoints || [];
-      
       // Ensure we have valid pain points
       const finalPainPoints = painPoints.length > 0 ? painPoints : [''];
       
@@ -405,10 +424,10 @@ export default function ObjectivesTab({
         custom_objective_overview_content: result.objectiveOverview,
         objective_overview_content_edited: true,
         // Store pain points as-is if they're already HTML, otherwise convert
-        custom_key_objectives_content: result.painPoints ? 
-          (typeof result.painPoints === 'string' && result.painPoints.includes('<li>') ? 
-            result.painPoints : // If already HTML, use as-is
-            convertObjectiveToBulletPoints(Array.isArray(result.painPoints) ? result.painPoints : [result.painPoints]) // If plain text, convert
+        custom_key_objectives_content: (result.painPoints || result.overcomingActions) ? 
+          (typeof (result.painPoints || result.overcomingActions) === 'string' && (result.painPoints || result.overcomingActions)?.includes('<li>') ? 
+            (result.painPoints || result.overcomingActions) : // If already HTML, use as-is
+            convertObjectiveToBulletPoints(Array.isArray(result.painPoints || result.overcomingActions) ? (result.painPoints || result.overcomingActions) : [result.painPoints || result.overcomingActions]) // If plain text, convert
           ) : '',
         key_objectives_content_edited: true
       };

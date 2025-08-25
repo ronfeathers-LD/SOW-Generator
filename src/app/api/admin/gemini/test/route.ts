@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
         message: 'Gemini API connection successful!',
         testResult: {
           objectiveOverview: (result as Record<string, unknown>).objectiveOverview,
-          painPointsCount: ((result as Record<string, unknown>).painPoints as unknown[])?.length || 0,
+          painPointsCount: ((result as Record<string, unknown>).painPoints as unknown[])?.length || ((result as Record<string, unknown>).overcomingActions as unknown[])?.length || 0,
           solutionsCategories: Object.keys((result as Record<string, unknown>).solutions || {}).length,
           totalSolutionsItems: Object.values((result as Record<string, unknown>).solutions || {}).reduce((total: number, items: unknown) => total + (Array.isArray(items) ? items.length : 0), 0)
         }

@@ -17,6 +17,7 @@ interface TranscriptionAnalysisResponse {
   html?: string; // HTML content from AI
   objectiveOverview?: string;
   painPoints?: string[];
+  overcomingActions?: string[]; // Alternative field name for pain points
   solutions?: Record<string, string[]>;
   isFallback?: boolean;
   error?: string;
