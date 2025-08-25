@@ -54,38 +54,39 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           <JavaScriptRequired />
-          <div className="min-h-screen bg-gray-50 flex flex-col">
-            <Navigation />
-            
-            {/* ALPHA Testing Banner */}
-            <div className="bg-gradient-to-r from-orange-100 to-red-100 text-orange-800 py-2 px-4 shadow-sm border border-orange-200 print-sow-hide">
-              <div className="container mx-auto flex items-center justify-center space-x-2">
-                <div className="animate-pulse">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="text-center">
-                  <span className="font-semibold text-sm">⚠️ ALPHA TESTING VERSION</span>
-                  <span className="block text-xs opacity-90">This application is in development and testing. DO NOT use for production purposes.</span>
-                  <span className="block text-xs mt-1">
-                    Send bugs to{' '}
-                    <a 
-                      href="mailto:ron.feathers@leandata.com?subject=SOW%20Generator%20Bug" 
-                      className="underline hover:no-underline font-medium"
-                      title="Report a bug"
-                    >
-                      ron.feathers@leandata.com
-                    </a>
-                  </span>
-                </div>
-                <div className="animate-pulse">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                </div>
+          
+          {/* BETA Testing Banner */}
+          <div className="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 py-2 px-4 shadow-sm border border-blue-200 print-sow-hide">
+            <div className="container mx-auto flex items-center justify-center space-x-2">
+              <div className="animate-pulse">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="text-center">
+                <span className="font-semibold text-sm">⚠️ BETA TESTING VERSION</span>
+                <span className="block text-xs opacity-90">This application is in development and testing. DO NOT use for production purposes.</span>
+                <span className="block text-xs mt-1">
+                  Send bugs to{' '}
+                  <a 
+                    href="mailto:ron.feathers@leandata.com?subject=SOW%20Generator%20Bug" 
+                    className="underline hover:no-underline font-medium"
+                    title="Report a bug"
+                  >
+                    ron.feathers@leandata.com
+                  </a>
+                </span>
+              </div>
+              <div className="animate-pulse">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
               </div>
             </div>
+          </div>
+          
+          <div className="min-h-screen bg-gray-50 flex flex-col">
+            <Navigation />
             
             <main className="container mx-auto px-4 py-8 flex-1">{children}</main>
             

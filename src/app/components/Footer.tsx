@@ -73,7 +73,7 @@ export default function Footer() {
               </li>
               <li>
                 <span className="text-green-100 text-sm">
-                  Version: Alpha
+                  Version: Beta
                 </span>
               </li>
             </ul>
