@@ -240,20 +240,18 @@ export default function UserManagementPage() {
           </div>
           <div className="ml-3">
             <h3 className="text-sm font-medium text-blue-800">Role Management</h3>
-                                       <div className="mt-2 text-sm text-blue-700">
-                <ul className="list-disc pl-5 space-y-1">
-                  <li><strong>User:</strong> Can create and edit SOWs, view their own SOWs</li>
-                  <li><strong>Manager:</strong> Can approve Manager stage (first required approval)</li>
-                  <li><strong>Director:</strong> Can approve Director stage (final required approval after Manager)</li>
-                  <li><strong>VP:</strong> Can approve any stage (optional, bypasses all others if approved)</li>
-                  <li><strong>Admin:</strong> Can access admin panel, manage users, configure integrations, and approve any stage</li>
-                </ul>
-                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                  <p className="text-xs text-yellow-800">
-                    <strong>Approval Flow:</strong> Manager → Director (required) OR VP (bypasses all)
-                  </p>
-                </div>
+            <div className="mt-2 text-sm text-blue-700">
+              <ul className="list-disc pl-5 space-y-1">
+                <li><strong>User:</strong> Can create and edit SOWs, view their own SOWs</li>
+                <li><strong>Manager:</strong> Can approve or reject SOWs that are under review</li>
+                <li><strong>Admin:</strong> Can access admin panel, manage users, configure integrations, and approve any SOW</li>
+              </ul>
+              <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                <p className="text-xs text-yellow-800">
+                  <strong>Approval Flow:</strong> Draft → In Review → Approved/Rejected (by Manager or Admin)
+                </p>
               </div>
+            </div>
           </div>
         </div>
       </div>
