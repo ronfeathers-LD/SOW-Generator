@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-export async function PUT(
+export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -33,16 +33,32 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, description, prompt_content, is_active, sort_order, change_reason } = body;
+    const { version_id, change_reason } = body;
 
-    if (!name || !prompt_content) {
+    if (!version_id) {
       return NextResponse.json(
-        { error: 'Name and prompt content are required' },
+        { error: 'Version ID is required' },
         { status: 400 }
       );
     }
 
-    // First, get the current prompt to create a version
+    // Get the version to revert to
+    const { data: version, error: versionError } = await supabase
+      .from('ai_prompt_versions')
+      .select('*')
+      .eq('id', version_id)
+      .eq('prompt_id', id)
+      .single();
+
+    if (versionError || !version) {
+      console.error('Error fetching version:', versionError);
+      return NextResponse.json(
+        { error: 'Version not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get current prompt to create a version
     const { data: currentPrompt, error: fetchError } = await supabase
       .from('ai_prompts')
       .select('*')
@@ -58,7 +74,7 @@ export async function PUT(
     }
 
     // Create a version record of the current prompt
-    const { error: versionError } = await supabase
+    const { error: versionCreateError } = await supabase
       .from('ai_prompt_versions')
       .insert([
         {
@@ -70,13 +86,13 @@ export async function PUT(
           is_active: currentPrompt.is_active,
           sort_order: currentPrompt.sort_order,
           created_by: session.user.id,
-          change_reason: change_reason || 'Updated prompt',
+          change_reason: change_reason || 'Reverted to previous version',
           is_current: false
         }
       ]);
 
-    if (versionError) {
-      console.error('Error creating version record:', versionError);
+    if (versionCreateError) {
+      console.error('Error creating version record:', versionCreateError);
       return NextResponse.json(
         { error: 'Failed to create version record' },
         { status: 500 }
@@ -86,15 +102,15 @@ export async function PUT(
     // Update the current version number
     const newVersionNumber = (currentPrompt.current_version || 1) + 1;
 
-    // Update the prompt with new data
+    // Revert the prompt to the selected version
     const { data: prompt, error } = await supabase
       .from('ai_prompts')
       .update({
-        name,
-        description: description || '',
-        prompt_content,
-        is_active: is_active !== undefined ? is_active : true,
-        sort_order: sort_order || 0,
+        name: version.name,
+        description: version.description,
+        prompt_content: version.prompt_content,
+        is_active: version.is_active,
+        sort_order: version.sort_order,
         current_version: newVersionNumber,
         updated_at: new Date().toISOString()
       })
@@ -103,14 +119,14 @@ export async function PUT(
       .single();
 
     if (error) {
-      console.error('Error updating AI prompt:', error);
+      console.error('Error reverting AI prompt:', error);
       return NextResponse.json(
-        { error: 'Failed to update AI prompt' },
+        { error: 'Failed to revert AI prompt' },
         { status: 500 }
       );
     }
 
-    // Mark the new version as current
+    // Mark all versions as not current
     const { error: updateVersionError } = await supabase
       .from('ai_prompt_versions')
       .update({ is_current: false })
@@ -120,75 +136,34 @@ export async function PUT(
       console.error('Error updating version flags:', updateVersionError);
     }
 
-    // Insert the new version as current
+    // Insert the reverted version as current
     const { error: insertNewVersionError } = await supabase
       .from('ai_prompt_versions')
       .insert([
         {
           prompt_id: id,
           version_number: newVersionNumber,
-          name,
-          description: description || '',
-          prompt_content,
-          is_active: is_active !== undefined ? is_active : true,
-          sort_order: sort_order || 0,
+          name: version.name,
+          description: version.description,
+          prompt_content: version.prompt_content,
+          is_active: version.is_active,
+          sort_order: version.sort_order,
           created_by: session.user.id,
-          change_reason: change_reason || 'Updated prompt',
+          change_reason: change_reason || 'Reverted to previous version',
           is_current: true
         }
       ]);
 
     if (insertNewVersionError) {
-      console.error('Error inserting new version:', insertNewVersionError);
+      console.error('Error inserting reverted version:', insertNewVersionError);
     }
 
     return NextResponse.json(prompt);
   } catch (error) {
-    console.error('Error in AI prompt PUT:', error);
+    console.error('Error in AI prompt revert:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
   }
 }
-
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createServerSupabaseClient();
-    
-    const session = await getServerSession(authOptions);
-    
-    if (!session || session.user?.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const { id } = await params;
-
-    const { error } = await supabase
-      .from('ai_prompts')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting AI prompt:', error);
-      return NextResponse.json(
-        { error: 'Failed to delete AI prompt' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error in AI prompt DELETE:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-} 

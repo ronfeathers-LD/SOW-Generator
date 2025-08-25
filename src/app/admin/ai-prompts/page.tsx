@@ -14,6 +14,21 @@ interface AIPrompt {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  current_version?: number;
+}
+
+interface AIPromptVersion {
+  id: string;
+  version_number: number;
+  name: string;
+  description: string;
+  prompt_content: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  created_by: string;
+  change_reason: string;
+  is_current: boolean;
 }
 
 export default function AIPromptsAdminPage() {
@@ -24,12 +39,17 @@ export default function AIPromptsAdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingPrompt, setEditingPrompt] = useState<AIPrompt | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPrompt, setSelectedPrompt] = useState<AIPrompt | null>(null);
+  const [promptVersions, setPromptVersions] = useState<AIPromptVersion[]>([]);
+  const [showVersions, setShowVersions] = useState(false);
+  const [reverting, setReverting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     prompt_content: '',
     is_active: true,
-    sort_order: 0
+    sort_order: 0,
+    change_reason: ''
   });
 
   useEffect(() => {
@@ -56,6 +76,20 @@ export default function AIPromptsAdminPage() {
     }
   };
 
+  const fetchPromptVersions = async (promptId: string) => {
+    try {
+      const response = await fetch(`/api/admin/ai-prompts/${promptId}/versions`);
+      if (response.ok) {
+        const data = await response.json();
+        setPromptVersions(data);
+      } else {
+        setError('Failed to fetch prompt versions');
+      }
+    } catch {
+      setError('Error fetching prompt versions');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -76,8 +110,11 @@ export default function AIPromptsAdminPage() {
       if (response.ok) {
         setIsModalOpen(false);
         setEditingPrompt(null);
-        setFormData({ name: '', description: '', prompt_content: '', is_active: true, sort_order: 0 });
+        setFormData({ name: '', description: '', prompt_content: '', is_active: true, sort_order: 0, change_reason: '' });
         fetchPrompts();
+        if (selectedPrompt) {
+          fetchPromptVersions(selectedPrompt.id);
+        }
       } else {
         setError('Failed to save AI prompt');
       }
@@ -93,14 +130,51 @@ export default function AIPromptsAdminPage() {
       description: prompt.description,
       prompt_content: prompt.prompt_content,
       is_active: prompt.is_active,
-      sort_order: prompt.sort_order
+      sort_order: prompt.sort_order,
+      change_reason: ''
     });
     setIsModalOpen(true);
   };
 
+  const handleViewVersions = async (prompt: AIPrompt) => {
+    setSelectedPrompt(prompt);
+    await fetchPromptVersions(prompt.id);
+    setShowVersions(true);
+  };
 
+  const handleRevert = async (versionId: string, changeReason: string) => {
+    if (!selectedPrompt) return;
+    
+    setReverting(true);
+    try {
+      const response = await fetch(`/api/admin/ai-prompts/${selectedPrompt.id}/revert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          version_id: versionId,
+          change_reason: changeReason
+        }),
+      });
 
+      if (response.ok) {
+        fetchPrompts();
+        fetchPromptVersions(selectedPrompt.id);
+        setError(null);
+      } else {
+        setError('Failed to revert prompt');
+      }
+    } catch {
+      setError('Error reverting prompt');
+    } finally {
+      setReverting(false);
+    }
+  };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
+  };
 
   if (loading) {
     return (
@@ -143,6 +217,9 @@ export default function AIPromptsAdminPage() {
                     <div>
                       <h3 className="text-lg font-medium text-gray-900">{prompt.name}</h3>
                       <p className="text-sm text-gray-600 mt-1">{prompt.description}</p>
+                      {prompt.current_version && (
+                        <p className="text-xs text-gray-500 mt-1">Version: {prompt.current_version}</p>
+                      )}
                     </div>
                     <div className="flex items-center space-x-4">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -153,6 +230,12 @@ export default function AIPromptsAdminPage() {
                         {prompt.is_active ? 'Active' : 'Inactive'}
                       </span>
                       <span className="text-sm text-gray-500">Sort Order: {prompt.sort_order}</span>
+                      <button
+                        onClick={() => handleViewVersions(prompt)}
+                        className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        Version History
+                      </button>
                       <button
                         onClick={() => handleEdit(prompt)}
                         className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -186,7 +269,79 @@ export default function AIPromptsAdminPage() {
           </div>
         )}
 
-        {/* Modal */}
+        {/* Version History Modal */}
+        {showVersions && selectedPrompt && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-10 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white">
+              <div className="mt-3">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Version History: {selectedPrompt.name}
+                  </h3>
+                  <button
+                    onClick={() => setShowVersions(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {promptVersions.map((version) => (
+                    <div key={version.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm font-medium text-gray-900">
+                              Version {version.version_number}
+                            </span>
+                            {version.is_current && (
+                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                Current
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {formatDate(version.created_at)} by {version.created_by}
+                          </p>
+                          {version.change_reason && (
+                            <p className="text-sm text-gray-600 mt-1">
+                              <strong>Reason:</strong> {version.change_reason}
+                            </p>
+                          )}
+                        </div>
+                        {!version.is_current && (
+                          <button
+                            onClick={() => {
+                              const reason = prompt('Enter a reason for this revert:') || 'Reverted to previous version';
+                              handleRevert(version.id, reason);
+                            }}
+                            disabled={reverting}
+                            className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50"
+                          >
+                            {reverting ? 'Reverting...' : 'Revert'}
+                          </button>
+                        )}
+                      </div>
+                      
+                      <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+                        <h5 className="text-sm font-medium text-gray-700 mb-2">Content:</h5>
+                        <div 
+                          className="wysiwyg-content prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: version.prompt_content }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
             <div className="relative top-10 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
@@ -231,6 +386,20 @@ export default function AIPromptsAdminPage() {
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     />
                   </div>
+                  {editingPrompt && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Change Reason
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.change_reason}
+                        onChange={(e) => setFormData({ ...formData, change_reason: e.target.value })}
+                        placeholder="Describe why you're making this change..."
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Prompt Content

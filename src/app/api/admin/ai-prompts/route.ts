@@ -18,7 +18,7 @@ export async function GET() {
 
     const { data: prompts, error } = await supabase
       .from('ai_prompts')
-      .select('*')
+      .select('id, name, description, prompt_content, is_active, sort_order, created_at, updated_at, current_version')
       .order('sort_order', { ascending: true });
 
     if (error) {
@@ -52,6 +52,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // Validate that session.user.id exists
+    if (!session.user?.id) {
+      console.error('Missing session user ID');
+      return NextResponse.json(
+        { error: 'Invalid user session' },
+        { status: 400 }
+      );
+    }
+
+    // Debug logging
+    console.log('Session user ID:', session.user.id, 'Type:', typeof session.user.id);
+
     const body = await request.json();
     const { name, description, prompt_content, is_active, sort_order } = body;
 
@@ -70,7 +82,8 @@ export async function POST(request: Request) {
           description: description || '',
           prompt_content,
           is_active: is_active !== undefined ? is_active : true,
-          sort_order: sort_order || 0
+          sort_order: sort_order || 0,
+          current_version: 1
         }
       ])
       .select()
@@ -82,6 +95,29 @@ export async function POST(request: Request) {
         { error: 'Failed to create AI prompt' },
         { status: 500 }
       );
+    }
+
+    // Create initial version record
+    const { error: versionError } = await supabase
+      .from('ai_prompt_versions')
+      .insert([
+        {
+          prompt_id: prompt.id,
+          version_number: 1,
+          name,
+          description: description || '',
+          prompt_content,
+          is_active: is_active !== undefined ? is_active : true,
+          sort_order: sort_order || 0,
+          created_by: session.user.id,
+          change_reason: 'Initial version',
+          is_current: true
+        }
+      ]);
+
+    if (versionError) {
+      console.error('Error creating initial version record:', versionError);
+      // Don't fail the entire operation if versioning fails
     }
 
     return NextResponse.json(prompt);

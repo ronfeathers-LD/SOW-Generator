@@ -17,6 +17,31 @@ interface TipTapEditorProps {
 
 export default function TipTapEditor({ value, onChange = () => {}, placeholder, initializing = false }: TipTapEditorProps) {
   const isSettingContent = useRef(false);
+  const lastExternalValue = useRef(value);
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const isUserTyping = useRef(false);
+  
+  // Debounced onChange function
+  const debouncedOnChange = useCallback((html: string) => {
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
+    }
+    
+    debounceTimeout.current = setTimeout(() => {
+      lastExternalValue.current = html;
+      isUserTyping.current = false;
+      onChange(html);
+    }, 100); // 100ms debounce
+  }, [onChange]);
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current);
+      }
+    };
+  }, []);
   
   // Helper function to check if content is HTML
   const isHtmlContent = (content: string): boolean => {
@@ -94,7 +119,10 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
     ],
     content: cleanHtmlForTipTap(value),
     onUpdate: ({ editor }) => {
-      if (!initializing && !isSettingContent.current && onChange) {
+      if (!initializing && !isSettingContent.current) {
+        // Mark that user is typing
+        isUserTyping.current = true;
+        
         // Get the HTML from TipTap
         let html = editor.getHTML();
         
@@ -105,7 +133,8 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
         // Also clean up any empty paragraphs that might be left
         html = html.replace(/<p><\/p>/g, '');
         
-        onChange(html);
+        // Use debounced onChange to prevent too frequent updates
+        debouncedOnChange(html);
       }
     },
     editorProps: {
@@ -124,11 +153,14 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
     immediatelyRender: false,
   });
 
-  // Update editor content when value prop changes
+  // Update editor content when value prop changes (only for external changes)
   useEffect(() => {
-    if (editor && value !== editor.getHTML()) {
+    if (editor && value !== lastExternalValue.current && !isUserTyping.current) {
+      // This is an external change, not a user typing change
       isSettingContent.current = true;
       editor.commands.setContent(cleanHtmlForTipTap(value));
+      lastExternalValue.current = value;
+      
       // Reset the flag after a short delay to allow the setContent to complete
       setTimeout(() => {
         isSettingContent.current = false;
