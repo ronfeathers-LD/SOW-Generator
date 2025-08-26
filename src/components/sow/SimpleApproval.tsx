@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import MentionAutocomplete from '@/components/ui/MentionAutocomplete';
 
 interface SimpleApprovalProps {
   sowId: string;
@@ -75,12 +76,11 @@ export default function SimpleApproval({ sowId, sowTitle, clientName, onStatusCh
         <label htmlFor="comments" className="block text-sm font-medium text-gray-700 mb-2">
           Comments (required for rejection)
         </label>
-        <textarea
-          id="comments"
+        <MentionAutocomplete
           value={comments}
-          onChange={(e) => setComments(e.target.value)}
-          placeholder="Add any comments about this SOW..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          onChange={setComments}
+          placeholder="Add any comments about this SOW... Use @username to mention team members"
+          className="w-full"
           rows={3}
         />
       </div>

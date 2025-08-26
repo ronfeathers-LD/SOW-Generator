@@ -14,13 +14,14 @@ export async function GET() {
     const supabase = await createServerSupabaseClient();
     
     // First try to get users with Slack mappings
-    let { data: appUsers, error } = await supabase
+    const { data: initialAppUsers, error: initialError } = await supabase
       .from('users')
       .select('id, email, name, slack_user_id, slack_username, role')
       .or('slack_user_id.not.is.null,slack_username.not.is.null')
       .order('name');
 
     // If no users with Slack mappings found, fall back to all users
+    let appUsers = initialAppUsers;
     if (!appUsers || appUsers.length === 0) {
       console.log('No users with Slack mappings found, falling back to all users');
       const { data: allUsers, error: allUsersError } = await supabase
@@ -44,8 +45,8 @@ export async function GET() {
       })) || [];
     }
 
-    if (error) {
-      console.error('Error fetching app users:', error);
+    if (initialError) {
+      console.error('Error fetching app users:', initialError);
       return NextResponse.json({ 
         error: 'Failed to fetch app users',
         users: []
