@@ -738,16 +738,13 @@ export class PDFGenerator {
             <div class="content">
               <h3>Key Objectives:</h3>
               ${objectives && objectives.length > 0 ? `
-              <div class="text-gray-700 leading-relaxed">
+              <ul style="margin: 0; padding-left: 24px; list-style-type: disc;">
                 ${objectives.map((objective: string) => {
                   const trimmedObjective = objective.trim();
                   if (!trimmedObjective) return '';
-                  return `<div style="display: flex; align-items: flex-start; margin-bottom: 8px;">
-                    <span style="color: #9CA3AF; margin-right: 8px; margin-top: 4px;">•</span>
-                    <span style="flex: 1;">${trimmedObjective}</span>
-                  </div>`;
+                  return `<li style="margin-bottom: 8px; color: #374151;">${trimmedObjective}</li>`;
                 }).join('')}
-              </div>
+              </ul>
               ` : `
               <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; color: #6b7280;">
                 <strong>Key Objectives</strong><br>

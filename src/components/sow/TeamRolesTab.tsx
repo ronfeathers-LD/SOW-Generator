@@ -414,6 +414,46 @@ export default function TeamRolesTab({
     }
   };
 
+  const saveClientRolesWithRoles = async (roles: SOWData['roles']['client_roles']) => {
+    if (!formData.id) {
+      console.error('No SOW ID available for client roles save');
+      return;
+    }
+
+    setIsSavingClientRoles(true);
+    setClientRolesSaveError(null);
+    setClientRolesSaveSuccess(null);
+
+    try {
+      const requestBody = {
+        tab: 'Team & Roles',
+        data: {
+          roles: { ...formData.roles, client_roles: roles }
+        }
+      };
+
+      const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save client roles: ${response.statusText}`);
+      }
+      await response.json(); // Just consume the response
+      setClientRolesSaveSuccess('Client roles saved successfully!');
+      setTimeout(() => setClientRolesSaveSuccess(null), 3000);
+    } catch (error) {
+      setClientRolesSaveError('Failed to save client roles to database');
+      console.error('Error saving client roles:', error);
+    } finally {
+      setIsSavingClientRoles(false);
+    }
+  };
+
   // Debounced save for responsibilities
   const debouncedSaveResponsibilities = (roleIndex: number, responsibilities: string) => {
     // Clear existing timeout
@@ -1515,7 +1555,7 @@ export default function TeamRolesTab({
                         });
                         
                         // Save to database
-                        await saveClientRoles();
+                        await saveClientRolesWithRoles(newRoles);
                       }}
                       className="text-red-600 hover:text-red-800 text-sm font-medium"
                     >
@@ -1542,9 +1582,9 @@ export default function TeamRolesTab({
             });
             
             // Save to database
-            await saveClientRoles();
+            await saveClientRolesWithRoles(newRoles);
           }}
-          className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-background hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
           <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />

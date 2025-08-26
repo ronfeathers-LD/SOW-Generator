@@ -10,6 +10,8 @@
   --background-end-rgb: 255, 255, 255;
 }
 
+/* Disable dark mode to ensure consistent light mode appearance */
+/*
 @media (prefers-color-scheme: dark) {
   :root {
     --foreground-rgb: 255, 255, 255;
@@ -17,6 +19,7 @@
     --background-end-rgb: 0, 0, 0;
   }
 }
+*/
 
 body {
   color: rgb(var(--foreground-rgb));

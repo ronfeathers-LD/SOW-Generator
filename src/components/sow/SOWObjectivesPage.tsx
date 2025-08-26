@@ -103,22 +103,21 @@ export default function SOWObjectivesPage({
           {customKeyObjectivesContent ? (
             <div 
               className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: customKeyObjectivesContent }}
+              dangerouslySetInnerHTML={{ __html: processContent(customKeyObjectivesContent) }}
             />
           ) : (
-            <div className="text-gray-700 leading-relaxed">
+            <ul className="text-gray-700 leading-relaxed list-disc pl-6 space-y-2">
               {keyObjectives.map((objective, index) => {
                 const trimmedObjective = objective.trim();
                 if (!trimmedObjective) return null;
                 
                 return (
-                  <div key={index} className="flex items-start">
-                    <span className="text-gray-400 mr-2 mt-1">•</span>
-                    <span className="flex-1">{trimmedObjective}</span>
-                  </div>
+                  <li key={index} className="text-gray-700">
+                    {trimmedObjective}
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           )}
         </div>
       )}

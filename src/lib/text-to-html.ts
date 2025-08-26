@@ -14,8 +14,20 @@ export function processContent(content: string): string {
     // For HTML content, we need to ensure lists are properly styled
     // Check if the content contains list items that might need styling
     if (content.includes('<li>') || content.includes('<ul>') || content.includes('<ol>')) {
-      // The content already has HTML list structure, but let's ensure proper CSS classes
       let processedContent = content;
+      
+      // Fix malformed list structure: ensure list items are properly wrapped in ul/ol tags
+      // This handles cases where individual <li> elements exist without proper list containers
+      if (content.includes('<li>') && !content.includes('<ul>') && !content.includes('<ol>')) {
+        // We have <li> elements but no list containers - wrap them properly
+        processedContent = processedContent.replace(
+          /(<li[^>]*>.*?<\/li>)/g,
+          '<ul class="list-disc list-inside mb-4">$1</ul>'
+        );
+        
+        // Clean up any duplicate ul tags that might have been created
+        processedContent = processedContent.replace(/<\/ul>\s*<ul[^>]*>/g, '');
+      }
       
       // Ensure ul elements have proper list styling classes
       processedContent = processedContent.replace(

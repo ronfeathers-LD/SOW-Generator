@@ -68,32 +68,55 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
     }
     
     // If it's plain text, convert to basic HTML but be conservative
-    return html
-      .split('\n')
-      .map(line => {
-        const trimmed = line.trim();
-        if (!trimmed) return '';
-        
-        // Handle bullet points - don't wrap in <p> tags
-        if (trimmed.startsWith('• ') || trimmed.startsWith('- ')) {
-          return `<li>${trimmed.substring(2)}</li>`;
+    const lines = html.split('\n');
+    const processedLines: string[] = [];
+    let currentList: string[] = [];
+    
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        // If we have a current list, close it
+        if (currentList.length > 0) {
+          processedLines.push(`<ul>${currentList.join('')}</ul>`);
+          currentList = [];
         }
-        
-        // Handle numbered lists - don't wrap in <p> tags
-        if (/^\d+\.\s/.test(trimmed)) {
-          return `<li>${trimmed.replace(/^\d+\.\s/, '')}</li>`;
-        }
-        
-        // Handle bold text
-        let processed = trimmed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        
-        // Handle italic text
-        processed = processed.replace(/\*(.*?)\*/g, '<em>$1</em>');
-        
-        // Only wrap in <p> if it's not a list item
-        return `<p>${processed}</p>`;
-      })
-      .join('');
+        return;
+      }
+      
+      // Handle bullet points - collect in current list
+      if (trimmed.startsWith('• ') || trimmed.startsWith('- ')) {
+        currentList.push(`<li>${trimmed.substring(2)}</li>`);
+        return;
+      }
+      
+      // Handle numbered lists - collect in current list
+      if (/^\d+\.\s/.test(trimmed)) {
+        currentList.push(`<li>${trimmed.replace(/^\d+\.\s/, '')}</li>`);
+        return;
+      }
+      
+      // If we have a current list and encounter non-list content, close the list first
+      if (currentList.length > 0) {
+        processedLines.push(`<ul>${currentList.join('')}</ul>`);
+        currentList = [];
+      }
+      
+      // Handle bold text
+      let processed = trimmed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      
+      // Handle italic text
+      processed = processed.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      
+      // Wrap in <p> tag
+      processedLines.push(`<p>${processed}</p>`);
+    });
+    
+    // Close any remaining list
+    if (currentList.length > 0) {
+      processedLines.push(`<ul>${currentList.join('')}</ul>`);
+    }
+    
+    return processedLines.join('');
   }, []);
   
   const editor = useEditor({
@@ -132,6 +155,14 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
         
         // Also clean up any empty paragraphs that might be left
         html = html.replace(/<p><\/p>/g, '');
+        
+        // Fix list structure: ensure list items are properly wrapped in ul/ol tags
+        // This handles cases where TipTap generates individual <li> elements without proper list containers
+        html = html.replace(/(<li[^>]*>.*?<\/li>)(?=\s*<li[^>]*>)/g, '<ul>$1');
+        html = html.replace(/(<li[^>]*>.*?<\/li>)(?=\s*<[^l]|$)/g, '$1</ul>');
+        
+        // Clean up any duplicate ul tags that might have been created
+        html = html.replace(/<\/ul>\s*<ul>/g, '');
         
         // Use debounced onChange to prevent too frequent updates
         debouncedOnChange(html);
