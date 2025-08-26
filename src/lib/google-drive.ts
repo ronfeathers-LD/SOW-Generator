@@ -623,7 +623,7 @@ Please provide:
   /**
    * Extract text content from a Google Drive document
    */
-  async extractDocumentContent(documentId: string): Promise<string> {
+  async extractDocumentContent(documentId: string): Promise<{ content: string; wasTruncated: boolean }> {
     try {
       // Get file metadata first
       const fileResponse = await this.drive.files.get({
@@ -671,16 +671,21 @@ Please provide:
       }
 
       // Clean up the content
+      let wasTruncated = false;
       if (content) {
         // Remove extra whitespace and normalize line breaks
         content = content.trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n');
         // Limit content length to prevent overwhelming the AI
-        if (content.length > 10000) {
-          content = content.substring(0, 10000) + '\n\n[Content truncated - document is too long]';
+        if (content.length > 100000) {
+          content = content.substring(0, 100000) + '\n\n[Content truncated - document is too long]';
+          wasTruncated = true;
         }
       }
 
-      return content || 'No content could be extracted from this document.';
+      return {
+        content: content || 'No content could be extracted from this document.',
+        wasTruncated
+      };
     } catch (error) {
       console.error('Error extracting document content:', error);
       throw new Error(`Failed to extract content from document: ${error instanceof Error ? error.message : 'Unknown error'}`);

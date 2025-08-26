@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { parseObjectives } from '@/lib/utils/parse-objectives';
 import SOWTitlePage from '@/components/sow/SOWTitlePage';
 import SOWIntroPage from '@/components/sow/SOWIntroPage';
 import SOWObjectivesPage from '@/components/sow/SOWObjectivesPage';
@@ -195,7 +196,7 @@ export default function PrintSOWPage() {
           ...data,
           // Extract from nested objectives
           objectivesDescription: data.objectives?.description || data.objectives_description || '',
-          objectivesKeyObjectives: data.objectives?.key_objectives || data.objectives_key_objectives || [],
+          objectivesKeyObjectives: parseObjectives(data.objectives?.key_objectives || data.objectives_key_objectives),
           
           // Extract from nested scope
           deliverables: (() => {

@@ -16,6 +16,7 @@ import SimpleApproval from '@/components/sow/SimpleApproval';
 import SOWComments from '@/components/sow/SOWComments';
 import SaveToGoogleDrive from '@/components/sow/SaveToGoogleDrive';
 import { useSession } from 'next-auth/react';
+import { parseObjectives } from '@/lib/utils/parse-objectives';
 
 
 // Validation Submit Button Component
@@ -374,7 +375,7 @@ export default function SOWDetailsPage() {
           ...data,
           deliverables: data.deliverables ? data.deliverables.split('\n').filter(Boolean) : [],
                               projectDescription: data.objectives?.description || '',
-          keyObjectives: Array.isArray(data.objectives?.key_objectives) ? data.objectives.key_objectives : [],
+          keyObjectives: parseObjectives(data.objectives?.key_objectives),
           clientRoles: Array.isArray(data.clientRoles) ? data.clientRoles.map((role: unknown) => {
             const roleObj = role as { role?: string; name?: string; email?: string; responsibilities?: string };
             return {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import MentionAutocomplete from '@/components/ui/MentionAutocomplete';
 import { SlackUser } from '@/lib/slack-user-lookup';
 
@@ -284,6 +285,21 @@ export default function SlackConfigPage() {
         <div className="px-4 py-6 sm:px-0">
           {/* Header */}
           <div className="mb-8">
+            <nav className="flex mb-4" aria-label="Breadcrumb">
+              <ol className="flex items-center space-x-2">
+                <li>
+                  <Link href="/admin" className="text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                    Admin
+                  </Link>
+                </li>
+                <li className="flex items-center">
+                  <svg className="flex-shrink-0 h-4 w-4 text-gray-400 mx-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-gray-900 font-medium">Slack</span>
+                </li>
+              </ol>
+            </nav>
             <h1 className="text-3xl font-bold text-gray-900">Slack Integration</h1>
             <p className="mt-2 text-gray-600">
               Configure Slack notifications for SOW approvals, status changes, and other important events.

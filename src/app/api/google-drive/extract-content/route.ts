@@ -37,9 +37,12 @@ export async function POST(request: NextRequest) {
       refreshToken: driveConfig.refresh_token
     });
     
-    const content = await googleDriveService.extractDocumentContent(documentId);
+    const result = await googleDriveService.extractDocumentContent(documentId);
 
-    return NextResponse.json({ content });
+    return NextResponse.json({ 
+      content: result.content,
+      wasTruncated: result.wasTruncated
+    });
   } catch (error) {
     console.error('Error extracting document content:', error);
     return NextResponse.json(

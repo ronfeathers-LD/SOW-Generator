@@ -41,23 +41,24 @@ export default function MentionAutocomplete({
   const loadSlackUsers = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/slack/workspace-users');
+      // Use the new app-users endpoint instead of workspace-users
+      const response = await fetch('/api/slack/app-users');
       if (response.ok) {
         const data = await response.json();
         // The API returns { users: [...] }, so we need to extract the users array
         if (data.users && Array.isArray(data.users)) {
           latestSuggestionsRef.current = data.users; // Update ref with latest data
-          console.log('Loaded Slack users:', data.users.length); // Debug log
+          console.log('Loaded app users with Slack mappings:', data.users.length); // Debug log
         } else {
           console.warn('Invalid users data received:', data);
           latestSuggestionsRef.current = [];
         }
       } else {
-        console.error('Failed to fetch Slack users:', response.status);
+        console.error('Failed to fetch app users:', response.status);
         latestSuggestionsRef.current = [];
       }
     } catch (error) {
-      console.error('Error loading Slack users:', error);
+      console.error('Error loading app users:', error);
       latestSuggestionsRef.current = [];
     } finally {
       setIsLoading(false);
@@ -202,7 +203,7 @@ export default function MentionAutocomplete({
           ) : (
             <>
               <div className="px-3 py-2 text-xs font-medium text-gray-500 bg-gray-50 border-b">
-                Select a user to mention:
+                Select a registered team member to mention:
               </div>
               {filteredSuggestions.map((user, index) => (
                 <div
@@ -238,7 +239,7 @@ export default function MentionAutocomplete({
       
       {/* Help text */}
       <div className="mt-1 text-xs text-gray-500">
-        💡 Type @ to mention team members. Use arrow keys to navigate suggestions.
+        💡 Type @ to mention registered team members. Use arrow keys to navigate suggestions.
       </div>
     </div>
   );

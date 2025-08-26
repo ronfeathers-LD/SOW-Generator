@@ -1,6 +1,7 @@
 import puppeteer, { Browser } from 'puppeteer';
 import puppeteerCore from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
+import { parseObjectives } from './utils/parse-objectives';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -358,7 +359,7 @@ export class PDFGenerator {
 
     
     // Parse objectives that might be stored as HTML
-    const objectives = this.parseObjectives(sowData.objectives_key_objectives);
+            const objectives = this.parseObjectivesInternal(sowData.objectives_key_objectives);
     const clientRoles = this.parseJSONField(sowData.client_roles, []) as ClientRole[];
     // Parse pricing roles - handle both direct array and nested structure
     let pricingRoles: PricingRole[] = [];
@@ -1073,41 +1074,8 @@ export class PDFGenerator {
   }
 
   // Helper method to parse objectives that might be stored as HTML
-  private parseObjectives(field: unknown): string[] {
-    if (!field) return [];
-    
-    if (Array.isArray(field)) {
-      return field;
-    }
-    
-    if (typeof field === 'string') {
-      // Check if it's HTML content
-      if (field.includes('<ul>') || field.includes('<li>')) {
-        // Extract text content from HTML
-        const textContent = field
-          .replace(/<ul>/g, '')
-          .replace(/<\/ul>/g, '')
-          .replace(/<li>/g, '')
-          .replace(/<\/li>/g, '\n')
-          .trim();
-        
-        // Split by newlines and filter out empty lines
-        return textContent.split('\n').filter(line => line.trim().length > 0);
-      }
-      
-      // Try to parse as JSON first
-      try {
-        const parsed = JSON.parse(field);
-        if (Array.isArray(parsed)) {
-          return parsed;
-        }
-      } catch {
-        // If not JSON, treat as plain text
-        return field.split('\n').filter(line => line.trim().length > 0);
-      }
-    }
-    
-    return [];
+  private parseObjectivesInternal(field: unknown): string[] {
+    return parseObjectives(field);
   }
 
   async close() {

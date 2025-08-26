@@ -25,6 +25,7 @@ export default function ObjectivesTab({
     mimeType: string;
     size?: string;
     content?: string;
+    wasTruncated?: boolean;
   }>>([]);
   
   // Rotating messages for analysis process
@@ -503,7 +504,7 @@ export default function ObjectivesTab({
   };
 
   // Function to extract text content from selected documents
-  const extractDocumentContent = async (documentId: string): Promise<string> => {
+  const extractDocumentContent = async (documentId: string): Promise<{ content: string; wasTruncated: boolean }> => {
     try {
       const response = await fetch('/api/google-drive/extract-content', {
         method: 'POST',
@@ -516,10 +517,16 @@ export default function ObjectivesTab({
       }
 
       const data = await response.json();
-      return data.content || 'No content could be extracted from this document.';
+      return {
+        content: data.content || 'No content could be extracted from this document.',
+        wasTruncated: data.wasTruncated || false
+      };
     } catch (error) {
       console.error('Error extracting document content:', error);
-      return `Error extracting content: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return {
+        content: `Error extracting content: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        wasTruncated: false
+      };
     }
   };
 
@@ -530,12 +537,15 @@ export default function ObjectivesTab({
     mimeType: string;
     size?: string;
     content?: string;
+    wasTruncated?: boolean;
   }>) => {
     // Extract content from newly selected documents
     const documentsWithContent = await Promise.all(
       documents.map(async (doc) => {
         if (!doc.content) {
-          doc.content = await extractDocumentContent(doc.id);
+          const result = await extractDocumentContent(doc.id);
+          doc.content = result.content;
+          doc.wasTruncated = result.wasTruncated;
         }
         return doc;
       })
@@ -598,6 +608,27 @@ export default function ObjectivesTab({
                             <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
                             <p className="text-xs text-gray-500">{doc.mimeType}</p>
                             {doc.size && <p className="text-xs text-gray-500">{doc.size}</p>}
+                            {doc.wasTruncated && (
+                              <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                                <div className="flex items-center text-yellow-800">
+                                  <svg className="w-4 h-4 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                  </svg>
+                                  <span className="text-xs font-medium">Content Truncated</span>
+                                </div>
+                                <p className="text-xs text-yellow-700 mt-1">
+                                  This document was too long and had to be shortened. Some content may be missing from the AI analysis.
+                                </p>
+                                <div className="mt-2 p-2 bg-yellow-100 border border-yellow-300 rounded">
+                                  <p className="text-xs text-yellow-800 font-medium mb-1">💡 Tip: Improve AI Analysis</p>
+                                  <p className="text-xs text-yellow-700">
+                                    You can edit the transcription field below to remove non-essential content like introductions, 
+                                    small talk, or repetitive information. This will help the AI focus on the most important 
+                                    project details and provide better analysis.
+                                  </p>
+                                </div>
+                              </div>
+                            )}
                           </div>
                           <button
                             type="button"

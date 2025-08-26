@@ -32,7 +32,9 @@ function updateCache(users: SlackUser[]): void {
 
 export async function GET(request: Request) {
   try {
-
+    // Get search query from URL parameters
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get('query')?.toLowerCase().trim();
     
     // Rate limiting check
     const clientIP = request.headers.get('x-forwarded-for') || 
@@ -60,8 +62,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if we have valid cached data first
-    if (isCacheValid() && userCache.data && userCache.data.length > 0) {
+    // Check if we have valid cached data first (only for non-search queries to avoid cache misses)
+    if (!query && isCacheValid() && userCache.data && userCache.data.length > 0) {
       console.log(`Returning ${userCache.data!.length} users from cache`);
       
       const response = NextResponse.json({ users: userCache.data });
@@ -90,8 +92,24 @@ export async function GET(request: Request) {
       // Fetch all Slack users
       const allSlackUsers = await SlackUserLookupService.getAllUsers();
       
+      // Apply search filter if query is provided
+      let filteredUsers = allSlackUsers;
+      if (query) {
+        filteredUsers = allSlackUsers.filter(user => {
+          const searchFields = [
+            user.name?.toLowerCase(),
+            user.profile?.display_name?.toLowerCase(),
+            user.profile?.real_name?.toLowerCase(),
+            user.profile?.email?.toLowerCase()
+          ].filter((field): field is string => Boolean(field));
+          
+          return searchFields.some(field => field.includes(query));
+        });
+        console.log(`Filtered ${allSlackUsers.length} users to ${filteredUsers.length} matching "${query}"`);
+      }
+      
       // Simple alphabetical sorting - no complex mapping logic
-      const sortedUsers = allSlackUsers.sort((a, b) => {
+      const sortedUsers = filteredUsers.sort((a, b) => {
         const aUsername = a.name?.toLowerCase() || '';
         const bUsername = b.name?.toLowerCase() || '';
         return aUsername.localeCompare(bUsername);
@@ -105,11 +123,17 @@ export async function GET(request: Request) {
         isSystemUser: false // No more system user concept
       }));
       
-      // Update our server-side cache
-      updateCache(usersWithFlags);
+      // Update our server-side cache (only for non-search queries to avoid cache misses)
+      if (!query) {
+        updateCache(usersWithFlags);
+      }
       
       // Add cache headers to reduce client-side requests
-      const response = NextResponse.json({ users: usersWithFlags });
+      const response = NextResponse.json({ 
+        users: usersWithFlags,
+        total: usersWithFlags.length,
+        message: query ? `Search results for "${query}"` : 'Slack workspace users retrieved successfully'
+      });
       response.headers.set('Cache-Control', 'public, max-age=18000'); // Cache for 5 hours
       response.headers.set('ETag', `"${sortedUsers.length}-${Date.now()}"`); // Simple ETag
       

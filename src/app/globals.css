@@ -136,6 +136,26 @@ p {
   padding: 10px;
 }
 
+/* Breadcrumb Navigation - Remove List Markers */
+nav[aria-label="Breadcrumb"] ol,
+nav[aria-label="Breadcrumb"] ol li {
+  list-style: none !important;
+  list-style-type: none !important;
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+nav[aria-label="Breadcrumb"] li {
+  display: inline-flex !important;
+  align-items: center;
+}
+
+/* Additional specificity to override any inherited list styles */
+nav[aria-label="Breadcrumb"] ol li::before,
+nav[aria-label="Breadcrumb"] ol li::after {
+  content: none !important;
+}
+
 /* TipTap Table Resize Handles - Global Styles */
 .ProseMirror table .column-resize-handle {
   background-color: #3b82f6 !important;
