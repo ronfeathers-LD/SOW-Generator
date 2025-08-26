@@ -35,11 +35,12 @@ ALTER TABLE users ADD CONSTRAINT check_slack_username_format
   CHECK (slack_username IS NULL OR slack_username ~ '^[a-z0-9._-]+$');
 
 -- Add unique constraints (a Slack user can only be mapped to one app user)
+-- Note: These constraints only apply to non-null values
 ALTER TABLE users ADD CONSTRAINT unique_slack_user_id 
-  UNIQUE (slack_user_id) WHERE slack_user_id IS NOT NULL;
+  UNIQUE (slack_user_id);
 
 ALTER TABLE users ADD CONSTRAINT unique_slack_username 
-  UNIQUE (slack_username) WHERE slack_username IS NOT NULL;
+  UNIQUE (slack_username);
 
 -- Add indexes for faster Slack user ID lookups
 CREATE INDEX IF NOT EXISTS idx_users_slack_user_id ON users(slack_user_id);
