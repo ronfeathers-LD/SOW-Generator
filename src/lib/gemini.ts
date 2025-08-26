@@ -11,18 +11,13 @@ interface GeminiGenerationResponse {
   summary: string;
 }
 
-
-
 interface TranscriptionAnalysisResponse {
-  html?: string; // HTML content from AI
-  objectiveOverview?: string;
-  painPoints?: string[];
-  overcomingActions?: string[]; // Alternative field name for pain points
-  solutions?: Record<string, string[]>;
-  isFallback?: boolean;
+  customerName: string;
+  objectiveOverview: string;
+  overcomingActions: string[];
+  solutions: Record<string, string[]>;
+  isFallback: boolean;
   error?: string;
-  rawContent?: string;
-  [key: string]: unknown; // Keep flexible for backward compatibility
 }
 
 class GeminiClient {
@@ -42,7 +37,7 @@ class GeminiClient {
   switchModel(newModelName: string) {
     this.modelName = newModelName;
     this.model = this.genAI.getGenerativeModel({ model: this.modelName });
-          // Model switched
+    console.log(`Model switched to ${newModelName}`);
   }
 
   /**
@@ -238,7 +233,8 @@ Please provide a professional, 2-3 sentence project description that captures th
     customerName: string,
     selectedProducts?: string[],
     existingDescription?: string,
-    existingObjectives?: string[]
+    existingObjectives?: string[],
+    supportingDocuments?: string
   ): Promise<TranscriptionAnalysisResponse> {
     const models = GeminiClient.getAvailableModels();
     let lastError: Error | null = null;
@@ -254,7 +250,7 @@ Please provide a professional, 2-3 sentence project description that captures th
         // Trying model
         this.switchModel(modelName);
         
-        const result = await this.analyzeTranscription(transcript, customerName, selectedProducts, existingDescription, existingObjectives);
+        const result = await this.analyzeTranscription(transcript, customerName, selectedProducts, existingDescription, existingObjectives, supportingDocuments);
                   // Success with model
         return result;
         
@@ -287,7 +283,8 @@ Please provide a professional, 2-3 sentence project description that captures th
     customerName: string,
     selectedProducts?: string[],
     existingDescription?: string,
-    existingObjectives?: string[]
+    existingObjectives?: string[],
+    supportingDocuments?: string
   ): Promise<TranscriptionAnalysisResponse> {
     // Fetch the AI prompt from the database
     const { supabase } = await import('@/lib/supabase');
@@ -305,23 +302,65 @@ Please provide a professional, 2-3 sentence project description that captures th
       throw new Error('Failed to fetch AI prompt from database. Please check the prompt configuration.');
     }
     
-    // Check if the database prompt has the required placeholders
-    const hasRequiredPlaceholders = aiPrompt.prompt_content.includes('{customerName}') && 
-                                 aiPrompt.prompt_content.includes('{transcription}') && 
-                                 aiPrompt.prompt_content.includes('{selectedProducts}');
+    // Database prompt loaded successfully
+
+    // Build the complete prompt by combining:
+    // 1. Fixed JSON structure requirements (code-based, non-editable)
+    // 2. Editable content analysis guidance (from database)
+    // 3. Dynamic data (transcript, customer info, etc.)
     
-    if (!hasRequiredPlaceholders) {
-      console.error('Database prompt missing required placeholders. Please update the prompt template.');
-      throw new Error('Database prompt is missing required placeholders. Please update the prompt template to include {customerName}, {transcription}, and {selectedProducts}.');
+    // Build the solutions object - products are now pre-sorted by the API route
+    let solutionsTemplate;
+    
+    if (selectedProducts && selectedProducts.length > 0) {
+      // Products are already sorted by database sort_order from the API route
+      solutionsTemplate = selectedProducts.map(product => `    "${product}": [
+      "Specific solution item related to ${product}, as discussed in the transcript."
+    ]`).join(',\n');
+    } else {
+      solutionsTemplate = `    "productName1": [
+      "Specific solution item related to productName1, as discussed in the transcript."
+    ]`;
     }
     
-    // Use the prompt from the database, replacing placeholders
-    const finalPrompt = aiPrompt.prompt_content
-      .replace(/\{customerName\}/g, customerName)
-      .replace(/\{transcription\}/g, transcript)
-      .replace(/\{selectedProducts\}/g, selectedProducts ? selectedProducts.join(', ') : '')
-      .replace(/\{existingDescription\}/g, existingDescription || '')
-      .replace(/\{existingObjectives\}/g, existingObjectives ? JSON.stringify(existingObjectives) : '[]');
+    const jsonStructure = `
+IMPORTANT: You must respond with valid JSON in exactly this format:
+{
+  "customerName": "${customerName}",
+  "objectiveOverview": "A comprehensive paragraph summarizing the customer's primary goals and the overall purpose of the project. This paragraph must explicitly mention the company name from the customerName variable and the LeanData products being implemented.",
+  "overcomingActions": [
+    "An objective or action we will take to overcome a pain point.",
+    "Another objective or action.",
+    "A third objective or action."
+  ],
+  "solutions": {
+${solutionsTemplate}
+  },
+  "isFallback": false
+}
+
+CRITICAL: The solutions object must maintain the EXACT order of products as shown above. Do not reorder, rename, or change the product names.
+
+Input Variables Available:
+- customerName: "${customerName}"
+- transcription: [Full meeting transcript provided]
+- selectedProducts: "${selectedProducts ? selectedProducts.join(', ') : 'None specified'}"
+- existingDescription: "${existingDescription || 'None provided'}"
+- existingObjectives: "${existingObjectives ? JSON.stringify(existingObjectives) : 'None provided'}"
+- supportingDocuments: "${supportingDocuments || 'None provided'}"
+
+The response must be valid JSON. Do not include any text before or after the JSON.`;
+
+    // The database prompt now contains only content analysis guidance (no placeholders)
+    // We use it as-is since the fixed structure already includes all the dynamic data
+    const contentGuidance = aiPrompt.prompt_content;
+
+    // Combine fixed structure with editable guidance
+    const finalPrompt = `${jsonStructure}
+
+${contentGuidance}`;
+
+
 
     return this.executePrompt(finalPrompt, transcript, customerName);
   }
@@ -337,6 +376,8 @@ Please provide a professional, 2-3 sentence project description that captures th
     const startTime = Date.now();
     let geminiResponse = '';
     let error: Error | undefined;
+
+
 
     try {
       const result = await this.model.generateContent(prompt);
@@ -383,7 +424,7 @@ Please provide a professional, 2-3 sentence project description that captures th
         // If JSON parsing failed or content doesn't look like JSON, try HTML processing
         if (cleanedContent.startsWith('<') || cleanedContent.includes('>')) {
           console.log('Processing as HTML content');
-          return { html: cleanedContent, isFallback: false };
+          return { customerName: customerName, objectiveOverview: 'Objective could not be extracted', overcomingActions: [], solutions: {}, isFallback: true };
         }
 
         // If neither JSON nor HTML, throw error
@@ -425,8 +466,6 @@ Please provide a professional, 2-3 sentence project description that captures th
    * Extract fallback content when JSON parsing fails
    */
   private extractFallbackContent(content: string): { objective: string; scopeItems: string[] } {
-    console.log('=== EXTRACTING FALLBACK CONTENT ===');
-    
     // Try to find any structured content
     const lines = content.split('\n').filter(line => line.trim().length > 0);
     const scopeItems: string[] = [];
@@ -459,7 +498,8 @@ export async function analyzeTranscription(
   customerName: string,
   selectedProducts?: string[],
   existingDescription?: string,
-  existingObjectives?: string[]
+  existingObjectives?: string[],
+  supportingDocuments?: string
 ): Promise<TranscriptionAnalysisResponse> {
   // Get API key from database using server-side client
   const { createServerSupabaseClient } = await import('@/lib/supabase-server');
@@ -486,5 +526,5 @@ export async function analyzeTranscription(
 
   // Use the primary API key with the saved model
   const client = new GeminiClient(config.api_key, config.model_name || 'gemini-2.5-flash');
-  return await client.analyzeTranscriptionWithFallback(transcript, customerName, selectedProducts, existingDescription, existingObjectives);
+  return await client.analyzeTranscriptionWithFallback(transcript, customerName, selectedProducts, existingDescription, existingObjectives, supportingDocuments);
 } 

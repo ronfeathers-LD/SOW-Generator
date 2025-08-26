@@ -528,6 +528,166 @@ Please provide:
   }
 
   /**
+   * List root folders in Google Drive
+   */
+  async listRootFolders(): Promise<DriveSearchResult[]> {
+    try {
+      const response = await this.drive.files.list({
+        q: "'root' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
+        fields: 'files(id,name,mimeType,createdTime,modifiedTime)',
+        orderBy: 'name',
+        pageSize: 100
+      });
+
+      return (response.data.files || []).map(file => ({
+        id: file.id || '',
+        name: file.name || '',
+        mimeType: file.mimeType || '',
+        createdTime: file.createdTime || '',
+        modifiedTime: file.modifiedTime || ''
+      }));
+    } catch (error) {
+      console.error('Error listing root folders:', error);
+      throw new Error(`Failed to list root folders: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get folder contents and metadata
+   */
+  async getFolderContents(folderId: string): Promise<{
+    folder: { id: string; name: string; path: string[] };
+    contents: Array<{
+      id: string;
+      name: string;
+      mimeType: string;
+      size?: string;
+      createdTime: string;
+      modifiedTime: string;
+    }>;
+  }> {
+    try {
+      // Get folder info
+      const folderResponse = await this.drive.files.get({
+        fileId: folderId,
+        fields: 'id,name,parents'
+      });
+
+      const folder = folderResponse.data;
+
+      // Get folder contents
+      const contentsResponse = await this.drive.files.list({
+        q: `'${folderId}' in parents and trashed=false`,
+        fields: 'files(id,name,mimeType,size,createdTime,modifiedTime)',
+        orderBy: 'name',
+        pageSize: 100
+      });
+
+      const contents = contentsResponse.data.files || [];
+
+      // Build folder path for breadcrumb navigation
+      let folderPath: string[] = [];
+      if (folder.parents && folder.parents.length > 0) {
+        try {
+          const parentResponse = await this.drive.files.get({
+            fileId: folder.parents[0],
+            fields: 'name'
+          });
+          folderPath = [parentResponse.data.name || 'Unknown'];
+        } catch (error) {
+          console.warn('Could not get parent folder name:', error);
+        }
+      }
+
+      return {
+        folder: {
+          id: folder.id || '',
+          name: folder.name || '',
+          path: folderPath
+        },
+        contents: contents.map(item => ({
+          id: item.id || '',
+          name: item.name || '',
+          mimeType: item.mimeType || '',
+          size: item.size || undefined,
+          createdTime: item.createdTime || '',
+          modifiedTime: item.modifiedTime || ''
+        }))
+      };
+    } catch (error) {
+      console.error('Error getting folder contents:', error);
+      throw new Error(`Failed to get folder contents: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Extract text content from a Google Drive document
+   */
+  async extractDocumentContent(documentId: string): Promise<string> {
+    try {
+      // Get file metadata first
+      const fileResponse = await this.drive.files.get({
+        fileId: documentId,
+        fields: 'id,name,mimeType'
+      });
+
+      const file = fileResponse.data;
+      const mimeType = file.mimeType;
+
+      let content = '';
+
+      // Handle different Google Workspace file types
+      if (mimeType === 'application/vnd.google-apps.document') {
+        // Google Docs - export as plain text
+        const exportResponse = await this.drive.files.export({
+          fileId: documentId,
+          mimeType: 'text/plain'
+        });
+        content = exportResponse.data as string;
+      } else if (mimeType === 'application/vnd.google-apps.spreadsheet') {
+        // Google Sheets - export as CSV
+        const exportResponse = await this.drive.files.export({
+          fileId: documentId,
+          mimeType: 'text/csv'
+        });
+        content = exportResponse.data as string;
+      } else if (mimeType === 'application/vnd.google-apps.presentation') {
+        // Google Slides - export as plain text
+        const exportResponse = await this.drive.files.export({
+          fileId: documentId,
+          mimeType: 'text/plain'
+        });
+        content = exportResponse.data as string;
+      } else if (mimeType === 'text/plain' || mimeType === 'text/csv' || mimeType === 'application/pdf') {
+        // Plain text, CSV, or PDF files - download content
+        const downloadResponse = await this.drive.files.get({
+          fileId: documentId,
+          alt: 'media'
+        });
+        content = downloadResponse.data as string;
+      } else {
+        // For other file types, return a placeholder
+        content = `[Content extraction not supported for ${mimeType} files]`;
+      }
+
+      // Clean up the content
+      if (content) {
+        // Remove extra whitespace and normalize line breaks
+        content = content.trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        // Limit content length to prevent overwhelming the AI
+        if (content.length > 10000) {
+          content = content.substring(0, 10000) + '\n\n[Content truncated - document is too long]';
+        }
+      }
+
+      return content || 'No content could be extracted from this document.';
+    } catch (error) {
+      console.error('Error extracting document content:', error);
+      throw new Error(`Failed to extract content from document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
    * Set Gemini client after initialization
    */
   setGeminiClient(geminiClient: GeminiClient) {

@@ -30,27 +30,53 @@ export default function SaveToGoogleDrive({ sowId, customerName, sowTitle }: Sav
     setMessage(null);
     
     try {
-      const response = await fetch('/api/google-drive/search', {
+      // Start with fast search for immediate results
+      const fastResponse = await fetch('/api/google-drive/fast-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          query: customerName,
-          useAI: true 
+          query: customerName
         })
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setFolders(data.searchResults || []);
+      if (fastResponse.ok) {
+        const fastData = await fastResponse.json();
+        const fastResults = fastData.searchResults || [];
         
-        if (data.searchResults.length === 0) {
+        // Show fast results immediately
+        setFolders(fastResults);
+        
+        if (fastResults.length === 0) {
           setMessage({ 
             type: 'error', 
             text: `No folders found for customer "${customerName}". You may need to create a folder first.` 
           });
         }
+        
+        // Now enhance with AI search in the background (non-blocking)
+        fetch('/api/google-drive/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            query: customerName,
+            useAI: true 
+          })
+        }).then(async (aiResponse) => {
+          if (aiResponse.ok) {
+            const aiData = await aiResponse.json();
+            const aiResults = aiData.searchResults || [];
+            
+            // Update with AI-enhanced results if they're better
+            if (aiResults.length > fastResults.length) {
+              setFolders(aiResults);
+            }
+          }
+        }).catch(err => {
+          console.warn('AI enhancement failed, but fast search results are already displayed:', err);
+        });
+        
       } else {
-        const error = await response.json();
+        const error = await fastResponse.json();
         
         // Check if re-authentication is needed
         if (error.needsReauth) {
@@ -234,7 +260,11 @@ export default function SaveToGoogleDrive({ sowId, customerName, sowTitle }: Sav
                   {searching ? '🔍 Searching...' : '🔍 Search for Customer Folder'}
                 </button>
                 
-
+                {searching && (
+                  <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
+                    🔍 Searching for customer folders... Google Drive lookup can be slow.
+                  </div>
+                )}
               </div>
 
               {folders.length > 0 && (

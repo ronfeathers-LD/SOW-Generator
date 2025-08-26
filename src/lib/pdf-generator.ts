@@ -205,7 +205,7 @@ interface SOWData {
 }
 
 export class PDFGenerator {
-  private browser: any = null;
+  private browser: import('puppeteer').Browser | import('puppeteer-core').Browser | null = null;
 
   async initialize() {
     if (!this.browser) {

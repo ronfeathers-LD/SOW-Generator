@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { analyzeTranscription } from '@/lib/gemini';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,7 +11,31 @@ export async function POST(request: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const { transcript, customerName, selectedProducts, existingDescription, existingObjectives } = await request.json();
+    const { transcript, customerName, selectedProducts, existingDescription, existingObjectives, supportingDocuments } = await request.json();
+    
+    // Sort products by database sort_order if we have products
+    let sortedProducts = selectedProducts;
+    if (selectedProducts && selectedProducts.length > 0) {
+      try {
+        const supabase = await createServerSupabaseClient();
+        
+        // Fetch products with their sort_order to maintain proper order
+        const { data: productsWithOrder, error } = await supabase
+          .from('products')
+          .select('name, sort_order')
+          .in('name', selectedProducts)
+          .order('sort_order', { ascending: true });
+        
+        if (error) {
+          console.error('Error fetching product order:', error);
+        } else if (productsWithOrder && productsWithOrder.length > 0) {
+          // Use the database order
+          sortedProducts = productsWithOrder.map(p => p.name);
+        }
+      } catch (dbError) {
+        console.error('Database error during product ordering:', dbError);
+      }
+    }
 
     if (!transcript) {
       return NextResponse.json({ error: 'Transcription is required' }, { status: 400 });
@@ -23,9 +48,10 @@ export async function POST(request: NextRequest) {
     const result = await analyzeTranscription(
       transcript, 
       customerName, 
-      selectedProducts, 
+      sortedProducts, 
       existingDescription, 
-      existingObjectives
+      existingObjectives,
+      supportingDocuments
     );
 
     // Check if the result contains an error

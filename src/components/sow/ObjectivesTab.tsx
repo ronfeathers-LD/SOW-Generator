@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SOWData } from '@/types/sow';
 import TipTapEditor from '../TipTapEditor';
 import LoadingModal from '../ui/LoadingModal';
+import GoogleDriveDocumentSelector from '../GoogleDriveDocumentSelector';
 
 interface ObjectivesTabProps {
   formData: Partial<SOWData>;
@@ -16,12 +17,22 @@ export default function ObjectivesTab({
 }: ObjectivesTabProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isFetchingTranscription, setIsFetchingTranscription] = useState(false);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
+
   const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
+  const [selectedDocuments, setSelectedDocuments] = useState<Array<{
+    id: string;
+    name: string;
+    mimeType: string;
+    size?: string;
+    content?: string;
+  }>>([]);
   
   // Rotating messages for analysis process
   const [currentAnalysisMessage, setCurrentAnalysisMessage] = useState(0);
   const [analysisMessageTimer, setAnalysisMessageTimer] = useState<NodeJS.Timeout | null>(null);
+  
+  // Google Drive preloading state
+  const [isGoogleDrivePreloading, setIsGoogleDrivePreloading] = useState(false);
 
   // Get customer name from selected account or form data
   const customerName = selectedAccount?.name || formData.template?.client_name || formData.header?.client_name || '';
@@ -65,6 +76,18 @@ export default function ObjectivesTab({
       }
     };
   }, [analysisMessageTimer]);
+  
+  // Start preloading Google Drive data immediately when page loads
+  React.useEffect(() => {
+    if (customerName) {
+      setIsGoogleDrivePreloading(true);
+      // Trigger preload in GoogleDriveDocumentSelector
+      const event = new CustomEvent('preloadGoogleDrive', { 
+        detail: { customerName } 
+      });
+      window.dispatchEvent(event);
+    }
+  }, [customerName]);
 
 
 
@@ -86,8 +109,7 @@ export default function ObjectivesTab({
         avoma_transcription: transcription 
       }
     });
-    // Clear any previous analysis errors when transcription changes
-    setAnalysisError(null);
+    // Clear any previous transcription errors when transcription changes
     setTranscriptionError(null);
   };
 
@@ -175,33 +197,38 @@ export default function ObjectivesTab({
     const transcription = formData.objectives?.avoma_transcription;
     
     if (!transcription || !transcription.trim()) {
-      setAnalysisError('Please paste a transcription first');
       return;
     }
 
     if (!customerName) {
-      setAnalysisError('Customer name is required. Please select an account in the Customer Information tab first.');
       return;
     }
 
     setIsAnalyzing(true);
-    setAnalysisError(null);
     startAnalysisMessages(); // Start rotating messages
 
     try {
-      const response = await fetch('/api/gemini/analyze-transcription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          transcript: transcription,
-          customerName: customerName,
-          existingDescription: formData.objectives?.description || '',
-          existingObjectives: formData.objectives?.key_objectives || [],
-          selectedProducts: formData.template?.products || []
-        }),
-      });
+              // Prepare supporting documents content
+        const supportingDocsContent = selectedDocuments.length > 0 
+          ? selectedDocuments.map(doc => `${doc.name}:\n${doc.content || 'Content not available'}`).join('\n\n')
+          : '';
+
+
+
+        const response = await fetch('/api/gemini/analyze-transcription', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            transcript: transcription,
+            customerName: customerName,
+            existingDescription: formData.objectives?.description || '',
+            existingObjectives: formData.objectives?.key_objectives || [],
+            selectedProducts: formData.template?.products || [],
+            supportingDocuments: supportingDocsContent
+          }),
+        });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -434,7 +461,7 @@ export default function ObjectivesTab({
       
       // Show fallback warning if applicable
       if (result.isFallback) {
-        setAnalysisError('Note: AI response was generated using fallback parsing due to formatting issues. Please review the content carefully.');
+        // Note: AI response was generated using fallback parsing due to formatting issues. Please review the content carefully.
       }
 
       // Show success message for scope generation
@@ -454,25 +481,67 @@ export default function ObjectivesTab({
         if (errorMessage.includes('API key not valid') || 
             errorMessage.includes('API_KEY_INVALID') ||
             errorMessage.includes('not configured')) {
-          setAnalysisError('Gemini AI is not properly configured. Please contact your administrator to set up the API key.');
+          console.error('Gemini AI is not properly configured. Please contact your administrator to set up the API key.');
           return;
         }
         
         // Network or other errors
         if (errorMessage.includes('fetch') || errorMessage.includes('network')) {
-          setAnalysisError('Network error occurred. Please check your connection and try again.');
+          console.error('Network error occurred. Please check your connection and try again.');
           return;
         }
         
         // Generic error handling
-        setAnalysisError(errorMessage);
+        console.error('Analysis error:', errorMessage);
       } else {
-        setAnalysisError('An unexpected error occurred. Please try again.');
+        console.error('An unexpected error occurred. Please try again.');
       }
     } finally {
       setIsAnalyzing(false);
       stopAnalysisMessages(); // Stop rotating messages
     }
+  };
+
+  // Function to extract text content from selected documents
+  const extractDocumentContent = async (documentId: string): Promise<string> => {
+    try {
+      const response = await fetch('/api/google-drive/extract-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to extract content: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.content || 'No content could be extracted from this document.';
+    } catch (error) {
+      console.error('Error extracting document content:', error);
+      return `Error extracting content: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  };
+
+  // Function to handle document selection
+  const handleDocumentsSelected = async (documents: Array<{
+    id: string;
+    name: string;
+    mimeType: string;
+    size?: string;
+    content?: string;
+  }>) => {
+    // Extract content from newly selected documents
+    const documentsWithContent = await Promise.all(
+      documents.map(async (doc) => {
+        if (!doc.content) {
+          doc.content = await extractDocumentContent(doc.id);
+        }
+        return doc;
+      })
+    );
+    
+    setSelectedDocuments(documentsWithContent);
   };
 
   
@@ -482,38 +551,104 @@ export default function ObjectivesTab({
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-2xl font-bold mb-6">Project Objectives & Scope</h2>
         
-        {/* Customer Name and Avoma URL Section */}
+        {/* Google Drive Document Selection */}
         <div className="mb-8">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900">Customer & Avoma Integration</h3>
+          <h3 className="text-lg font-semibold mb-4 text-gray-900">Supporting Documents</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Select additional documents from Google Drive to include in AI analysis
+          </p>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column - Google Drive Document Selector */}
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 mb-3">Document Selection</h4>
+                {isGoogleDrivePreloading && (
+                  <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded-md mb-3 border border-blue-200">
+                    🔍 Searching for customer folders... Google Drive lookup can be slow.
+                  </div>
+                )}
+                <GoogleDriveDocumentSelector
+                  onDocumentsSelected={handleDocumentsSelected}
+                  selectedDocuments={selectedDocuments}
+                  customerName={customerName}
+                />
+              </div>
+              
+              {/* Right Column - Selected Documents Preview */}
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 mb-3">Selected Documents</h4>
+                
+                {selectedDocuments.length === 0 ? (
+                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-md">
+                    <div className="text-center text-gray-500">
+                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <p className="mt-2 text-sm">No documents selected</p>
+                      <p className="text-xs">Use the document selector to choose files</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {selectedDocuments.map((doc, index) => (
+                      <div key={doc.id} className="p-3 bg-white border border-gray-200 rounded-md">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
+                            <p className="text-xs text-gray-500">{doc.mimeType}</p>
+                            {doc.size && <p className="text-xs text-gray-500">{doc.size}</p>}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newDocs = selectedDocuments.filter((_, i) => i !== index);
+                              setSelectedDocuments(newDocs);
+                            }}
+                            className="ml-2 p-1 text-gray-400 hover:text-red-500"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                      <div className="flex items-center text-green-700">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-sm font-medium">
+                          {selectedDocuments.length} document{selectedDocuments.length !== 1 ? 's' : ''} selected
+                        </span>
+                      </div>
+                      <p className="text-xs text-green-600 mt-1">
+                        These documents will be included in AI analysis
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Avoma Meeting & Transcription */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold mb-4 text-gray-900">Avoma Meeting & Transcription</h3>
           <p className="text-sm text-gray-600 mb-4">
             Enter an Avoma meeting URL to automatically fetch the transcription and generate objectives and deliverables.
           </p>
           
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
-              {/* Left Column - Customer Name */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column - Avoma URL & Fetch */}
               <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-2">Customer Name</h4>
-                <p className="text-sm text-gray-600 mb-2">
-                  Customer name from selected account in Customer Information tab
-                </p>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={() => {}} // Read-only
-                  placeholder="Select an account in Customer Information tab..."
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
-                  disabled
-                />
-              </div>
-              
-              {/* Right Column - Avoma URL with Search Link */}
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-2">Avoma Meeting URL</h4>
-                <p className="text-sm text-gray-600 mb-2">
-                  Paste the URL from your Avoma meeting or search for meetings
-                </p>
-                <div className="space-y-2">
+                <h4 className="text-lg font-medium text-gray-900 mb-3">Meeting URL & Fetch</h4>
+                
+                <div className="space-y-3">
                   <input
                     type="url"
                     value={formData.objectives?.avoma_url || ''}
@@ -521,6 +656,31 @@ export default function ObjectivesTab({
                     placeholder="https://app.avoma.com/meetings/..."
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   />
+                  
+                  <button
+                    type="button"
+                    onClick={handleFetchTranscription}
+                    disabled={isFetchingTranscription || !(formData.objectives?.avoma_url || '').trim()}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isFetchingTranscription ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Fetching...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+                        </svg>
+                        Fetch Transcription
+                      </>
+                    )}
+                  </button>
+                  
                   {customerName && (
                     <a
                       href={`https://app.avoma.com/search?q=${customerName.split(' ').join('%2C')}`}
@@ -535,210 +695,89 @@ export default function ObjectivesTab({
                     </a>
                   )}
                 </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
                 
-              </div>
-              <button
-                type="button"
-                onClick={handleFetchTranscription}
-                disabled={isFetchingTranscription || !(formData.objectives?.avoma_url || '').trim()}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isFetchingTranscription ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Fetching...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
-                    </svg>
-                    Fetch Transcription
-                  </>
+                {transcriptionError && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <svg className="h-4 w-4 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-2">
+                        <p className="text-red-700 text-sm">{transcriptionError}</p>
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </button>
-            </div>
-            
-
-            
-            {transcriptionError && (
-              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-red-700 text-sm">{transcriptionError}</p>
-                  </div>
-                </div>
               </div>
-            )}
-            
+              
+              {/* Right Column - Transcription Display */}
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 mb-3">Transcription</h4>
+                
+                {formData.objectives?.avoma_transcription ? (
+                  <div className="space-y-3">
+                    <textarea
+                      value={formData.objectives.avoma_transcription}
+                      onChange={(e) => handleTranscriptionChange(e.target.value)}
+                      rows={8}
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 font-mono text-sm"
+                      placeholder="Transcription will appear here..."
+                    />
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-gray-600">
+                        {formData.objectives.avoma_transcription.length} characters
+                      </div>
+                      
 
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-md">
+                    <div className="text-center text-gray-500">
+                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <p className="mt-2 text-sm">No transcription yet</p>
+                      <p className="text-xs">Enter an Avoma URL and click fetch to get started</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Call Transcription - Full Width */}
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Call Transcription</h3>
-            <p className="text-sm text-gray-600">
-              Review the transcription from your scoping call
-            </p>
-          </div>
-          
-          <textarea
-            value={formData.objectives?.avoma_transcription || ''}
-            onChange={(e) => handleTranscriptionChange(e.target.value)}
-            rows={7}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-mono text-sm"
-            placeholder="Paste the transcription from your scoping call here, or use the Avoma integration above to fetch it automatically..."
-          />
-          
-          {analysisError && (
-            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-red-700 text-sm">{analysisError}</p>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {formData.objectives?.avoma_transcription && !customerName && (
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-blue-800">Customer Name Required</h3>
-                  <div className="mt-2 text-sm text-blue-700">
-                    <p>To generate objectives and deliverables, you need to:</p>
-                    <ol className="list-decimal list-inside mt-1 space-y-1">
-                      <li>Go to the <strong>Customer Information</strong> tab</li>
-                      <li>Select a customer account or enter the customer name</li>
-                      <li>Return to this tab to generate content</li>
-                    </ol>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {!formData.objectives?.avoma_transcription && customerName && (
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-blue-800">Transcription Required</h3>
-                  <div className="mt-2 text-sm text-blue-700">
-                    <p>To generate objectives and deliverables, you need to:</p>
-                    <ol className="list-decimal list-inside mt-1 space-y-1">
-                      <li>Enter an Avoma meeting URL above and click &quot;Fetch Transcription&quot;</li>
-                      <li>Or paste the meeting transcription directly into the text area below</li>
-                      <li>Then click &quot;Generate Objectives & Deliverables&quot;</li>
-                    </ol>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {!formData.objectives?.avoma_transcription && !customerName && (
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-blue-800">Setup Required</h3>
-                  <div className="mt-2 text-sm text-blue-700">
-                    <p>To generate objectives and deliverables, you need to:</p>
-                    <ol className="list-decimal list-inside mt-1 space-y-1">
-                      <li>Go to the <strong>Customer Information</strong> tab and select a customer</li>
-                      <li>Return to this tab and add a meeting transcription</li>
-                      <li>Then click &quot;Generate Objectives & Deliverables&quot;</li>
-                    </ol>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Generate Objectives & Deliverables Button */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="text-sm text-gray-600">
-            Generate objectives and deliverables from the transcription above
+        {formData.objectives?.avoma_transcription && customerName && (
+          <div className="flex justify-center mb-8">
+            <button
+              type="button"
+              onClick={() => handleAnalyzeTranscription()}
+              disabled={isAnalyzing}
+              className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-semibold rounded-lg shadow-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105"
+            >
+              {isAnalyzing ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Analyzing Transcription...
+                </>
+              ) : (
+                <>
+                  <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  Generate Objectives & Deliverables
+                </>
+              )}
+            </button>
           </div>
-          <div className="flex items-center space-x-3">
-            {formData.objectives?.avoma_transcription && customerName && (
-              <button
-                type="button"
-                onClick={() => handleAnalyzeTranscription()}
-                disabled={isAnalyzing}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
-                    Generate Objectives & Deliverables
-                  </>
-                )}
-              </button>
-            )}
-            {formData.objectives?.avoma_transcription && !customerName && (
-              <div className="inline-flex items-center px-4 py-2 border border-yellow-300 text-sm font-medium rounded-md text-yellow-800 bg-yellow-50">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-                Customer name required
-              </div>
-            )}
-            {!formData.objectives?.avoma_transcription && customerName && (
-              <div className="inline-flex items-center px-4 py-2 border border-yellow-300 text-sm font-medium rounded-md text-yellow-800 bg-yellow-50">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-                Transcription required
-              </div>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* Full Width Layout */}
         <div className="space-y-6">
