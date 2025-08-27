@@ -662,8 +662,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
 
 
-  const handleTabSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleTabSave = async () => {
     
 
     
@@ -678,12 +677,17 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
 
 
-    try {
-      setIsSaving(true);
-      const url = `/api/sow/${initialData.id}/tab-update`;
+          try {
+        setIsSaving(true);
+        const url = `/api/sow/${initialData.id}/tab-update`;
+        
+        console.log('🔍 API URL:', url);
+        
+        // Prepare tab-specific data
+        let tabData: Record<string, unknown> = {};
       
-      // Prepare tab-specific data
-      let tabData: Record<string, unknown> = {};
+      console.log('🔍 handleTabSave - activeTab:', activeTab);
+      console.log('🔍 handleTabSave - formData:', formData);
       
       switch (activeTab) {
         case 'Project Overview':
@@ -708,6 +712,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               }
             }
           };
+          console.log('🔍 Project Overview tabData:', tabData);
           break;
 
         case 'Customer Information':
@@ -853,6 +858,11 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       }
 
 
+      
+      console.log('🔍 About to send to API:', {
+        tab: activeTab,
+        data: tabData,
+      });
       
       const response = await fetch(url, {
         method: 'PUT',
@@ -1058,7 +1068,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         </div>
       )}
 
-      <form onSubmit={handleTabSave} className="space-y-8">
+      <div className="space-y-8">
       {/* Tab Navigation */}
       <div className="mb-8 border-b border-gray-200">
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
@@ -1128,6 +1138,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           selectedAccount={selectedAccount}
           selectedContact={selectedContact}
           getSalesforceLink={getSalesforceLink}
+          isActiveTab={activeTab === 'Signers & Roles'}
         />
       )}
 
@@ -1179,7 +1190,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       {activeTab !== 'Content Editing' && activeTab !== 'Signers & Roles' && activeTab !== 'Billing Information' && (
         <div className="flex justify-end">
           <button
-            type="submit"
+            type="button"
+            onClick={handleTabSave}
             disabled={isSaving}
             className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -1197,7 +1209,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           </button>
         </div>
       )}
-    </form>
+    </div>
     </div>
   );
 } 

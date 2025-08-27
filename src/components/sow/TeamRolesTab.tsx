@@ -13,6 +13,7 @@ interface TeamRolesTabProps {
   selectedAccount: { id: string; name: string } | null;
   selectedContact: SalesforceContact | null;
   getSalesforceLink: (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => string;
+  isActiveTab: boolean; // Add this prop to know if this tab is currently active
 }
 
 export default function TeamRolesTab({
@@ -24,6 +25,7 @@ export default function TeamRolesTab({
   selectedAccount,
   selectedContact,
   getSalesforceLink,
+  isActiveTab,
 }: TeamRolesTabProps) {
 
   const [availableContacts, setAvailableContacts] = useState<SalesforceContact[]>([]);
@@ -246,6 +248,11 @@ export default function TeamRolesTab({
 
 
   const saveClientRoles = async () => {
+    // Only auto-save if this tab is currently active
+    if (!isActiveTab) {
+      return;
+    }
+    
     if (!formData.id) {
       console.error('No SOW ID available for client roles save');
       return;
@@ -286,6 +293,11 @@ export default function TeamRolesTab({
   };
 
   const saveClientRolesWithRoles = async (roles: SOWData['roles']['client_roles']) => {
+    // Only auto-save if this tab is currently active
+    if (!isActiveTab) {
+      return;
+    }
+    
     if (!formData.id) {
       console.error('No SOW ID available for client roles save');
       return;
@@ -327,6 +339,11 @@ export default function TeamRolesTab({
 
   // Debounced save for responsibilities
   const debouncedSaveResponsibilities = (roleIndex: number, responsibilities: string) => {
+    // Only auto-save if this tab is currently active
+    if (!isActiveTab) {
+      return;
+    }
+    
     // Clear existing timeout
     if (responsibilitiesSaveTimeout) {
       clearTimeout(responsibilitiesSaveTimeout);
