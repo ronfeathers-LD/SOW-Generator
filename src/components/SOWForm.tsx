@@ -7,6 +7,7 @@ import ProjectOverviewTab from './sow/ProjectOverviewTab';
 import CustomerInformationTab from './sow/CustomerInformationTab';
 import ObjectivesTab from './sow/ObjectivesTab';
 import TeamRolesTab from './sow/TeamRolesTab';
+import BillingInformationTab from './sow/BillingInformationTab';
 import BillingPaymentTab from './sow/BillingPaymentTab';
 import ContentEditingTab from './sow/ContentEditingTab';
 
@@ -410,25 +411,31 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     // Initialize selected LeanData signatory when signatories are loaded and we have initial data
   useEffect(() => {
     if (leanDataSignatories && leanDataSignatories.length > 0 && initialData) {
-      // Find the signatory that matches the existing data
-      const matchingSignatory = leanDataSignatories.find(signatory =>
-        signatory.name === initialData.template?.lean_data_name ||
-        signatory.email === initialData.template?.lean_data_email
-      );
+      // First try to use the stored leandata_signatory_id if available
+      if (initialData.leandata_signatory_id) {
+        setSelectedLeanDataSignatory(initialData.leandata_signatory_id);
+      } else {
+        // Fallback to matching by name or email for backward compatibility
+        const matchingSignatory = leanDataSignatories.find(signatory =>
+          signatory.name === initialData.template?.lean_data_name ||
+          signatory.email === initialData.template?.lean_data_email
+        );
 
-      if (matchingSignatory) {
-        setSelectedLeanDataSignatory(matchingSignatory.id);
+        if (matchingSignatory) {
+          setSelectedLeanDataSignatory(matchingSignatory.id);
+        }
       }
     }
   }, [leanDataSignatories, initialData]);
 
-    const handleLeanDataSignatoryChange = (signatoryId: string) => {
+    const handleLeanDataSignatoryChange = async (signatoryId: string): Promise<void> => {
     setSelectedLeanDataSignatory(signatoryId);
 
     if (signatoryId && leanDataSignatories) {
       const selectedSignatory = leanDataSignatories.find(s => s.id === signatoryId);
       if (selectedSignatory) {
-        setFormData({
+        // Update local form data
+        const updatedFormData = {
           ...formData,
           template: {
             ...formData.template!,
@@ -438,7 +445,39 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             lean_data_signature_name: selectedSignatory.name,
             lean_data_signature: selectedSignatory.title
           }
-        });
+        };
+        setFormData(updatedFormData);
+
+        // Save to database immediately
+        if (formData.id) {
+          try {
+            const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                tab: 'Signers & Roles',
+                data: {
+                  leandata_signatory_id: signatoryId,
+                  template: {
+                    lean_data_name: selectedSignatory.name,
+                    lean_data_title: selectedSignatory.title,
+                    lean_data_email: selectedSignatory.email,
+                    lean_data_signature_name: selectedSignatory.name,
+                    lean_data_signature: selectedSignatory.title
+                  }
+                }
+              })
+            });
+
+            if (!response.ok) {
+              console.error('Failed to save LeanData signatory:', response.statusText);
+            }
+          } catch (error) {
+            console.error('Error saving LeanData signatory:', error);
+          }
+        }
       }
     }
   };
@@ -718,12 +757,12 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           };
           break;
 
-        case 'Team & Roles':
+        case 'Signers & Roles':
           tabData = {
             roles: {
               client_roles: formData.roles?.client_roles,
             },
-            // Also save contact information
+            // Save signer information
             template: {
               customer_signature_name: formData.template?.customer_signature_name,
               customer_email: formData.template?.customer_email,
@@ -732,16 +771,27 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               customer_signature_name_2: formData.template?.customer_signature_name_2,
               customer_signature_2: formData.template?.customer_signature_2,
               customer_email_2: formData.template?.customer_email_2,
+              // LeanData signatory information
+              lean_data_name: formData.template?.lean_data_name,
+              lean_data_title: formData.template?.lean_data_title,
+              lean_data_email: formData.template?.lean_data_email,
+            },
+            // Save Salesforce contact ID
+            salesforce_contact_id: selectedContact?.Id || null,
+            // Save LeanData signatory ID
+            leandata_signatory_id: selectedLeanDataSignatory || null,
+          };
+          break;
 
-              // Billing contact information
+        case 'Billing Information':
+          tabData = {
+            template: {
               billing_contact_name: formData.template?.billing_contact_name,
               billing_email: formData.template?.billing_email,
               billing_company_name: formData.template?.billing_company_name,
               billing_address: formData.template?.billing_address,
               purchase_order_number: formData.template?.purchase_order_number,
             },
-            // Save Salesforce contact ID
-            salesforce_contact_id: selectedContact?.Id || null,
             // Save billing information
             pricing: {
               billing: formData.pricing?.billing
@@ -852,8 +902,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     { key: 'Project Overview', label: 'Project Overview' },
     { key: 'Customer Information', label: 'Customer Information' },
     { key: 'Objectives', label: 'Objectives' },
-    { key: 'Team & Roles', label: 'Team & Roles' },
-            { key: 'Pricing', label: 'Pricing' },
+    { key: 'Signers & Roles', label: 'Signers & Roles' },
+    { key: 'Billing Information', label: 'Billing Information' },
+    { key: 'Pricing', label: 'Pricing' },
     { key: 'Content Editing', label: 'Content Editing' },
   ], []);
 
@@ -1066,8 +1117,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         />
       )}
 
-      {/* Team & Roles Section */}
-      {activeTab === 'Team & Roles' && (
+      {/* Signers & Roles Section */}
+      {activeTab === 'Signers & Roles' && (
         <TeamRolesTab
           formData={formData}
           setFormData={updateFormData}
@@ -1076,12 +1127,18 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           onLeanDataSignatoryChange={handleLeanDataSignatoryChange}
           selectedAccount={selectedAccount}
           selectedContact={selectedContact}
-
           getSalesforceLink={getSalesforceLink}
         />
       )}
 
-
+      {/* Billing Information Section */}
+      {activeTab === 'Billing Information' && (
+        <BillingInformationTab
+          formData={formData}
+          setFormData={updateFormData}
+          selectedAccount={selectedAccount}
+        />
+      )}
 
       {/* Pricing Section */}
         {activeTab === 'Pricing' && (
@@ -1118,8 +1175,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         />
       )}
 
-      {/* Submit Button - Hidden for Content Editing and Team & Roles tabs since they have auto-save */}
-      {activeTab !== 'Content Editing' && activeTab !== 'Team & Roles' && (
+      {/* Submit Button - Hidden for Content Editing, Signers & Roles, and Billing Information tabs since they have auto-save */}
+      {activeTab !== 'Content Editing' && activeTab !== 'Signers & Roles' && activeTab !== 'Billing Information' && (
         <div className="flex justify-end">
           <button
             type="submit"

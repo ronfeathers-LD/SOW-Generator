@@ -94,6 +94,8 @@ export async function GET(
       client_signer_name: sow.client_signer_name || '',
       // Explicitly include salesforce_account_id
       salesforce_account_id: sow.salesforce_account_id || null,
+      // Include LeanData signatory ID
+      leandata_signatory_id: sow.leandata_signatory_id || null,
       // Include custom content fields
       custom_intro_content: sow.custom_intro_content || null,
       custom_scope_content: sow.custom_scope_content || null,

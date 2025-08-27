@@ -62,7 +62,7 @@ export function validateSOWForApproval(sowData: { [key: string]: unknown }): SOW
     missingFields.push('Deliverables');
   }
 
-  // Team & Roles Tab validation
+  // Signers & Roles Tab validation
   if (!sowData.client_signer_name || ((sowData.client_signer_name as string) || '').trim() === '') {
     missingFields.push('Customer Signer');
   }

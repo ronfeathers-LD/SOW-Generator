@@ -178,6 +178,9 @@ export interface SOWData {
   opportunity_amount?: number;
   opportunity_stage?: string;
   opportunity_close_date?: string;
+  
+  // LeanData Signatory Information
+  leandata_signatory_id?: string;
 
   // Custom content tracking
   custom_intro_content?: string;

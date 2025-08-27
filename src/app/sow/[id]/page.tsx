@@ -266,6 +266,10 @@ interface SOW {
     customer_signature_name?: string;
     customer_signature?: string;
     customer_email?: string;
+    // LeanData signatory fields
+    lean_data_name?: string;
+    lean_data_title?: string;
+    lean_data_email?: string;
   };
 
   // Approval/Rejection fields
@@ -447,6 +451,10 @@ export default function SOWDetailsPage() {
             customer_signature_name: data.template?.customer_signature_name || data.client_signer_name || '',
             customer_signature: data.template?.customer_signature || data.client_title || '',
             customer_email: data.template?.customer_email || data.client_email || '',
+            // LeanData signatory fields
+            lean_data_name: data.template?.lean_data_name || '',
+            lean_data_title: data.template?.lean_data_title || '',
+            lean_data_email: data.template?.lean_data_email || '',
           },
           
           custom_intro_content: data.custom_intro_content || undefined,
@@ -731,6 +739,11 @@ export default function SOWDetailsPage() {
                       title: sow.customer_signature_2 || '',
                       email: sow.customer_email_2 || '',
                       date: ''
+                    } : undefined}
+                    leanDataSignature={sow.template?.lean_data_name && sow.template?.lean_data_title && sow.template?.lean_data_email ? {
+                      name: sow.template.lean_data_name,
+                      title: sow.template.lean_data_title,
+                      email: sow.template.lean_data_email
                     } : undefined}
                   />
                 </div>

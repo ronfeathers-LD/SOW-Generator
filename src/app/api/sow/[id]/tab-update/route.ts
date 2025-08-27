@@ -100,8 +100,8 @@ export async function PUT(
         if (data.key_objectives_content_edited !== undefined) updateData.key_objectives_content_edited = data.key_objectives_content_edited;
         break;
 
-      case 'Team & Roles':
-        // Handle team and roles data
+      case 'Signers & Roles':
+        // Handle signers and roles data only
         // Check if data.template exists, otherwise look for template data at the top level
         const templateData = data.template || data;
         
@@ -113,31 +113,13 @@ export async function PUT(
           if (templateData.customer_signature_name_2 !== undefined) updateData.customer_signature_name_2 = templateData.customer_signature_name_2;
           if (templateData.customer_signature_2 !== undefined) updateData.customer_signature_2 = templateData.customer_signature_2;
           if (templateData.customer_email_2 !== undefined) updateData.customer_email_2 = templateData.customer_email_2;
-
-          // Billing contact information - store in billing_info JSONB field
-          if (templateData.billing_contact_name !== undefined || templateData.billing_email !== undefined ||
-              templateData.billing_company_name !== undefined || templateData.billing_address !== undefined ||
-              templateData.purchase_order_number !== undefined) {
-            // Get existing billing_info or create new object
-            const existingBillingInfo = updateData.billing_info || {};
-            updateData.billing_info = {
-              ...existingBillingInfo,
-              billing_contact: templateData.billing_contact_name !== undefined ? 
-                templateData.billing_contact_name : (existingBillingInfo as Record<string, unknown>).billing_contact,
-              billing_email: templateData.billing_email !== undefined ? 
-                templateData.billing_email : (existingBillingInfo as Record<string, unknown>).billing_email,
-              company_name: templateData.billing_company_name !== undefined ? 
-                templateData.billing_company_name : (existingBillingInfo as Record<string, unknown>).company_name,
-              billing_address: templateData.billing_address !== undefined ? 
-                templateData.billing_address : (existingBillingInfo as Record<string, unknown>).billing_address,
-              po_number: templateData.purchase_order_number !== undefined ? 
-                templateData.purchase_order_number : (existingBillingInfo as Record<string, unknown>).po_number,
-            };
-          }
+          // LeanData signatory information
+          if (templateData.lean_data_name !== undefined) updateData.leandata_name = templateData.lean_data_name;
+          if (templateData.lean_data_title !== undefined) updateData.leandata_title = templateData.lean_data_title;
+          if (templateData.lean_data_email !== undefined) updateData.leandata_email = templateData.lean_data_email;
         }
+        
         if (data.roles?.client_roles !== undefined) updateData.client_roles = data.roles.client_roles;
-        if (data.pricing?.roles !== undefined) updateData.pricing_roles = data.pricing.roles;
-        // Note: billing information is handled above in the template section
 
         // Handle Salesforce contact ID
         if (data.salesforce_contact_id !== undefined) {
@@ -148,6 +130,36 @@ export async function PUT(
         if (data.leandata_signatory_id !== undefined) {
           updateData.leandata_signatory_id = data.leandata_signatory_id;
         }
+        break;
+
+      case 'Billing Information':
+        // Handle billing information data
+        const billingTemplateData = data.template || data;
+        
+        if (billingTemplateData) {
+          // Billing contact information - store in billing_info JSONB field
+          if (billingTemplateData.billing_contact_name !== undefined || billingTemplateData.billing_email !== undefined ||
+              billingTemplateData.billing_company_name !== undefined || billingTemplateData.billing_address !== undefined ||
+              billingTemplateData.purchase_order_number !== undefined) {
+            // Get existing billing_info or create new object
+            const existingBillingInfo = updateData.billing_info || {};
+            updateData.billing_info = {
+              ...existingBillingInfo,
+              billing_contact: billingTemplateData.billing_contact_name !== undefined ? 
+                billingTemplateData.billing_contact_name : (existingBillingInfo as Record<string, unknown>).billing_contact,
+              billing_email: billingTemplateData.billing_email !== undefined ? 
+                billingTemplateData.billing_email : (existingBillingInfo as Record<string, unknown>).billing_email,
+              company_name: billingTemplateData.billing_company_name !== undefined ? 
+                billingTemplateData.billing_company_name : (existingBillingInfo as Record<string, unknown>).company_name,
+              billing_address: billingTemplateData.billing_address !== undefined ? 
+                billingTemplateData.billing_address : (existingBillingInfo as Record<string, unknown>).billing_address,
+              po_number: billingTemplateData.purchase_order_number !== undefined ? 
+                billingTemplateData.purchase_order_number : (existingBillingInfo as Record<string, unknown>).po_number,
+            };
+          }
+        }
+        
+        if (data.pricing?.billing !== undefined) updateData.pricing_roles = data.pricing.billing;
         break;
 
       case 'Pricing':
