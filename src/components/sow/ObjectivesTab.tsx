@@ -34,6 +34,9 @@ export default function ObjectivesTab({
   
   // Google Drive preloading state
   const [isGoogleDrivePreloading, setIsGoogleDrivePreloading] = useState(false);
+  
+  // Multiple Avoma recordings support
+  const [newAvomaUrl, setNewAvomaUrl] = useState('');
 
   // Get customer name from selected account or form data
   const customerName = selectedAccount?.name || formData.template?.client_name || formData.header?.client_name || '';
@@ -92,15 +95,7 @@ export default function ObjectivesTab({
 
 
 
-  const handleAvomaUrlChange = (url: string) => {
-    setFormData({
-      ...formData,
-      objectives: { 
-        ...formData.objectives!, 
-        avoma_url: url 
-      }
-    });
-  };
+
 
   const handleTranscriptionChange = (transcription: string) => {
     setFormData({
@@ -112,6 +107,115 @@ export default function ObjectivesTab({
     });
     // Clear any previous transcription errors when transcription changes
     setTranscriptionError(null);
+  };
+
+  // Add new Avoma recording
+  const handleAddAvomaRecording = async () => {
+    if (!newAvomaUrl.trim()) return;
+    
+    const newRecording = {
+      id: Date.now().toString(), // Simple ID generation
+      url: newAvomaUrl.trim(),
+      status: 'pending' as const,
+      title: `Recording ${(formData.objectives?.avoma_recordings?.length || 0) + 1}`,
+      date: new Date().toISOString()
+    };
+    
+    const updatedRecordings = [
+      ...(formData.objectives?.avoma_recordings || []),
+      newRecording
+    ];
+    
+    setFormData({
+      ...formData,
+      objectives: {
+        ...formData.objectives!,
+        avoma_recordings: updatedRecordings
+      }
+    });
+    
+    setNewAvomaUrl('');
+    
+    // Automatically fetch transcription for the new recording
+    await handleFetchTranscriptionForRecording(newRecording.id);
+  };
+
+  // Remove Avoma recording
+  const handleRemoveAvomaRecording = (recordingId: string) => {
+    const updatedRecordings = (formData.objectives?.avoma_recordings || [])
+      .filter(recording => recording.id !== recordingId);
+    
+    setFormData({
+      ...formData,
+      objectives: {
+        ...formData.objectives!,
+        avoma_recordings: updatedRecordings
+      }
+    });
+  };
+
+  // Fetch transcription for a specific recording
+  const handleFetchTranscriptionForRecording = async (recordingId: string) => {
+    const recording = formData.objectives?.avoma_recordings?.find(r => r.id === recordingId);
+    if (!recording) return;
+    
+    setIsFetchingTranscription(true);
+    setTranscriptionError(null);
+    
+    try {
+      const response = await fetch('/api/avoma/transcription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          avomaUrl: recording.url.trim()
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch transcription');
+      }
+
+      // Update the specific recording with transcription
+      const updatedRecordings = (formData.objectives?.avoma_recordings || []).map(r => 
+        r.id === recordingId 
+          ? { ...r, transcription: result.transcription, status: 'completed' as const }
+          : r
+      );
+      
+      setFormData({
+        ...formData,
+        objectives: {
+          ...formData.objectives!,
+          avoma_recordings: updatedRecordings
+        }
+      });
+
+    } catch (error) {
+      console.error('Error fetching transcription:', error);
+      
+      // Update recording status to failed
+      const updatedRecordings = (formData.objectives?.avoma_recordings || []).map(r => 
+        r.id === recordingId 
+          ? { ...r, status: 'failed' as const }
+          : r
+      );
+      
+      setFormData({
+        ...formData,
+        objectives: {
+          ...formData.objectives!,
+          avoma_recordings: updatedRecordings
+        }
+      });
+      
+      setTranscriptionError(error instanceof Error ? error.message : 'Failed to fetch transcription');
+    } finally {
+      setIsFetchingTranscription(false);
+    }
   };
 
 
@@ -152,56 +256,34 @@ export default function ObjectivesTab({
     });
   };
 
-  const handleFetchTranscription = async () => {
-    const currentAvomaUrl = formData.objectives?.avoma_url || '';
-    if (!currentAvomaUrl.trim()) {
-      setTranscriptionError('Please enter an Avoma meeting URL');
-      return;
-    }
 
-    setIsFetchingTranscription(true);
-    setTranscriptionError(null);
-
-    try {
-      const response = await fetch('/api/avoma/transcription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          avomaUrl: currentAvomaUrl.trim()
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to fetch transcription');
-      }
-
-      if (result.transcription) {
-        handleTranscriptionChange(result.transcription);
-        // Keep the URL in the form data (don't clear it)
-      } else {
-        throw new Error('No transcription content received');
-      }
-
-    } catch (error) {
-      console.error('Error fetching transcription:', error);
-      setTranscriptionError(error instanceof Error ? error.message : 'Failed to fetch transcription');
-    } finally {
-      setIsFetchingTranscription(false);
-    }
-  };
 
   const handleAnalyzeTranscription = async () => {
-    const transcription = formData.objectives?.avoma_transcription;
+    // Get all available transcriptions
+    const recordings = formData.objectives?.avoma_recordings || [];
+    const legacyTranscription = formData.objectives?.avoma_transcription;
     
-    if (!transcription || !transcription.trim()) {
+    const allTranscriptions: string[] = [];
+    
+    // Add legacy transcription if it exists
+    if (legacyTranscription && legacyTranscription.trim()) {
+      allTranscriptions.push(legacyTranscription.trim());
+    }
+    
+    // Add all completed recordings
+    recordings.forEach(recording => {
+      if (recording.transcription && recording.transcription.trim()) {
+        allTranscriptions.push(recording.transcription.trim());
+      }
+    });
+    
+    if (allTranscriptions.length === 0) {
+      setTranscriptionError('No transcriptions available for analysis');
       return;
     }
 
     if (!customerName) {
+      setTranscriptionError('Customer name is required for analysis');
       return;
     }
 
@@ -209,20 +291,24 @@ export default function ObjectivesTab({
     startAnalysisMessages(); // Start rotating messages
 
     try {
-              // Prepare supporting documents content
-        const supportingDocsContent = selectedDocuments.length > 0 
-          ? selectedDocuments.map(doc => `${doc.name}:\n${doc.content || 'Content not available'}`).join('\n\n')
-          : '';
+      // Combine all transcriptions with clear separators
+      const combinedTranscription = allTranscriptions.map((transcription, index) => {
+        const source = recordings[index]?.title || `Recording ${index + 1}`;
+        return `=== ${source} ===\n${transcription}\n\n`;
+      }).join('');
 
+      // Prepare supporting documents content
+      const supportingDocsContent = selectedDocuments.length > 0 
+        ? selectedDocuments.map(doc => `${doc.name}:\n${doc.content || 'Content not available'}`).join('\n\n')
+        : '';
 
-
-        const response = await fetch('/api/gemini/analyze-transcription', {
+      const response = await fetch('/api/gemini/analyze-transcription', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            transcript: transcription,
+            transcript: combinedTranscription,
             customerName: customerName,
             existingDescription: formData.objectives?.description || '',
             existingObjectives: formData.objectives?.key_objectives || [],
@@ -704,118 +790,171 @@ export default function ObjectivesTab({
           </div>
         </div>
 
-        {/* Avoma Meeting & Transcription */}
+        {/* Multiple Avoma Recordings & Transcriptions */}
         <div className="mb-8">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900">Avoma Meeting & Transcription</h3>
+          <h3 className="text-lg font-semibold mb-4 text-gray-900">Avoma Recordings & Transcriptions</h3>
           <p className="text-sm text-gray-600 mb-4">
-            Enter an Avoma meeting URL to automatically fetch the transcription and generate objectives and deliverables.
+            Add multiple Avoma meeting URLs to automatically fetch transcriptions and generate comprehensive objectives and deliverables.
           </p>
           
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column - Avoma URL & Fetch */}
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-3">Meeting URL & Fetch</h4>
-                
-                <div className="space-y-3">
-                  <input
-                    type="url"
-                    value={formData.objectives?.avoma_url || ''}
-                    onChange={(e) => handleAvomaUrlChange(e.target.value)}
-                    placeholder="https://app.avoma.com/meetings/..."
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                  
-                  <button
+            {/* Add New Recording */}
+            <div className="mb-6">
+              <h4 className="text-lg font-medium text-gray-900 mb-3">Add New Recording</h4>
+              <div className="flex space-x-3">
+                <input
+                  type="url"
+                  value={newAvomaUrl}
+                  onChange={(e) => setNewAvomaUrl(e.target.value)}
+                  placeholder="https://app.avoma.com/meetings/..."
+                  className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+                                  <button
                     type="button"
-                    onClick={handleFetchTranscription}
-                    disabled={isFetchingTranscription || !(formData.objectives?.avoma_url || '').trim()}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleAddAvomaRecording}
+                    disabled={!newAvomaUrl.trim()}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isFetchingTranscription ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Fetching...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
-                        </svg>
-                        Fetch Transcription
-                      </>
-                    )}
+                    Add Recording
                   </button>
-                  
-                  {customerName && (
-                    <a
-                      href={`https://app.avoma.com/search?q=${customerName.split(' ').join('%2C')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                      Search Avoma for &quot;{customerName}&quot; meetings
-                    </a>
-                  )}
-                </div>
-                
-                {transcriptionError && (
-                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                    <div className="flex">
-                      <div className="flex-shrink-0">
-                        <svg className="h-4 w-4 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                      <div className="ml-2">
-                        <p className="text-red-700 text-sm">{transcriptionError}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {/* Right Column - Transcription Display */}
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-3">Transcription</h4>
-                
-                {formData.objectives?.avoma_transcription ? (
-                  <div className="space-y-3">
-                    <textarea
-                      value={formData.objectives.avoma_transcription}
-                      onChange={(e) => handleTranscriptionChange(e.target.value)}
-                      rows={8}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 font-mono text-sm"
-                      placeholder="Transcription will appear here..."
-                    />
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-gray-600">
-                        {formData.objectives.avoma_transcription.length} characters
-                      </div>
-                      
-
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-md">
-                    <div className="text-center text-gray-500">
-                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <p className="mt-2 text-sm">No transcription yet</p>
-                      <p className="text-xs">Enter an Avoma URL and click fetch to get started</p>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
+
+            {/* Recordings List */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-medium text-gray-900">Recordings</h4>
+              
+              {/* Legacy single transcription (if exists) */}
+              {formData.objectives?.avoma_transcription && (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <div className="flex items-center justify-between mb-2">
+                    <h5 className="font-medium text-yellow-800">Legacy Transcription</h5>
+                    <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded">Legacy</span>
+                  </div>
+                  <textarea
+                    value={formData.objectives.avoma_transcription}
+                    onChange={(e) => handleTranscriptionChange(e.target.value)}
+                    rows={4}
+                    className="w-full rounded-md border-yellow-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 font-mono text-sm"
+                    placeholder="Legacy transcription..."
+                  />
+                  <div className="text-xs text-yellow-600 mt-1">
+                    {formData.objectives.avoma_transcription.length} characters
+                  </div>
+                </div>
+              )}
+
+              {/* Multiple recordings */}
+              {formData.objectives?.avoma_recordings?.map((recording) => (
+                <div key={recording.id} className="p-4 bg-white border border-gray-200 rounded-md">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex-1">
+                      <h5 className="font-medium text-gray-900">{recording.title}</h5>
+                      <p className="text-sm text-gray-600">{recording.url}</p>
+                      <p className="text-xs text-gray-500">{recording.date ? new Date(recording.date).toLocaleDateString() : 'Unknown date'}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className={`px-2 py-1 text-xs rounded ${
+                        recording.status === 'completed' ? 'bg-green-100 text-green-800' :
+                        recording.status === 'failed' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {recording.status}
+                      </span>
+                      <button
+                        onClick={() => handleRemoveAvomaRecording(recording.id)}
+                        className="text-red-600 hover:text-red-800 p-1"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  {recording.status === 'pending' && (
+                    <button
+                      onClick={() => handleFetchTranscriptionForRecording(recording.id)}
+                      disabled={isFetchingTranscription}
+                      className="w-full px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {isFetchingTranscription ? 'Fetching...' : 'Fetch Transcription'}
+                    </button>
+                  )}
+
+                  {recording.status === 'failed' && (
+                    <button
+                      onClick={() => handleFetchTranscriptionForRecording(recording.id)}
+                      disabled={isFetchingTranscription}
+                      className="w-full px-3 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {isFetchingTranscription ? 'Retrying...' : 'Retry Transcription'}
+                    </button>
+                  )}
+
+                  {recording.transcription && (
+                    <div className="mt-3">
+                      <textarea
+                        value={recording.transcription}
+                        rows={4}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 font-mono text-sm"
+                        placeholder="Transcription..."
+                        readOnly
+                      />
+                      <div className="text-xs text-gray-600 mt-1">
+                        {recording.transcription.length} characters
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {(!formData.objectives?.avoma_recordings || formData.objectives.avoma_recordings.length === 0) && 
+               !formData.objectives?.avoma_transcription && (
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-md">
+                  <div className="text-center text-gray-500">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p className="mt-2 text-sm">No recordings yet</p>
+                    <p className="text-xs">Add an Avoma URL above to get started</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Error Display */}
+            {transcriptionError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-4 w-4 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-2">
+                    <p className="text-red-700 text-sm">{transcriptionError}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Avoma Search Link */}
+            {customerName && (
+              <div className="mt-4">
+                <a
+                  href={`https://app.avoma.com/search?q=${customerName.split(' ').join('%2C')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  Search Avoma for &quot;{customerName}&quot; meetings
+                </a>
+              </div>
+            )}
           </div>
         </div>
 

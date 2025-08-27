@@ -110,6 +110,15 @@ export interface SOWData {
     key_objectives: string[];
     avoma_url?: string;
     avoma_transcription?: string;
+    // Support for multiple Avoma recordings
+    avoma_recordings?: Array<{
+      id: string;
+      url: string;
+      transcription?: string;
+      title?: string;
+      date?: string;
+      status: 'pending' | 'completed' | 'failed';
+    }>;
   };
 
   // Project Scope
