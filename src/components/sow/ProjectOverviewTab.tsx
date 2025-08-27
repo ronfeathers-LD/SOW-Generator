@@ -323,7 +323,7 @@ export default function ProjectOverviewTab({
           </label>
           <input
             type="text"
-            value={formData.template?.sow_title || getDefaultTitle()}
+            value={formData.template?.sow_title ?? getDefaultTitle()}
             onChange={(e) => setFormData({
               ...formData,
               template: { ...formData.template!, sow_title: e.target.value }
