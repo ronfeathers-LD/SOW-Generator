@@ -33,8 +33,12 @@ export async function PUT(
     switch (tab) {
       case 'Project Overview':
         // Handle project overview data
+        console.log('🔍 Project Overview tab - incoming data:', JSON.stringify(data, null, 2));
         if (data.template) {
-          if (data.template.sow_title !== undefined) updateData.sow_title = data.template.sow_title;
+          if (data.template.sow_title !== undefined) {
+            updateData.sow_title = data.template.sow_title;
+            console.log('✅ Setting sow_title to:', data.template.sow_title);
+          }
           if (data.template.number_of_units !== undefined) updateData.number_of_units = data.template.number_of_units;
           if (data.template.regions !== undefined) updateData.regions = data.template.regions;
           if (data.template.salesforce_tenants !== undefined) updateData.salesforce_tenants = data.template.salesforce_tenants;
@@ -56,6 +60,8 @@ export async function PUT(
         if (data.template?.products !== undefined) {
           updateData.products = data.template.products;
         }
+        
+        console.log('🔍 Project Overview tab - updateData:', JSON.stringify(updateData, null, 2));
         break;
 
       case 'Customer Information':
@@ -229,6 +235,9 @@ export async function PUT(
     }
 
     // Update the SOW with the tab-specific data
+    console.log('🔍 About to update database with:', JSON.stringify(updateData, null, 2));
+    console.log('🔍 SOW ID:', sowId);
+    
     const { data: updatedSOW, error: updateError } = await supabase
       .from('sows')
       .update(updateData)
@@ -237,12 +246,14 @@ export async function PUT(
       .single();
 
     if (updateError) {
-      console.error('Supabase update error:', updateError);
+      console.error('❌ Supabase update error:', updateError);
       return NextResponse.json(
         { error: 'Failed to update SOW', details: updateError.message },
         { status: 500 }
       );
     }
+
+    console.log('✅ Database update successful:', JSON.stringify(updatedSOW, null, 2));
 
     // Log changes to changelog
     try {
