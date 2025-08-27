@@ -39,21 +39,15 @@ export async function PUT(
             updateData.sow_title = data.template.sow_title;
             console.log('✅ Setting sow_title to:', data.template.sow_title);
           }
-          if (data.template.number_of_units !== undefined) updateData.number_of_units = data.template.number_of_units;
           if (data.template.regions !== undefined) updateData.regions = data.template.regions;
           if (data.template.salesforce_tenants !== undefined) updateData.salesforce_tenants = data.template.salesforce_tenants;
           if (data.template.timeline_weeks !== undefined) updateData.timeline_weeks = data.template.timeline_weeks;
           if (data.template.units_consumption !== undefined) updateData.units_consumption = data.template.units_consumption;
           
           // Handle BookIt Family Units
-          if (data.template.number_of_units !== undefined) updateData.orchestration_units = data.template.number_of_units;
           if (data.template.bookit_forms_units !== undefined) updateData.bookit_forms_units = data.template.bookit_forms_units;
           if (data.template.bookit_links_units !== undefined) updateData.bookit_links_units = data.template.bookit_links_units;
           if (data.template.bookit_handoff_units !== undefined) updateData.bookit_handoff_units = data.template.bookit_handoff_units;
-        }
-        if (data.scope?.timeline) {
-          if (data.scope.timeline.start_date !== undefined) updateData.start_date = new Date(data.scope.timeline.start_date).toISOString();
-          if (data.scope.timeline.duration !== undefined) updateData.duration = data.scope.timeline.duration;
         }
 
         // Handle products - use JSONB field

@@ -46,10 +46,11 @@ export default function EditSOWPage() {
               id: data.salesforce_account_id,
               name: data.client_name || data.template?.client_name || '',
             } : null,
-            // Use the template data from the API response
-            template: data.template || {
+            // Use the template data from the API response, merging with top-level fields
+            template: {
+              ...data.template,
               // Header Information
-              sow_title: data.header?.sow_title ?? 'Statement of Work for LeanData Implementation',
+              sow_title: data.sow_title || 'Statement of Work for LeanData Implementation',
               company_logo: data.company_logo || '',
               
               // Customer Information

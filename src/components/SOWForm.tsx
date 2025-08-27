@@ -36,7 +36,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       ? {
           ...initialData,
           template: {
-            sow_title: initialData.template?.sow_title ?? `Statement of Work for LeanData Implementation - ${new Date().toLocaleDateString('en-US', { 
+            sow_title: initialData.template?.sow_title || `Statement of Work for LeanData Implementation - ${new Date().toLocaleDateString('en-US', { 
               year: 'numeric', 
               month: 'long', 
               day: 'numeric' 
@@ -607,7 +607,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         template: {
           ...formData.template,
           // Auto-populate SOW title with opportunity name if it's not already set
-          sow_title: (!formData.template?.sow_title || formData.template.sow_title === 'Statement of Work for LeanData Implementation') 
+          sow_title: (!formData.template?.sow_title || formData.template.sow_title.trim() === '') 
             ? `Statement of Work for ${opportunity.name}` 
             : formData.template.sow_title,
           // Store opportunity details
@@ -695,7 +695,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             template: {
               sow_title: formData.template?.sow_title,
               products: formData.template?.products || [],
-              number_of_units: formData.template?.number_of_units,
               regions: formData.template?.regions,
               salesforce_tenants: formData.template?.salesforce_tenants,
               timeline_weeks: formData.template?.timeline_weeks,
@@ -705,11 +704,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               bookit_forms_units: formData.template?.bookit_forms_units,
               bookit_links_units: formData.template?.bookit_links_units,
               bookit_handoff_units: formData.template?.bookit_handoff_units,
-            },
-            scope: {
-              timeline: {
-                duration: formData.scope?.timeline?.duration,
-              }
             }
           };
           console.log('🔍 Project Overview tabData:', tabData);
