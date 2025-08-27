@@ -663,8 +663,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
 
   const handleTabSave = async () => {
-    
-
+    console.log('🔍 handleTabSave called at:', new Date().toISOString());
+    console.log('🔍 handleTabSave stack trace:', new Error().stack);
     
     if (!initialData?.id) {
       setNotification({
@@ -863,6 +863,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         tab: activeTab,
         data: tabData,
       });
+      
+      console.log('🔍 API call timestamp:', new Date().toISOString());
+      console.log('🔍 API call stack trace:', new Error().stack);
       
       const response = await fetch(url, {
         method: 'PUT',
