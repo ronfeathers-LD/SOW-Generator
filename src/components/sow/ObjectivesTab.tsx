@@ -563,7 +563,45 @@ export default function ObjectivesTab({
         
         {/* Google Drive Document Selection */}
         <div className="mb-8">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900">Supporting Documents</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Supporting Documents</h3>
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                onClick={() => {
+                  console.log('Current customer name:', customerName);
+                  console.log('Google Drive component state:', {
+                    customerName,
+                    hasCustomerName: !!customerName
+                  });
+                }}
+                className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                🐛 Debug Info
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/google-drive/diagnostic');
+                    if (response.ok) {
+                      const diagnostic = await response.json();
+                      console.log('Google Drive Diagnostic:', diagnostic);
+                      alert(`Google Drive Status: ${diagnostic.status}\n\nCheck browser console for detailed diagnostic information.`);
+                    } else {
+                      alert('Failed to run diagnostic. Check browser console for details.');
+                    }
+                  } catch (error) {
+                    console.error('Diagnostic failed:', error);
+                    alert('Diagnostic failed. Check browser console for details.');
+                  }
+                }}
+                className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+              >
+                🔍 Run Diagnostic
+              </button>
+            </div>
+          </div>
           <p className="text-sm text-gray-600 mb-4">
             Select additional documents from Google Drive to include in AI analysis
           </p>

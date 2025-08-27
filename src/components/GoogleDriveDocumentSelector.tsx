@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface DriveDocument {
   id: string;
@@ -31,6 +31,7 @@ export default function GoogleDriveDocumentSelector({
   customerName,
   folderId
 }: GoogleDriveDocumentSelectorProps) {
+  console.log('GoogleDriveDocumentSelector rendered with customerName:', customerName);
   const [folderContents, setFolderContents] = useState<DriveDocument[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,11 +45,26 @@ export default function GoogleDriveDocumentSelector({
   const [searchMode, setSearchMode] = useState<'search' | 'browse'>('search');
   const [isPreloading, setIsPreloading] = useState(false);
   const [processingDocuments, setProcessingDocuments] = useState<Set<string>>(new Set());
+  
+  // Ref to track if we've already loaded for this customer
+  const hasLoadedRef = useRef<Set<string>>(new Set());
+  
+  // New state for manual search
+  const [showManualSearch, setShowManualSearch] = useState(false);
+  const [manualSearchTerm, setManualSearchTerm] = useState('');
+  const [isManualSearching, setIsManualSearching] = useState(false);
 
   // Preload customer folders in the background
   const preloadCustomerFolders = useCallback(async () => {
     if (!customerName) return;
     
+    // Prevent duplicate calls for the same customer
+    if (hasLoadedRef.current.has(customerName)) {
+      console.log('Skipping duplicate preload for customer:', customerName);
+      return;
+    }
+    
+    console.log('Starting preload for customer:', customerName);
     setIsPreloading(true);
     try {
       // Start with fast search for immediate results
@@ -116,6 +132,10 @@ export default function GoogleDriveDocumentSelector({
           console.warn('AI enhancement failed, but fast search results are already displayed:', err);
         });
       }
+      
+      // Mark this customer as loaded
+      hasLoadedRef.current.add(customerName);
+      console.log('Marked customer as loaded:', customerName);
     } catch (err) {
       console.warn('Failed to preload customer folders:', err);
       // Don't show error to user for preloading - just fall back to browse mode
@@ -128,6 +148,7 @@ export default function GoogleDriveDocumentSelector({
   // Preload customer folders when component mounts or when triggered externally
   useEffect(() => {
     if (customerName && !folderId) {
+      console.log('useEffect triggered - customerName:', customerName, 'folderId:', folderId);
       preloadCustomerFolders();
     }
   }, [customerName, folderId, preloadCustomerFolders]);
@@ -145,9 +166,15 @@ export default function GoogleDriveDocumentSelector({
       window.removeEventListener('preloadGoogleDrive', handlePreload as EventListener);
     };
   }, [customerName, folderId, preloadCustomerFolders]);
+  
+  // Debug state changes
+  useEffect(() => {
+    console.log('State changed - searchMode:', searchMode, 'folderContents length:', folderContents.length, 'searchResults length:', searchResults.length);
+  }, [searchMode, folderContents.length, searchResults.length]);
 
   // Load folder contents
   const loadFolderContents = async (folderId: string) => {
+    console.log('Loading folder contents for ID:', folderId);
     setIsLoading(true);
     setError(null);
     
@@ -167,6 +194,7 @@ export default function GoogleDriveDocumentSelector({
         isFolder: item.mimeType === 'application/vnd.google-apps.folder'
       })) || [];
       
+      console.log('Folder contents loaded:', contents.length, 'items');
       setFolderContents(contents);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load folder contents');
@@ -213,9 +241,22 @@ export default function GoogleDriveDocumentSelector({
     const folder = [...folderContents, ...searchResults].find(item => item.id === folderId);
     if (!folder) return;
     
+    console.log('Opening folder:', folder.name, 'ID:', folderId);
+    
     const newPath = currentFolder ? [...currentFolder.path, folder.name] : [folder.name];
     setCurrentFolder({ id: folderId, name: folder.name, path: newPath });
+    
+    // Switch to browse mode when opening a folder
+    setSearchMode('browse');
+    console.log('Switched to browse mode');
+    
+    // Clear search results since we're now browsing
+    setSearchResults([]);
+    console.log('Cleared search results');
+    
     await loadFolderContents(folderId);
+    
+    console.log('After loading folder contents - searchMode:', 'browse', 'folderContents length:', folderContents.length);
   };
 
   // Handle back navigation
@@ -305,10 +346,60 @@ export default function GoogleDriveDocumentSelector({
     }, 0);
   };
 
+  // Manual search function
+  const performManualSearch = async (searchTerm: string) => {
+    if (!searchTerm.trim()) return;
+    
+    setIsManualSearching(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/google-drive/fast-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          query: searchTerm.trim()
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const results = data.searchResults?.map((item: GoogleDriveSearchResult) => ({
+          id: item.id,
+          name: item.name,
+          mimeType: item.mimeType,
+          size: item.size,
+          isFolder: item.mimeType === 'application/vnd.google-apps.folder'
+        })) || [];
+        
+        setSearchResults(results);
+        setSearchMode('search');
+        setCurrentFolder({ id: 'search', name: `Search Results for "${searchTerm}"`, path: [] });
+        
+        if (results.length === 0) {
+          setError(`No results found for "${searchTerm}". Try a different search term.`);
+        } else {
+          setError(null);
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Manual search failed');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Manual search failed');
+      console.error('Error in manual search:', err);
+    } finally {
+      setIsManualSearching(false);
+    }
+  };
+
+
+
   return (
     <div className="space-y-4">
       {/* Header and Navigation */}
       <div className="space-y-2">
+
         {/* Breadcrumb Navigation */}
         {currentFolder && (
           <div className="flex items-center text-sm text-gray-600 mb-3">
@@ -345,6 +436,61 @@ export default function GoogleDriveDocumentSelector({
           </div>
         )}
         
+        {/* Manual Search Input - Show when no results found */}
+        {!isPreloading && searchResults.length === 0 && customerName && (
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+            <div className="text-sm text-yellow-800 mb-3">
+              <strong>No folders found for customer &quot;{customerName}&quot;</strong><br />
+              The folder name in Google Drive might be different from the Salesforce account name.
+            </div>
+            
+            {!showManualSearch ? (
+              <button
+                onClick={() => setShowManualSearch(true)}
+                className="px-3 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition-colors"
+              >
+                🔍 Search with Different Terms
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="manualSearch" className="block text-sm font-medium text-yellow-800 mb-1">
+                    Search for folders using different terms:
+                  </label>
+                  <input
+                    type="text"
+                    id="manualSearch"
+                    value={manualSearchTerm}
+                    onChange={(e) => setManualSearchTerm(e.target.value)}
+                    placeholder="e.g., company abbreviation, project name, or different spelling"
+                    className="w-full px-3 py-2 border border-yellow-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  />
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => performManualSearch(manualSearchTerm)}
+                    disabled={isManualSearching || !manualSearchTerm.trim()}
+                    className="px-3 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isManualSearching ? 'Searching...' : 'Search'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowManualSearch(false);
+                      setManualSearchTerm('');
+                    }}
+                    className="px-3 py-2 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        
 
         
         {/* Preloaded Results Status */}
@@ -355,6 +501,13 @@ export default function GoogleDriveDocumentSelector({
             ) : (
               `✅ Found ${searchResults.length} customer folder${searchResults.length !== 1 ? 's' : ''}`
             )}
+          </div>
+        )}
+        
+        {/* No Results Message */}
+        {!isPreloading && searchResults.length === 0 && customerName && (
+          <div className="text-xs text-gray-600">
+            No folders found for &quot;{customerName}&quot;. Try searching with different terms below.
           </div>
         )}
       </div>

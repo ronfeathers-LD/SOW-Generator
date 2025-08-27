@@ -635,43 +635,68 @@ Please provide:
       const mimeType = file.mimeType;
 
       let content = '';
+      let wasTruncated = false;
 
-      // Handle different Google Workspace file types
-      if (mimeType === 'application/vnd.google-apps.document') {
-        // Google Docs - export as plain text
-        const exportResponse = await this.drive.files.export({
-          fileId: documentId,
-          mimeType: 'text/plain'
-        });
-        content = exportResponse.data as string;
-      } else if (mimeType === 'application/vnd.google-apps.spreadsheet') {
-        // Google Sheets - export as CSV
-        const exportResponse = await this.drive.files.export({
-          fileId: documentId,
-          mimeType: 'text/csv'
-        });
-        content = exportResponse.data as string;
-      } else if (mimeType === 'application/vnd.google-apps.presentation') {
-        // Google Slides - export as plain text
-        const exportResponse = await this.drive.files.export({
-          fileId: documentId,
-          mimeType: 'text/plain'
-        });
-        content = exportResponse.data as string;
-      } else if (mimeType === 'text/plain' || mimeType === 'text/csv' || mimeType === 'application/pdf') {
-        // Plain text, CSV, or PDF files - download content
-        const downloadResponse = await this.drive.files.get({
-          fileId: documentId,
-          alt: 'media'
-        });
-        content = downloadResponse.data as string;
-      } else {
-        // For other file types, return a placeholder
-        content = `[Content extraction not supported for ${mimeType} files]`;
+      try {
+        // Handle different Google Workspace file types
+        if (mimeType === 'application/vnd.google-apps.document') {
+          // Google Docs - export as plain text
+          const exportResponse = await this.drive.files.export({
+            fileId: documentId,
+            mimeType: 'text/plain'
+          });
+          content = exportResponse.data as string;
+        } else if (mimeType === 'application/vnd.google-apps.spreadsheet') {
+          // Google Sheets - export as CSV
+          const exportResponse = await this.drive.files.export({
+            fileId: documentId,
+            mimeType: 'text/csv'
+          });
+          content = exportResponse.data as string;
+        } else if (mimeType === 'application/vnd.google-apps.presentation') {
+          // Google Slides - export as plain text
+          const exportResponse = await this.drive.files.export({
+            fileId: documentId,
+            mimeType: 'text/plain'
+          });
+          content = exportResponse.data as string;
+        } else if (mimeType === 'text/plain' || mimeType === 'text/csv' || mimeType === 'application/pdf') {
+          // Plain text, CSV, or PDF files - download content
+          const downloadResponse = await this.drive.files.get({
+            fileId: documentId,
+            alt: 'media'
+          });
+          content = downloadResponse.data as string;
+        } else {
+          // For other file types, return a placeholder
+          content = `[Content extraction not supported for ${mimeType} files]`;
+        }
+      } catch (exportError) {
+        console.warn(`Failed to export/extract content for ${mimeType} file ${documentId}:`, exportError);
+        
+        // Fallback: try to get basic metadata and return a descriptive message
+        try {
+          const fallbackResponse = await this.drive.files.get({
+            fileId: documentId,
+            fields: 'id,name,mimeType,size,createdTime,modifiedTime'
+          });
+          
+          const fallbackFile = fallbackResponse.data;
+          content = `[Content extraction failed for ${fallbackFile.name || 'document'} (${mimeType})]\n\n` +
+                   `File ID: ${fallbackFile.id}\n` +
+                   `Size: ${fallbackFile.size || 'Unknown'}\n` +
+                   `Created: ${fallbackFile.createdTime || 'Unknown'}\n` +
+                   `Modified: ${fallbackFile.modifiedTime || 'Unknown'}\n\n` +
+                   `This file type may require different permissions or the content may be too large to extract.`;
+        } catch (fallbackError) {
+          console.error('Even fallback metadata retrieval failed:', fallbackError);
+          content = `[Content extraction completely failed for document ${documentId}]\n\n` +
+                   `Error: ${exportError instanceof Error ? exportError.message : 'Unknown export error'}\n` +
+                   `Fallback error: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown fallback error'}`;
+        }
       }
 
       // Clean up the content
-      let wasTruncated = false;
       if (content) {
         // Remove extra whitespace and normalize line breaks
         content = content.trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -688,7 +713,24 @@ Please provide:
       };
     } catch (error) {
       console.error('Error extracting document content:', error);
-      throw new Error(`Failed to extract content from document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Provide more specific error information
+      let errorMessage = 'Failed to extract content from document';
+      if (error instanceof Error) {
+        if (error.message.includes('403')) {
+          errorMessage = 'Permission denied - insufficient access to this document';
+        } else if (error.message.includes('404')) {
+          errorMessage = 'Document not found or access revoked';
+        } else if (error.message.includes('quota')) {
+          errorMessage = 'API quota exceeded - please try again later';
+        } else if (error.message.includes('rate limit')) {
+          errorMessage = 'Rate limit exceeded - please try again later';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      throw new Error(`${errorMessage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

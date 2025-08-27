@@ -27,7 +27,8 @@ export async function GET() {
 
     const scopes = [
       'https://www.googleapis.com/auth/drive.file',  // Allows creating and uploading files
-      'https://www.googleapis.com/auth/drive.readonly'  // Allows reading existing Drive content
+      'https://www.googleapis.com/auth/drive.readonly',  // Allows reading existing Drive content
+      'https://www.googleapis.com/auth/drive.metadata.readonly'  // Allows reading file metadata
     ];
 
     const authUrl = oauth2Client.generateAuthUrl({
