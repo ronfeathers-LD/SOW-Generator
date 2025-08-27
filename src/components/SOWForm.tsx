@@ -36,7 +36,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       ? {
           ...initialData,
           template: {
-            sow_title: initialData.template?.sow_title || `Statement of Work for LeanData Implementation - ${new Date().toLocaleDateString('en-US', { 
+            sow_title: initialData.template?.sow_title ?? `Statement of Work for LeanData Implementation - ${new Date().toLocaleDateString('en-US', { 
               year: 'numeric', 
               month: 'long', 
               day: 'numeric' 

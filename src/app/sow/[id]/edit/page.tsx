@@ -49,7 +49,7 @@ export default function EditSOWPage() {
             // Use the template data from the API response
             template: data.template || {
               // Header Information
-              sow_title: data.sow_title || 'Statement of Work for LeanData Implementation',
+              sow_title: data.sow_title ?? 'Statement of Work for LeanData Implementation',
               company_logo: data.company_logo || '',
               
               // Customer Information
