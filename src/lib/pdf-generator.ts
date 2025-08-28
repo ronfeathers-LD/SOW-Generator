@@ -641,7 +641,7 @@ export class PDFGenerator {
               <div class="delivery-methodology" style="margin-bottom: 40px;">LeanData Delivery Methodology</div>
               
               <!-- Statement of Work Heading -->
-              <div style="margin-bottom: 48px;">
+              <div>
                 <h1 class="main-title">Statement of Work</h1>
                 <div class="client-subtitle">
                   prepared for <span class="client-name">${clientName}</span>
@@ -650,8 +650,8 @@ export class PDFGenerator {
               
               <!-- Optional Client Logo -->
               ${companyLogo && companyLogo.trim().length > 0 ? `
-              <div class="client-logo">
-                <img src="${companyLogo}" alt="${clientName} Logo" style="width: 120px; height: 60px; object-fit: contain;">
+              <div class="client-logo" style="display: flex; justify-content: center; align-items: center; margin: 0 0 20px 0; border: 2px solid white; width: 100%;">
+                <img src="${companyLogo}" alt="${clientName} Logo" style="width: 240px; height: 120px; object-fit: contain;">
               </div>
               ` : ''}
               
