@@ -118,6 +118,17 @@ export default function PricingRolesAndDiscount({
           )}
         </button>
         
+        {/* Sync Data Button */}
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={ensureFormDataUpToDate}
+            className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            🔄 Sync Data with Form
+          </button>
+        </div>
+        
         {/* Calculation Formulas Link */}
         <div className="text-center">
           <button

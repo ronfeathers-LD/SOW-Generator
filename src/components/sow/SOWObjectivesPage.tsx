@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { getContentTemplate } from '@/lib/sow-content';
 import { processContent } from '@/lib/text-to-html';
+import { sortProducts } from '@/lib/utils/productSorting';
 
 interface SOWObjectivesPageProps {
   deliverables: string[]; 
@@ -133,7 +134,7 @@ export default function SOWObjectivesPage({
               <li>
                 <strong>Products:</strong>
                 <ul className="list-disc pl-6 mt-1">
-                  {projectDetails.products.map((product, index) => (
+                  {sortProducts(projectDetails.products).map((product, index) => (
                     <li key={index}>{product}</li>
                   ))}
                 </ul>

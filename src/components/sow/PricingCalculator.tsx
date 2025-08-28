@@ -2,6 +2,7 @@
 
 
 import { SOWData } from '@/types/sow';
+import { sortProducts } from '@/lib/utils/productSorting';
 
 interface PricingCalculatorProps {
   formData: SOWData; // Use proper SOWData type
@@ -68,7 +69,7 @@ export default function PricingCalculator({
               <h4 className="font-medium text-gray-900 mb-3">Selected Products & Units:</h4>
               {formData.template?.products && Array.isArray(formData.template.products) && formData.template.products.length > 0 ? (
                 <div className="space-y-2">
-                  {formData.template.products.map((product: string, index: number) => {
+                  {sortProducts(formData.template.products).map((product: string, index: number) => {
                     let unitValue = '';
                     let isNoCost = false;
                     
@@ -122,7 +123,7 @@ export default function PricingCalculator({
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-700">Product Hours:</span>
                     <span className="text-sm font-medium text-gray-900">
-                      {formData.template.products.reduce((total, product) => total + calculateProductHours(product), 0)} hours
+                      {sortProducts(formData.template.products).reduce((total, product) => total + calculateProductHours(product), 0)} hours
                     </span>
                   </div>
                   

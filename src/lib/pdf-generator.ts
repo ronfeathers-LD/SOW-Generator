@@ -2,6 +2,7 @@ import puppeteer, { Browser } from 'puppeteer';
 import puppeteerCore from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
 import { parseObjectives } from './utils/parse-objectives';
+import { sortProducts } from './utils/productSorting';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -658,7 +659,7 @@ export class PDFGenerator {
               <div class="signature-section">
                 <!-- Client Signature -->
                 <div class="signature-item">
-                  <p class="signature-text">This SOW is accepted by ${clientName}:</p>
+                  <p class="signature-text">This SOW is accepted by ${clientName}:<br /><br /><br /></p>
                   <div class="signature-grid">
                     <div>
                       <div class="signature-line"></div>
@@ -697,7 +698,7 @@ export class PDFGenerator {
                 
                 <!-- LeanData Signature -->
                 <div class="signature-item">
-                  <p class="signature-text">This SOW is accepted by LeanData, Inc.:</p>
+                  <p class="signature-text">This SOW is accepted by LeanData, Inc.:<br /><br /><br /></p>
                   <div class="signature-grid">
                     <div>
                       <div class="signature-line"></div>
@@ -761,7 +762,7 @@ export class PDFGenerator {
                 <li>
                   <strong>Products:</strong>
                   <ul>
-                    ${sowData.products.map((product: string) => `<li>${product}</li>`).join('')}
+                    ${sortProducts(sowData.products).map((product: string) => `<li>${product}</li>`).join('')}
                   </ul>
                 </li>
                 ` : ''}

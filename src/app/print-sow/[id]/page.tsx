@@ -144,16 +144,23 @@ export default function PrintSOWPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingPDF, setDownloadingPDF] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [downloadStatus, setDownloadStatus] = useState<'idle' | 'generating' | 'downloading' | 'success' | 'error'>('idle');
 
   // Function to download PDF directly
   const downloadPDF = async () => {
     if (!sow) return;
     
+    alert('🚀 Starting PDF generation...');
     console.log('🚀 Starting PDF generation...');
     setDownloadingPDF(true);
+    setDownloadStatus('generating');
+    setShowDownloadModal(true);
+    alert('📊 Set states: downloadingPDF=true, status=generating, showModal=true');
     console.log('📊 downloadingPDF state set to:', true);
     
     try {
+      alert('📡 Making API request to generate PDF...');
       const response = await fetch(`/api/sow/${params.id}/pdf`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
@@ -162,6 +169,10 @@ export default function PrintSOWPage() {
       if (!response.ok) {
         throw new Error('Failed to generate PDF');
       }
+
+      alert('✅ PDF generated successfully, showing downloading state...');
+      // Show downloading state
+      setDownloadStatus('downloading');
 
       // Create blob and download
       const blob = await response.blob();
@@ -173,11 +184,24 @@ export default function PrintSOWPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-    } catch (error) {
+      
+      alert('💾 Download triggered, showing success state...');
+      // Show success state
+      setDownloadStatus('success');
+      
+      // Auto-close after 3 seconds
+      setTimeout(() => {
+        alert('⏰ Auto-closing modal...');
+        setShowDownloadModal(false);
+        setDownloadingPDF(false);
+        setDownloadStatus('idle');
+      }, 3000);
+      
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert('❌ Error occurred: ' + errorMessage);
       console.error('Error downloading PDF:', error);
-      alert('Failed to download PDF. Please try again.');
-    } finally {
-      console.log('📊 PDF generation complete, setting downloadingPDF to:', false);
+      setDownloadStatus('error');
       setDownloadingPDF(false);
     }
   };
@@ -255,6 +279,11 @@ export default function PrintSOWPage() {
           startDate: data.start_date || '',
           projectDescription: data.project_description || data.objectives?.description || '',
           
+          // Extract LeanData signatory fields
+          leandataName: data.template?.lean_data_name || data.leandata_name || '',
+          leandataTitle: data.template?.lean_data_title || data.leandata_title || '',
+          leandataEmail: data.template?.lean_data_email || data.leandata_email || '',
+          
           // Extract client roles and pricing roles - match main SOW page structure
           clientRoles: Array.isArray(data.clientRoles) ? data.clientRoles.map((role: { role?: string; contact_title?: string; name?: string; email?: string; responsibilities?: string }) => ({
             role: role.role || role.contact_title || '',
@@ -318,7 +347,7 @@ export default function PrintSOWPage() {
         };
         
         setSow(transformedSow);
-      } catch (err) {
+      } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setLoading(false);
@@ -380,6 +409,11 @@ export default function PrintSOWPage() {
               title: sow.customerSignature2 || '',
               email: sow.customerEmail2 || '',
               date: ''
+            } : undefined}
+            leanDataSignature={sow.leandataName && sow.leandataTitle && sow.leandataEmail ? {
+              name: sow.leandataName,
+              title: sow.leandataTitle,
+              email: sow.leandataEmail
             } : undefined}
           />
         </div>
@@ -696,7 +730,10 @@ export default function PrintSOWPage() {
         {/* PDF Download Button */}
         <div className="mt-12 print:hidden">
           <button
-            onClick={downloadPDF}
+            onClick={() => {
+              console.log('🔘 Download button clicked!');
+              downloadPDF();
+            }}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors"
             disabled={downloadingPDF}
           >
@@ -716,6 +753,88 @@ export default function PrintSOWPage() {
           </div>
         )}
         
+        {/* Download Progress Modal */}
+        {showDownloadModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+            <div className="bg-white rounded-lg p-8 max-w-md mx-4 text-center shadow-2xl">
+              {/* Status Icon */}
+              {downloadStatus === 'generating' && (
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              )}
+              {downloadStatus === 'downloading' && (
+                <div className="w-12 h-12 mx-auto mb-4">
+                  <svg className="w-full h-full text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                </div>
+              )}
+              {downloadStatus === 'success' && (
+                <div className="w-12 h-12 mx-auto mb-4">
+                  <svg className="w-full h-full text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              )}
+              {downloadStatus === 'error' && (
+                <div className="w-12 h-12 mx-auto mb-4">
+                  <svg className="w-full h-full text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+              )}
+              
+              {/* Status Title */}
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {downloadStatus === 'generating' && 'Generating PDF...'}
+                {downloadStatus === 'downloading' && 'Downloading PDF...'}
+                {downloadStatus === 'success' && 'Download Complete!'}
+                {downloadStatus === 'error' && 'Download Failed'}
+              </h3>
+              
+              {/* Status Message */}
+              <p className="text-gray-600 mb-4">
+                {downloadStatus === 'generating' && 'Please wait while we prepare your document...'}
+                {downloadStatus === 'downloading' && 'Your PDF is now downloading to your device.'}
+                {downloadStatus === 'success' && 'Your SOW PDF has been downloaded successfully!'}
+                {downloadStatus === 'error' && 'There was an error generating your PDF. Please try again.'}
+              </p>
+              
+              {/* Progress Bar for Generating */}
+              {downloadStatus === 'generating' && (
+                <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                  <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+                </div>
+              )}
+              
+              {/* Progress Bar for Downloading */}
+              {downloadStatus === 'downloading' && (
+                <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                  <div className="bg-green-600 h-2 rounded-full animate-pulse" style={{ width: '100%' }}></div>
+                </div>
+              )}
+              
+              {/* Close Button for Error State */}
+              {downloadStatus === 'error' && (
+                <button
+                  onClick={() => {
+                    setShowDownloadModal(false);
+                    setDownloadingPDF(false);
+                    setDownloadStatus('idle');
+                  }}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Close
+                </button>
+              )}
+              
+              {/* Auto-close notice for success */}
+              {downloadStatus === 'success' && (
+                <p className="text-sm text-gray-500">This modal will close automatically...</p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Debug info - remove this later */}
         <div className="mt-4 print:hidden text-xs text-gray-500">
           Debug: downloadingPDF = {downloadingPDF ? 'true' : 'false'}
