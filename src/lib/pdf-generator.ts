@@ -161,6 +161,7 @@ interface SOWData {
   pricing_subtotal?: number;
   pricing_discount?: number;
   pricing_discount_type?: string;
+  pricing_discount_percentage?: number;
   billing_info?: string | BillingInfo;
   start_date?: string;
   timeline_weeks?: string;
@@ -961,7 +962,12 @@ export class PDFGenerator {
                 ${sowData.pricing_discount && sowData.pricing_discount_type && sowData.pricing_discount_type !== 'none' ? `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                   <span style="font-weight: 600; color: #374151;">Discount:</span>
-                  <span style="color: #6b7280;">-$${(sowData.pricing_discount || 0).toLocaleString()}</span>
+                  <span style="color: #6b7280;">${sowData.pricing_discount_type === 'percentage' ? `-${sowData.pricing_discount_percentage || 0}%` : `-$${(sowData.pricing_discount || 0).toLocaleString()}`}</span>
+                </div>
+                <div style="text-align: right; margin-bottom: 8px;">
+                  <span style="color: #6b7280; font-size: 12px;">
+                    ${sowData.pricing_discount_type === 'percentage' ? `${sowData.pricing_discount_percentage || 0}% discount applied to subtotal` : `Fixed discount of $${(sowData.pricing_discount || 0).toLocaleString()}`}
+                  </span>
                 </div>
                 ` : ''}
                 <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 8px;">

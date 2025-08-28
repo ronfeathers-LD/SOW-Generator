@@ -116,7 +116,9 @@ export async function GET(
       objective_overview_content_edited: sow.objective_overview_content_edited || false,
       key_objectives_content_edited: sow.key_objectives_content_edited || false,
       // Include client roles
-      clientRoles: sow.client_roles || [],
+      roles: {
+        client_roles: sow.client_roles || []
+      },
       // Include pricing data - handle mixed structure where pricing_roles contains both roles and config
       pricingRoles: (() => {
         if (Array.isArray(sow.pricing_roles)) {

@@ -151,16 +151,11 @@ export default function PrintSOWPage() {
   const downloadPDF = async () => {
     if (!sow) return;
     
-    alert('🚀 Starting PDF generation...');
-    console.log('🚀 Starting PDF generation...');
     setDownloadingPDF(true);
     setDownloadStatus('generating');
     setShowDownloadModal(true);
-    alert('📊 Set states: downloadingPDF=true, status=generating, showModal=true');
-    console.log('📊 downloadingPDF state set to:', true);
     
     try {
-      alert('📡 Making API request to generate PDF...');
       const response = await fetch(`/api/sow/${params.id}/pdf`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
@@ -170,7 +165,6 @@ export default function PrintSOWPage() {
         throw new Error('Failed to generate PDF');
       }
 
-      alert('✅ PDF generated successfully, showing downloading state...');
       // Show downloading state
       setDownloadStatus('downloading');
 
@@ -185,21 +179,17 @@ export default function PrintSOWPage() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
-      alert('💾 Download triggered, showing success state...');
       // Show success state
       setDownloadStatus('success');
       
       // Auto-close after 3 seconds
       setTimeout(() => {
-        alert('⏰ Auto-closing modal...');
         setShowDownloadModal(false);
         setDownloadingPDF(false);
         setDownloadStatus('idle');
       }, 3000);
       
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      alert('❌ Error occurred: ' + errorMessage);
       console.error('Error downloading PDF:', error);
       setDownloadStatus('error');
       setDownloadingPDF(false);
@@ -285,7 +275,7 @@ export default function PrintSOWPage() {
           leandataEmail: data.template?.lean_data_email || data.leandata_email || '',
           
           // Extract client roles and pricing roles - match main SOW page structure
-          clientRoles: Array.isArray(data.clientRoles) ? data.clientRoles.map((role: { role?: string; contact_title?: string; name?: string; email?: string; responsibilities?: string }) => ({
+          clientRoles: Array.isArray(data.roles?.client_roles) ? data.roles.client_roles.map((role: { role?: string; contact_title?: string; name?: string; email?: string; responsibilities?: string }) => ({
             role: role.role || role.contact_title || '',
             name: role.name || '',
             email: role.email || '',

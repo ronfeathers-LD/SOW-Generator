@@ -1133,6 +1133,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           selectedContact={selectedContact}
           getSalesforceLink={getSalesforceLink}
           isActiveTab={activeTab === 'Signers & Roles'}
+          onContactChange={(contact) => setSelectedContact(contact)}
         />
       )}
 

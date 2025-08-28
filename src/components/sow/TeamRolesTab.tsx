@@ -14,6 +14,7 @@ interface TeamRolesTabProps {
   selectedContact: SalesforceContact | null;
   getSalesforceLink: (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => string;
   isActiveTab: boolean; // Add this prop to know if this tab is currently active
+  onContactChange?: (contact: SalesforceContact | null) => void;
 }
 
 export default function TeamRolesTab({
@@ -26,6 +27,7 @@ export default function TeamRolesTab({
   selectedContact,
   getSalesforceLink,
   isActiveTab,
+  onContactChange,
 }: TeamRolesTabProps) {
 
   const [availableContacts, setAvailableContacts] = useState<SalesforceContact[]>([]);
@@ -240,6 +242,11 @@ export default function TeamRolesTab({
       roles: { ...formData.roles!, client_roles: newRoles }
     });
     setShowRoleContactSelection(null);
+    
+    // Update parent component's selected contact state
+    if (onContactChange) {
+      onContactChange(contact);
+    }
     
     // Save to database
     await saveClientRoles();

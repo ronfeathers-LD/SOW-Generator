@@ -57,7 +57,9 @@ export async function GET(
         },
       },
       // Include client roles
-      clientRoles: sow.client_roles || [],
+      roles: {
+        client_roles: sow.client_roles || []
+      },
     };
 
     return NextResponse.json(transformedSow);

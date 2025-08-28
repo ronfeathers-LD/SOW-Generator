@@ -98,7 +98,7 @@ export default function PublicSOWPage() {
           ...data,
           deliverables: data.deliverables ? data.deliverables.split('\n').filter(Boolean) : [],
           projectDescription: data.objectives?.description || '',
-                    clientRoles: Array.isArray(data.clientRoles) ? data.clientRoles.map((role: unknown) => {
+                    clientRoles: Array.isArray(data.roles?.client_roles) ? data.roles.client_roles.map((role: unknown) => {
             const roleObj = role as { role?: string; name?: string; email?: string; responsibilities?: string };
             return {
               role: roleObj.role || '',
