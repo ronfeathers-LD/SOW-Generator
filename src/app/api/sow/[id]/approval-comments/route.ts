@@ -35,7 +35,7 @@ export async function GET(
         user:users!approval_comments_user_id_fkey(id, name, email)
       `)
       .eq('sow_id', sowId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching comments:', error);
@@ -66,11 +66,11 @@ export async function GET(
       }
     });
 
-    // Sort top-level comments by creation date
+    // Sort top-level comments by creation date (newest first)
     topLevelComments.sort((a, b) => {
       const aComment = a as { created_at: string };
       const bComment = b as { created_at: string };
-      return new Date(aComment.created_at).getTime() - new Date(bComment.created_at).getTime();
+      return new Date(bComment.created_at).getTime() - new Date(aComment.created_at).getTime();
     });
 
     return NextResponse.json(topLevelComments);

@@ -115,9 +115,9 @@ export class SlackMentionService {
               fullName: slackUser.profile.real_name || slackUser.profile.display_name || slackUser.name
             });
             
-            console.log(`✅ Found Slack user for @${user.username}: ${slackUser.name} (${slackUser.id})`);
+
           } else {
-            console.log(`❌ Could not find Slack user for @${user.username}: ${lookupResult.error}`);
+
             // Keep the user even if not found in Slack
             enrichedUsers.push(user);
           }
@@ -166,7 +166,7 @@ export class SlackMentionService {
       );
 
       if (success) {
-        console.log(`✅ Sent mention notifications for SOW ${notification.sowId} to ${slackUserIds.length} users`);
+
       } else {
         console.error(`❌ Failed to send mention notifications for SOW ${notification.sowId}`);
       }

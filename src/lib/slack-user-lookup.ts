@@ -118,7 +118,6 @@ export class SlackUserLookupService {
       });
 
       if (foundUser) {
-        console.log(`✅ Found user with variation: ${foundUser.name}`);
         return {
           success: true,
           user: foundUser

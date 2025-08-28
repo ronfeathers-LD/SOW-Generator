@@ -57,12 +57,6 @@ class SlackService {
         body: JSON.stringify(payload),
       });
 
-      console.log('📥 Slack response:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
-
       return response.ok;
     } catch (error) {
       console.error('Error sending Slack message:', error);
@@ -116,13 +110,7 @@ class SlackService {
         icon_emoji: this.config.iconEmoji || ':memo:'
       };
 
-      console.log('📤 Sending Slack message with mentions:', {
-        webhookUrl: this.config.webhookUrl,
-        channel: payload.channel,
-        username: payload.username,
-        messageLength: fullMessage.length,
-        mentions: mentions.length
-      });
+
 
       const response = await fetch(this.config.webhookUrl, {
         method: 'POST',
@@ -130,12 +118,6 @@ class SlackService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
-      });
-
-      console.log('📥 Slack response:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
       });
 
       return response.ok;
