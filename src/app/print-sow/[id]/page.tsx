@@ -549,24 +549,6 @@ export default function PrintSOWPage() {
         <div id="pricing" className="mb-12 print:mb-8 page-break-inside-avoid print:page-break-inside-avoid">
           <h2 className="text-3xl font-bold mb-6">5. PRICING</h2>
           
-          {/* Pricing Introduction */}
-          <div className="mb-6 p-4 rounded-lg border-l-4 border-blue-500" style={{ backgroundColor: '#F9FAFB' }}>
-            <p className="text-gray-700">
-              The tasks above will be completed on a <strong>time and material basis</strong>, using the LeanData standard workday of 8 hours for a duration of <strong>{sow.timelineWeeks ? (() => {
-                const totalWeeks = parseFloat(sow.timelineWeeks) || 0;
-                if (totalWeeks < 1) {
-                  const days = Math.ceil(totalWeeks * 7);
-                  return `${days} ${days === 1 ? 'day' : 'days'}`;
-                } else {
-                  return `${totalWeeks} weeks`;
-                }
-              })() : 'N/A'}</strong>.
-            </p>
-            <p className="text-sm text-gray-600 mt-2">
-              Hours are calculated based on product selection and unit counts, with automatic role assignment and project management inclusion where applicable.
-            </p>
-          </div>
-
           {/* Project Timeline Display */}
           {sow.timelineWeeks && (
             <div className="mb-6">
@@ -631,6 +613,24 @@ export default function PrintSOWPage() {
               </div>
             </div>
           )}
+          
+          {/* Pricing Introduction - Moved below Project Timeline to match view page */}
+          <div className="mb-6 p-4 rounded-lg border-l-4 border-blue-500" style={{ backgroundColor: '#F9FAFB' }}>
+            <p className="text-gray-700">
+              The tasks above will be completed on a <strong>time and material basis</strong>, using the LeanData standard workday of 8 hours for a duration of <strong>{sow.timelineWeeks ? (() => {
+                const totalWeeks = parseFloat(sow.timelineWeeks) || 0;
+                if (totalWeeks < 1) {
+                  const days = Math.ceil(totalWeeks * 7);
+                  return `${days} ${days === 1 ? 'day' : 'days'}`;
+                } else {
+                  return `${totalWeeks} weeks`;
+                }
+              })() : 'N/A'}</strong>.
+            </p>
+            <p className="text-sm text-gray-600 mt-2">
+              Hours are calculated based on product selection and unit counts, with automatic role assignment and project management inclusion where applicable.
+            </p>
+          </div>
 
           {/* Pricing Display Component */}
           <PricingDisplay
