@@ -476,6 +476,7 @@ export default function PrintSOWPage() {
           
           {/* Out of Scope Section */}
           <div className="mt-8">
+            <h2 className="text-2xl font-bold mb-6">OUT OF SCOPE</h2>
             <SOWOutOfScopePage 
               customContent={sow.customOutOfScopeContent || `
                 <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">

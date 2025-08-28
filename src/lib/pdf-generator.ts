@@ -381,9 +381,9 @@ export class PDFGenerator {
     // Helper function to replace placeholders in content
     const replacePlaceholders = (content: string) => {
       return content
-        .replace(/\{clientName\}/g, clientName)
-        .replace(/\{CLIENT_NAME\}/g, clientName)
-        .replace(/\{ClientName\}/g, clientName);
+        .replace(/\{clientName\}/g, `<strong>${clientName}</strong>`)
+        .replace(/\{CLIENT_NAME\}/g, `<strong>${clientName}</strong>`)
+        .replace(/\{ClientName\}/g, `<strong>${clientName}</strong>`);
     };
     
     // Use custom content fields when available, fallback to basic fields
@@ -886,32 +886,32 @@ export class PDFGenerator {
                   <tr>
                     <td style="border: 1px solid #d1d5db; padding: 12px;">1. ENGAGE</td>
                     <td style="border: 1px solid #d1d5db; padding: 12px;">Project kickoff and planning</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">1 week</td>
+                    <td style="border: 1px solid #d1d5db; padding: 12px;">${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.125)} ${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.125) < 1 ? 'day' : 'days'}</td>
                   </tr>
                   <tr>
                     <td style="border: 1px solid #d1d5db; padding: 12px;">2. DISCOVERY</td>
                     <td style="border: 1px solid #d1d5db; padding: 12px;">Requirements gathering and analysis</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">2 weeks</td>
+                    <td style="border: 1px solid #d1d5db; padding: 12px;">${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.25)} ${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.25) < 1 ? 'day' : 'days'}</td>
                   </tr>
                   <tr>
                     <td style="border: 1px solid #d1d5db; padding: 12px;">3. BUILD</td>
                     <td style="border: 1px solid #d1d5db; padding: 12px;">Solution development and configuration</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">2 weeks</td>
+                    <td style="border: 1px solid #d1d5db; padding: 12px;">${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.25)} ${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.25) < 1 ? 'day' : 'days'}</td>
                   </tr>
                   <tr>
                     <td style="border: 1px solid #d1d5db; padding: 12px;">4. TEST</td>
                     <td style="border: 1px solid #d1d5db; padding: 12px;">Quality assurance and validation</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">1 week</td>
+                    <td style="border: 1px solid #d1d5db; padding: 12px;">${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.125)} ${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.125) < 1 ? 'day' : 'days'}</td>
                   </tr>
                   <tr>
                     <td style="border: 1px solid #d1d5db; padding: 12px;">5. DEPLOY</td>
                     <td style="border: 1px solid #d1d5db; padding: 12px;">Production deployment and go-live</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">1 week</td>
+                    <td style="border: 1px solid #d1d5db; padding: 12px;">${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.125)} ${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.125) < 1 ? 'day' : 'days'}</td>
                   </tr>
                   <tr>
                     <td style="border: 1px solid #d1d5db; padding: 12px;">6. HYPERCARE</td>
                     <td style="border: 1px solid #d1d5db; padding: 12px;">Post-deployment support and transition</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">1 week</td>
+                    <td style="border: 1px solid #d1d5db; padding: 12px;">${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.125)} ${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.125) < 1 ? 'day' : 'days'}</td>
                   </tr>
                 </tbody>
               </table>
@@ -955,36 +955,34 @@ export class PDFGenerator {
               
               <!-- Pricing Summary -->
               ${sowData.pricing_total ? `
-              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin-top: 16px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                  <span style="font-weight: 600; color: #374151;">Subtotal:</span>
-                  <span style="color: #6b7280;">$${(sowData.pricing_subtotal || 0).toLocaleString()}</span>
-                </div>
-                ${sowData.pricing_discount && sowData.pricing_discount_type && sowData.pricing_discount_type !== 'none' ? `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                  <span style="font-weight: 600; color: #374151;">Discount:</span>
-                  <span style="color: #6b7280;">${sowData.pricing_discount_type === 'percentage' ? `-${sowData.pricing_discount_percentage || 0}%` : `-$${(sowData.pricing_discount || 0).toLocaleString()}`}</span>
-                </div>
-                <div style="text-align: right; margin-bottom: 8px;">
-                  <span style="color: #6b7280; font-size: 12px;">
-                    ${sowData.pricing_discount_type === 'percentage' ? `${sowData.pricing_discount_percentage || 0}% discount applied to subtotal` : `Fixed discount of $${(sowData.pricing_discount || 0).toLocaleString()}`}
-                  </span>
-                </div>
-                ` : ''}
-                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 8px;">
-                  <span style="font-weight: 700; color: #1e293b; font-size: 18px;">Total:</span>
-                  <span style="font-weight: 700; color: #1e293b; font-size: 18px;">$${((sowData.pricing_subtotal || 0) - (sowData.pricing_discount_type && sowData.pricing_discount_type !== 'none' ? (sowData.pricing_discount || 0) : 0)).toLocaleString()}</span>
-                </div>
-              </div>
-              
-              <!-- Contractual Terms -->
               <div style="margin-top: 16px;">
-                <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.5;">
-                  LeanData shall notify Customer when costs are projected to exceed this estimate, providing the opportunity for Customer and LeanData to resolve jointly how to proceed. Hours listed above are to be consumed by the end date and cannot be extended.
-                </p>
-                <p style="margin: 0; font-size: 14px; line-height: 1.5;">
-                  Any additional requests or mutually agreed-upon additional hours required to complete the tasks shall be documented in a change order Exhibit to this SOW and signed by both parties. Additional hours will be billed at the Rate/Hr.
-                </p>
+                <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">Pricing Summary</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+                  <div style="background-color: white; padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px;">
+                    <div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">Subtotal</div>
+                    <div style="font-size: 20px; font-weight: 700; color: #111827;">$${(sowData.pricing_subtotal || 0).toLocaleString()}</div>
+                  </div>
+                  ${sowData.pricing_discount && sowData.pricing_discount_type && sowData.pricing_discount_type !== 'none' ? `
+                  <div style="background-color: white; padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px;">
+                    <div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">Discount</div>
+                    <div style="font-size: 20px; font-weight: 700; color: #dc2626;">${sowData.pricing_discount_type === 'percentage' ? `-${sowData.pricing_discount_percentage || 0}%` : `-$${(sowData.pricing_discount || 0).toLocaleString()}`}</div>
+                  </div>
+                  ` : ''}
+                  <div style="background-color: white; padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px;">
+                    <div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">Total Amount</div>
+                    <div style="font-size: 20px; font-weight: 700; color: #059669;">$${((sowData.pricing_subtotal || 0) - (sowData.pricing_discount_type && sowData.pricing_discount_type !== 'none' ? (sowData.pricing_discount || 0) : 0)).toLocaleString()}</div>
+                  </div>
+                </div>
+                
+                <!-- Contractual Terms -->
+                <div style="margin-top: 16px;">
+                  <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.5;">
+                    LeanData shall notify Customer when costs are projected to exceed this estimate, providing the opportunity for Customer and LeanData to resolve jointly how to proceed. Hours listed above are to be consumed by the end date and cannot be extended.
+                  </p>
+                  <p style="margin: 0; font-size: 14px; line-height: 1.5;">
+                    Any additional requests or mutually agreed-upon additional hours required to complete the tasks shall be documented in a change order Exhibit to this SOW and signed by both parties. Additional hours will be billed at the Rate/Hr.
+                  </p>
+                </div>
               </div>
               ` : ''}
             </div>
