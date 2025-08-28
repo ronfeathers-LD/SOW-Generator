@@ -721,7 +721,6 @@ export default function PrintSOWPage() {
         <div className="mt-12 print:hidden">
           <button
             onClick={() => {
-              console.log('🔘 Download button clicked!');
               downloadPDF();
             }}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors"
@@ -825,10 +824,7 @@ export default function PrintSOWPage() {
           </div>
         )}
 
-        {/* Debug info - remove this later */}
-        <div className="mt-4 print:hidden text-xs text-gray-500">
-          Debug: downloadingPDF = {downloadingPDF ? 'true' : 'false'}
-        </div>
+
 
       </div>
     </div>
