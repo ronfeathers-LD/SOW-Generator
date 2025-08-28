@@ -700,7 +700,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               timeline_weeks: formData.template?.timeline_weeks,
               units_consumption: formData.template?.units_consumption,
               // BookIt Family Units
-              orchestration_units: formData.template?.orchestration_units,
+              number_of_units: formData.template?.number_of_units,
               bookit_forms_units: formData.template?.bookit_forms_units,
               bookit_links_units: formData.template?.bookit_links_units,
               bookit_handoff_units: formData.template?.bookit_handoff_units,
@@ -885,7 +885,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         message: result.message || `${activeTab} saved successfully!`
       });
       
-
+      // Simple refresh: reload the page to show updated data
+      window.location.reload();
       
       // Clear notification after 3 seconds
       setTimeout(() => setNotification(null), 3000);
@@ -914,6 +915,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     { key: 'Pricing', label: 'Pricing' },
     { key: 'Content Editing', label: 'Content Editing' },
   ], []);
+
+
 
   // Tab navigation with URL hash persistence
   useEffect(() => {
