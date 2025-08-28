@@ -704,7 +704,8 @@ export class PDFGenerator {
                     <div>
                       <div class="signature-line"></div>
                       <div class="signature-info left">
-                        ${leanDataName}, ${leanDataTitle}<br>
+                        <strong>${leanDataName}</strong><br>
+                        ${leanDataTitle}<br>
                         ${leanDataEmail}
                       </div>
                     </div>

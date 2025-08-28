@@ -84,19 +84,20 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
             <div className="flex flex-col items-start">
               <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
               <div className="text-sm mt-2 text-left">
-                {[
-                  <span key="name" className={!clientSignature?.name || clientSignature.name === 'Not Entered' ? 'text-red-600 font-bold' : ''}>
-                    {clientSignature?.name || '<FIRSTNAME LASTNAME>'}
-                  </span>,
-                  <span key="title" className={!clientSignature?.title || clientSignature?.title === 'Title Not Entered' ? 'text-red-600 font-bold' : ''}>
-                    {clientSignature?.title || '<TITLE>'}
-                  </span>
-                ].filter(Boolean).map((item, index) => (
-                  <span key={`client-signature-${index}`}>
-                    {item}
-                    {index < 1 && clientSignature?.name && clientSignature?.title && ', '}
-                  </span>
-                ))}
+                                  {[
+                    <strong key="name" className={!clientSignature?.name || clientSignature.name === 'Not Entered' ? 'text-red-600 font-bold' : ''}>
+                      {clientSignature?.name || '<FIRSTNAME LASTNAME>'}
+                    </strong>,
+                    <br key="break" />,
+                    <span key="title" className={!clientSignature?.title || clientSignature?.title === 'Title Not Entered' ? 'text-red-600 font-bold' : ''}>
+                      {clientSignature?.title || '<TITLE>'}
+                    </span>
+                  ].filter(Boolean).map((item, index) => (
+                    <span key={`client-signature-${index}`}>
+                      {item}
+                      {index < 1 && clientSignature?.name && clientSignature?.title && ' '}
+                    </span>
+                  ))}
                 <br />
                 <span className={!clientSignature?.email || clientSignature?.email === 'Email Not Entered' ? 'text-red-600 font-bold' : ''}>
                   {clientSignature?.email || '<EMAIL>'}
@@ -106,7 +107,7 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
             {/* Date Line */}
             <div className="flex flex-col items-center">
               <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-              <div className="text-sm mt-2 text-center">DATE<br /><br /></div>
+              <div className="text-sm mt-2 text-center">DATE<br /><br /><br /></div>
             </div>
           </div>
         </div>
@@ -120,16 +121,17 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
                 <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
                 <div className="text-sm mt-2 text-left">
                   {[
-                    <span key="name" className={!clientSignature2.name || clientSignature2.name === 'Not Entered' ? 'text-red-600 font-bold' : ''}>
+                    <strong key="name" className={!clientSignature2.name || clientSignature2.name === 'Not Entered' ? 'text-red-600 font-bold' : ''}>
                       {clientSignature2.name || '<FIRSTNAME LASTNAME>'}
-                    </span>,
+                    </strong>,
+                    <br key="break" />,
                     <span key="title" className={!clientSignature2.title || clientSignature2.title === 'Title Not Entered' ? 'text-red-600 font-bold' : ''}>
                       {clientSignature2.title || '<TITLE>'}
                     </span>
                   ].filter(Boolean).map((item, index) => (
                     <span key={`client-signature2-${index}`}>
                       {item}
-                      {index < 1 && clientSignature2.name && clientSignature2.title && ', '}
+                      {index < 1 && clientSignature2.name && clientSignature2.title && ' '}
                     </span>
                   ))}
                   <br />
@@ -141,7 +143,7 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
               {/* Date Line */}
               <div className="flex flex-col items-center">
                 <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                <div className="text-sm mt-2 text-center">DATE<br /><br /></div>
+                <div className="text-sm mt-2 text-center">DATE<br /><br /><br /></div>
               </div>
             </div>
           </div>
@@ -156,7 +158,15 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
               <div className="flex flex-col items-start">
                 <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
                 <div className="text-sm mt-2 text-left">
-                  {[leanDataSignature.name, leanDataSignature.title].filter(Boolean).join(', ')}
+                  {[
+                    <strong key="name" className="font-bold">
+                      {leanDataSignature.name}
+                    </strong>,
+                    <br key="break" />,
+                    <span key="title">
+                      {leanDataSignature.title}
+                    </span>
+                  ].filter(Boolean)}
                   <br />
                   {leanDataSignature.email}
                 </div>
@@ -164,7 +174,7 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
               {/* Date Line */}
               <div className="flex flex-col items-center">
                 <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                <div className="text-sm mt-2 text-center">DATE<br /><br /></div>
+                <div className="text-sm mt-2 text-center">DATE<br /><br /><br /></div>
               </div>
             </div>
           ) : (
