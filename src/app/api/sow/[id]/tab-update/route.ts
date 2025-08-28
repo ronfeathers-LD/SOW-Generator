@@ -48,6 +48,9 @@ export async function PUT(
           if (data.template.bookit_forms_units !== undefined) updateData.bookit_forms_units = data.template.bookit_forms_units;
           if (data.template.bookit_links_units !== undefined) updateData.bookit_links_units = data.template.bookit_links_units;
           if (data.template.bookit_handoff_units !== undefined) updateData.bookit_handoff_units = data.template.bookit_handoff_units;
+          
+          // Handle Orchestration Units (number_of_units)
+          if (data.template.number_of_units !== undefined) updateData.orchestration_units = data.template.number_of_units;
         }
 
         // Handle products - use JSONB field

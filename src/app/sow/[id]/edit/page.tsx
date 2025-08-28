@@ -33,8 +33,8 @@ export default function EditSOWPage() {
           // SOW data loaded for edit
           
           // Transform the data to match the form structure
-          const transformedData: SOWData = {
-            id: data.id,
+                  const transformedData: SOWData = {
+          id: data.id,
             created_at: new Date(data.created_at),
             updated_at: new Date(data.updated_at),
             // Include salesforce_account_id

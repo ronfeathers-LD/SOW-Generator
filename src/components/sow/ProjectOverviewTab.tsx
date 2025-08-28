@@ -285,8 +285,11 @@ export default function ProjectOverviewTab({
 
   // Run validation whenever form data or selected products change
   useEffect(() => {
-    validateUnitFields();
-  }, [validateUnitFields]);
+    // Only run validation if form data is available
+    if (formData.template && Object.keys(formData.template).length > 0) {
+      validateUnitFields();
+    }
+  }, [validateUnitFields, formData.template]);
 
   // Handle unit field change with validation
   const handleUnitFieldChange = (fieldName: string, value: string) => {
