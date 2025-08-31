@@ -375,6 +375,11 @@ export class PDFGenerator {
       }
     }
     
+    // Filter out Project Manager role if PM hours are removed
+    if (sowData.pm_hours_requirement_disabled) {
+      pricingRoles = pricingRoles.filter(role => role.role !== 'Project Manager');
+    }
+    
 
     const billingInfo = this.parseJSONField(sowData.billing_info, {} as BillingInfo);
     

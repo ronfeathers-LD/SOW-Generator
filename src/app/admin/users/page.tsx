@@ -62,16 +62,18 @@ export default function UserManagementPage() {
       setError(null);
       setSuccess(null);
 
+      const updateData = { userId, role: newRole };
+
       const response = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId, role: newRole }),
+        body: JSON.stringify(updateData),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update user role');
+        throw new Error('Failed to update user');
       }
 
       const updatedUser = await response.json();
@@ -83,13 +85,15 @@ export default function UserManagementPage() {
         )
       );
 
-      setSuccess(`Successfully updated ${updatedUser.name}'s role to ${newRole}`);
+      const successMessage = `Successfully updated ${updatedUser.name}'s role to ${newRole}`;
+      
+      setSuccess(successMessage);
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
-      console.error('Error updating user role:', error);
-      setError('Failed to update user role');
+      console.error('Error updating user:', error);
+      setError('Failed to update user');
     } finally {
       setUpdating(null);
     }
@@ -99,12 +103,10 @@ export default function UserManagementPage() {
     switch (role) {
       case 'admin':
         return 'bg-red-100 text-red-800 border-red-200';
+      case 'pmo':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'manager':
         return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'director':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'vp':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'user':
         return 'bg-green-100 text-green-800 border-green-200';
       default:
@@ -227,18 +229,19 @@ export default function UserManagementPage() {
                       {user.role}
                     </span>
                     
-                                         <select
-                       value={user.role}
-                       onChange={(e) => updateUserRole(user.id, e.target.value)}
-                       disabled={updating === user.id}
-                       className="ml-2 block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-                     >
-                       <option value="user">User</option>
-                       <option value="manager">Manager</option>
-                       <option value="director">Director</option>
-                       <option value="vp">VP</option>
-                       <option value="admin">Admin</option>
-                     </select>
+                                         <div className="flex items-center space-x-2">
+                       <select
+                         value={user.role}
+                         onChange={(e) => updateUserRole(user.id, e.target.value)}
+                         disabled={updating === user.id}
+                         className="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                       >
+                         <option value="user">User</option>
+                         <option value="manager">Manager</option>
+                         <option value="pmo">PMO</option>
+                         <option value="admin">Admin</option>
+                       </select>
+                     </div>
                     
                     {updating === user.id && (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
@@ -270,13 +273,14 @@ export default function UserManagementPage() {
             <h3 className="text-sm font-medium text-blue-800">Role Management</h3>
             <div className="mt-2 text-sm text-blue-700">
               <ul className="list-disc pl-5 space-y-1">
-                <li><strong>User:</strong> Can create and edit SOWs, view their own SOWs</li>
-                <li><strong>Manager:</strong> Can approve or reject SOWs that are under review</li>
+                <li><strong>User:</strong> Can create and edit SOWs, view their own SOWs, submit PM hours removal requests</li>
+                <li><strong>Manager:</strong> Can approve or reject SOWs that are under review, access Manager portal for team oversight</li>
+                <li><strong>PMO:</strong> Can review, approve, and reject PM hours removal requests, access PMO portal, project delivery oversight</li>
                 <li><strong>Admin:</strong> Can access admin panel, manage users, configure integrations, and approve any SOW</li>
               </ul>
               <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
                 <p className="text-xs text-yellow-800">
-                  <strong>Approval Flow:</strong> Draft → In Review → Approved/Rejected (by Manager or Admin)
+                  <strong>Role System:</strong> Unified role system with clear hierarchy: User → Manager → PMO → Admin
                 </p>
               </div>
             </div>

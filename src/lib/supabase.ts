@@ -33,6 +33,16 @@ export interface SOW {
   startDate: string;
   duration: string;
   clientRoles: ClientRole[];
+  pricingRoles?: Array<{
+    role: string;
+    rate_per_hour: number;
+    total_hours: number;
+    totalCost: number;
+  }>; // Add pricing roles
+  pm_hours_requirement_disabled?: boolean;
+  pm_hours_requirement_disabled_date?: string;
+  pm_hours_requirement_disabled_requester_id?: string;
+  pm_hours_requirement_disabled_approver_id?: string;
   // Note: access_requirements, travel_requirements, working_hours, testing_responsibilities columns have been removed
   version: number;
 }

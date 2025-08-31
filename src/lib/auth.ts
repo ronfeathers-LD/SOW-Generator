@@ -151,13 +151,15 @@ export const authOptions: NextAuthOptions = {
     },
     async jwt({ token, user, account }) {
       if (account && user) {
+        // Initial sign in - set all user data
         token.id = user.id;
         token.picture = user.image;
         token.email = user.email;
         token.role = user.role;
+        console.log('JWT callback: Initial sign in, set role:', user.role);
       }
       
-      // Ensure role persists across token refreshes
+      // Ensure role persists across token refreshes and is always available
       if (!token.role && token.email) {
         // Fetch user role from database if not in token
         try {
@@ -169,11 +171,19 @@ export const authOptions: NextAuthOptions = {
           
           if (!error && dbUser) {
             token.role = dbUser.role;
+            console.log('JWT callback: Fetched role from DB:', dbUser.role, 'for user:', token.email);
           }
         } catch (error) {
           console.error('Error fetching user role in JWT callback:', error);
         }
       }
+      
+      // Debug logging
+      console.log('JWT callback - Token state:', {
+        email: token.email,
+        role: token.role,
+        hasRole: !!token.role
+      });
       
       return token;
     },

@@ -113,7 +113,7 @@ export default function SOWObjectivesPage({
                 if (!trimmedObjective) return null;
                 
                 return (
-                  <li key={index} className="text-gray-700">
+                  <li key={`objective-${index}-${trimmedObjective.slice(0, 20)}`} className="text-gray-700">
                     {trimmedObjective}
                   </li>
                 );
@@ -135,7 +135,7 @@ export default function SOWObjectivesPage({
                 <strong>Products:</strong>
                 <ul className="list-disc pl-6 mt-1">
                   {sortProducts(projectDetails.products).map((product, index) => (
-                    <li key={index}>{product}</li>
+                    <li key={`product-${index}-${product.slice(0, 15)}`}>{product}</li>
                   ))}
                 </ul>
               </li>

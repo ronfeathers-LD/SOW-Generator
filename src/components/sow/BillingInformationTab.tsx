@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { SOWData, SOWTemplate } from '@/types/sow';
-import { SalesforceContact } from '@/lib/salesforce';
+import { SalesforceAccount, SalesforceContact } from '@/lib/salesforce';
 import LoadingModal from '@/components/ui/LoadingModal';
 
 interface BillingInformationTabProps {
   formData: Partial<SOWData>;
   setFormData: (data: Partial<SOWData>) => void;
-  selectedAccount: { id: string; name: string } | null;
+  selectedAccount: SalesforceAccount | null;
 }
 
 export default function BillingInformationTab({
@@ -29,10 +29,10 @@ export default function BillingInformationTab({
 
   // Load contacts when account is selected
   useEffect(() => {
-    if (selectedAccount?.id) {
-      loadContacts(selectedAccount.id);
+    if (selectedAccount?.Id) {
+      loadContacts(selectedAccount.Id);
     }
-  }, [selectedAccount?.id]);
+  }, [selectedAccount?.Id]);
 
   const loadContacts = async (accountId: string) => {
     setIsLoadingContacts(true);

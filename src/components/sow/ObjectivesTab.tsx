@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SOWData } from '@/types/sow';
+import { SalesforceAccount } from '@/lib/salesforce';
 import TipTapEditor from '../TipTapEditor';
 import LoadingModal from '../ui/LoadingModal';
 import GoogleDriveDocumentSelector from '../GoogleDriveDocumentSelector';
@@ -7,7 +8,7 @@ import GoogleDriveDocumentSelector from '../GoogleDriveDocumentSelector';
 interface ObjectivesTabProps {
   formData: Partial<SOWData>;
   setFormData: (data: Partial<SOWData>) => void;
-  selectedAccount?: { id: string; name: string } | null;
+  selectedAccount?: SalesforceAccount | null;
 }
 
 export default function ObjectivesTab({
@@ -39,7 +40,7 @@ export default function ObjectivesTab({
   const [newAvomaUrl, setNewAvomaUrl] = useState('');
 
   // Get customer name from selected account or form data
-  const customerName = selectedAccount?.name || formData.template?.client_name || formData.header?.client_name || '';
+  const customerName = selectedAccount?.Name || formData.template?.client_name || formData.header?.client_name || '';
 
   // Clever messages for the analysis process
   const analysisMessages = [

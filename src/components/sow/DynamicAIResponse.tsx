@@ -36,7 +36,7 @@ export default function DynamicAIResponse({ aiResponse, customerName }: DynamicA
           </h4>
           <ul className="list-disc list-inside space-y-1">
             {value.map((item, index) => (
-              <li key={index} className="text-gray-700">
+              <li key={`ai-response-item-${index}-${String(item).slice(0, 20)}`} className="text-gray-700">
                 {typeof item === 'string' && item.includes('<') ? (
                   <span dangerouslySetInnerHTML={{ __html: item }} />
                 ) : (

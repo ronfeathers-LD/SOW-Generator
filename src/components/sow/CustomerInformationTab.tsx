@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { SOWData } from '@/types/sow';
+import { SalesforceAccount } from '@/lib/salesforce';
 
 import SalesforceIntegration from '../SalesforceIntegration';
 
@@ -8,7 +9,7 @@ interface CustomerInformationTabProps {
   formData: Partial<SOWData>;
   setFormData?: (data: Partial<SOWData>) => void;
   initialData?: SOWData;
-  selectedAccount: { id: string; name: string } | null;
+  selectedAccount: SalesforceAccount | null;
   selectedOpportunity: {
     id: string;
     name: string;
@@ -67,7 +68,7 @@ export default function CustomerInformationTab({
     setCurrentStep(step);
     
     // Load opportunities if we're going to the opportunity step and we have a selected account with a valid ID
-    if (step === 'opportunity' && selectedAccount && selectedAccount.id && availableOpportunities.length === 0) {
+    if (step === 'opportunity' && selectedAccount && selectedAccount.Id && availableOpportunities.length === 0) {
       setIsLoadingOpportunities(true);
       try {
         const response = await fetch('/api/salesforce/account-opportunities', {
@@ -76,7 +77,7 @@ export default function CustomerInformationTab({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            accountId: selectedAccount.id,
+            accountId: selectedAccount.Id,
             forceRefresh: false // Use cache by default
           }),
         });
@@ -232,7 +233,7 @@ export default function CustomerInformationTab({
                         <span>Account verified in Salesforce</span>
                       </div>
                       <a
-                        href={getSalesforceLink(selectedAccount.id, 'Account')}
+                        href={getSalesforceLink(selectedAccount.Id || '', 'Account')}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800 underline flex items-center"

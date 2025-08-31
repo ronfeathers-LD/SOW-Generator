@@ -43,9 +43,9 @@ export default function EditSOWPage() {
             salesforce_contact_id: data.salesforce_contact_id,
             // Include selected account information if available
             selectedAccount: data.salesforce_account_id ? {
-              id: data.salesforce_account_id,
-              name: data.client_name || data.template?.client_name || '',
-            } : null,
+              Id: data.salesforce_account_id,
+              Name: data.client_name || data.template?.client_name || '',
+            } : undefined,
             // Use the template data from the API response, merging with top-level fields
             template: {
               ...data.template,

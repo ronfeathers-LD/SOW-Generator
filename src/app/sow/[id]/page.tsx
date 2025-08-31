@@ -166,6 +166,12 @@ interface SOW {
   startDate: string;
   duration: string;
   clientRoles: ClientRole[];
+  pricingRoles?: Array<{
+    role: string;
+    rate_per_hour: number;
+    total_hours: number;
+    totalCost: number;
+  }>; // Add pricing roles
   status: 'draft' | 'in_review' | 'approved' | 'rejected';
   pricing: {
     roles: Array<{
@@ -276,6 +282,12 @@ interface SOW {
   approved_at?: string;
   rejected_at?: string;
   approval_comments?: string;
+  
+  // PM Hours Removal fields
+  pm_hours_requirement_disabled?: boolean;
+  pm_hours_requirement_disabled_date?: string;
+  pm_hours_requirement_disabled_requester_id?: string;
+  pm_hours_requirement_disabled_approver_id?: string;
 }
 
 interface SOWVersion {
@@ -394,39 +406,35 @@ export default function SOWDetailsPage() {
               responsibilities: roleObj.responsibilities || ''
             };
           }) : [],
-                      pricing: {
-              roles: Array.isArray(data.pricingRoles) ? data.pricingRoles.map((role: unknown) => {
-                const roleObj = role as { role?: string; ratePerHour?: number; rate?: number; totalHours?: number; hours?: number; rate_per_hour?: number; total_hours?: number };
-                return {
-                  role: roleObj.role || '',
-                  ratePerHour: roleObj.ratePerHour || roleObj.rate || roleObj.rate_per_hour || 0,
-                  totalHours: roleObj.totalHours || roleObj.hours || roleObj.total_hours || 0,
-                };
-              }) : [],
-            billing: data.billingInfo || {
-              companyName: '',
-              billingContact: '',
-              billingAddress: '',
-              billingEmail: '',
-              poNumber: '',
-              paymentTerms: '',
-              currency: '',
-            },
-            // New pricing configuration fields
-            project_management_included: data.pricing?.project_management_included || false,
-            project_management_hours: data.pricing?.project_management_hours || 40,
-            project_management_rate: data.pricing?.project_management_rate || 225,
-            base_hourly_rate: data.pricing?.base_hourly_rate || 200,
-            discount_type: data.pricing?.discount_type || 'none',
-            discount_amount: data.pricing?.discount_amount || 0,
-            discount_percentage: data.pricing?.discount_percentage || 0,
-            subtotal: data.pricing?.subtotal || 0,
-            discount_total: data.pricing?.discount_total || 0,
-            total_amount: data.pricing?.total_amount || 0,
-            auto_calculated: data.pricing?.auto_calculated || false,
-            last_calculated: data.pricing?.last_calculated || null,
-          },
-
+                                            pricing: {
+                        roles: [], // Remove this transformation - we'll use data.pricingRoles directly
+                        billing: data.billingInfo || {
+                          companyName: '',
+                          billingContact: '',
+                          billingAddress: '',
+                          billingEmail: '',
+                          poNumber: '',
+                          paymentTerms: '',
+                          currency: '',
+                        },
+                        // New pricing configuration fields
+                        project_management_included: data.pricing?.project_management_included || false,
+                        project_management_hours: data.pricing?.project_management_hours || 40,
+                        project_management_rate: data.pricing?.project_management_rate || 225,
+                        base_hourly_rate: data.pricing?.base_hourly_rate || 200,
+                        discount_type: data.pricing?.discount_type || 'none',
+                        discount_amount: data.pricing?.discount_amount || 0,
+                        discount_percentage: data.pricing?.discount_percentage || 0,
+                        subtotal: data.pricing?.subtotal || 0,
+                        discount_total: data.pricing?.discount_total || 0,
+                        total_amount: data.pricing?.total_amount || 0,
+                        auto_calculated: data.pricing?.auto_calculated || false,
+                        last_calculated: data.pricing?.last_calculated || null,
+                                },
+          
+          // Add pricingRoles directly from API
+          pricingRoles: data.pricingRoles || [],
+          
           companyLogo: data.header?.company_logo || data.companyLogo || '',
           clientName: data.template?.client_name || data.client_name || data.header?.client_name || '',
           sowTitle: data.sow_title || data.title || 'Untitled SOW',
@@ -1003,19 +1011,19 @@ export default function SOWDetailsPage() {
 
                   {/* Pricing Display Component */}
                   <PricingDisplay
-                    pricingRoles={Array.isArray(sow.pricing.roles) ? sow.pricing.roles.map(role => ({
+                    pricingRoles={Array.isArray(sow.pricingRoles) ? sow.pricingRoles.map(role => ({
                       role: role.role || '',
-                      ratePerHour: role.ratePerHour || 0,
-                      totalHours: role.totalHours || 0,
-                      totalCost: (role.ratePerHour || 0) * (role.totalHours || 0)
+                      ratePerHour: role.rate_per_hour || 0,
+                      totalHours: role.total_hours || 0,
+                      totalCost: (role.rate_per_hour || 0) * (role.total_hours || 0)
                     })) : []}
                     discountType={sow.pricing?.discount_type || 'none'}
                     discountAmount={sow.pricing?.discount_amount || 0}
                     discountPercentage={sow.pricing?.discount_percentage || 0}
                     subtotal={sow.pricing?.subtotal || 0}
                     totalAmount={sow.pricing?.total_amount || 0}
-                    autoCalculated={sow.pricing?.auto_calculated || false}
                     lastCalculated={sow.pricing?.last_calculated || null}
+                    pmHoursRemoved={sow.pm_hours_requirement_disabled || false}
                   />
 
                   

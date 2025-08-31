@@ -130,6 +130,7 @@ const adminNavItems = [
       </svg>
     ),
   },
+
   {
     name: 'User Management',
     href: '/admin/users',

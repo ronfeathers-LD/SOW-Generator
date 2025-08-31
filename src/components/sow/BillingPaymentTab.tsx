@@ -1,6 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { SOWData } from '@/types/sow';
-import PricingCalculator from '@/components/sow/PricingCalculator';
 import PricingRolesAndDiscount from '@/components/sow/PricingRolesAndDiscount';
 import LoadingModal from '@/components/ui/LoadingModal';
 
@@ -22,17 +21,6 @@ interface DiscountConfig {
 interface BillingPaymentTabProps {
   formData: Partial<SOWData>;
   setFormData: (data: Partial<SOWData>) => void;
-  onBeforeSave?: (pricingData: {
-    roles: Array<{ role: string; rate_per_hour: number; total_hours: number }>;
-    discount_type: 'none' | 'fixed' | 'percentage';
-    discount_amount: number;
-    discount_percentage: number;
-    subtotal: number;
-    discount_total: number;
-    total_amount: number;
-    auto_calculated: boolean;
-    last_calculated: string;
-  }) => void;
 }
 
 // Standard LeanData roles with default rates (2025 rates)
@@ -40,11 +28,22 @@ const STANDARD_ROLES = [
   { role: 'Onboarding Specialist', ratePerHour: 250, defaultHours: 0 },
 ];
 
-export default function BillingPaymentTab({
+interface PricingData {
+  roles: Array<{ role: string; rate_per_hour: number; total_hours: number }>;
+  discount_type: string;
+  discount_amount: number;
+  discount_percentage: number;
+  subtotal: number;
+  discount_total: number;
+  total_amount: number;
+  auto_calculated: boolean;
+  last_calculated: string;
+}
+
+export default forwardRef<{ getCurrentPricingData?: () => PricingData }, BillingPaymentTabProps>(function BillingPaymentTab({
   formData,
   setFormData,
-  onBeforeSave,
-}: BillingPaymentTabProps) {
+}, ref) {
   const [pricingRoles, setPricingRoles] = useState<PricingRole[]>(STANDARD_ROLES.map(role => ({
     ...role,
     id: Math.random().toString(36).substr(2, 9),
@@ -60,6 +59,36 @@ export default function BillingPaymentTab({
   });
   
   const [isAutoCalculating, setIsAutoCalculating] = useState(false);
+
+  // Expose methods to parent component via ref
+  useImperativeHandle(ref, () => ({
+    getCurrentPricingData: () => {
+      const subtotal = pricingRoles.reduce((sum, role) => sum + role.totalCost, 0);
+      let discountTotal = 0;
+      if (discountConfig.type === 'fixed') {
+        discountTotal = discountConfig.amount;
+      } else if (discountConfig.type === 'percentage') {
+        discountTotal = subtotal * (discountConfig.percentage / 100);
+      }
+      const totalAmount = subtotal - discountTotal;
+      
+      return {
+        roles: pricingRoles.map(role => ({
+          role: role.role,
+          rate_per_hour: role.ratePerHour,
+          total_hours: role.totalHours,
+        })),
+        discount_type: discountConfig.type,
+        discount_amount: discountConfig.amount,
+        discount_percentage: discountConfig.percentage,
+        subtotal,
+        discount_total: discountTotal,
+        total_amount: totalAmount,
+        auto_calculated: true,
+        last_calculated: new Date().toISOString(),
+      };
+    }
+  }), [pricingRoles, discountConfig]);
 
   // Load saved pricing data when component mounts
   useEffect(() => {
@@ -97,10 +126,11 @@ export default function BillingPaymentTab({
         }));
         
         // Simply use the saved roles directly - no need for complex merging
+        // Don't filter out Project Manager role here - let the UI components handle display logic
         setPricingRoles(savedRoles);
       }
     }
-  }, [formData.pricing, discountConfig.initialized]); // Removed pricingRoles from dependencies to avoid circular dependency
+  }, [formData.pricing, discountConfig.initialized, formData.pm_hours_requirement_disabled]); // Removed pricingRoles from dependencies to avoid circular dependency
 
   // Sync pricing roles when form data changes (for auto-calculate updates)
   useEffect(() => {
@@ -115,100 +145,20 @@ export default function BillingPaymentTab({
           totalCost: (role.rate_per_hour || 0) * (role.total_hours || 0),
         }));
         
-        // Only update if the roles have actually changed
-        setPricingRoles(prev => {
-          const hasChanged = JSON.stringify(prev) !== JSON.stringify(updatedRoles);
-          if (hasChanged) {
-    
-            return updatedRoles;
-          }
-          return prev;
-        });
+                    // Only update if the roles have actually changed
+            setPricingRoles(prev => {
+              const hasChanged = JSON.stringify(prev) !== JSON.stringify(updatedRoles);
+              if (hasChanged) {
+                // Don't filter out Project Manager role here - let the UI components handle display logic
+                return updatedRoles;
+              }
+              return prev;
+            });
       }
     }
-  }, [formData.pricing?.roles]);
+  }, [formData.pricing?.roles, formData.pm_hours_requirement_disabled]);
 
 
-
-  // Single calculation function used by all other functions
-  const calculateTotals = useCallback(() => {
-    const rolesData = pricingRoles
-      .filter(role => role.role.trim() !== '' && role.totalHours > 0)
-      .map(role => ({
-        role: role.role,
-        rate_per_hour: role.ratePerHour,
-        total_hours: role.totalHours,
-      }));
-
-    const newSubtotal = pricingRoles.reduce((sum, role) => sum + role.totalCost, 0);
-    
-    let newDiscountTotal = 0;
-    if (discountConfig.type === 'fixed') {
-      newDiscountTotal = discountConfig.amount;
-    } else if (discountConfig.type === 'percentage') {
-      newDiscountTotal = newSubtotal * (discountConfig.percentage / 100);
-    }
-    
-    const newTotalAmount = newSubtotal - newDiscountTotal;
-
-    // Update form data with calculated totals
-    setFormData({
-      ...formData,
-      pricing: {
-        ...(formData.pricing || {}),
-        roles: rolesData,
-        discount_type: discountConfig.type,
-        discount_amount: discountConfig.amount,
-        discount_percentage: discountConfig.percentage,
-        subtotal: newSubtotal,
-        discount_total: newDiscountTotal,
-        total_amount: newTotalAmount,
-        // Preserve existing billing info if it exists, or provide default
-        billing: formData.pricing?.billing || {
-          company_name: '',
-          billing_contact: '',
-          billing_address: '',
-          billing_email: '',
-          po_number: '',
-        },
-        // Auto-save tracking fields
-        auto_calculated: true,
-        last_calculated: new Date().toISOString(),
-      },
-    });
-
-    return { newSubtotal, newDiscountTotal, newTotalAmount };
-  }, [pricingRoles, discountConfig, formData, setFormData]);
-
-  // Function to ensure form data is up to date before saving
-  const ensureFormDataUpToDate = useCallback(() => {
-    // Calculate current totals
-    const totals = calculateTotals();
-    
-    // Prepare current pricing data
-    const currentPricingData = {
-      roles: pricingRoles
-        .filter(role => role.role.trim() !== '' && role.totalHours > 0)
-        .map(role => ({
-          role: role.role,
-          rate_per_hour: role.ratePerHour,
-          total_hours: role.totalHours,
-        })),
-      discount_type: discountConfig.type,
-      discount_amount: discountConfig.amount,
-      discount_percentage: discountConfig.percentage,
-      subtotal: totals.newSubtotal,
-      discount_total: totals.newDiscountTotal,
-      total_amount: totals.newTotalAmount,
-      auto_calculated: true,
-      last_calculated: new Date().toISOString(),
-    };
-    
-    // Call the onBeforeSave callback to update main form data
-    if (onBeforeSave) {
-      onBeforeSave(currentPricingData);
-    }
-  }, [calculateTotals, pricingRoles, discountConfig, onBeforeSave]);
 
   // Auto-calculate hours based on selected products and units
   const autoCalculateHours = async () => {
@@ -227,7 +177,7 @@ export default function BillingPaymentTab({
     let totalProjectHours = 0;
 
     // Group routing objects together
-    const routingProducts = ['Lead Routing', 'Contact Routing', 'Account Routing'];
+    const routingProducts = ['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing'];
     const hasRoutingProducts = routingProducts.some(product => selectedProducts.includes(product));
     
     if (hasRoutingProducts) {
@@ -235,7 +185,6 @@ export default function BillingPaymentTab({
       const routingObjectCount = routingProducts.filter(product => selectedProducts.includes(product)).length;
       if (routingObjectCount > 0) {
         totalProjectHours += 15 + (Math.max(0, routingObjectCount - 1) * 5);
-
       }
     }
 
@@ -282,15 +231,23 @@ export default function BillingPaymentTab({
     // Calculate PM hours (25% of total project hours, rounded up, minimum 10 hours)
     const pmHours = Math.max(10, Math.ceil(totalProjectHours * 0.25));
     
+    // Calculate PM deduction (half of PM hours)
+    const pmDeduction = Math.ceil(pmHours / 2);
 
-    // Update the Onboarding Specialist role with calculated hours
+    // Update the Onboarding Specialist role with calculated hours (minus PM deduction)
     const updatedRoles = pricingRoles.map(role => {
       if (role.role === 'Onboarding Specialist') {
+        // If PM hours are disabled, Onboarding Specialist gets full base hours (no PM deduction)
+        // If PM hours are enabled, Onboarding Specialist gets base hours minus PM deduction
+        const finalHours = formData.pm_hours_requirement_disabled 
+          ? totalProjectHours 
+          : totalProjectHours - pmDeduction;
+        
         return {
           ...role,
           ratePerHour: 250, // Set the base rate for Onboarding Specialist
-          totalHours: totalProjectHours,
-          totalCost: 250 * totalProjectHours,
+          totalHours: finalHours,
+          totalCost: 250 * finalHours,
         };
       }
       return role;
@@ -300,7 +257,7 @@ export default function BillingPaymentTab({
     const hasProjectManager = updatedRoles.some(role => role.role === 'Project Manager');
     const shouldAddProjectManager = selectedProducts.length >= 3 || totalUnits >= 200;
 
-    if (shouldAddProjectManager && !hasProjectManager) {
+    if (shouldAddProjectManager && !hasProjectManager && !formData.pm_hours_requirement_disabled) {
       const pmRole: PricingRole = {
         id: Math.random().toString(36).substr(2, 9),
         role: 'Project Manager',
@@ -378,18 +335,12 @@ export default function BillingPaymentTab({
           discountConfig={discountConfig}
           setDiscountConfig={setDiscountConfig}
           autoCalculateHours={autoCalculateHours}
-          ensureFormDataUpToDate={ensureFormDataUpToDate}
           isAutoCalculating={isAutoCalculating}
+          onHoursCalculated={() => {
+            // This callback is called after hours are calculated
+            // The UI components now handle PM role display logic properly
+          }}
         />
-
-        {/* Pricing Calculator */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">Pricing Calculator</h3>
-          <PricingCalculator 
-            formData={formData as SOWData}
-          />
-        </div>
-
 
       </div>
       
@@ -401,4 +352,4 @@ export default function BillingPaymentTab({
       />
     </section>
   );
-} 
+});

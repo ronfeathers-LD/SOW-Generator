@@ -21,10 +21,10 @@ export default function PricingCalculator({
       if (formData.template?.products?.length === 1) {
         hours = 15;
       }
-    } else if (['Lead Routing', 'Contact Routing', 'Account Routing'].includes(product)) {
+    } else if (['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing'].includes(product)) {
       // Routing products: first = 15 hours, additional = 5 hours each
       const routingProducts = formData.template?.products?.filter(p => 
-        ['Lead Routing', 'Contact Routing', 'Account Routing'].includes(p)
+        ['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing'].includes(p)
       ) || [];
       const routingIndex = routingProducts.indexOf(product);
       if (routingIndex === 0) {
@@ -46,18 +46,7 @@ export default function PricingCalculator({
     return hours;
   };
 
-  // Calculate user group hours (every 50 users/units adds 5 hours)
-  const calculateUserGroupHours = (): number => {
-    const totalUnits = parseInt(formData.template?.number_of_units || '0') +
-                      parseInt(formData.template?.bookit_forms_units || '0') +
-                      parseInt(formData.template?.bookit_links_units || '0') +
-                      parseInt(formData.template?.bookit_handoff_units || '0');
-    
-    if (totalUnits >= 50) {
-      return Math.floor(totalUnits / 50) * 5;
-    }
-    return 0;
-  };
+
 
   return (
     <div className="space-y-6">
@@ -73,7 +62,7 @@ export default function PricingCalculator({
                     let unitValue = '';
                     let isNoCost = false;
                     
-                    if (product === 'Lead to Account Matching' || product === 'Lead Routing' || product === 'Contact Routing') {
+                    if (product === 'Lead to Account Matching' || product === 'Lead Routing' || product === 'Contact Routing' || product === 'Account Routing' || product === 'Opportunity Routing' || product === 'Case Routing') {
                       unitValue = formData.template?.number_of_units || formData.template?.units_consumption || '0';
                     } else if (product === 'BookIt for Forms') {
                       unitValue = formData.template?.bookit_forms_units || '0';
@@ -90,7 +79,7 @@ export default function PricingCalculator({
                     const productHours = calculateProductHours(product);
                     
                     return (
-                      <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <div key={`pricing-product-${index}-${product.slice(0, 15)}`} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                         <span className="font-medium text-gray-700">{product}</span>
                         <div className="text-right">
                           <div className="text-sm text-gray-600">
@@ -113,48 +102,6 @@ export default function PricingCalculator({
                 <p className="text-gray-500 italic">No products selected. Please go to the Project Overview tab to select products first.</p>
               )}
             </div>
-            
-            {/* Hours Summary */}
-            {formData.template?.products && Array.isArray(formData.template.products) && formData.template.products.length > 0 && (
-              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                <h4 className="font-medium text-green-900 mb-3">Hours Summary:</h4>
-                <div className="space-y-2">
-                  {/* Product Hours */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-700">Product Hours:</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {sortProducts(formData.template.products).reduce((total, product) => total + calculateProductHours(product), 0)} hours
-                    </span>
-                  </div>
-                  
-                  {/* User Group Hours */}
-                  {(() => {
-                    const userGroupHours = calculateUserGroupHours();
-                    return userGroupHours > 0 ? (
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-700">User Group Hours:</span>
-                        <span className="text-sm font-medium text-gray-900">{userGroupHours} hours</span>
-                      </div>
-                    ) : null;
-                  })()}
-                  
-                  {/* Total Hours */}
-                  <div className="border-t border-green-300 pt-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium text-green-900">Total Project Hours:</span>
-                      <span className="font-medium text-green-900">
-                        {formData.template.products.reduce((total, product) => total + calculateProductHours(product), 0) + calculateUserGroupHours()} hours
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* PM Hours */}
-                  <div className="text-xs text-green-700 mt-2">
-                    💡 Project Manager hours are calculated as 25% of total project hours (minimum 10 hours)
-                  </div>
-                </div>
-              </div>
-            )}
             
             {formData.template?.products && Array.isArray(formData.template.products) && formData.template.products.length === 0 && (
               <p className="text-sm text-blue-600 text-center">

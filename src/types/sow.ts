@@ -1,3 +1,5 @@
+import { SalesforceAccount, SalesforceContact } from '@/lib/salesforce';
+
 export interface BillingInfo {
   company_name: string;
   billing_contact: string;
@@ -167,42 +169,110 @@ export interface SOWData {
   // Salesforce Information
   salesforce_account_id?: string;
   salesforce_contact_id?: string;
-  selectedAccount?: {
-    id: string;
-    name: string;
-  } | null;
-  
-  // Salesforce Opportunity Information
   opportunity_id?: string;
   opportunity_name?: string;
   opportunity_amount?: number;
   opportunity_stage?: string;
   opportunity_close_date?: string;
+  selectedAccount?: SalesforceAccount;
+  selectedContact?: SalesforceContact;
   
-  // LeanData Signatory Information
+  // PM Hours Removal tracking
+  pm_hours_removed?: number;
+  pm_hours_removal_approved?: boolean;
+  pm_hours_removal_date?: Date;
+  pm_hours_requirement_disabled?: boolean;
+  pm_hours_requirement_disabled_date?: Date;
+  pm_hours_requirement_disabled_requester_id?: string;
+  pm_hours_requirement_disabled_approver_id?: string;
+  
+  // LeanData Signatory
   leandata_signatory_id?: string;
-
-  // Custom content tracking
+  
+  // Custom content fields
   custom_intro_content?: string;
   custom_scope_content?: string;
   custom_out_of_scope_content?: string;
   custom_objectives_disclosure_content?: string;
-  custom_assumptions_content?: string;
-  custom_project_phases_content?: string;
-  custom_roles_content?: string;
-  custom_deliverables_content?: string;
   custom_objective_overview_content?: string;
   custom_key_objectives_content?: string;
+  custom_assumptions_content?: string;
+  custom_deliverables_content?: string;
+  custom_project_phases_content?: string;
+  custom_timeline_content?: string;
+  custom_team_content?: string;
+  custom_billing_content?: string;
+  custom_terms_content?: string;
+  custom_roles_content?: string;
+  
+  // Content editing flags
   intro_content_edited?: boolean;
   scope_content_edited?: boolean;
   out_of_scope_content_edited?: boolean;
   objectives_disclosure_content_edited?: boolean;
-  assumptions_content_edited?: boolean;
-  project_phases_content_edited?: boolean;
-  roles_content_edited?: boolean;
-  deliverables_content_edited?: boolean;
   objective_overview_content_edited?: boolean;
   key_objectives_content_edited?: boolean;
-  
+  assumptions_content_edited?: boolean;
+  deliverables_content_edited?: boolean;
+  project_phases_content_edited?: boolean;
+  timeline_content_edited?: boolean;
+  team_content_edited?: boolean;
+  billing_content_edited?: boolean;
+  terms_content_edited?: boolean;
+  roles_content_edited?: boolean;
+}
 
+// PM Hours Requirement Disable System Types
+export interface PMHoursRequirementDisableRequest {
+  id: string;
+  created_at: Date;
+  updated_at: Date;
+  sow_id: string;
+  requester_id: string;
+  pmo_reviewer_id?: string;
+  current_pm_hours: number;
+  hours_to_remove: number;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  approved_at?: Date;
+  rejected_at?: Date;
+  approval_comments?: string;
+  rejection_reason?: string;
+  financial_impact: number;
+}
+
+export interface PMHoursComment {
+  id: string;
+  created_at: Date;
+  updated_at: Date;
+  request_id: string;
+  user_id: string;
+  comment: string;
+  parent_id?: string;
+  is_internal: boolean;
+  user?: {
+    name: string;
+    email: string;
+  };
+}
+
+export interface PMHoursRequirementDisableDashboardItem {
+  request_id: string;
+  created_at: Date;
+  updated_at: Date;
+  status: string;
+  current_pm_hours: number;
+  hours_to_remove: number;
+  reason: string;
+  financial_impact: number;
+  sow_id: string;
+  sow_title: string;
+  client_name: string;
+  sow_status: string;
+  requester_id: string;
+  requester_name: string;
+  requester_email: string;
+  pmo_reviewer_name?: string;
+  pmo_reviewer_email?: string;
+  hours_since_request: number;
 } 

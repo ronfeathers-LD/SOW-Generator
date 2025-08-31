@@ -64,21 +64,23 @@ export async function PATCH(request: Request) {
     }
 
     // Validate role
-    const validRoles = ['user', 'admin', 'manager', 'director', 'vp'];
+    const validRoles = ['user', 'admin', 'manager', 'pmo'];
     if (!validRoles.includes(role)) {
       return new NextResponse('Invalid role', { status: 400 });
     }
 
+    const updateData = { role };
+
     const { data, error } = await supabase
       .from('users')
-      .update({ role })
+      .update(updateData)
       .eq('id', userId)
       .select('id, name, email, role')
       .single();
 
     if (error) {
-      console.error('Error updating user role:', error);
-      return new NextResponse('Failed to update user role', { status: 500 });
+      console.error('Error updating user:', error);
+      return new NextResponse('Failed to update user', { status: 500 });
     }
 
     return NextResponse.json(data);

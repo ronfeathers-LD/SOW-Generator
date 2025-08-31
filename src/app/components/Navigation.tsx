@@ -8,6 +8,8 @@ export default function Navigation() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const isAdmin = session?.user?.role === 'admin';
+  const isManager = session?.user?.role === 'manager';
+  const isPMO = session?.user?.role === 'pmo';
   const isLoading = status === 'loading';
 
   // Don't show navigation on the home page (login page)
@@ -82,6 +84,30 @@ export default function Navigation() {
               >
                 SOWs
               </Link>
+              {isPMO && (
+                <Link 
+                  href="/pmo" 
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                    pathname.startsWith('/pmo') 
+                      ? 'border-white text-white' 
+                      : 'border-transparent text-green-100 hover:border-green-200 hover:text-white'
+                  }`}
+                >
+                  PMO
+                </Link>
+              )}
+              {isManager && (
+                <Link 
+                  href="/manager" 
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                    pathname.startsWith('/manager') 
+                      ? 'border-white text-white' 
+                      : 'border-transparent text-green-100 hover:border-green-200 hover:text-white'
+                  }`}
+                >
+                  Manager
+                </Link>
+              )}
               {isAdmin && (
                 <Link 
                   href="/admin" 
@@ -113,9 +139,11 @@ export default function Navigation() {
                 <p className="text-sm font-medium text-white">
                   {session.user.name || session.user.email}
                 </p>
-                {isAdmin && (
-                  <p className="text-xs text-green-100">Administrator</p>
-                )}
+                <div className="text-xs text-green-100 space-y-1">
+                  {isAdmin && <p>Administrator</p>}
+                  {isManager && <p>Manager</p>}
+                  {isPMO && <p>PMO</p>}
+                </div>
               </div>
             </div>
             <button

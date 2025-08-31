@@ -677,7 +677,7 @@ export default function ProjectOverviewTab({
           <h4 className="text-sm font-medium text-red-800 mb-2">Required Fields Missing:</h4>
           <ul className="text-sm text-red-700 space-y-1">
             {Object.values(validationErrors).map((error, index) => (
-              <li key={index}>• {error}</li>
+              <li key={`validation-error-${index}-${error.slice(0, 20)}`}>• {error}</li>
             ))}
           </ul>
         </div>

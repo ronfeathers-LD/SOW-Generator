@@ -1,8 +1,5 @@
-'use client';
-
-import React, { useState } from 'react';
-import { SOWData } from '@/types/sow';
-import LoadingModal from '../ui/LoadingModal';
+import React, { useState, useEffect, useCallback } from 'react';
+import { PMHoursRequirementDisableRequest } from '@/types/sow';
 
 interface PricingRole {
   id: string;
@@ -12,88 +9,259 @@ interface PricingRole {
   totalCost: number;
 }
 
-interface DiscountConfig {
-  type: 'none' | 'fixed' | 'percentage';
-  amount: number;
-  percentage: number;
-  initialized?: boolean;
-}
-
 interface PricingRolesAndDiscountProps {
-  formData: SOWData;
+  formData: Record<string, unknown>; // Allow any form data structure
   pricingRoles: PricingRole[];
   setPricingRoles: (roles: PricingRole[]) => void;
-  discountConfig: DiscountConfig;
-  setDiscountConfig: (config: DiscountConfig) => void;
-  autoCalculateHours: () => void;
-  ensureFormDataUpToDate: () => void;
-  isAutoCalculating?: boolean;
+  discountConfig: {
+    type: 'none' | 'fixed' | 'percentage';
+    amount?: number;
+    percentage?: number;
+    initialized?: boolean;
+  };
+  setDiscountConfig: (config: {
+    type: 'none' | 'fixed' | 'percentage';
+    amount?: number;
+    percentage?: number;
+    initialized?: boolean;
+  }) => void;
+  autoCalculateHours: () => Promise<void>;
+  isAutoCalculating: boolean;
+  onHoursCalculated?: () => void;
 }
 
-export default function PricingRolesAndDiscount({
+const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   formData,
   pricingRoles,
   setPricingRoles,
   discountConfig,
   setDiscountConfig,
   autoCalculateHours,
-  ensureFormDataUpToDate,
-  isAutoCalculating = false,
-}: PricingRolesAndDiscountProps) {
-  const [showCalculationFormulas, setShowCalculationFormulas] = useState(false);
-  const [showRoleSuggestions, setShowRoleSuggestions] = useState(false);
-  const [isSavingPricing, setIsSavingPricing] = useState(false);
-  // Add role
-  const addRole = () => {
-    const newRole: PricingRole = {
-      id: Math.random().toString(36).substr(2, 9),
-      role: '',
-      ratePerHour: 0,
-      totalHours: 0,
-      totalCost: 0,
-    };
-    setPricingRoles([...pricingRoles, newRole]);
-  };
+  isAutoCalculating,
+  onHoursCalculated
+}) => {
+  const [pendingPMHoursRequest, setPendingPMHoursRequest] = useState<PMHoursRequirementDisableRequest | null>(null);
+  const [approvedPMHoursRequest, setApprovedPMHoursRequest] = useState<PMHoursRequirementDisableRequest | null>(null);
+  const [showPricingCalculator, setShowPricingCalculator] = useState(false);
 
-  // Remove role
-  const removeRole = (id: string) => {
-    const newRoles = pricingRoles.filter(role => role.id !== id);
-    setPricingRoles(newRoles);
+  // Calculate product hours based on business rules
+  const calculateProductHours = useCallback((): number => {
+    const products = (formData.template as any)?.products;
+    if (!products) return 0;
     
-    // Don't call calculateTotals here - it causes re-render loops
-    // calculateTotals will be called when needed (save, auto-calculate, etc.)
+    let totalHours = 0;
+    
+    // Routing products: first = 15 hours, additional = 5 hours each
+    const routingProducts = products.filter((product: string) => 
+      ['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing'].includes(product)
+    );
+    
+    if (routingProducts.length > 0) {
+      totalHours += 15 + (Math.max(0, routingProducts.length - 1) * 5);
+    }
+    
+    // Lead to Account Matching: only if it's the only product
+    if (products.includes('Lead to Account Matching') && products.length === 1) {
+      totalHours += 15;
+    }
+    
+    // BookIt products
+    if (products.includes('BookIt for Forms')) {
+      totalHours += 10;
+      if (products.includes('BookIt Handoff (with Smartrep)')) {
+        totalHours += 5;
+      }
+    }
+    
+    if (products.includes('BookIt Links')) {
+      totalHours += 1;
+    }
+    
+    if (products.includes('BookIt Handoff (without Smartrep)')) {
+      totalHours += 1;
+    }
+    
+    return totalHours;
+  }, [formData.template]);
+
+  // Calculate user group hours (every 50 users/units adds 5 hours)
+  const calculateUserGroupHours = useCallback((): number => {
+    const template = formData.template as any;
+    const totalUnits = parseInt(template?.number_of_units || '0') +
+                      parseInt(template?.bookit_forms_units || '0') +
+                      parseInt(template?.bookit_links_units || '0') +
+                      parseInt(template?.bookit_handoff_units || '0');
+    
+    if (totalUnits >= 50) {
+      return Math.floor(totalUnits / 50) * 5;
+    }
+    return 0;
+  }, [formData.template]);
+
+  // Calculate base project hours (without PM)
+  const calculateBaseProjectHours = useCallback((): number => {
+    return calculateProductHours() + calculateUserGroupHours();
+  }, [calculateProductHours, calculateUserGroupHours]);
+
+  // Calculate PM hours (25% of total project hours, minimum 10)
+  const calculatePMHours = useCallback((): number => {
+    const totalProjectHours = calculateBaseProjectHours();
+    return Math.max(10, Math.ceil(totalProjectHours * 0.25));
+  }, [calculateBaseProjectHours]);
+
+  // Get total units for display
+  const getTotalUnits = useCallback((): number => {
+    const template = formData.template as any;
+    return parseInt(template?.number_of_units || '0') +
+           parseInt(template?.bookit_forms_units || '0') +
+           parseInt(template?.bookit_links_units || '0') +
+           parseInt(template?.bookit_handoff_units || '0');
+  }, [formData.template]);
+
+  // Check PM hours removal status
+  const checkPMHoursStatus = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/pm-hours-removal?sowId=${formData.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        const pendingRequest = data.requests.find((req: PMHoursRequirementDisableRequest) => req.status === 'pending');
+        const approvedRequest = data.requests.find((req: PMHoursRequirementDisableRequest) => req.status === 'approved');
+        
+        if (pendingRequest) {
+          setPendingPMHoursRequest(pendingRequest);
+        }
+        if (approvedRequest) {
+          setApprovedPMHoursRequest(approvedRequest);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking PM hours status:', error);
+    }
+  }, [formData.id]);
+
+  useEffect(() => {
+    checkPMHoursStatus();
+  }, [checkPMHoursStatus]);
+
+  // Auto-sync Onboarding Specialist hours when PM hours removal is approved
+  useEffect(() => {
+    if (approvedPMHoursRequest && pricingRoles.length > 0) {
+      const updatedRoles = pricingRoles.map(role => {
+        if (role.role === 'Onboarding Specialist') {
+          // When PM hours are removed, Onboarding Specialist gets full base hours
+          const baseHours = calculateBaseProjectHours();
+          return {
+            ...role,
+            totalHours: baseHours,
+            totalCost: baseHours * role.ratePerHour
+          };
+        } else if (role.role === 'Project Manager') {
+          // Project Manager gets 0 hours when PM hours are removed
+          return {
+            ...role,
+            totalHours: 0,
+            totalCost: 0
+          };
+        }
+        return role;
+      });
+      
+      // Only update if there are actual changes to prevent infinite loop
+      const hasChanges = updatedRoles.some((role, index) => {
+        const originalRole = pricingRoles[index];
+        return role.totalHours !== originalRole.totalHours || role.totalCost !== originalRole.totalCost;
+      });
+      
+      if (hasChanges) {
+        setPricingRoles(updatedRoles);
+      }
+    }
+  }, [approvedPMHoursRequest, pricingRoles, calculateBaseProjectHours, setPricingRoles]);
+
+  // Wrapper for autoCalculateHours that triggers PM status check
+  const handleRecalculateHours = async () => {
+    // Only recalculate the base hours and role assignments
+    // Don't recalculate costs - those are handled separately
+    await autoCalculateHours();
+    
+    // After recalculating hours, ensure PM removal status is respected
+    if (approvedPMHoursRequest && pricingRoles.length > 0) {
+      const updatedRoles = pricingRoles.map(role => {
+        if (role.role === 'Onboarding Specialist') {
+          // When PM hours are removed, Onboarding Specialist gets full base hours
+          const baseHours = calculateBaseProjectHours();
+          return {
+            ...role,
+            totalHours: baseHours,
+            totalCost: baseHours * role.ratePerHour
+          };
+        } else if (role.role === 'Project Manager') {
+          // Project Manager gets 0 hours when PM hours are removed
+          return {
+            ...role,
+            totalHours: 0,
+            totalCost: 0
+          };
+        }
+        return role;
+      });
+      
+      setPricingRoles(updatedRoles);
+    }
+    
+    if (onHoursCalculated) {
+      onHoursCalculated();
+    }
   };
 
   // Update role
   const updateRole = (id: string, field: keyof PricingRole, value: string | number) => {
-    const newRoles = pricingRoles.map(role => {
+    setPricingRoles(pricingRoles.map(role => {
       if (role.id === id) {
         const updatedRole = { ...role, [field]: value };
         
-        // Calculate total cost for this role
+        // Recalculate total cost if rate or hours changed
         if (field === 'ratePerHour' || field === 'totalHours') {
           updatedRole.totalCost = updatedRole.ratePerHour * updatedRole.totalHours;
+        }
+        
+        // Special handling for Onboarding Specialist when PM hours are removed
+        if (role.role === 'Onboarding Specialist' && field === 'totalHours' && approvedPMHoursRequest) {
+          // When PM hours are removed, Onboarding Specialist should get full base hours
+          const baseHours = calculateBaseProjectHours();
+          updatedRole.totalHours = baseHours;
+          updatedRole.totalCost = baseHours * updatedRole.ratePerHour;
         }
         
         return updatedRole;
       }
       return role;
-    });
-    
-    setPricingRoles(newRoles);
-    
-    // Don't call calculateTotals here - it causes re-render loops
-    // calculateTotals will be called when needed (save, auto-calculate, etc.)
+    }));
   };
 
-  // Update discount configuration
-  const updateDiscount = (field: keyof typeof discountConfig, value: string | number) => {
-    const newConfig = { ...discountConfig, [field]: value };
-    setDiscountConfig(newConfig);
-    
-    // Don't call calculateTotals here - it causes re-render loops
-    // calculateTotals will be called when needed (save, auto-calculate, etc.)
+  // Remove role
+  const removeRole = (id: string) => {
+    setPricingRoles(pricingRoles.filter(role => role.id !== id));
   };
+
+  // Calculate total cost
+  const calculateTotalCost = (): number => {
+    return pricingRoles.reduce((sum, role) => {
+      // If PM hours are removed by approval, don't include Project Manager role
+      if (role.role === 'Project Manager' && approvedPMHoursRequest) {
+        return sum;
+      }
+      return sum + role.totalCost;
+    }, 0);
+  };
+
+  // Get current calculations
+  const productHours = calculateProductHours();
+  const userGroupHours = calculateUserGroupHours();
+  const baseHours = calculateBaseProjectHours();
+  const pmHours = approvedPMHoursRequest ? 0 : calculatePMHours();
+  const totalHours = baseHours + pmHours;
+  const totalUnits = getTotalUnits();
 
   return (
     <div className="space-y-6">
@@ -101,7 +269,7 @@ export default function PricingRolesAndDiscount({
       <div className="bg-blue-50 p-4 rounded-lg">
         <button
           type="button"
-          onClick={autoCalculateHours}
+          onClick={handleRecalculateHours}
           disabled={!formData.template?.products || formData.template.products.length === 0 || isAutoCalculating}
           className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -109,60 +277,14 @@ export default function PricingRolesAndDiscount({
             <>
               <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
               Calculating Hours...
             </>
           ) : (
-            'Calculate Hours Based on Selected Products'
+            'Reset Role Hours'
           )}
         </button>
-        
-        {/* Sync Data Button */}
-        <div className="mt-3">
-          <button
-            type="button"
-            onClick={ensureFormDataUpToDate}
-            className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            🔄 Sync Data with Form
-          </button>
-        </div>
-        
-        {/* Calculation Formulas Link */}
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={() => setShowCalculationFormulas(true)}
-            className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
-          >
-            Calculation Formulas
-          </button>
-        </div>
-        
-        {/* Show calculated hours summary if available */}
-        {pricingRoles.some(role => role.totalHours > 0) && (
-          <div className="bg-green-50 p-4 rounded-lg border border-green-200 mt-4">
-            <h4 className="font-medium text-green-900 mb-2">✅ Hours Calculated Successfully!</h4>
-            <div className="text-sm text-green-800 space-y-1">
-              {pricingRoles.filter(role => role.totalHours > 0).map(role => (
-                <div key={role.id} className="flex justify-between">
-                  <span>{role.role}:</span>
-                  <span className="font-medium">{role.totalHours} hours × ${role.ratePerHour}/hr = ${role.totalCost.toLocaleString()}</span>
-                </div>
-              ))}
-              <div className="border-t border-green-300 pt-2 mt-2">
-                <div className="flex justify-between font-medium">
-                  <span>Subtotal:</span>
-                  <span>${pricingRoles.reduce((sum, role) => sum + role.totalCost, 0).toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-            <p className="text-xs text-green-700 mt-2">
-              💡 The calculated hours have been assigned to the Onboarding Specialist role. Project Manager role is auto-added for 3+ products. You can manually adjust the distribution or add additional roles as needed.
-            </p>
-          </div>
-        )}
         
         {(!formData.template?.products || formData.template.products.length === 0) && (
           <p className="text-sm text-blue-600 text-center mt-2">
@@ -171,354 +293,327 @@ export default function PricingRolesAndDiscount({
         )}
       </div>
 
-      {/* Pricing Roles Table */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Pricing Roles</h3>
-            <button
-              type="button"
-              onClick={addRole}
-              className="px-3 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-            >
-              Add Role
-            </button>
-          </div>
-          <div className="mt-2">
-            <button
-              type="button"
-              onClick={() => setShowRoleSuggestions(true)}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
-            >
-              💡 Role Suggestions
-            </button>
+      {/* PM Hours Status */}
+      {(pendingPMHoursRequest || approvedPMHoursRequest) && (
+        <div className={`p-3 rounded-lg border ${
+          pendingPMHoursRequest 
+            ? 'bg-blue-50 border-blue-200' 
+            : 'bg-green-50 border-green-200'
+        }`}>
+          <div className="flex items-center text-sm">
+            <svg className={`w-4 h-4 mr-2 ${
+              pendingPMHoursRequest ? 'text-blue-600' : 'text-green-600'
+            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={
+                pendingPMHoursRequest 
+                  ? "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  : "M5 13l4 4L19 7"
+              } />
+            </svg>
+            <span className={pendingPMHoursRequest ? 'text-blue-800' : 'text-green-800'}>
+              {pendingPMHoursRequest 
+                ? 'PM Hours Removal Request Pending Approval'
+                : 'PM Hours Removed by Approval'
+              }
+            </span>
+            {approvedPMHoursRequest && (
+              <a 
+                href={`/pmo/pm-hours-removal?id=${approvedPMHoursRequest.id}`}
+                className="ml-2 text-blue-600 hover:text-blue-800 underline"
+              >
+                View approval details
+              </a>
+            )}
           </div>
         </div>
+      )}
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rate/Hour ($)
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total Hours
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total Cost ($)
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {pricingRoles.map((role) => (
-                <tr key={role.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="text"
-                      value={role.role}
-                      onChange={(e) => updateRole(role.id, 'role', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter role name"
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="number"
-                      value={role.ratePerHour}
-                      onChange={(e) => updateRole(role.id, 'ratePerHour', parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0"
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="number"
-                      value={role.totalHours}
-                      onChange={(e) => updateRole(role.id, 'totalHours', parseInt(e.target.value) || 0)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="0"
-                      min="0"
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    ${role.totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      type="button"
-                      onClick={() => removeRole(role.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Remove
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Integrated Project Summary */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-semibold text-gray-900 flex items-center">
+            <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            Project Summary
+          </h3>
         </div>
-      </div>
 
-      {/* Discount Configuration */}
-      <div className="bg-yellow-50 p-4 rounded-lg">
-        <h3 className="text-lg font-semibold text-yellow-900 mb-4">Discount Configuration</h3>
+        {/* Hours Breakdown and Discount Configuration - Two Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          {/* Hours Breakdown - Takes 2 columns */}
+          <div className="lg:col-span-2 space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-700">
+                {formData.template?.products?.length || 0} objects 
+                <button 
+                  onClick={() => setShowPricingCalculator(true)}
+                  className="ml-1 text-blue-600 hover:text-blue-800 underline"
+                >
+                  (Details)
+                </button>
+                :
+              </span>
+              <span className="font-medium">{productHours} hours</span>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-gray-700">
+                {totalUnits} users ({Math.ceil(totalUnits / 50)} × 50):
+              </span>
+              <span className="font-medium">{userGroupHours} hours</span>
+            </div>
+            
+            <div className="flex justify-between items-center border-t pt-3">
+              <span className="font-medium text-gray-900">Base Hours:</span>
+              <span className="font-semibold text-gray-900">{baseHours} hours</span>
+            </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Discount Type</label>
-            <select
-              value={discountConfig.type}
-              onChange={(e) => updateDiscount('type', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-            >
-              <option value="none">No Discount</option>
-              <option value="fixed">Fixed Amount</option>
-              <option value="percentage">Percentage</option>
-            </select>
-          </div>
-          {discountConfig.type === 'fixed' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Discount Amount ($)</label>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={discountConfig.amount === 0 ? '' : discountConfig.amount.toString()}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  // Remove leading zeros and non-numeric characters except decimal point
-                  const cleanValue = value.replace(/^0+/, '').replace(/[^\d.]/g, '');
-                  
-                  // Handle decimal point properly
-                  if (cleanValue === '' || cleanValue === '.') {
-                    updateDiscount('amount', 0);
-                  } else if (cleanValue.includes('.')) {
-                    // Ensure only one decimal point and max 2 decimal places
-                    const parts = cleanValue.split('.');
-                    if (parts.length === 2 && parts[1].length <= 2) {
-                      updateDiscount('amount', parseFloat(cleanValue) || 0);
+            {!approvedPMHoursRequest && (
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-gray-900">Project Manager (25%):</span>
+                <span className="font-semibold text-gray-900">{pmHours} hours</span>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center border-t pt-3">
+              <span className="font-semibold text-lg text-gray-900">Total Hours:</span>
+              <span className="font-bold text-lg text-gray-900">{totalHours} hours</span>
+            </div>
+
+            {/* Total Cost - Added here after Total Hours */}
+            <div className="space-y-2">
+              {/* Subtotal */}
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-gray-700">Subtotal:</span>
+                <span className="font-medium text-gray-700">${calculateTotalCost().toLocaleString()}</span>
+              </div>
+
+              {/* Discount */}
+              {discountConfig?.type && discountConfig.type !== 'none' && discountConfig.amount && (
+                <div className="flex justify-between items-center text-green-600">
+                  <span className="font-medium">Discount {discountConfig.type === 'fixed' ? '($)' : '(%)'}:</span>
+                  <span className="font-medium">
+                    {discountConfig.type === 'fixed' 
+                      ? `-$${discountConfig.amount.toLocaleString()}` 
+                      : `-${discountConfig.amount}%`
                     }
-                  } else {
-                    // Integer value
-                    updateDiscount('amount', parseInt(cleanValue) || 0);
-                  }
-                }}
-                onBlur={(e) => {
-                  // Format the value on blur (when user leaves the field)
-                  const value = parseFloat(e.target.value) || 0;
-                  if (value > 0) {
-                    e.target.value = value.toFixed(2);
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                placeholder="0.00"
-              />
-            </div>
-          )}
-          {discountConfig.type === 'percentage' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Discount Percentage (%)</label>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={discountConfig.percentage === 0 ? '' : discountConfig.percentage.toString()}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  // Remove leading zeros and non-numeric characters except decimal point
-                  const cleanValue = value.replace(/^0+/, '').replace(/[^\d.]/g, '');
-                  
-                  // Handle decimal point properly
-                  if (cleanValue === '' || cleanValue === '.') {
-                    updateDiscount('percentage', 0);
-                  } else if (cleanValue.includes('.')) {
-                    // Ensure only one decimal point and max 2 decimal places
-                    const parts = cleanValue.split('.');
-                    if (parts.length === 2 && parts[1].length <= 2) {
-                      const numValue = parseFloat(cleanValue) || 0;
-                      // Limit to 100%
-                      updateDiscount('percentage', Math.min(numValue, 100));
-                    }
-                  } else {
-                    // Integer value
-                    const numValue = parseInt(cleanValue) || 0;
-                    // Limit to 100%
-                    updateDiscount('percentage', Math.min(numValue, 100));
-                  }
-                }}
-                onBlur={(e) => {
-                  // Format the value on blur (when user leaves the field)
-                  const value = parseFloat(e.target.value) || 0;
-                  if (value > 0) {
-                    e.target.value = value.toFixed(2);
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                placeholder="0.00"
-              />
-            </div>
-          )}
-        </div>
-      </div>
+                  </span>
+                </div>
+              )}
 
-      {/* Pricing Summary */}
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h4 className="text-lg font-semibold text-gray-800 mb-4">Pricing Summary</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-3 rounded border">
-            <div className="text-sm text-gray-600">Subtotal</div>
-            <div className="text-xl font-bold text-gray-900">
-              ${(pricingRoles.reduce((sum, role) => sum + role.totalCost, 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {/* Total */}
+              <div className="flex justify-between items-center border-t pt-2">
+                <span className="font-semibold text-lg text-gray-900">Total:</span>
+                <span className="font-bold text-lg text-gray-900">
+                  ${(() => {
+                    const subtotal = calculateTotalCost();
+                    if (discountConfig?.type === 'fixed' && discountConfig.amount) {
+                      return Math.max(0, subtotal - discountConfig.amount).toLocaleString();
+                    } else if (discountConfig?.type === 'percentage' && discountConfig.amount) {
+                      return Math.max(0, subtotal * (1 - discountConfig.amount / 100)).toLocaleString();
+                    }
+                    return subtotal.toLocaleString();
+                  })()}
+                </span>
+              </div>
             </div>
           </div>
-          <div className="bg-white p-3 rounded border">
-            <div className="text-sm text-gray-600">Discount</div>
-            <div className="text-xl font-bold text-red-600">
-              {discountConfig.type === 'fixed' && discountConfig.amount ? (
-                `-$${discountConfig.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-              ) : discountConfig.type === 'percentage' && discountConfig.percentage ? (
-                `-${discountConfig.percentage}%`
-              ) : (
-                '$0.00'
+
+          {/* Discount Configuration - Takes 1 column */}
+          <div className="lg:col-span-1 ">
+            <h2 className="font-medium text-gray-900 mb-4">Discount Configuration</h2>
+            <div className="space-y-4 shadow-md p-4 rounded-md">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Discount Type</label>
+                <select
+                  value={discountConfig?.type || 'none'}
+                  onChange={(e) => setDiscountConfig({ ...discountConfig, type: e.target.value as 'none' | 'fixed' | 'percentage' })}
+                  className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="none">No Discount</option>
+                  <option value="fixed">Fixed Amount</option>
+                  <option value="percentage">Percentage</option>
+                </select>
+              </div>
+              
+              {(discountConfig?.type === 'fixed' || discountConfig?.type === 'percentage') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {discountConfig.type === 'fixed' ? 'Discount Amount ($)' : 'Discount Percentage (%)'}
+                  </label>
+                  <input
+                    type="number"
+                    value={discountConfig?.amount || ''}
+                    onChange={(e) => setDiscountConfig({ ...discountConfig, amount: parseFloat(e.target.value) || 0 })}
+                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder={discountConfig.type === 'fixed' ? '0.00' : '0'}
+                    step={discountConfig.type === 'fixed' ? '0.01' : '0.1'}
+                  />
+                </div>
               )}
             </div>
           </div>
-          <div className="bg-white p-3 rounded border">
-            <div className="text-sm text-gray-600">Total Amount</div>
-            <div className="text-xl font-bold text-green-600">
-              ${(() => {
-                const subtotal = pricingRoles.reduce((sum, role) => sum + role.totalCost, 0);
-                let discountTotal = 0;
-                if (discountConfig.type === 'fixed') {
-                  discountTotal = discountConfig.amount;
-                } else if (discountConfig.type === 'percentage') {
-                  discountTotal = subtotal * (discountConfig.percentage / 100);
-                }
-                return (subtotal - discountTotal).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-              })()}
-            </div>
+        </div>
+
+        {/* Role Costs Table */}
+        <div className="mb-6">
+          <h4 className="font-medium text-gray-900 mb-4">Role Costs:</h4>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ROLE</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RATE/HOUR ($)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TOTAL HOURS</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TOTAL COST ($)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {pricingRoles.map(role => {
+                  const isPMRemoved = role.role === 'Project Manager' && approvedPMHoursRequest;
+                  return (
+                    <tr key={role.id} className={isPMRemoved ? 'bg-gray-50' : ''}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="text"
+                          value={role.role}
+                          onChange={(e) => updateRole(role.id, 'role', e.target.value)}
+                          className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                            isPMRemoved ? 'bg-gray-100 text-gray-500' : ''
+                          }`}
+                          disabled={!!isPMRemoved}
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="number"
+                          value={role.ratePerHour}
+                          onChange={(e) => updateRole(role.id, 'ratePerHour', parseFloat(e.target.value) || 0)}
+                          className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                            isPMRemoved ? 'bg-gray-100 text-gray-500' : ''
+                          }`}
+                          disabled={!!isPMRemoved}
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="number"
+                          value={role.totalHours}
+                          onChange={(e) => updateRole(role.id, 'totalHours', parseFloat(e.target.value) || 0)}
+                          className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                            isPMRemoved ? 'bg-gray-100 text-gray-500' : ''
+                          }`}
+                          disabled={!!isPMRemoved}
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ${role.totalCost.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        {isPMRemoved ? (
+                          <span className="text-gray-400 text-xs">Removed by approval</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => removeRole(role.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Recalculate Button */}
+        <div className="flex justify-end">
+                      <button
+              type="button"
+              onClick={handleRecalculateHours}
+              disabled={!formData.template?.products || formData.template.products.length === 0 || isAutoCalculating}
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Reset Role Hours
+            </button>
+        </div>
+
+        {/* Info Note */}
+        <div className="mt-4 bg-green-50 p-3 rounded-lg border border-green-200">
+          <div className="flex items-center text-sm text-green-800">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            💡 The calculated hours have been assigned to the Onboarding Specialist role. Project Manager role is auto-added for 3+ products. You can manually adjust the distribution or add additional roles as needed.
           </div>
         </div>
       </div>
-      
-      {/* Save Pricing Button */}
-      <div className="flex justify-end mt-4">
-        <button
-          type="button"
-          onClick={() => {
-            setIsSavingPricing(true);
-            // Ensure form data is up to date before saving
-            ensureFormDataUpToDate();
-            
-            // Use a small delay to ensure state update completes
-            setTimeout(() => {
-              // Trigger the parent's save functionality
-              if (typeof window !== 'undefined') {
-                // Find the main save button and click it
-                const saveButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
-                if (saveButton) {
-                  saveButton.click();
-                  // Reset loading state after a delay to allow for save completion
-                  setTimeout(() => setIsSavingPricing(false), 2000);
-                } else {
-                  setIsSavingPricing(false);
-                }
-              } else {
-                setIsSavingPricing(false);
-              }
-            }, 100); // 100ms delay to ensure state update
-          }}
-          disabled={isSavingPricing}
-          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSavingPricing ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Saving...
-            </>
-          ) : (
-            'Save Pricing'
-          )}
-        </button>
-      </div>
 
-      {/* Role Suggestions Modal */}
-      {showRoleSuggestions && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Role Suggestions</h3>
-              <button
-                type="button"
-                onClick={() => setShowRoleSuggestions(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div className="text-sm text-gray-700 space-y-2">
-                <p><strong>Onboarding Specialist:</strong> Always included (required role)</p>
-                <p><strong>Project Manager:</strong> Auto-added as role (3+ products, excluding Lead to Account Matching)</p>
-                <p><strong>Solution Architect:</strong> Add for Enterprise SOWs only</p>
-                <p><strong>Developer:</strong> Add only when technical development is required</p>
+    
+
+      {/* Pricing Calculator Modal */}
+      {showPricingCalculator && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Pricing Calculator Details</h3>
+                <button
+                  onClick={() => setShowPricingCalculator(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-3">Selected Products & Units:</h4>
+                  <div className="space-y-2">
+                    {formData.template?.products?.map((product: string) => (
+                      <div key={product} className="flex justify-between items-center p-2 bg-white rounded border">
+                        <span className="font-medium text-gray-700">{product}</span>
+                        <div className="text-right">
+                          <div className="text-sm text-gray-600">
+                            <div>Units: {totalUnits} users/endpoints</div>
+                            <div className="text-blue-600 font-medium">
+                              Hours: {calculateProductHours()} hrs
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="text-sm text-gray-600">
+                  <p><strong>Calculation Rules:</strong></p>
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>Routing products: First = 15 hours, Additional = 5 hours each</li>
+                    <li>Lead to Account Matching: 15 hours (only if single product)</li>
+                    <li>BookIt for Forms: 10 hours</li>
+                    <li>BookIt Handoff (with Smartrep): 5 hours (requires BookIt for Forms)</li>
+                    <li>BookIt Links/Handoff (without Smartrep): 1 hour each</li>
+                    <li>User groups: 5 hours per 50 users/endpoints</li>
+                    <li>Project Manager: 25% of total hours (minimum 10)</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
-
-      {/* Calculation Formulas Modal */}
-      {showCalculationFormulas && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Calculation Formulas</h3>
-              <button
-                type="button"
-                onClick={() => setShowCalculationFormulas(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div className="text-sm text-gray-700 space-y-2">
-                <p><strong>Total Cost per Role:</strong> Rate/Hour × Total Hours</p>
-                <p><strong>Subtotal:</strong> Sum of all role costs (including Project Manager if auto-added)</p>
-                <p><strong>Discount:</strong> Fixed amount or percentage of subtotal</p>
-                <p><strong>Total Amount:</strong> Subtotal - Discount</p>
-                <p><strong>Auto-Calculate:</strong> Routing objects + BookIt products + User groups = Total hours assigned to Onboarding Specialist</p>
-                <p><strong>Auto-Project Manager Role:</strong> Automatically added when 3+ products (excluding Lead to Account Matching, including BookIt Handoff with Smartrep as objects)</p>
-                <p><strong>Routing Objects:</strong> Lead/Contact Routing: 15h (first), 5h (additional)</p>
-                <p><strong>BookIt Products:</strong> Forms (10h), Links (1h, no cost), Handoff (1h/5h/10h based on Smartrep)</p>
-                <p><strong>User Groups:</strong> Every 50 users/units = +5 hours</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Loading Modal for Pricing Save */}
-      <LoadingModal 
-        isOpen={isSavingPricing} 
-        operation="saving"
-        message="Saving pricing information..."
-      />
     </div>
   );
-}
+};
+
+export default PricingRolesAndDiscount;

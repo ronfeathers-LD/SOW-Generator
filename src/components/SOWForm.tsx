@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { SOWData, SOWTemplate } from '@/types/sow';
-import { SalesforceContact } from '@/lib/salesforce';
+import { SalesforceAccount, SalesforceContact } from '@/lib/salesforce';
 import ProjectOverviewTab from './sow/ProjectOverviewTab';
 import CustomerInformationTab from './sow/CustomerInformationTab';
 import ObjectivesTab from './sow/ObjectivesTab';
@@ -24,6 +24,18 @@ declare global {
   interface Window {
     google: unknown;
   }
+}
+
+interface PricingData {
+  roles: Array<{ role: string; rate_per_hour: number; total_hours: number }>;
+  discount_type: string;
+  discount_amount: number;
+  discount_percentage: number;
+  subtotal: number;
+  discount_total: number;
+  total_amount: number;
+  auto_calculated: boolean;
+  last_calculated: string;
 }
 
 interface SOWFormProps {
@@ -258,7 +270,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   };
   const [leanDataSignatories, setLeanDataSignatories] = useState<LeanDataSignatory[]>([]);
   const [selectedLeanDataSignatory, setSelectedLeanDataSignatory] = useState<string>('');
-  const [selectedAccount, setSelectedAccount] = useState<{ id: string; name: string } | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<SalesforceAccount | null>(null);
   const [selectedContact, setSelectedContact] = useState<SalesforceContact | null>(null);
 
   const [selectedOpportunity, setSelectedOpportunity] = useState<{
@@ -280,6 +292,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  // Ref to get current pricing data from BillingPaymentTab
+  const pricingRef = useRef<{ getCurrentPricingData?: () => PricingData }>(null);
   const [salesforceInstanceUrl, setSalesforceInstanceUrl] = useState<string>('https://na1.salesforce.com');
 
   // Wrapper function to update form data
@@ -334,8 +349,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       } else if (initialData.template?.client_name || initialData.header?.client_name) {
         const accountId = initialData.salesforce_account_id || '';
         setSelectedAccount({
-          id: accountId, // Use the Salesforce account ID if available
-          name: initialData.template?.client_name || initialData.header?.client_name || ''
+          Id: accountId, // Use the Salesforce account ID if available
+          Name: initialData.template?.client_name || initialData.header?.client_name || ''
         });
       }
       
@@ -407,6 +422,34 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       }
     }
   }, [initialData]);
+  
+  // Navigation blocking for unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return 'You have unsaved changes. Are you sure you want to leave?';
+      }
+    };
+    
+    const handleTabChange = (e: KeyboardEvent) => {
+      if (hasUnsavedChanges && (e.key === 'Tab' || e.key === 'Escape')) {
+        e.preventDefault();
+        alert('Please save your changes before navigating away from the Pricing tab.');
+      }
+    };
+    
+    if (hasUnsavedChanges) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      document.addEventListener('keydown', handleTabChange);
+      
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        document.removeEventListener('keydown', handleTabChange);
+      };
+    }
+  }, [hasUnsavedChanges]);
 
     // Initialize selected LeanData signatory when signatories are loaded and we have initial data
   useEffect(() => {
@@ -512,8 +555,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     
     // Set the selected account for opportunity lookup
     setSelectedAccount({
-      id: accountObj.Id,
-      name: accountObj.Name
+      Id: accountObj.Id,
+      Name: accountObj.Name
     });
     
     // Store available opportunities - convert from uppercase API response to lowercase for component use
@@ -800,21 +843,28 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
         case 'Pricing':
           // For Pricing tab, we need to get the current data from the component state
-          // This will be populated by the Pricing tab component before save
+          // Use the ref to get the most up-to-date pricing data
+          const currentPricingData = pricingRef.current?.getCurrentPricingData?.();
+          console.log('🔍 Current pricing data from ref:', currentPricingData);
           tabData = {
             pricing: {
-              roles: formData.pricing?.roles || [],
-              discount_type: formData.pricing?.discount_type || 'none',
-              discount_amount: formData.pricing?.discount_amount || 0,
-              discount_percentage: formData.pricing?.discount_percentage || 0,
-              subtotal: formData.pricing?.subtotal || 0,
-              discount_total: formData.pricing?.discount_total || 0,
-              total_amount: formData.pricing?.total_amount || 0,
+              roles: currentPricingData?.roles || formData.pricing?.roles || [],
+              discount_type: currentPricingData?.discount_type || formData.pricing?.discount_type || 'none',
+              discount_amount: currentPricingData?.discount_amount || formData.pricing?.discount_amount || 0,
+              discount_percentage: currentPricingData?.discount_percentage || formData.pricing?.discount_percentage || 0,
+              subtotal: currentPricingData?.subtotal || formData.pricing?.subtotal || 0,
+              discount_total: currentPricingData?.discount_total || formData.pricing?.discount_total || 0,
+              total_amount: currentPricingData?.total_amount || formData.pricing?.total_amount || 0,
               // Auto-save tracking fields
               auto_calculated: formData.pricing?.auto_calculated || false,
               last_calculated: formData.pricing?.last_calculated || new Date().toISOString(),
             }
           };
+          
+          console.log('🔍 Pricing tabData prepared:', tabData);
+          
+          // Reset unsaved changes for Pricing tab
+          setHasUnsavedChanges(false);
           break;
 
         case 'Content Editing':
@@ -1151,28 +1201,28 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
       {/* Pricing Section */}
         {activeTab === 'Pricing' && (
-          <BillingPaymentTab
-            formData={formData}
-            setFormData={updateFormData}
-            onBeforeSave={(pricingData) => {
-              // Update form data with current pricing data before save
-              setFormData(prev => ({
-                ...prev,
-                pricing: {
-                  ...prev.pricing,
-                  ...pricingData,
-                  // Preserve billing info if it exists
-                  billing: prev.pricing?.billing || {
-                    company_name: '',
-                    billing_contact: '',
-                    billing_address: '',
-                    billing_email: '',
-                    po_number: '',
-                  }
-                }
-              }));
-            }}
-          />
+          <>
+            {/* Unsaved Changes Warning */}
+            {hasUnsavedChanges && (
+              <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  <div className="text-yellow-800">
+                    <p className="font-medium">Unsaved Changes</p>
+                    <p className="text-sm">You have unsaved pricing changes. Please save your changes before navigating away from this tab.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <BillingPaymentTab
+              formData={formData}
+              setFormData={updateFormData}
+              ref={pricingRef}
+            />
+          </>
         )}
 
       {/* Content Editing Section */}

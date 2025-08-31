@@ -192,3 +192,99 @@ DROP POLICY IF EXISTS "authenticated_users_can_insert_slack_config" ON public.sl
 DROP POLICY IF EXISTS "authenticated_users_can_update_slack_config" ON public.slack_config;
 DROP POLICY IF EXISTS "authenticated_users_can_delete_slack_config" ON public.slack_config;
 */
+
+-- Fix RLS policies for PM hours removal system
+-- This script fixes the policies that were too restrictive
+
+-- Drop existing policies that are too restrictive
+DROP POLICY IF EXISTS "Users can create requests for SOWs they have access to" ON pm_hours_removal_requests;
+
+-- Create new, more permissive policy for creating requests
+CREATE POLICY "Users can create requests for SOWs they have access to" ON pm_hours_removal_requests
+  FOR INSERT WITH CHECK (
+    auth.uid() IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM sows 
+      WHERE sows.id = sow_id 
+      AND sows.status = 'draft'
+    )
+  );
+
+-- Add policy for Admins to view all requests
+CREATE POLICY "Admins can view all requests" ON pm_hours_removal_requests
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE users.id = auth.uid() 
+      AND users.role = 'admin'
+    )
+  );
+
+-- Add policy for Admins to update requests
+CREATE POLICY "Admins can update requests" ON pm_hours_removal_requests
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE users.id = auth.uid() 
+      AND users.role = 'admin'
+    )
+  );
+
+-- Add policy for Admins to view all audit logs
+CREATE POLICY "Admins can view all audit logs" ON pm_hours_audit_log
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE users.id = auth.uid() 
+      AND users.role = 'admin'
+    )
+  );
+
+-- Add policy for Admins to view all comments
+-- First, update the existing policy to include admins
+DROP POLICY IF EXISTS "Users can view comments for requests they have access to" ON pm_hours_comments;
+
+CREATE POLICY "Users can view comments for requests they have access to" ON pm_hours_comments
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM pm_hours_removal_requests 
+      WHERE pm_hours_removal_requests.id = request_id 
+      AND (
+        pm_hours_removal_requests.requester_id = auth.uid() 
+        OR EXISTS (
+          SELECT 1 FROM users 
+          WHERE users.id = auth.uid() 
+          AND users.pm_director = true
+        )
+        OR EXISTS (
+          SELECT 1 FROM users 
+          WHERE users.id = auth.uid() 
+          AND users.role = 'admin'
+        )
+      )
+    )
+  );
+
+-- Update the comment creation policy to include admins
+DROP POLICY IF EXISTS "Users can create comments for requests they have access to" ON pm_hours_comments;
+
+CREATE POLICY "Users can create comments for requests they have access to" ON pm_hours_comments
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM pm_hours_removal_requests 
+      WHERE pm_hours_removal_requests.id = request_id 
+      AND (
+        pm_hours_removal_requests.requester_id = auth.uid() 
+        OR EXISTS (
+          SELECT 1 FROM users 
+          WHERE users.id = auth.uid() 
+          AND users.pm_director = true
+        )
+        OR EXISTS (
+          SELECT 1 FROM users 
+          WHERE users.id = auth.uid() 
+          AND users.role = 'admin'
+        )
+      )
+    )
+  );

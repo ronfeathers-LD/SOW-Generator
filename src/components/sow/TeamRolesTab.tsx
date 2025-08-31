@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
-import { SalesforceContact } from '@/lib/salesforce';
+import { SalesforceAccount, SalesforceContact } from '@/lib/salesforce';
 import LoadingModal from '@/components/ui/LoadingModal';
 
 interface TeamRolesTabProps {
@@ -10,7 +10,7 @@ interface TeamRolesTabProps {
   selectedLeanDataSignatory: string;
   onLeanDataSignatoryChange: (signatoryId: string) => Promise<void>;
   // New props for signer selection
-  selectedAccount: { id: string; name: string } | null;
+  selectedAccount: SalesforceAccount | null;
   selectedContact: SalesforceContact | null;
   getSalesforceLink: (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => string;
   isActiveTab: boolean; // Add this prop to know if this tab is currently active
@@ -55,14 +55,14 @@ export default function TeamRolesTab({
 
   // Load contacts when account is selected and set initial contact selection state
   useEffect(() => {
-    if (selectedAccount?.id) {
-      loadContacts(selectedAccount.id);
+    if (selectedAccount?.Id) {
+      loadContacts(selectedAccount.Id);
     }
-  }, [selectedAccount?.id]); // Only depend on account ID
+  }, [selectedAccount?.Id]); // Only depend on account ID
 
   // Handle contact selection state separately
   useEffect(() => {
-    if (selectedAccount?.id) {
+    if (selectedAccount?.Id) {
       // Show contact selection if no contact is currently selected
       // Check both selectedContact and formData for contact information
       const hasContactInfo = selectedContact || 
@@ -72,7 +72,7 @@ export default function TeamRolesTab({
       const shouldShowSelection = !hasContactInfo;
       setShowSignerContactSelection(shouldShowSelection);
     }
-  }, [selectedAccount?.id, selectedContact, formData.template?.customer_signature_name, formData.salesforce_contact_id]);
+  }, [selectedAccount?.Id, selectedContact, formData.template?.customer_signature_name, formData.salesforce_contact_id]);
 
   // Auto-show second signer section if there's already a second signer
   useEffect(() => {
@@ -958,7 +958,7 @@ export default function TeamRolesTab({
          </div>
        )}
         {formData.roles?.client_roles?.map((role, index) => (
-          <div key={index} className="border border-gray-200 rounded-md p-4 mb-4">
+          <div key={`client-role-${index}-${role.role || 'role'}-${role.email || 'no-email'}`} className="border border-gray-200 rounded-md p-4 mb-4">
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               {/* Contact Selection - Left Side (40%) */}
               <div className="lg:col-span-2">

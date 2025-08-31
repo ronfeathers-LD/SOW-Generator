@@ -14,8 +14,8 @@ interface PricingDisplayProps {
   discountPercentage: number;
   subtotal: number;
   totalAmount: number;
-  autoCalculated?: boolean;
   lastCalculated?: string | null;
+  pmHoursRemoved?: boolean; // New prop to indicate if PM hours are removed
 }
 
 export default function PricingDisplay({
@@ -24,11 +24,14 @@ export default function PricingDisplay({
   discountAmount,
   discountPercentage,
   subtotal,
-
   totalAmount,
-  autoCalculated,
-  lastCalculated
+  lastCalculated,
+  pmHoursRemoved = false
 }: PricingDisplayProps) {
+  // Filter out Project Manager role if PM hours are removed
+  const filteredPricingRoles = pmHoursRemoved 
+    ? pricingRoles.filter(role => role.role !== 'Project Manager')
+    : pricingRoles;
   return (
     <div className="space-y-6">
       {/* Pricing Roles Table */}
@@ -56,8 +59,8 @@ export default function PricingDisplay({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {pricingRoles && pricingRoles.length > 0 ? (
-                pricingRoles.map((role, idx) => (
+              {filteredPricingRoles && filteredPricingRoles.length > 0 ? (
+                filteredPricingRoles.map((role, idx) => (
                   <tr key={idx} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">{role.role}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-700">${role.ratePerHour?.toFixed(2) || '0.00'}</td>
@@ -83,11 +86,6 @@ export default function PricingDisplay({
       <div className="bg-gray-50 p-6 rounded-lg">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">Pricing Summary</h3>
-          {autoCalculated && (
-            <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-              Auto-Calculated
-            </span>
-          )}
         </div>
         {lastCalculated && (
           <p className="text-sm text-gray-600 mb-4">
