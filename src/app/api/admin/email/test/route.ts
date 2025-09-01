@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { EmailService } from '@/lib/email';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 // POST - Send test email
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession();
-    if (!session?.user || session.user.role !== 'admin') {
+    if (!session?.user) {
       return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const supabase = await createServerSupabaseClient();
+    
+    // Check if user is admin
+    const { data: user } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', session.user.email!)
+      .single();
+
+    if (user?.role !== 'admin') {
+      return new NextResponse('Admin access required', { status: 403 });
     }
 
     const config = await request.json();

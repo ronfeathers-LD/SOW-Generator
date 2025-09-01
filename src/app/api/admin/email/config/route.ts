@@ -6,11 +6,22 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 export async function GET() {
   try {
     const session = await getServerSession();
-    if (!session?.user || session.user.role !== 'admin') {
+    if (!session?.user) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     const supabase = await createServerSupabaseClient();
+    
+    // Check if user is admin
+    const { data: user } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', session.user.email!)
+      .single();
+
+    if (user?.role !== 'admin') {
+      return new NextResponse('Admin access required', { status: 403 });
+    }
     
     const { data: config, error } = await supabase
       .from('email_config')
@@ -36,12 +47,23 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession();
-    if (!session?.user || session.user.role !== 'admin') {
+    if (!session?.user) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     const config = await request.json();
     const supabase = await createServerSupabaseClient();
+    
+    // Check if user is admin
+    const { data: user } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', session.user.email!)
+      .single();
+
+    if (user?.role !== 'admin') {
+      return new NextResponse('Admin access required', { status: 403 });
+    }
 
     // Validate required fields
     if (!config.provider || !config.from_email || !config.from_name) {
