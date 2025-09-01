@@ -29,6 +29,15 @@ yarn-error.log*
 .env*.local
 .env
 
+# local development files
+.env.local.backup
+complete-production-schema.sql
+scripts/
+src/lib/local-auth.ts
+src/lib/local-db-adapter.ts
+supabase/
+# Note: .vscode/ is kept for project-specific settings
+
 # vercel
 .vercel
 
