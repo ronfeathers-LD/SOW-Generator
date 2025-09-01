@@ -51,6 +51,45 @@ export default function EditSOWPage() {
               lean_data_title: data.leandata_title || data.template?.lean_data_title || 'VP Customer Success',
               lean_data_email: data.leandata_email || data.template?.lean_data_email || 'agam.vasani@leandata.com',
             },
+            // Required properties for SOWData interface
+            header: {
+              company_logo: data.company_logo || '',
+              client_name: data.client_name || data.template?.client_name || '',
+              sow_title: data.sow_title || data.template?.sow_title || '',
+            },
+            client_signature: {
+              name: data.client_name || data.template?.client_name || '',
+              title: data.client_title || '',
+              email: data.client_email || '',
+              signature_date: data.signature_date ? new Date(data.signature_date) : new Date(),
+            },
+            objectives: {
+              description: data.objectives?.description || '',
+              key_objectives: data.objectives?.key_objectives || [''],
+              avoma_url: data.objectives?.avoma_url || '',
+              avoma_transcription: data.objectives?.avoma_transcription || '',
+            },
+            scope: {
+              deliverables: data.deliverables || '',
+              timeline: {
+                duration: data.duration || '',
+              },
+            },
+            roles: {
+              client_roles: data.client_roles || [],
+            },
+            pricing: {
+              roles: data.pricing_roles || [],
+              billing: data.billing_info || {
+                companyName: '',
+                billingContact: '',
+                billingAddress: '',
+                billingEmail: '',
+                poNumber: '',
+                paymentTerms: '',
+                currency: '',
+              },
+            },
             // Set selectedAccount immediately if we have salesforce_account_id
             selectedAccount: data.salesforce_account_id ? {
               Id: data.salesforce_account_id,

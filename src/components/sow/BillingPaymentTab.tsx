@@ -230,12 +230,9 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
 
     // Calculate PM hours (25% of total project hours, rounded up, minimum 10 hours)
     const pmHours = Math.max(10, Math.ceil(totalProjectHours * 0.25));
-    
-    // Calculate PM deduction (half of PM hours)
-    const pmDeduction = Math.ceil(pmHours / 2);
 
     // Update the Onboarding Specialist role with calculated hours (minus PM deduction)
-    const updatedRoles = pricingRoles.map(role => {
+    let updatedRoles = pricingRoles.map(role => {
       if (role.role === 'Onboarding Specialist') {
         // Onboarding Specialist gets full base hours (no PM deduction when PM role is added)
         const finalHours = totalProjectHours;

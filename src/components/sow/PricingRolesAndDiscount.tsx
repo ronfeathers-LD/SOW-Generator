@@ -195,7 +195,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
     if (shouldAutoCalculate() && !isAutoCalculating) {
       handleRecalculateHours();
     }
-  }, [formData.template, pricingRoles, approvedPMHoursRequest, isAutoCalculating]);
+  }, [formData.template, pricingRoles, approvedPMHoursRequest, isAutoCalculating, getProducts, getTotalUnits]);
 
   // Auto-sync Onboarding Specialist hours when PM hours removal is approved
   useEffect(() => {
@@ -233,7 +233,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   }, [approvedPMHoursRequest, pricingRoles, calculateBaseProjectHours, setPricingRoles]);
 
   // Wrapper for autoCalculateHours that triggers PM status check
-  const handleRecalculateHours = async () => {
+  const handleRecalculateHours = useCallback(async () => {
     // Only recalculate the base hours and role assignments
     // Don't recalculate costs - those are handled separately
     await autoCalculateHours();
@@ -266,7 +266,9 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
     if (onHoursCalculated) {
       onHoursCalculated();
     }
-  };
+  }, [autoCalculateHours, approvedPMHoursRequest, pricingRoles, calculateBaseProjectHours, setPricingRoles, onHoursCalculated]);
+
+
 
   // Handle PM hours removal request submission
   const handlePMHoursRemovalRequestSubmitted = () => {
