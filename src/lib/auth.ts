@@ -2,7 +2,6 @@
 import GoogleProvider from 'next-auth/providers/google';
 import { supabase } from '@/lib/supabase';
 import { createServiceRoleClient } from '@/lib/supabase-server';
-import { localDbAdapter } from '@/lib/local-db-adapter';
 import type { NextAuthOptions } from 'next-auth';
 import { logger } from './utils/logger';
 
@@ -69,13 +68,15 @@ export const authOptions: NextAuthOptions = {
           let dbUser;
           
           if (shouldUseLocalDb()) {
-            // Use local database adapter
+            // Use local database adapter (only in development)
             try {
+              const { localDbAdapter } = await import('@/lib/local-db-adapter');
               dbUser = await localDbAdapter.getUserOrCreate(user.email, user.name || undefined);
               user.role = dbUser.role;
               logger.log('User processed successfully with local DB:', dbUser.email, 'Role:', dbUser.role);
             } catch (error) {
               console.error('Error processing user with local DB:', error);
+              // Fall back to Supabase if local DB fails
             }
           } else {
             // Use Supabase
@@ -147,12 +148,18 @@ export const authOptions: NextAuthOptions = {
         if (!session.user.role && session.user.email) {
           try {
             if (shouldUseLocalDb()) {
-              // Use local database adapter
-              const dbUser = await localDbAdapter.getUserByEmail(session.user.email);
-              if (dbUser) {
-                session.user.role = dbUser.role;
-                // Also update the token for future use
-                token.role = dbUser.role;
+              // Use local database adapter (only in development)
+              try {
+                const { localDbAdapter } = await import('@/lib/local-db-adapter');
+                const dbUser = await localDbAdapter.getUserByEmail(session.user.email);
+                if (dbUser) {
+                  session.user.role = dbUser.role;
+                  // Also update the token for future use
+                  token.role = dbUser.role;
+                }
+              } catch (error) {
+                console.error('Error fetching user role from local DB:', error);
+                // Fall back to Supabase if local DB fails
               }
             } else {
               // Use Supabase
@@ -191,11 +198,17 @@ export const authOptions: NextAuthOptions = {
         // Fetch user role from database if not in token
         try {
           if (shouldUseLocalDb()) {
-            // Use local database adapter
-            const dbUser = await localDbAdapter.getUserByEmail(token.email);
-            if (dbUser) {
-              token.role = dbUser.role;
-              console.log('JWT callback: Fetched role from local DB:', dbUser.role, 'for user:', token.email);
+            // Use local database adapter (only in development)
+            try {
+              const { localDbAdapter } = await import('@/lib/local-db-adapter');
+              const dbUser = await localDbAdapter.getUserByEmail(token.email);
+              if (dbUser) {
+                token.role = dbUser.role;
+                console.log('JWT callback: Fetched role from local DB:', dbUser.role, 'for user:', token.email);
+              }
+            } catch (error) {
+              console.error('Error fetching user role from local DB:', error);
+              // Fall back to Supabase if local DB fails
             }
           } else {
             // Use Supabase
