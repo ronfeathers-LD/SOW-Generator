@@ -151,6 +151,13 @@ INSERT INTO email_templates (name, subject, html_content, text_content, variable
   '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><h2 style="color: #f59e0b;">PM Hours Removal Request</h2><div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0;"><h3 style="margin-top: 0;">{{sowTitle}}</h3><p><strong>Client:</strong> {{clientName}}</p><p><strong>Requested by:</strong> {{requesterName}}</p><p><strong>Hours to remove:</strong> {{hoursToRemove}}</p><p><strong>Reason:</strong> {{reason}}</p></div><div style="text-align: center; margin: 30px 0;"><a href="{{requestUrl}}" style="background-color: #f59e0b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Review Request</a></div><p style="color: #6b7280; font-size: 14px;">This PM hours removal request requires your approval.</p></div>',
   'PM Hours Removal Request: {{sowTitle}}\n\nClient: {{clientName}}\nRequested by: {{requesterName}}\nHours to remove: {{hoursToRemove}}\nReason: {{reason}}\n\nReview Request: {{requestUrl}}\n\nThis PM hours removal request requires your approval.',
   '{"sowTitle": "string", "clientName": "string", "requesterName": "string", "hoursToRemove": "string", "reason": "string", "requestUrl": "string"}'
+),
+(
+  'mention_notification',
+  'You were mentioned in a SOW comment: {{sowTitle}}',
+  '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><h2 style="color: #2563eb;">You were mentioned in a SOW comment</h2><div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;"><h3 style="margin-top: 0;">{{sowTitle}}</h3><p><strong>Client:</strong> {{clientName}}</p><p><strong>Comment by:</strong> {{commentAuthor}}</p></div><div style="background-color: #f8fafc; padding: 15px; border-left: 4px solid #2563eb; margin: 20px 0;"><p style="margin: 0; font-style: italic;">{{commentText}}</p></div><div style="text-align: center; margin: 30px 0;"><a href="{{sowUrl}}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View SOW</a></div><p style="color: #6b7280; font-size: 14px;">You were mentioned in this comment. Click the button above to view the SOW and respond.</p></div>',
+  'You were mentioned in a SOW comment: {{sowTitle}}\n\nClient: {{clientName}}\nComment by: {{commentAuthor}}\n\nComment: {{commentText}}\n\nView SOW: {{sowUrl}}\n\nYou were mentioned in this comment. Click the link above to view the SOW and respond.',
+  '{"sowTitle": "string", "clientName": "string", "commentText": "string", "commentAuthor": "string", "sowUrl": "string"}'
 )
 ON CONFLICT (name) DO NOTHING;
 

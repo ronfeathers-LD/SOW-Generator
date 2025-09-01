@@ -2,6 +2,8 @@ import { getSlackService } from './slack';
 import { parseCommentMentions, MentionedUser } from './mention-utils';
 import { SlackUserLookupService, SlackUser } from './slack-user-lookup';
 import { SlackService } from './slack';
+import { getEmailService } from './email';
+import { createServerSupabaseClient } from './supabase-server';
 
 export interface CommentMentionNotification {
   sowId: string;
@@ -72,7 +74,17 @@ export class SlackMentionService {
       };
 
       // Send Slack notification
-      return await this.sendSlackMentionNotification(notification, slackService);
+      const slackSuccess = await this.sendSlackMentionNotification(notification, slackService);
+
+      // Send email notifications
+      try {
+        await this.sendEmailMentionNotifications(notification);
+      } catch (emailError) {
+        console.error('Error sending email mention notifications:', emailError);
+        // Don't fail the Slack notification if email fails
+      }
+
+      return slackSuccess;
 
     } catch (error) {
       console.error('Error sending mention notifications:', error);
@@ -228,6 +240,64 @@ export class SlackMentionService {
     } catch (error) {
       console.error('Error validating Slack token:', error);
       return false;
+    }
+  }
+
+  /**
+   * Send email notifications to mentioned users
+   */
+  private static async sendEmailMentionNotifications(
+    notification: CommentMentionNotification
+  ): Promise<void> {
+    try {
+      // Get email service
+      const emailService = await getEmailService();
+      if (!emailService) {
+        console.log('Email service not configured - skipping email notifications');
+        return;
+      }
+
+      // Get Supabase client
+      const supabase = await createServerSupabaseClient();
+
+      // Get user details for mentioned users using their email addresses
+      const userEmails = notification.mentionedUsers
+        .map(u => u.email)
+        .filter(email => email) as string[];
+
+      if (userEmails.length === 0) {
+        console.log('No valid email addresses found for mentioned users');
+        return;
+      }
+
+      const { data: users } = await supabase
+        .from('users')
+        .select('id, name, email')
+        .in('email', userEmails);
+
+      if (!users || users.length === 0) {
+        console.log('No mentioned users found in database for email notifications');
+        return;
+      }
+
+      // Send email to each mentioned user
+      const emailPromises = users.map(user => 
+        emailService.sendMentionNotification(
+          notification.sowTitle,
+          notification.clientName,
+          notification.commentText,
+          notification.commentAuthor,
+          user.email,
+          user.name || user.email,
+          notification.sowUrl
+        )
+      );
+
+      await Promise.all(emailPromises);
+      console.log(`Sent email mention notifications to ${users.length} users`);
+    } catch (error) {
+      console.error('Error sending email mention notifications:', error);
+      throw error;
     }
   }
 }

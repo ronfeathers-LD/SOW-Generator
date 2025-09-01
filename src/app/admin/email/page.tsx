@@ -49,8 +49,8 @@ export default function EmailConfigPage() {
           setConfig(data.config);
         }
       }
-    } catch (error) {
-      console.error('Failed to load email config:', error);
+    } catch {
+      console.error('Failed to load email config');
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +75,7 @@ export default function EmailConfigPage() {
         const error = await response.text();
         setMessage({ type: 'error', text: `Failed to save: ${error}` });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Failed to save configuration' });
     } finally {
       setIsSaving(false);
@@ -101,7 +101,7 @@ export default function EmailConfigPage() {
         const error = await response.text();
         setMessage({ type: 'error', text: `Test failed: ${error}` });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Failed to send test email' });
     } finally {
       setIsTesting(false);
@@ -160,7 +160,7 @@ export default function EmailConfigPage() {
               </label>
               <select
                 value={config.provider}
-                onChange={(e) => setConfig({ ...config, provider: e.target.value as any })}
+                onChange={(e) => setConfig({ ...config, provider: e.target.value as 'gmail' | 'sendgrid' | 'mailgun' | 'smtp' })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="gmail">Gmail (SMTP)</option>

@@ -26,7 +26,7 @@ interface EmailLog {
   subject: string;
   status: 'sent' | 'failed' | 'pending';
   errorMessage?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 class EmailService {
@@ -226,6 +226,58 @@ class EmailService {
       comments: comments || '',
       sowUrl,
       statusColor
+    });
+  }
+
+  /**
+   * Send mention notification email
+   */
+  async sendMentionNotification(
+    sowTitle: string,
+    clientName: string,
+    commentText: string,
+    commentAuthor: string,
+    mentionedUserEmail: string,
+    mentionedUserName: string,
+    sowUrl: string
+  ): Promise<boolean> {
+    const template: EmailTemplate = {
+      name: 'mention_notification',
+      subject: 'You were mentioned in a SOW comment: {{sowTitle}}',
+      htmlContent: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">You were mentioned in a SOW comment</h2>
+          
+          <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">{{sowTitle}}</h3>
+            <p><strong>Client:</strong> {{clientName}}</p>
+            <p><strong>Comment by:</strong> {{commentAuthor}}</p>
+          </div>
+          
+          <div style="background-color: #f8fafc; padding: 15px; border-left: 4px solid #2563eb; margin: 20px 0;">
+            <p style="margin: 0; font-style: italic;">{{commentText}}</p>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{sowUrl}}" 
+               style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              View SOW
+            </a>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px;">
+            You were mentioned in this comment. Click the button above to view the SOW and respond.
+          </p>
+        </div>
+      `
+    };
+
+    return this.sendTemplateEmail(template, mentionedUserEmail, {
+      sowTitle,
+      clientName,
+      commentText,
+      commentAuthor,
+      sowUrl
     });
   }
 

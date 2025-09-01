@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PMHoursRequirementDisableRequest, PMHoursComment, PMHoursRequirementDisableDashboardItem } from '@/types/sow';
+import { getEmailService } from './email';
 
 // Fallback client for client-side usage
 const fallbackSupabase = createClient(
@@ -74,6 +75,14 @@ export class PMHoursRemovalService {
         undefined,
         client
       );
+
+      // Send email notifications to all PMO users
+      try {
+        await this.sendPMHoursRemovalEmails(request, sowId, requesterId, client);
+      } catch (emailError) {
+        console.error('Error sending PM hours removal emails:', emailError);
+        // Don't fail the request creation if email fails
+      }
 
       return { success: true, request };
     } catch (error) {
@@ -526,6 +535,79 @@ export class PMHoursRemovalService {
         totalFinancialImpact: 0,
         averageProcessingTime: 0
       };
+    }
+  }
+
+  /**
+   * Send email notifications to all PMO users for a new PM hours removal request
+   */
+  private static async sendPMHoursRemovalEmails(
+    request: PMHoursRequirementDisableRequest,
+    sowId: string,
+    requesterId: string,
+    supabaseClient: SupabaseClient
+  ): Promise<void> {
+    try {
+      // Get SOW information
+      const { data: sow } = await supabaseClient
+        .from('sows')
+        .select('title, client_name')
+        .eq('id', sowId)
+        .single();
+
+      if (!sow) {
+        console.error('SOW not found for email notification:', sowId);
+        return;
+      }
+
+      // Get requester information
+      const { data: requester } = await supabaseClient
+        .from('users')
+        .select('name, email')
+        .eq('id', requesterId)
+        .single();
+
+      if (!requester) {
+        console.error('Requester not found for email notification:', requesterId);
+        return;
+      }
+
+      // Get all PMO users
+      const { data: pmoUsers } = await supabaseClient
+        .from('users')
+        .select('email')
+        .eq('role', 'pmo');
+
+      if (!pmoUsers || pmoUsers.length === 0) {
+        console.log('No PMO users found for email notification');
+        return;
+      }
+
+      // Get email service
+      const emailService = await getEmailService();
+      if (!emailService) {
+        console.error('Email service not available');
+        return;
+      }
+
+      // Send email to each PMO user
+      const emailPromises = pmoUsers.map(pmoUser => 
+        emailService.sendPMHoursRemovalNotification(
+          request.id,
+          sow.title,
+          sow.client_name,
+          pmoUser.email,
+          requester.name || requester.email,
+          request.hours_to_remove,
+          request.reason
+        )
+      );
+
+      await Promise.all(emailPromises);
+      console.log(`Sent PM hours removal notifications to ${pmoUsers.length} PMO users`);
+    } catch (error) {
+      console.error('Error sending PM hours removal emails:', error);
+      throw error;
     }
   }
 }
