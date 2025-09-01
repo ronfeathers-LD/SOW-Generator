@@ -71,14 +71,45 @@ export async function PUT(
       return NextResponse.json({ error: 'Invalid action. Must be "approve" or "reject"' }, { status: 400 });
     }
 
+    // Get the request to find the SOW and get current PM hours
+    const { data: requestData, error: requestError } = await supabase
+      .from('pm_hours_removal_requests')
+      .select('sow_id')
+      .eq('id', id)
+      .single();
+
+    if (requestError || !requestData) {
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+    }
+
+    // Get current PM hours from the SOW's pricing roles
+    const { data: sowData, error: sowError } = await supabase
+      .from('sows')
+      .select('pricing_roles')
+      .eq('id', requestData.sow_id)
+      .single();
+
+    if (sowError || !sowData) {
+      return NextResponse.json({ error: 'SOW not found' }, { status: 404 });
+    }
+
+    // Calculate current PM hours from pricing roles
+    let currentPMHours = 0;
+    if (sowData.pricing_roles && Array.isArray(sowData.pricing_roles)) {
+      const pmRole = sowData.pricing_roles.find((role: any) => role.role === 'Project Manager');
+      if (pmRole) {
+        currentPMHours = pmRole.total_hours || 0;
+      }
+    }
+
     let result;
     if (action === 'approve') {
-      result = await PMHoursRemovalService.approveRequest(id, user.id, comments, supabase);
+      result = await PMHoursRemovalService.approveRequest(id, user.id, currentPMHours, comments, supabase);
     } else {
       if (!reason) {
         return NextResponse.json({ error: 'Rejection reason is required' }, { status: 400 });
       }
-      result = await PMHoursRemovalService.rejectRequest(id, user.id, reason, supabase);
+      result = await PMHoursRemovalService.rejectRequest(id, user.id, reason, currentPMHours, supabase);
     }
 
     if (!result.success) {

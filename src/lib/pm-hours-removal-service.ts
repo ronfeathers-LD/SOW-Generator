@@ -49,8 +49,9 @@ export class PMHoursRemovalService {
         .insert({
           sow_id: sowId,
           requester_id: requesterId,
-          pmo_reviewer_id: pmoReviewerId,
+          pm_director_id: pmoReviewerId,
           current_pm_hours: currentPMHours,
+          requested_pm_hours: 0, // For PM hours requirement disable, we set to 0
           hours_to_remove: hoursToRemove,
           reason: reason.trim(),
           status: 'pending'
@@ -146,8 +147,13 @@ export class PMHoursRemovalService {
     try {
       const client = supabaseClient || fallbackSupabase;
       const { data, error } = await client
-        .from('pm_hours_removal_dashboard')
-        .select('*')
+        .from('pm_hours_removal_requests')
+        .select(`
+          *,
+          sow:sows(id, sow_title, client_name, status),
+          requester:users!pm_hours_removal_requests_requester_id_fkey(id, name, email),
+          pm_director:users!pm_hours_removal_requests_pm_director_id_fkey(id, name, email)
+        `)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
@@ -156,7 +162,27 @@ export class PMHoursRemovalService {
         return [];
       }
 
-      return data || [];
+      // Transform the data to match the expected dashboard format
+      return (data || []).map(request => ({
+        request_id: request.id,
+        created_at: request.created_at,
+        updated_at: request.updated_at,
+        status: request.status,
+        current_pm_hours: request.current_pm_hours || 0,
+        hours_to_remove: request.hours_to_remove || 0,
+        reason: request.reason,
+        financial_impact: request.financial_impact || 0,
+        sow_id: request.sow_id,
+        requester_id: request.requester_id,
+        sow_title: request.sow?.sow_title || '',
+        client_name: request.sow?.client_name || '',
+        sow_status: request.sow?.status || '',
+        requester_name: request.requester?.name || '',
+        requester_email: request.requester?.email || '',
+        pm_director_name: request.pm_director?.name || '',
+        pm_director_email: request.pm_director?.email || '',
+        hours_since_request: Math.floor((Date.now() - new Date(request.created_at).getTime()) / (1000 * 60 * 60))
+      }));
     } catch (error) {
       console.error('Error in getPendingRequests:', error);
       return [];
@@ -187,10 +213,10 @@ export class PMHoursRemovalService {
 
       // Get comments
       const { data: comments, error: commentsError } = await client
-        .from('pm_hours_comments')
+        .from('pm_hours_removal_comments')
         .select(`
           *,
-          user:users!pm_hours_comments_user_id_fkey(id, name, email)
+          user:users(id, name, email)
         `)
         .eq('request_id', requestId)
         .order('created_at', { ascending: true });
@@ -213,6 +239,7 @@ export class PMHoursRemovalService {
   static async approveRequest(
     requestId: string,
     approverId: string,
+    currentPMHours: number,
     comments?: string,
     supabaseClient?: SupabaseClient
   ): Promise<{ success: boolean; error?: string }> {
@@ -248,14 +275,14 @@ export class PMHoursRemovalService {
         return { success: false, error: 'Failed to approve request' };
       }
 
-      // Update the SOW to disable PM hours requirement and reflect the hours removal
+      // Update the SOW to disable PM hours requirement
       const { error: sowUpdateError } = await client
         .from('sows')
         .update({
           pm_hours_requirement_disabled: true,
           pm_hours_requirement_disabled_date: new Date().toISOString(),
           pm_hours_requirement_disabled_approver_id: approverId,
-          pm_hours_removed: request.hours_to_remove,
+          pm_hours_removed: currentPMHours,
           pm_hours_removal_approved: true,
           pm_hours_removal_date: new Date().toISOString()
         })
@@ -272,10 +299,10 @@ export class PMHoursRemovalService {
         requestId,
         approverId,
         'request_approved',
-        request.current_pm_hours,
+        currentPMHours,
         0, // PM hours requirement is now disabled
         `PM hours requirement disable approved: ${comments || 'No comments'}`,
-        { hours_removed: request.hours_to_remove, requirement_disabled: true },
+        { hours_removed: currentPMHours, requirement_disabled: true },
         client
       );
 
@@ -293,6 +320,7 @@ export class PMHoursRemovalService {
     requestId: string,
     approverId: string,
     reason: string,
+    currentPMHours: number,
     supabaseClient?: SupabaseClient
   ): Promise<{ success: boolean; error?: string }> {
     try {
@@ -333,8 +361,8 @@ export class PMHoursRemovalService {
         requestId,
         approverId,
         'request_rejected',
-        request.current_pm_hours,
-        request.current_pm_hours, // No change in hours
+        currentPMHours,
+        currentPMHours, // No change in hours
         `PM hours requirement disable rejected: ${reason}`,
         { rejection_reason: reason },
         client
@@ -361,7 +389,7 @@ export class PMHoursRemovalService {
     try {
       const client = supabaseClient || fallbackSupabase;
       const { data, error } = await client
-        .from('pm_hours_comments')
+        .from('pm_hours_removal_comments')
         .insert({
           request_id: requestId,
           user_id: userId,
@@ -371,7 +399,7 @@ export class PMHoursRemovalService {
         })
         .select(`
           *,
-          user:users!pm_hours_comments_user_id_fkey(id, name, email)
+          user:users(id, name, email)
         `)
         .single();
 
@@ -394,8 +422,13 @@ export class PMHoursRemovalService {
     try {
       const client = supabaseClient || fallbackSupabase;
       const { data, error } = await client
-        .from('pm_hours_removal_dashboard')
-        .select('*')
+        .from('pm_hours_removal_requests')
+        .select(`
+          *,
+          sow:sows(id, sow_title, client_name, status),
+          requester:users!pm_hours_removal_requests_requester_id_fkey(id, name, email),
+          pm_director:users!pm_hours_removal_requests_pm_director_id_fkey(id, name, email)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -403,7 +436,27 @@ export class PMHoursRemovalService {
         return [];
       }
 
-      return data || [];
+      // Transform the data to match the expected dashboard format
+      return (data || []).map(request => ({
+        request_id: request.id,
+        created_at: request.created_at,
+        updated_at: request.updated_at,
+        status: request.status,
+        current_pm_hours: request.current_pm_hours || 0,
+        hours_to_remove: request.hours_to_remove || 0,
+        reason: request.reason,
+        financial_impact: request.financial_impact || 0,
+        sow_id: request.sow_id,
+        requester_id: request.requester_id,
+        sow_title: request.sow?.sow_title || '',
+        client_name: request.sow?.client_name || '',
+        sow_status: request.sow?.status || '',
+        requester_name: request.requester?.name || '',
+        requester_email: request.requester?.email || '',
+        pm_director_name: request.pm_director?.name || '',
+        pm_director_email: request.pm_director?.email || '',
+        hours_since_request: Math.floor((Date.now() - new Date(request.created_at).getTime()) / (1000 * 60 * 60))
+      }));
     } catch (error) {
       console.error('Error in getDashboardData:', error);
       return [];
@@ -417,8 +470,13 @@ export class PMHoursRemovalService {
     try {
       const client = supabaseClient || fallbackSupabase;
       const { data, error } = await client
-        .from('pm_hours_removal_dashboard')
-        .select('*')
+        .from('pm_hours_removal_requests')
+        .select(`
+          *,
+          sow:sows(id, sow_title, client_name, status),
+          requester:users!pm_hours_removal_requests_requester_id_fkey(id, name, email),
+          pm_director:users!pm_hours_removal_requests_pm_director_id_fkey(id, name, email)
+        `)
         .eq('requester_id', userId)
         .order('created_at', { ascending: false });
 
@@ -427,7 +485,27 @@ export class PMHoursRemovalService {
         return [];
       }
 
-      return data || [];
+      // Transform the data to match the expected dashboard format
+      return (data || []).map(request => ({
+        request_id: request.id,
+        created_at: request.created_at,
+        updated_at: request.updated_at,
+        status: request.status,
+        current_pm_hours: request.current_pm_hours || 0,
+        hours_to_remove: request.hours_to_remove || 0,
+        reason: request.reason,
+        financial_impact: request.financial_impact || 0,
+        sow_id: request.sow_id,
+        requester_id: request.requester_id,
+        sow_title: request.sow?.sow_title || '',
+        client_name: request.sow?.client_name || '',
+        sow_status: request.sow?.status || '',
+        requester_name: request.requester?.name || '',
+        requester_email: request.requester?.email || '',
+        pm_director_name: request.pm_director?.name || '',
+        pm_director_email: request.pm_director?.email || '',
+        hours_since_request: Math.floor((Date.now() - new Date(request.created_at).getTime()) / (1000 * 60 * 60))
+      }));
     } catch (error) {
       console.error('Error in getUserDashboardData:', error);
       return [];
@@ -506,7 +584,7 @@ export class PMHoursRemovalService {
     try {
       const client = supabaseClient || fallbackSupabase;
       const { data, error } = await client
-        .from('pm_hours_removal_dashboard')
+        .from('pm_hours_removal_requests')
         .select('*');
 
       if (error || !data) {
@@ -528,11 +606,11 @@ export class PMHoursRemovalService {
       
       const totalHoursRemoved = data
         .filter(r => r.status === 'approved')
-        .reduce((sum, r) => sum + r.hours_to_remove, 0);
+        .reduce((sum, r) => sum + (r.hours_to_remove || 0), 0);
       
       const totalFinancialImpact = data
         .filter(r => r.status === 'approved')
-        .reduce((sum, r) => sum + r.financial_impact, 0);
+        .reduce((sum, r) => sum + (r.financial_impact || 0), 0);
 
       const completedRequests = data.filter(r => r.status !== 'pending');
       const averageProcessingTime = completedRequests.length > 0
@@ -622,7 +700,7 @@ export class PMHoursRemovalService {
           sow.client_name,
           pmoUser.email,
           requester.name || requester.email,
-          request.hours_to_remove,
+          request.hours_to_remove || 0,
           request.reason
         )
       );

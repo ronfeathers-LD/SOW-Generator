@@ -229,16 +229,19 @@ export interface PMHoursRequirementDisableRequest {
   updated_at: Date;
   sow_id: string;
   requester_id: string;
-  pmo_reviewer_id?: string;
-  current_pm_hours: number;
-  hours_to_remove: number;
+  pm_director_id?: string;
+  current_pm_hours?: number;
+  requested_pm_hours?: number;
+  hours_to_remove?: number;
   reason: string;
   status: 'pending' | 'approved' | 'rejected';
+  approved_by?: string;
   approved_at?: Date;
+  rejected_by?: string;
   rejected_at?: Date;
   approval_comments?: string;
   rejection_reason?: string;
-  financial_impact: number;
+  financial_impact?: number;
 }
 
 export interface PMHoursComment {
