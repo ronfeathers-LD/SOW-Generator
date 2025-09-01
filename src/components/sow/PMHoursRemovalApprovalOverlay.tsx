@@ -184,7 +184,7 @@ export default function PMHoursRequirementDisableApprovalOverlay({
     );
   }
 
-          const hoursToRemove = request.hours_to_remove;
+          const hoursToRemove = request.hours_to_remove || 0;
   const financialImpact = hoursToRemove * 250; // Assuming $250/hour PM rate
 
   return (
