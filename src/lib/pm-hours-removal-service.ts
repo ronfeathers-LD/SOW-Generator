@@ -664,8 +664,15 @@ export class PMHoursRemovalService {
         .eq('id', request.sow_id)
         .single();
 
-      // Only allow deletion if SOW is hidden/deleted or request is still pending
-      if (!sowError && sow && sow.status !== 'hidden' && sow.status !== 'deleted' && request.status !== 'pending') {
+      // Allow deletion if:
+      // 1. SOW doesn't exist (deleted) - sowError will be present
+      // 2. SOW exists but is hidden or deleted
+      // 3. Request is still pending (regardless of SOW status)
+      const canDelete = sowError || // SOW doesn't exist (deleted)
+                       (sow && (sow.status === 'hidden' || sow.status === 'deleted')) || // SOW is hidden/deleted
+                       request.status === 'pending'; // Request is pending
+
+      if (!canDelete) {
         return { success: false, error: 'Can only delete requests for hidden/deleted SOWs or pending requests' };
       }
 
