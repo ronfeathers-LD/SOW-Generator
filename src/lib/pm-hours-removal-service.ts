@@ -30,18 +30,18 @@ export class PMHoursRemovalService {
       // Use the passed client or fall back to the default one
       const client = supabaseClient || fallbackSupabase;
       
-      // Try to get a PM Director to assign to this request, but don't fail if none exist
-      let pmDirectorId: string | null = null;
-      const { data: pmDirectors, error: pmDirectorError } = await client
+      // Try to get a PMO reviewer to assign to this request, but don't fail if none exist
+      let pmoReviewerId: string | null = null;
+      const { data: pmoUsers, error: pmoError } = await client
         .from('users')
         .select('id')
         .eq('role', 'pmo')
         .limit(1);
 
-      if (!pmDirectorError && pmDirectors && pmDirectors.length > 0) {
-        pmDirectorId = pmDirectors[0].id;
+      if (!pmoError && pmoUsers && pmoUsers.length > 0) {
+        pmoReviewerId = pmoUsers[0].id;
       }
-      // If no PM Director exists, the request can still be created and approved by Admins
+      // If no PMO user exists, the request can still be created and approved by Admins
 
       // Create the request
       const { data: request, error } = await client
@@ -49,7 +49,7 @@ export class PMHoursRemovalService {
         .insert({
           sow_id: sowId,
           requester_id: requesterId,
-          pm_director_id: pmDirectorId, // This can be null if no PMO user exists
+          pmo_reviewer_id: pmoReviewerId,
           current_pm_hours: currentPMHours,
           hours_to_remove: hoursToRemove,
           reason: reason.trim(),
@@ -88,6 +88,30 @@ export class PMHoursRemovalService {
     } catch (error) {
       console.error('Error in createRequest:', error);
       return { success: false, error: 'Internal server error' };
+    }
+  }
+
+  /**
+   * Get all PM hours requirement disable requests for a specific SOW
+   */
+  static async getSOWRequests(sowId: string, supabaseClient?: SupabaseClient): Promise<PMHoursRequirementDisableRequest[]> {
+    try {
+      const client = supabaseClient || fallbackSupabase;
+      const { data, error } = await client
+        .from('pm_hours_removal_requests')
+        .select('*')
+        .eq('sow_id', sowId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching SOW requests:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in getSOWRequests:', error);
+      return [];
     }
   }
 

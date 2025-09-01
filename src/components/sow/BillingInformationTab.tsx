@@ -27,6 +27,13 @@ export default function BillingInformationTab({
   const [isSavingBillingContact, setIsSavingBillingContact] = useState(false);
   const [isClearingBillingContact, setIsClearingBillingContact] = useState(false);
 
+  // Clear billing error when selectedAccount is available
+  useEffect(() => {
+    if (selectedAccount && billingError) {
+      setBillingError(null);
+    }
+  }, [selectedAccount, billingError]);
+
   // Load contacts when account is selected
   useEffect(() => {
     if (selectedAccount?.Id) {
@@ -59,8 +66,8 @@ export default function BillingInformationTab({
   };
 
   const refreshContacts = async () => {
-    if (!selectedAccount?.id) return;
-    await loadContacts(selectedAccount.id);
+    if (!selectedAccount?.Id) return;
+    await loadContacts(selectedAccount.Id);
   };
 
   const handleBillingContactSelected = async (contact: SalesforceContact) => {
@@ -161,7 +168,7 @@ export default function BillingInformationTab({
 
   // Billing information functions
   const fetchBillingFromSalesforce = async () => {
-    if (!selectedAccount?.id) {
+    if (!selectedAccount?.Id) {
       setBillingError('No account selected. Please select a customer first.');
       return;
     }
@@ -170,7 +177,7 @@ export default function BillingInformationTab({
     setBillingError(null);
 
     try {
-      const response = await fetch(`/api/salesforce/billing-info?accountId=${selectedAccount.id}`);
+      const response = await fetch(`/api/salesforce/billing-info?accountId=${selectedAccount.Id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch billing information');
       }

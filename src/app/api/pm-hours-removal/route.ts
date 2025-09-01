@@ -4,7 +4,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { PMHoursRemovalService } from '@/lib/pm-hours-removal-service';
 
 // GET - Get PM hours removal requests for the current user
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession();
     if (!session?.user) {
@@ -24,12 +24,19 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Get sowId from query parameters if provided
+    const { searchParams } = new URL(request.url);
+    const sowId = searchParams.get('sowId');
+
     // Check if user is PMO or Admin
     const isPMDirector = await PMHoursRemovalService.isPMDirector(user.id, supabase);
     const isAdmin = user.role === 'admin';
     
     let requests;
-    if (isPMDirector || isAdmin) {
+    if (sowId) {
+      // If sowId is provided, get requests for that specific SOW
+      requests = await PMHoursRemovalService.getSOWRequests(sowId, supabase);
+    } else if (isPMDirector || isAdmin) {
       // PM Directors and Admins see all requests
       requests = await PMHoursRemovalService.getDashboardData(supabase);
     } else {

@@ -2,6 +2,7 @@
 import GoogleProvider from 'next-auth/providers/google';
 import { supabase } from '@/lib/supabase';
 import { createServiceRoleClient } from '@/lib/supabase-server';
+import { localDbAdapter } from '@/lib/local-db-adapter';
 import type { NextAuthOptions } from 'next-auth';
 import { logger } from './utils/logger';
 
@@ -20,6 +21,11 @@ const hasValidGoogleCredentials = () => {
          process.env.GOOGLE_CLIENT_ID !== 'your-google-client-id-here' &&
          process.env.GOOGLE_CLIENT_SECRET && 
          process.env.GOOGLE_CLIENT_SECRET !== 'your-google-client-secret-here';
+};
+
+// Check if we should use local database
+const shouldUseLocalDb = () => {
+  return process.env.NODE_ENV === 'development' && process.env.DATABASE_URL?.includes('localhost');
 };
 
 
@@ -60,58 +66,68 @@ export const authOptions: NextAuthOptions = {
       if (user?.email) {
           logger.log('Processing sign in for user:', user.email);
           
-          // Check if user exists
-          const { data: existingUser, error: fetchError } = await supabase
-            .from('users')
-            .select('*')
-            .eq('email', user.email)
-            .single();
-
-          if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found"
-            console.error('Error fetching user:', fetchError);
-          }
-
           let dbUser;
-          if (existingUser) {
-            logger.log('Updating existing user:', existingUser.email);
-            // Update existing user
-            const { data: updatedUser, error: updateError } = await supabase
-              .from('users')
-              .update({ name: user.name })
-              .eq('email', user.email)
-              .select()
-              .single();
-              
-            if (updateError) {
-              console.error('Error updating user:', updateError);
-            } else {
-              dbUser = updatedUser;
+          
+          if (shouldUseLocalDb()) {
+            // Use local database adapter
+            try {
+              dbUser = await localDbAdapter.getUserOrCreate(user.email, user.name || undefined);
+              user.role = dbUser.role;
+              logger.log('User processed successfully with local DB:', dbUser.email, 'Role:', dbUser.role);
+            } catch (error) {
+              console.error('Error processing user with local DB:', error);
             }
           } else {
-            logger.log('Creating new user:', user.email);
-            // Create new user
-            const { data: newUser, error: insertError } = await supabase
+            // Use Supabase
+            const { data: existingUser, error: fetchError } = await supabase
               .from('users')
-              .insert({
-            email: user.email,
-            name: user.name,
-            role: 'user',
-              })
-              .select()
+              .select('*')
+              .eq('email', user.email)
               .single();
-              
-            if (insertError) {
-              console.error('Error creating user:', insertError);
-            } else {
-              dbUser = newUser;
-            }
-          }
-          
-          if (dbUser) {
-            user.role = dbUser.role;
-            logger.log('User processed successfully:', dbUser.email, 'Role:', dbUser.role);
-            
 
+            if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found"
+              console.error('Error fetching user:', fetchError);
+            }
+
+            if (existingUser) {
+              logger.log('Updating existing user:', existingUser.email);
+              // Update existing user
+              const { data: updatedUser, error: updateError } = await supabase
+                .from('users')
+                .update({ name: user.name })
+                .eq('email', user.email)
+                .select()
+                .single();
+                
+              if (updateError) {
+                console.error('Error updating user:', updateError);
+              } else {
+                dbUser = updatedUser;
+              }
+            } else {
+              logger.log('Creating new user:', user.email);
+              // Create new user
+              const { data: newUser, error: insertError } = await supabase
+                .from('users')
+                .insert({
+              email: user.email,
+              name: user.name,
+              role: 'user',
+                })
+                .select()
+                .single();
+                
+              if (insertError) {
+                console.error('Error creating user:', insertError);
+              } else {
+                dbUser = newUser;
+              }
+            }
+            
+            if (dbUser) {
+              user.role = dbUser.role;
+              logger.log('User processed successfully:', dbUser.email, 'Role:', dbUser.role);
+            }
           }
       }
       return true;
@@ -130,17 +146,28 @@ export const authOptions: NextAuthOptions = {
         // If role is still missing, fetch it directly from database
         if (!session.user.role && session.user.email) {
           try {
-            const supabaseServer = createServiceRoleClient();
-            const { data: dbUser, error } = await supabaseServer
-              .from('users')
-              .select('role')
-              .eq('email', session.user.email)
-              .single();
-            
-            if (!error && dbUser) {
-              session.user.role = dbUser.role;
-              // Also update the token for future use
-              token.role = dbUser.role;
+            if (shouldUseLocalDb()) {
+              // Use local database adapter
+              const dbUser = await localDbAdapter.getUserByEmail(session.user.email);
+              if (dbUser) {
+                session.user.role = dbUser.role;
+                // Also update the token for future use
+                token.role = dbUser.role;
+              }
+            } else {
+              // Use Supabase
+              const supabaseServer = createServiceRoleClient();
+              const { data: dbUser, error } = await supabaseServer
+                .from('users')
+                .select('role')
+                .eq('email', session.user.email)
+                .single();
+              
+              if (!error && dbUser) {
+                session.user.role = dbUser.role;
+                // Also update the token for future use
+                token.role = dbUser.role;
+              }
             }
           } catch (error) {
             console.error('Error fetching user role in session callback:', error);
@@ -163,15 +190,25 @@ export const authOptions: NextAuthOptions = {
       if (!token.role && token.email) {
         // Fetch user role from database if not in token
         try {
-          const { data: dbUser, error } = await supabase
-            .from('users')
-            .select('role')
-            .eq('email', token.email)
-            .single();
-          
-          if (!error && dbUser) {
-            token.role = dbUser.role;
-            console.log('JWT callback: Fetched role from DB:', dbUser.role, 'for user:', token.email);
+          if (shouldUseLocalDb()) {
+            // Use local database adapter
+            const dbUser = await localDbAdapter.getUserByEmail(token.email);
+            if (dbUser) {
+              token.role = dbUser.role;
+              console.log('JWT callback: Fetched role from local DB:', dbUser.role, 'for user:', token.email);
+            }
+          } else {
+            // Use Supabase
+            const { data: dbUser, error } = await supabase
+              .from('users')
+              .select('role')
+              .eq('email', token.email)
+              .single();
+            
+            if (!error && dbUser) {
+              token.role = dbUser.role;
+              console.log('JWT callback: Fetched role from DB:', dbUser.role, 'for user:', token.email);
+            }
           }
         } catch (error) {
           console.error('Error fetching user role in JWT callback:', error);

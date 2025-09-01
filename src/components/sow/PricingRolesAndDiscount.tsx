@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PMHoursRequirementDisableRequest } from '@/types/sow';
+import PMHoursRemovalModal from './PMHoursRemovalModal';
+import PMHoursRemovalApprovalOverlay from './PMHoursRemovalApprovalOverlay';
 
 interface PricingRole {
   id: string;
@@ -58,6 +60,8 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   const [pendingPMHoursRequest, setPendingPMHoursRequest] = useState<PMHoursRequirementDisableRequest | null>(null);
   const [approvedPMHoursRequest, setApprovedPMHoursRequest] = useState<PMHoursRequirementDisableRequest | null>(null);
   const [showPricingCalculator, setShowPricingCalculator] = useState(false);
+  const [showPMHoursRemovalModal, setShowPMHoursRemovalModal] = useState(false);
+  const [showPMHoursApprovalOverlay, setShowPMHoursApprovalOverlay] = useState(false);
 
   // Calculate product hours based on business rules
   const calculateProductHours = useCallback((): number => {
@@ -158,6 +162,41 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
     checkPMHoursStatus();
   }, [checkPMHoursStatus]);
 
+  // Auto-calculate hours on page load if they haven't been calculated yet
+  useEffect(() => {
+    const shouldAutoCalculate = () => {
+      // Check if we have products selected
+      const products = getProducts();
+      if (!products || products.length === 0) {
+        return false;
+      }
+
+      // Check if pricing roles are empty or don't have calculated hours
+      if (pricingRoles.length === 0) {
+        return true;
+      }
+
+      // Check if Onboarding Specialist exists and has hours
+      const onboardingSpecialist = pricingRoles.find(role => role.role === 'Onboarding Specialist');
+      if (!onboardingSpecialist || onboardingSpecialist.totalHours === 0) {
+        return true;
+      }
+
+      // Check if Project Manager should exist but doesn't
+      const shouldHavePM = products.length >= 3 || getTotalUnits() >= 200;
+      const hasPM = pricingRoles.some(role => role.role === 'Project Manager');
+      if (shouldHavePM && !hasPM && !approvedPMHoursRequest) {
+        return true;
+      }
+
+      return false;
+    };
+
+    if (shouldAutoCalculate() && !isAutoCalculating) {
+      handleRecalculateHours();
+    }
+  }, [formData.template, pricingRoles, approvedPMHoursRequest, isAutoCalculating]);
+
   // Auto-sync Onboarding Specialist hours when PM hours removal is approved
   useEffect(() => {
     if (approvedPMHoursRequest && pricingRoles.length > 0) {
@@ -229,6 +268,12 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
     }
   };
 
+  // Handle PM hours removal request submission
+  const handlePMHoursRemovalRequestSubmitted = () => {
+    // Refresh PM hours status after request is submitted
+    checkPMHoursStatus();
+  };
+
   // Update role
   const updateRole = (id: string, field: keyof PricingRole, value: string | number) => {
     setPricingRoles(pricingRoles.map(role => {
@@ -256,7 +301,15 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
 
   // Remove role
   const removeRole = (id: string) => {
-    setPricingRoles(pricingRoles.filter(role => role.id !== id));
+    const roleToRemove = pricingRoles.find(role => role.id === id);
+    
+    if (roleToRemove?.role === 'Project Manager') {
+      // For Project Manager, open PM Hours Removal modal
+      setShowPMHoursRemovalModal(true);
+    } else {
+      // For other roles, just remove them from the table
+      setPricingRoles(pricingRoles.filter(role => role.id !== id));
+    }
   };
 
   // Calculate total cost
@@ -275,7 +328,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   const userGroupHours = calculateUserGroupHours();
   const baseHours = calculateBaseProjectHours();
   const pmHours = approvedPMHoursRequest ? 0 : calculatePMHours();
-  const totalHours = baseHours + pmHours;
+  const totalHours = pricingRoles.reduce((sum, role) => sum + role.totalHours, 0);
   const totalUnits = getTotalUnits();
 
   return (
@@ -489,18 +542,32 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
               <tbody className="bg-white divide-y divide-gray-200">
                 {pricingRoles.map(role => {
                   const isPMRemoved = role.role === 'Project Manager' && approvedPMHoursRequest;
+                  const isPMPending = role.role === 'Project Manager' && pendingPMHoursRequest;
                   return (
-                    <tr key={role.id} className={isPMRemoved ? 'bg-gray-50' : ''}>
+                    <tr key={role.id} className={
+                      isPMRemoved ? 'bg-gray-50' : 
+                      isPMPending ? 'bg-blue-50 border-l-4 border-blue-400' : ''
+                    }>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <input
-                          type="text"
-                          value={role.role}
-                          onChange={(e) => updateRole(role.id, 'role', e.target.value)}
-                          className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
-                            isPMRemoved ? 'bg-gray-100 text-gray-500' : ''
-                          }`}
-                          disabled={!!isPMRemoved}
-                        />
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            value={role.role}
+                            onChange={(e) => updateRole(role.id, 'role', e.target.value)}
+                            className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                              isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
+                            }`}
+                            disabled={!!isPMRemoved || !!isPMPending}
+                          />
+                          {isPMPending && (
+                            <div className="flex items-center text-blue-600 text-xs">
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Pending
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <input
@@ -508,9 +575,9 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
                           value={role.ratePerHour}
                           onChange={(e) => updateRole(role.id, 'ratePerHour', parseFloat(e.target.value) || 0)}
                           className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
-                            isPMRemoved ? 'bg-gray-100 text-gray-500' : ''
+                            isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
                           }`}
-                          disabled={!!isPMRemoved}
+                          disabled={!!isPMRemoved || !!isPMPending}
                         />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -519,9 +586,9 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
                           value={role.totalHours}
                           onChange={(e) => updateRole(role.id, 'totalHours', parseFloat(e.target.value) || 0)}
                           className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
-                            isPMRemoved ? 'bg-gray-100 text-gray-500' : ''
+                            isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
                           }`}
-                          disabled={!!isPMRemoved}
+                          disabled={!!isPMRemoved || !!isPMPending}
                         />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -530,6 +597,14 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         {isPMRemoved ? (
                           <span className="text-gray-400 text-xs">Removed by approval</span>
+                        ) : isPMPending ? (
+                          <button
+                            type="button"
+                            onClick={() => setShowPMHoursApprovalOverlay(true)}
+                            className="text-blue-600 hover:text-blue-800 text-xs underline bg-transparent border-none cursor-pointer"
+                          >
+                            Request pending
+                          </button>
                         ) : (
                           <button
                             type="button"
@@ -626,6 +701,25 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* PM Hours Removal Modal */}
+      <PMHoursRemovalModal
+        isOpen={showPMHoursRemovalModal}
+        onClose={() => setShowPMHoursRemovalModal(false)}
+        sowId={formData.id || ''}
+        currentPMHours={pmHours}
+        onRequestSubmitted={handlePMHoursRemovalRequestSubmitted}
+      />
+
+      {/* PM Hours Removal Approval Overlay */}
+      {pendingPMHoursRequest && (
+        <PMHoursRemovalApprovalOverlay
+          isOpen={showPMHoursApprovalOverlay}
+          onClose={() => setShowPMHoursApprovalOverlay(false)}
+          requestId={pendingPMHoursRequest.id}
+          onStatusChange={handlePMHoursRemovalRequestSubmitted}
+        />
       )}
     </div>
   );

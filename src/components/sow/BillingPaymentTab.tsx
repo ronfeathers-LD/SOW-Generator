@@ -237,11 +237,8 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
     // Update the Onboarding Specialist role with calculated hours (minus PM deduction)
     const updatedRoles = pricingRoles.map(role => {
       if (role.role === 'Onboarding Specialist') {
-        // If PM hours are disabled, Onboarding Specialist gets full base hours (no PM deduction)
-        // If PM hours are enabled, Onboarding Specialist gets base hours minus PM deduction
-        const finalHours = formData.pm_hours_requirement_disabled 
-          ? totalProjectHours 
-          : totalProjectHours - pmDeduction;
+        // Onboarding Specialist gets full base hours (no PM deduction when PM role is added)
+        const finalHours = totalProjectHours;
         
         return {
           ...role,
@@ -253,20 +250,46 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       return role;
     });
 
-    // Check if we need to add a Project Manager role
+    // Check if we need to add or update a Project Manager role
     const hasProjectManager = updatedRoles.some(role => role.role === 'Project Manager');
     const shouldAddProjectManager = selectedProducts.length >= 3 || totalUnits >= 200;
 
-    if (shouldAddProjectManager && !hasProjectManager && !formData.pm_hours_requirement_disabled) {
-      const pmRole: PricingRole = {
-        id: Math.random().toString(36).substr(2, 9),
-        role: 'Project Manager',
-        ratePerHour: 250, // Standard PM rate
-        totalHours: pmHours,
-        totalCost: 250 * pmHours,
-      };
-      updatedRoles.push(pmRole);
-      
+    // Debug logging
+    console.log('PM Hours Debug:', {
+      selectedProducts: selectedProducts,
+      selectedProductsLength: selectedProducts.length,
+      totalUnits: totalUnits,
+      shouldAddProjectManager: shouldAddProjectManager,
+      hasProjectManager: hasProjectManager,
+      pm_hours_requirement_disabled: formData.pm_hours_requirement_disabled,
+      totalProjectHours: totalProjectHours,
+      pmHours: pmHours
+    });
+
+    if (shouldAddProjectManager && !formData.pm_hours_requirement_disabled) {
+      if (!hasProjectManager) {
+        // Add new Project Manager role
+        const pmRole: PricingRole = {
+          id: Math.random().toString(36).substr(2, 9),
+          role: 'Project Manager',
+          ratePerHour: 250, // Standard PM rate
+          totalHours: pmHours,
+          totalCost: 250 * pmHours,
+        };
+        updatedRoles.push(pmRole);
+      } else {
+        // Update existing Project Manager role
+        updatedRoles = updatedRoles.map(role => {
+          if (role.role === 'Project Manager') {
+            return {
+              ...role,
+              totalHours: pmHours,
+              totalCost: 250 * pmHours,
+            };
+          }
+          return role;
+        });
+      }
     }
 
       
