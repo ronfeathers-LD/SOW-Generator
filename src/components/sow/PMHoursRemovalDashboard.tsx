@@ -291,7 +291,7 @@ export default function PMHoursRemovalDashboard() {
                     className="hover:bg-blue-50 cursor-pointer transition-colors duration-150"
                     onClick={() => request.request_id && handleRequestClick(request.request_id)}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4">
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="text-sm font-medium text-gray-900">
@@ -318,7 +318,7 @@ export default function PMHoursRemovalDashboard() {
                       </div>
                     </td>
                     
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 ">
                       <div className="text-sm text-gray-900">
                         <div className="flex items-center">
                           <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -335,7 +335,7 @@ export default function PMHoursRemovalDashboard() {
                       </div>
                     </td>
                     
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 ">
                       <div className="flex items-center">
                         {getStatusIcon(request.status)}
                         <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(request.status)}`}>
@@ -344,7 +344,7 @@ export default function PMHoursRemovalDashboard() {
                       </div>
                     </td>
                     
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4  text-sm text-gray-500">
                       <div className="flex items-center">
                         <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -354,7 +354,7 @@ export default function PMHoursRemovalDashboard() {
                     </td>
                     
                     {(isPMDirector || isAdmin) && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <td className="px-6 py-4  text-sm font-medium">
                         <div className="flex space-x-2">
                           <button
                             onClick={() => request.request_id && handleRequestClick(request.request_id)}
