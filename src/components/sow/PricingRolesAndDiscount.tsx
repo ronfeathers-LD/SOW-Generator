@@ -195,6 +195,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
     if (shouldAutoCalculate() && !isAutoCalculating) {
       handleRecalculateHours();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.template, pricingRoles, approvedPMHoursRequest, isAutoCalculating, getProducts, getTotalUnits]);
 
   // Auto-sync Onboarding Specialist hours when PM hours removal is approved
