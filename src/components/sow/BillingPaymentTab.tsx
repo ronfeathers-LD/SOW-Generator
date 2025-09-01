@@ -13,8 +13,8 @@ interface PricingRole {
 
 interface DiscountConfig {
   type: 'none' | 'fixed' | 'percentage';
-  amount: number;
-  percentage: number;
+  amount?: number;
+  percentage?: number;
   initialized?: boolean;
 }
 
@@ -66,9 +66,9 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       const subtotal = pricingRoles.reduce((sum, role) => sum + role.totalCost, 0);
       let discountTotal = 0;
       if (discountConfig.type === 'fixed') {
-        discountTotal = discountConfig.amount;
+        discountTotal = discountConfig.amount || 0;
       } else if (discountConfig.type === 'percentage') {
-        discountTotal = subtotal * (discountConfig.percentage / 100);
+        discountTotal = subtotal * ((discountConfig.percentage || 0) / 100);
       }
       const totalAmount = subtotal - discountTotal;
       
@@ -79,8 +79,8 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
           total_hours: role.totalHours,
         })),
         discount_type: discountConfig.type,
-        discount_amount: discountConfig.amount,
-        discount_percentage: discountConfig.percentage,
+        discount_amount: discountConfig.amount || 0,
+        discount_percentage: discountConfig.percentage || 0,
         subtotal,
         discount_total: discountTotal,
         total_amount: totalAmount,
@@ -278,9 +278,9 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       const newSubtotal = updatedRoles.reduce((sum, role) => sum + role.totalCost, 0);
       let newDiscountTotal = 0;
       if (discountConfig.type === 'fixed') {
-        newDiscountTotal = discountConfig.amount;
+        newDiscountTotal = discountConfig.amount || 0;
       } else if (discountConfig.type === 'percentage') {
-        newDiscountTotal = newSubtotal * (discountConfig.percentage / 100);
+        newDiscountTotal = newSubtotal * ((discountConfig.percentage || 0) / 100);
       }
       const newTotalAmount = newSubtotal - newDiscountTotal;
       
@@ -295,8 +295,8 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
             total_hours: role.totalHours,
           })),
           discount_type: discountConfig.type,
-          discount_amount: discountConfig.amount,
-          discount_percentage: discountConfig.percentage,
+          discount_amount: discountConfig.amount || 0,
+          discount_percentage: discountConfig.percentage || 0,
           subtotal: newSubtotal,
           discount_total: newDiscountTotal,
           total_amount: newTotalAmount,
@@ -329,7 +329,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       <div className="space-y-6">
         {/* Pricing Roles and Discount */}
         <PricingRolesAndDiscount
-          formData={formData as SOWData}
+          formData={formData as SOWData & Record<string, unknown>}
           pricingRoles={pricingRoles}
           setPricingRoles={setPricingRoles}
           discountConfig={discountConfig}

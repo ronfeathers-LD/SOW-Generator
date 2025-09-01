@@ -205,6 +205,7 @@ interface SOWData {
   billing_address?: string;
   billing_email?: string;
   purchase_order_number?: string;
+  pm_hours_requirement_disabled?: boolean;
 }
 
 export class PDFGenerator {

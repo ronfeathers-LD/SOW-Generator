@@ -10,7 +10,17 @@ interface PricingRole {
 }
 
 interface PricingRolesAndDiscountProps {
-  formData: Record<string, unknown>; // Allow any form data structure
+  formData: {
+    id?: string;
+    template?: {
+      products?: string[];
+      number_of_units?: string;
+      bookit_forms_units?: string;
+      bookit_links_units?: string;
+      bookit_handoff_units?: string;
+    };
+    [key: string]: unknown;
+  };
   pricingRoles: PricingRole[];
   setPricingRoles: (roles: PricingRole[]) => void;
   discountConfig: {
@@ -40,13 +50,18 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   isAutoCalculating,
   onHoursCalculated
 }) => {
+  // Helper function to safely get products array
+  const getProducts = () => {
+    const template = formData.template;
+    return template?.products && Array.isArray(template.products) ? template.products : [];
+  };
   const [pendingPMHoursRequest, setPendingPMHoursRequest] = useState<PMHoursRequirementDisableRequest | null>(null);
   const [approvedPMHoursRequest, setApprovedPMHoursRequest] = useState<PMHoursRequirementDisableRequest | null>(null);
   const [showPricingCalculator, setShowPricingCalculator] = useState(false);
 
   // Calculate product hours based on business rules
   const calculateProductHours = useCallback((): number => {
-    const products = (formData.template as any)?.products;
+    const products = formData.template?.products;
     if (!products) return 0;
     
     let totalHours = 0;
@@ -86,7 +101,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
 
   // Calculate user group hours (every 50 users/units adds 5 hours)
   const calculateUserGroupHours = useCallback((): number => {
-    const template = formData.template as any;
+    const template = formData.template;
     const totalUnits = parseInt(template?.number_of_units || '0') +
                       parseInt(template?.bookit_forms_units || '0') +
                       parseInt(template?.bookit_links_units || '0') +
@@ -111,7 +126,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
 
   // Get total units for display
   const getTotalUnits = useCallback((): number => {
-    const template = formData.template as any;
+    const template = formData.template;
     return parseInt(template?.number_of_units || '0') +
            parseInt(template?.bookit_forms_units || '0') +
            parseInt(template?.bookit_links_units || '0') +
@@ -270,7 +285,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
         <button
           type="button"
           onClick={handleRecalculateHours}
-          disabled={!formData.template?.products || formData.template.products.length === 0 || isAutoCalculating}
+          disabled={getProducts().length === 0 || isAutoCalculating}
           className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isAutoCalculating ? (
