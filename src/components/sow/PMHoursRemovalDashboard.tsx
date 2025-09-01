@@ -11,6 +11,7 @@ export default function PMHoursRemovalDashboard() {
   const [error, setError] = useState('');
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [showApprovalOverlay, setShowApprovalOverlay] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     fetchRequests();
@@ -25,6 +26,7 @@ export default function PMHoursRemovalDashboard() {
       if (response.ok) {
         setRequests(data.requests || []);
         setIsPMDirector(data.isPMDirector || false);
+        setIsAdmin(data.isAdmin || false);
       } else {
         setError(data.error || 'Failed to fetch requests');
       }
@@ -39,6 +41,31 @@ export default function PMHoursRemovalDashboard() {
   const handleRequestClick = (requestId: string) => {
     setSelectedRequestId(requestId);
     setShowApprovalOverlay(true);
+  };
+
+  const handleDeleteRequest = async (requestId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent row click
+    
+    if (!confirm('Are you sure you want to delete this request? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/pm-hours-removal/${requestId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Refresh the requests list
+        fetchRequests();
+      } else {
+        const data = await response.json();
+        alert(`Error deleting request: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting request:', error);
+      alert('Failed to delete request');
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -132,7 +159,7 @@ export default function PMHoursRemovalDashboard() {
               PM Hours Removal Requests
             </h2>
             <p className="text-sm text-gray-600 mt-1">
-              {isPMDirector ? 'Review and approve PM hours removal requests' : 'Track your PM hours removal requests'}
+              {(isPMDirector || isAdmin) ? 'Review and approve PM hours removal requests' : 'Track your PM hours removal requests'}
             </p>
           </div>
           <button
@@ -145,7 +172,7 @@ export default function PMHoursRemovalDashboard() {
       </div>
 
       {/* Statistics */}
-      {isPMDirector && requests.length > 0 && (
+      {(isPMDirector || isAdmin) && requests.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white shadow rounded-lg p-4">
             <div className="flex items-center">
@@ -227,7 +254,7 @@ export default function PMHoursRemovalDashboard() {
             </svg>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Requests Found</h3>
             <p className="text-gray-600">
-              {isPMDirector 
+              {(isPMDirector || isAdmin)
                 ? 'There are no PM hours removal requests to review at this time.'
                 : 'You haven\'t submitted any PM hours removal requests yet.'
               }
@@ -250,11 +277,11 @@ export default function PMHoursRemovalDashboard() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Timeline
                   </th>
-                  {isPMDirector && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  )}
+                                      {(isPMDirector || isAdmin) && (
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    )}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -268,7 +295,13 @@ export default function PMHoursRemovalDashboard() {
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="text-sm font-medium text-gray-900">
-                            {request.sow_title || 'Untitled SOW'}
+                            <a 
+                              href={`/sow/${request.sow_id}`}
+                              className="text-blue-600 hover:text-blue-800 hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {request.sow_title || 'Untitled SOW'}
+                            </a>
                           </div>
                           <div className="text-sm text-gray-500">
                             {request.client_name || 'Unknown Client'}
@@ -320,18 +353,32 @@ export default function PMHoursRemovalDashboard() {
                       </div>
                     </td>
                     
-                    {isPMDirector && (
+                    {(isPMDirector || isAdmin) && (
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => request.request_id && handleRequestClick(request.request_id)}
-                          className="text-blue-600 hover:text-blue-900 flex items-center"
-                        >
-                          <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          Review
-                        </button>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => request.request_id && handleRequestClick(request.request_id)}
+                            className="text-blue-600 hover:text-blue-900 flex items-center"
+                          >
+                            <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            Review
+                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={(e) => request.request_id && handleDeleteRequest(request.request_id, e)}
+                              className="text-red-600 hover:text-red-900 flex items-center"
+                              title="Delete request (admin only)"
+                            >
+                              <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Delete
+                            </button>
+                          )}
+                        </div>
                       </td>
                     )}
                   </tr>

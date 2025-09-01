@@ -92,3 +92,46 @@ export async function PUT(
   }
 }
 
+// DELETE - Delete a PM hours removal request (admin only)
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession();
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const supabase = await createServerSupabaseClient();
+    
+    // Get user info
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, role')
+      .eq('email', session.user.email)
+      .single();
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Only admins can delete requests
+    if (user.role !== 'admin') {
+      return NextResponse.json({ error: 'Only admins can delete requests' }, { status: 403 });
+    }
+
+    const { id } = await params;
+    const result = await PMHoursRemovalService.deleteRequest(id, user.id, supabase);
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting PM hours removal request:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+

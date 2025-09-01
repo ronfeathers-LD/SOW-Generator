@@ -634,5 +634,70 @@ export class PMHoursRemovalService {
       throw error;
     }
   }
+
+  /**
+   * Delete a PM hours removal request (admin only)
+   */
+  static async deleteRequest(
+    requestId: string,
+    adminId: string,
+    supabaseClient?: SupabaseClient
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const client = supabaseClient || fallbackSupabase;
+
+      // Get the request to check if SOW exists
+      const { data: request, error: fetchError } = await client
+        .from('pm_hours_removal_requests')
+        .select('sow_id, status')
+        .eq('id', requestId)
+        .single();
+
+      if (fetchError || !request) {
+        return { success: false, error: 'Request not found' };
+      }
+
+      // Check if SOW still exists
+      const { data: sow, error: sowError } = await client
+        .from('sows')
+        .select('id, status')
+        .eq('id', request.sow_id)
+        .single();
+
+      // Only allow deletion if SOW is hidden/deleted or request is still pending
+      if (!sowError && sow && sow.status !== 'hidden' && sow.status !== 'deleted' && request.status !== 'pending') {
+        return { success: false, error: 'Can only delete requests for hidden/deleted SOWs or pending requests' };
+      }
+
+      // Delete the request
+      const { error: deleteError } = await client
+        .from('pm_hours_removal_requests')
+        .delete()
+        .eq('id', requestId);
+
+      if (deleteError) {
+        console.error('Error deleting PM hours removal request:', deleteError);
+        return { success: false, error: 'Failed to delete request' };
+      }
+
+      // Log the action
+      await this.logAuditAction(
+        request.sow_id,
+        requestId,
+        adminId,
+        'request_deleted',
+        0,
+        0,
+        'PM hours removal request deleted by admin',
+        undefined,
+        client
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error in deleteRequest:', error);
+      return { success: false, error: 'Internal server error' };
+    }
+  }
 }
 
