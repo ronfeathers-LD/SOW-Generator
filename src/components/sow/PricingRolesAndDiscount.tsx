@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { PMHoursRequirementDisableRequest } from '@/types/sow';
 import PMHoursRemovalModal from './PMHoursRemovalModal';
 import PMHoursRemovalApprovalOverlay from './PMHoursRemovalApprovalOverlay';
+import { calculateAllHours, HOURS_CALCULATION_RULES } from '@/lib/hours-calculation-utils';
 
 interface PricingRole {
   id: string;
@@ -63,79 +64,14 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   const [showPMHoursRemovalModal, setShowPMHoursRemovalModal] = useState(false);
   const [showPMHoursApprovalOverlay, setShowPMHoursApprovalOverlay] = useState(false);
 
-  // Calculate product hours based on business rules
-  const calculateProductHours = useCallback((): number => {
-    const products = formData.template?.products;
-    if (!products) return 0;
-    
-    let totalHours = 0;
-    
-    // Routing products: first = 15 hours, additional = 5 hours each
-    const routingProducts = products.filter((product: string) => 
-      ['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing'].includes(product)
-    );
-    
-    if (routingProducts.length > 0) {
-      totalHours += 15 + (Math.max(0, routingProducts.length - 1) * 5);
-    }
-    
-    // Lead to Account Matching: only if it's the only product
-    if (products.includes('Lead to Account Matching') && products.length === 1) {
-      totalHours += 15;
-    }
-    
-    // BookIt products
-    if (products.includes('BookIt for Forms')) {
-      totalHours += 10;
-      if (products.includes('BookIt Handoff (with Smartrep)')) {
-        totalHours += 5;
-      }
-    }
-    
-    if (products.includes('BookIt Links')) {
-      totalHours += 1;
-    }
-    
-    if (products.includes('BookIt Handoff (without Smartrep)')) {
-      totalHours += 1;
-    }
-    
-    return totalHours;
-  }, [formData.template]);
-
-  // Calculate user group hours (every 50 users/units adds 5 hours)
-  const calculateUserGroupHours = useCallback((): number => {
-    const template = formData.template;
-    const totalUnits = parseInt(template?.number_of_units || '0') +
-                      parseInt(template?.bookit_forms_units || '0') +
-                      parseInt(template?.bookit_links_units || '0') +
-                      parseInt(template?.bookit_handoff_units || '0');
-    
-    if (totalUnits >= 50) {
-      return Math.floor(totalUnits / 50) * 5;
-    }
-    return 0;
-  }, [formData.template]);
-
-  // Calculate base project hours (without PM)
-  const calculateBaseProjectHours = useCallback((): number => {
-    return calculateProductHours() + calculateUserGroupHours();
-  }, [calculateProductHours, calculateUserGroupHours]);
-
-  // Calculate PM hours (25% of total project hours, minimum 10)
-  const calculatePMHours = useCallback((): number => {
-    const totalProjectHours = calculateBaseProjectHours();
-    return Math.max(10, Math.ceil(totalProjectHours * 0.25));
-  }, [calculateBaseProjectHours]);
+  // Use shared utility to calculate all hours
+  const hoursResult = calculateAllHours(formData.template || {});
+  const { productHours, userGroupHours, baseProjectHours, pmHours } = hoursResult;
 
   // Get total units for display
   const getTotalUnits = useCallback((): number => {
-    const template = formData.template;
-    return parseInt(template?.number_of_units || '0') +
-           parseInt(template?.bookit_forms_units || '0') +
-           parseInt(template?.bookit_links_units || '0') +
-           parseInt(template?.bookit_handoff_units || '0');
-  }, [formData.template]);
+    return hoursResult.totalUnits;
+  }, [hoursResult.totalUnits]);
 
   // Check PM hours removal status
   const checkPMHoursStatus = useCallback(async () => {
@@ -204,7 +140,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
       const updatedRoles = pricingRoles.map(role => {
         if (role.role === 'Onboarding Specialist') {
           // When PM hours are removed, Onboarding Specialist gets full base hours
-          const baseHours = calculateBaseProjectHours();
+          const baseHours = baseProjectHours;
           return {
             ...role,
             totalHours: baseHours,
@@ -231,7 +167,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
         setPricingRoles(updatedRoles);
       }
     }
-  }, [approvedPMHoursRequest, pricingRoles, calculateBaseProjectHours, setPricingRoles]);
+  }, [approvedPMHoursRequest, pricingRoles, baseProjectHours, setPricingRoles]);
 
   // Wrapper for autoCalculateHours that triggers PM status check
   const handleRecalculateHours = useCallback(async () => {
@@ -244,7 +180,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
       const updatedRoles = pricingRoles.map(role => {
         if (role.role === 'Onboarding Specialist') {
           // When PM hours are removed, Onboarding Specialist gets full base hours
-          const baseHours = calculateBaseProjectHours();
+          const baseHours = baseProjectHours;
           return {
             ...role,
             totalHours: baseHours,
@@ -267,7 +203,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
     if (onHoursCalculated) {
       onHoursCalculated();
     }
-  }, [autoCalculateHours, approvedPMHoursRequest, pricingRoles, calculateBaseProjectHours, setPricingRoles, onHoursCalculated]);
+  }, [autoCalculateHours, approvedPMHoursRequest, pricingRoles, baseProjectHours, setPricingRoles, onHoursCalculated]);
 
 
 
@@ -291,7 +227,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
         // Special handling for Onboarding Specialist when PM hours are removed
         if (role.role === 'Onboarding Specialist' && field === 'totalHours' && approvedPMHoursRequest) {
           // When PM hours are removed, Onboarding Specialist should get full base hours
-          const baseHours = calculateBaseProjectHours();
+          const baseHours = baseProjectHours;
           updatedRole.totalHours = baseHours;
           updatedRole.totalCost = baseHours * updatedRole.ratePerHour;
         }
@@ -327,10 +263,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   };
 
   // Get current calculations
-  const productHours = calculateProductHours();
-  const userGroupHours = calculateUserGroupHours();
-  const baseHours = calculateBaseProjectHours();
-  const pmHours = approvedPMHoursRequest ? 0 : calculatePMHours();
+  const currentPMHours = approvedPMHoursRequest ? 0 : pmHours;
   const totalHours = pricingRoles.reduce((sum, role) => sum + role.totalHours, 0);
   const totalUnits = getTotalUnits();
 
@@ -437,13 +370,13 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
             
             <div className="flex justify-between items-center border-t pt-3">
               <span className="font-medium text-gray-900">Base Hours:</span>
-              <span className="font-semibold text-gray-900">{baseHours} hours</span>
+                              <span className="font-semibold text-gray-900">{baseProjectHours} hours</span>
             </div>
 
             {!approvedPMHoursRequest && (
               <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-900">Project Manager (25%):</span>
-                <span className="font-semibold text-gray-900">{pmHours} hours</span>
+                <span className="font-medium text-gray-900">Project Manager (45%):</span>
+                <span className="font-semibold text-gray-900">{currentPMHours} hours</span>
               </div>
             )}
 
@@ -679,7 +612,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
                           <div className="text-sm text-gray-600">
                             <div>Units: {totalUnits} users/endpoints</div>
                             <div className="text-blue-600 font-medium">
-                              Hours: {calculateProductHours()} hrs
+                              Hours: {productHours} hrs
                             </div>
                           </div>
                         </div>
@@ -691,13 +624,13 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
                 <div className="text-sm text-gray-600">
                   <p><strong>Calculation Rules:</strong></p>
                   <ul className="list-disc list-inside mt-2 space-y-1">
-                    <li>Routing products: First = 15 hours, Additional = 5 hours each</li>
-                    <li>Lead to Account Matching: 15 hours (only if single product)</li>
-                    <li>BookIt for Forms: 10 hours</li>
-                    <li>BookIt Handoff (with Smartrep): 5 hours (requires BookIt for Forms)</li>
-                    <li>BookIt Links/Handoff (without Smartrep): 1 hour each</li>
-                    <li>User groups: 5 hours per 50 users/endpoints</li>
-                    <li>Project Manager: 25% of total hours (minimum 10)</li>
+                    <li>{HOURS_CALCULATION_RULES.routing.description}</li>
+                    <li>{HOURS_CALCULATION_RULES.leadToAccount.description}</li>
+                    <li>{HOURS_CALCULATION_RULES.bookitForms.description}</li>
+                    <li>{HOURS_CALCULATION_RULES.bookitHandoffWithSmartrep.description}</li>
+                    <li>{HOURS_CALCULATION_RULES.bookitLinks.description}</li>
+                    <li>{HOURS_CALCULATION_RULES.userGroups.description}</li>
+                    <li>{HOURS_CALCULATION_RULES.projectManager.description}</li>
                   </ul>
                 </div>
               </div>
@@ -711,7 +644,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
         isOpen={showPMHoursRemovalModal}
         onClose={() => setShowPMHoursRemovalModal(false)}
         sowId={formData.id || ''}
-        currentPMHours={pmHours}
+        currentPMHours={currentPMHours}
         onRequestSubmitted={handlePMHoursRemovalRequestSubmitted}
       />
 

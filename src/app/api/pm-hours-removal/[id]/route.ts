@@ -67,8 +67,8 @@ export async function PUT(
     const { id } = await params;
     const { action, comments, reason } = await request.json();
 
-    if (!action || !['approve', 'reject'].includes(action)) {
-      return NextResponse.json({ error: 'Invalid action. Must be "approve" or "reject"' }, { status: 400 });
+    if (!action || !['approve', 'reject', 'reverse'].includes(action)) {
+      return NextResponse.json({ error: 'Invalid action. Must be "approve", "reject", or "reverse"' }, { status: 400 });
     }
 
     // Get the request to find the SOW and get current PM hours
@@ -96,7 +96,7 @@ export async function PUT(
     // Calculate current PM hours from pricing roles
     let currentPMHours = 0;
     if (sowData.pricing_roles && Array.isArray(sowData.pricing_roles)) {
-      const pmRole = sowData.pricing_roles.find((role: any) => role.role === 'Project Manager');
+      const pmRole = sowData.pricing_roles.find((role: { role: string; total_hours?: number }) => role.role === 'Project Manager');
       if (pmRole) {
         currentPMHours = pmRole.total_hours || 0;
       }
@@ -105,6 +105,15 @@ export async function PUT(
     let result;
     if (action === 'approve') {
       result = await PMHoursRemovalService.approveRequest(id, user.id, currentPMHours, comments, supabase);
+    } else if (action === 'reverse') {
+      if (!reason) {
+        return NextResponse.json({ error: 'Reversal reason is required' }, { status: 400 });
+      }
+      // Only admins can reverse requests
+      if (user.role !== 'admin') {
+        return NextResponse.json({ error: 'Only admins can reverse requests' }, { status: 403 });
+      }
+      result = await PMHoursRemovalService.reverseRequest(id, user.id, reason, supabase);
     } else {
       if (!reason) {
         return NextResponse.json({ error: 'Rejection reason is required' }, { status: 400 });

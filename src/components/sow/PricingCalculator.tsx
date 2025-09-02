@@ -3,6 +3,7 @@
 
 import { SOWData } from '@/types/sow';
 import { sortProducts } from '@/lib/utils/productSorting';
+import { calculateProductHoursForProduct } from '@/lib/hours-calculation-utils';
 
 interface PricingCalculatorProps {
   formData: SOWData; // Use proper SOWData type
@@ -12,38 +13,9 @@ export default function PricingCalculator({
   formData, 
 }: PricingCalculatorProps) {
 
-  // Calculate hours for each product based on the same logic used in auto-calculate
+  // Calculate hours for each product using shared utility
   const calculateProductHours = (product: string): number => {
-    let hours = 0;
-    
-    if (product === 'Lead to Account Matching') {
-      // Only count if it's the only product
-      if (formData.template?.products?.length === 1) {
-        hours = 15;
-      }
-    } else if (['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing'].includes(product)) {
-      // Routing products: first = 15 hours, additional = 5 hours each
-      const routingProducts = formData.template?.products?.filter(p => 
-        ['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing'].includes(p)
-      ) || [];
-      const routingIndex = routingProducts.indexOf(product);
-      if (routingIndex === 0) {
-        hours = 15; // First routing product
-      } else {
-        hours = 5; // Additional routing products
-      }
-    } else if (product === 'BookIt for Forms') {
-      hours = 10; // Base BookIt for Forms hours
-    } else if (product === 'BookIt Handoff (with Smartrep)') {
-      // Only add hours if BookIt for Forms is also selected
-      if (formData.template?.products?.includes('BookIt for Forms')) {
-        hours = 5;
-      }
-    } else if (['BookIt Links', 'BookIt Handoff (without Smartrep)'].includes(product)) {
-      hours = 1; // No-cost items, but count hours
-    }
-    
-    return hours;
+    return calculateProductHoursForProduct(product, formData.template?.products || []);
   };
 
 

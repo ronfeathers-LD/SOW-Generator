@@ -714,6 +714,100 @@ export class PMHoursRemovalService {
   }
 
   /**
+   * Reverse approval/rejection of a PM hours removal request (admin only)
+   * Sets the request back to pending status and reverts SOW changes
+   */
+  static async reverseRequest(
+    requestId: string,
+    adminId: string,
+    reason: string,
+    supabaseClient?: SupabaseClient
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const client = supabaseClient || fallbackSupabase;
+
+      // Get the request to check its current status
+      const { data: request, error: fetchError } = await client
+        .from('pm_hours_removal_requests')
+        .select('sow_id, status, current_pm_hours')
+        .eq('id', requestId)
+        .single();
+
+      if (fetchError || !request) {
+        return { success: false, error: 'Request not found' };
+      }
+
+      // Only allow reversal of approved or rejected requests
+      if (request.status === 'pending') {
+        return { success: false, error: 'Request is already pending' };
+      }
+
+      if (!['approved', 'rejected'].includes(request.status)) {
+        return { success: false, error: 'Can only reverse approved or rejected requests' };
+      }
+
+      // Update the request status back to pending
+      const { error: updateError } = await client
+        .from('pm_hours_removal_requests')
+        .update({
+          status: 'pending',
+          approved_at: null,
+          rejected_at: null,
+          approval_comments: `Reversed by admin: ${reason}`,
+          rejection_reason: null
+        })
+        .eq('id', requestId);
+
+      if (updateError) {
+        console.error('Error updating request:', updateError);
+        return { success: false, error: 'Failed to reverse request' };
+      }
+
+      // If the request was approved, we need to revert the SOW changes
+      if (request.status === 'approved') {
+        const { error: sowUpdateError } = await client
+          .from('sows')
+          .update({
+            pm_hours_requirement_disabled: false,
+            pm_hours_requirement_disabled_date: null,
+            pm_hours_requirement_disabled_approver_id: null,
+            pm_hours_removed: 0,
+            pm_hours_removal_approved: false,
+            pm_hours_removal_date: null
+          })
+          .eq('id', request.sow_id);
+
+        if (sowUpdateError) {
+          console.error('Error reverting SOW changes:', sowUpdateError);
+          return { success: false, error: 'Failed to revert SOW changes' };
+        }
+      }
+
+      // Log the reversal action
+      await this.logAuditAction(
+        request.sow_id,
+        requestId,
+        adminId,
+        'request_reversed',
+        request.current_pm_hours || 0,
+        request.current_pm_hours || 0, // PM hours are restored
+        `PM hours removal request reversed: ${reason}`,
+        { 
+          previous_status: request.status,
+          new_status: 'pending',
+          reversal_reason: reason
+        },
+        client
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error in reverseRequest:', error);
+      return { success: false, error: 'Internal server error' };
+    }
+  }
+
+  /**
    * Delete a PM hours removal request (admin only)
    */
   static async deleteRequest(
