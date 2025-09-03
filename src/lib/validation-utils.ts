@@ -113,16 +113,16 @@ export function validateSOWForApproval(sowData: { [key: string]: unknown }): SOW
   const billingAddress = (sowData.template as Record<string, unknown>)?.billing_address;
   const billingEmail = (sowData.template as Record<string, unknown>)?.billing_email;
   
-  if (!billingCompanyName || ((billingCompanyName as string) || '').trim() === '') {
+  if (!billingCompanyName || (billingCompanyName as string || '').trim() === '') {
     missingFields.push('Billing Company Name');
   }
-  if (!billingContactName || ((billingContactName as string) || '').trim() === '') {
+  if (!billingContactName || (billingContactName as string || '').trim() === '') {
     missingFields.push('Billing Contact');
   }
-  if (!billingAddress || ((billingAddress as string) || '').trim() === '') {
+  if (!billingAddress || (billingAddress as string || '').trim() === '') {
     missingFields.push('Billing Address');
   }
-  if (!billingEmail || ((billingEmail as string) || '').trim() === '') {
+  if (!billingEmail || (billingEmail as string || '').trim() === '') {
     missingFields.push('Billing Email');
   }
 
