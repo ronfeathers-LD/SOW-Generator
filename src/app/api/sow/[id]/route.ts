@@ -250,16 +250,19 @@ export async function PUT(
             .single();
 
           if (sowDetails) {
-            // Get author name if available
-            let authorName = 'Unknown User';
-            if (sowDetails.author_id) {
-              const { data: author } = await supabase
+            // Get the current user who is submitting for review (not the original author)
+            let submitterName = 'Unknown User';
+            if (session?.user?.email) {
+              const { data: submitter } = await supabase
                 .from('users')
                 .select('name, email')
-                .eq('id', sowDetails.author_id)
+                .eq('email', session.user.email)
                 .single();
-              if (author) {
-                authorName = author.name || author.email || 'Unknown User';
+              if (submitter) {
+                submitterName = submitter.name || submitter.email || 'Unknown User';
+              } else {
+                // Fallback to session email if user not found in database
+                submitterName = session.user.email;
               }
             }
 
@@ -271,7 +274,7 @@ export async function PUT(
             await slackService.sendMessage(
               `:memo: *New SOW Submitted for Review*\n\n` +
               `*Client:* ${clientName}\n` +
-              `*Submitted by:* ${authorName}\n\n` +
+              `*Submitted by:* ${submitterName}\n\n` +
               `:link: <${sowUrl}|Review SOW>\n\n` +
               `Please review and approve/reject this SOW when ready.`
             );
