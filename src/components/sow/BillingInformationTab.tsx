@@ -92,6 +92,10 @@ export default function BillingInformationTab({
             template: {
               billing_contact_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
               billing_email: contact.Email || '',
+              // Preserve existing billing company information
+              billing_company_name: formData.template?.billing_company_name || '',
+              billing_address: formData.template?.billing_address || '',
+              purchase_order_number: formData.template?.purchase_order_number || '',
             }
           }
         };
@@ -143,6 +147,10 @@ export default function BillingInformationTab({
             template: {
               billing_contact_name: '',
               billing_email: '',
+              // Preserve existing billing company information
+              billing_company_name: formData.template?.billing_company_name || '',
+              billing_address: formData.template?.billing_address || '',
+              purchase_order_number: formData.template?.purchase_order_number || '',
             }
           }
         };
@@ -258,6 +266,9 @@ export default function BillingInformationTab({
             billing_company_name: formData.template?.billing_company_name || '',
             billing_address: formData.template?.billing_address || '',
             purchase_order_number: formData.template?.purchase_order_number || '',
+            // Preserve existing billing contact information
+            billing_contact_name: formData.template?.billing_contact_name || '',
+            billing_email: formData.template?.billing_email || '',
           }
         }
       };
