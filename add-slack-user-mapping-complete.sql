@@ -52,7 +52,7 @@ COMMENT ON COLUMN users.slack_user_id IS 'Slack user ID (e.g., U1234567890) for 
 COMMENT ON COLUMN users.slack_username IS 'Slack username (e.g., john.doe) for @mention detection in comments';
 COMMENT ON COLUMN users.slack_mapping_updated_at IS 'Timestamp when Slack mapping was last updated';
 
--- Create a view for easy Slack user mapping lookups
+-- Create a view for easy Slack user mapping lookups (without SECURITY DEFINER)
 CREATE OR REPLACE VIEW slack_user_mappings AS
 SELECT 
     id,
