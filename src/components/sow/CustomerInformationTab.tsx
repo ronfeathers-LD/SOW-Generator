@@ -222,7 +222,7 @@ export default function CustomerInformationTab({
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">Account</p>
                   <p className="text-xs text-gray-500 mb-2">
-                    {selectedAccount ? selectedAccount.name : 'No account selected'}
+                    {selectedAccount ? (selectedAccount.Name || selectedAccount.name) : 'No account selected'}
                   </p>
                   {selectedAccount && (
                     <div className="text-xs text-gray-600 space-y-1">
@@ -231,6 +231,12 @@ export default function CustomerInformationTab({
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                         <span>Account verified in Salesforce</span>
+                      </div>
+                      <div className="flex items-center">
+                        <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                        </svg>
+                        <span>Account Segment: <span className="font-medium">{selectedAccount.Account_Segment__c || 'N/A'}</span></span>
                       </div>
                       <a
                         href={getSalesforceLink(selectedAccount.Id || '', 'Account')}
@@ -409,7 +415,7 @@ export default function CustomerInformationTab({
                    <>
                      <div className="flex justify-between items-center mb-4">
                        <p className="text-sm text-gray-600">
-                         Found {availableOpportunities.length} opportunity{availableOpportunities.length !== 1 ? 'ies' : ''} for {selectedAccount.name}
+                         Found {availableOpportunities.length} opportunity{availableOpportunities.length !== 1 ? 'ies' : ''} for {selectedAccount.Name || selectedAccount.name}
                        </p>
                        <button 
                          onClick={refreshOpportunities} 

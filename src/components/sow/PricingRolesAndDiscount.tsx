@@ -68,7 +68,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
 
   // Use shared utility to calculate all hours
   const hoursResult = calculateAllHours(formData.template || {}, selectedAccount?.Account_Segment__c);
-  const { productHours, userGroupHours, baseProjectHours, pmHours } = hoursResult;
+  const { productHours, userGroupHours, accountSegmentHours, baseProjectHours, pmHours, totalUnits } = hoursResult;
 
   // Get total units for display
   const getTotalUnits = useCallback((): number => {
@@ -136,19 +136,19 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.template, pricingRoles, approvedPMHoursRequest, isAutoCalculating, getProducts, getTotalUnits]);
 
-  // Auto-sync Onboarding Specialist hours when PM hours removal is approved
+  // Auto-sync Onboarding Specialist hours to always use baseProjectHours (includes account segment)
   useEffect(() => {
-    if (approvedPMHoursRequest && pricingRoles.length > 0) {
+    if (pricingRoles.length > 0) {
       const updatedRoles = pricingRoles.map(role => {
         if (role.role === 'Onboarding Specialist') {
-          // When PM hours are removed, Onboarding Specialist gets full base hours
+          // Onboarding Specialist should always get the full base hours (including account segment)
           const baseHours = baseProjectHours;
           return {
             ...role,
             totalHours: baseHours,
             totalCost: baseHours * role.ratePerHour
           };
-        } else if (role.role === 'Project Manager') {
+        } else if (role.role === 'Project Manager' && approvedPMHoursRequest) {
           // Project Manager gets 0 hours when PM hours are removed
           return {
             ...role,
@@ -169,7 +169,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
         setPricingRoles(updatedRoles);
       }
     }
-  }, [approvedPMHoursRequest, pricingRoles, baseProjectHours, setPricingRoles]);
+  }, [pricingRoles, baseProjectHours, approvedPMHoursRequest, setPricingRoles]);
 
   // Wrapper for autoCalculateHours that triggers PM status check
   const handleRecalculateHours = useCallback(async () => {
@@ -266,8 +266,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
 
   // Get current calculations
   const currentPMHours = approvedPMHoursRequest ? 0 : pmHours;
-  const totalHours = pricingRoles.reduce((sum, role) => sum + role.totalHours, 0);
-  const totalUnits = getTotalUnits();
+  const totalHours = baseProjectHours + currentPMHours;
 
   return (
     <div className="space-y-6">
@@ -370,12 +369,22 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
               <span className="font-medium">{userGroupHours} hours</span>
             </div>
             
+            
+            
+            {/* Account Segment Hours Breakdown */}
+            {accountSegmentHours > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-gray-900">Account Segment ({selectedAccount?.Account_Segment__c}):</span>
+                <span className="font-semibold text-gray-900">+{accountSegmentHours} hours</span>
+              </div>
+            )}
+            
             <div className="flex justify-between items-center border-t pt-3">
               <span className="font-medium text-gray-900">Base Hours:</span>
-                              <span className="font-semibold text-gray-900">{baseProjectHours} hours</span>
+              <span className="font-semibold text-gray-900">{baseProjectHours} hours</span>
             </div>
 
-            {!approvedPMHoursRequest && (
+            {!approvedPMHoursRequest && currentPMHours > 0 && (
               <div className="flex justify-between items-center">
                 <span className="font-medium text-gray-900">Project Manager (45%):</span>
                 <span className="font-semibold text-gray-900">{currentPMHours} hours</span>

@@ -263,14 +263,11 @@ class SalesforceClient {
    */
   async searchAccounts(searchTerm: string): Promise<SalesforceAccount[]> {
     try {
-          // Salesforce account search initiated
-      
-      // Escape single quotes in search term to prevent SOQL injection
       const escapedSearchTerm = searchTerm.replace(/'/g, "\\'");
       
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
-               BillingPostalCode, BillingCountry, Industry, Account_Segment__c
+               BillingPostalCode, BillingCountry, Industry, NumberOfEmployees
         FROM Account 
         WHERE Name LIKE '%${escapedSearchTerm}%' 
            OR BillingCity LIKE '%${escapedSearchTerm}%'
@@ -280,20 +277,31 @@ class SalesforceClient {
         LIMIT 20
       `;
       
-      // SOQL query prepared
-      
       const result = await this.conn.query(query);
       
-      // Query executed successfully
+      // Calculate account segment for each account based on NumberOfEmployees
+      result.records.forEach((record: Record<string, unknown>) => {
+        const numberOfEmployees = record.NumberOfEmployees as number;
+        
+        if (numberOfEmployees !== null && numberOfEmployees !== undefined && typeof numberOfEmployees === 'number') {
+          let calculatedSegment = '';
+          if (numberOfEmployees > 4500) {
+            calculatedSegment = 'LE';
+          } else if (numberOfEmployees >= 1001) {
+            calculatedSegment = 'EE';
+          } else if (numberOfEmployees >= 251) {
+            calculatedSegment = 'MM';
+          } else {
+            calculatedSegment = 'EC';
+          }
+          
+          record.Account_Segment__c = calculatedSegment;
+        }
+      });
       
       return result.records as SalesforceAccount[];
     } catch (error) {
       console.error('Error searching accounts:', error);
-      console.error('  Error Details:', {
-        name: error instanceof Error ? error.name : 'Unknown',
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : 'No stack trace'
-      });
       throw new Error('Failed to search Salesforce accounts');
     }
   }
@@ -303,10 +311,10 @@ class SalesforceClient {
    */
   async getAccount(accountId: string): Promise<SalesforceAccount> {
     try {
-      // Use a simple query with just standard fields first
+      // First try without Account_Segment__c
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
-               BillingPostalCode, BillingCountry, Account_Segment__c
+               BillingPostalCode, BillingCountry
         FROM Account 
         WHERE Id = '${accountId}'
       `;
@@ -316,7 +324,51 @@ class SalesforceClient {
         throw new Error('Account not found');
       }
       
-      return result.records[0] as SalesforceAccount;
+      const account = result.records[0] as SalesforceAccount;
+      
+      // Calculate account segment based on NumberOfEmployees using the same logic as Salesforce formula
+      try {
+        const segmentQuery = `SELECT NumberOfEmployees, Segment__c, Market_Segment__c, Customer_Tier__c FROM Account WHERE Id = '${accountId}'`;
+        const result = await this.conn.query(segmentQuery);
+        
+        if (result.records.length > 0) {
+          const record = result.records[0];
+          const numberOfEmployees = record.NumberOfEmployees as number;
+          const segment = record.Segment__c as string;
+          const marketSegment = record.Market_Segment__c as string;
+          const customerTier = record.Customer_Tier__c as string;
+          
+          // Calculate segment using the same formula logic as Salesforce
+          if (numberOfEmployees !== null && numberOfEmployees !== undefined && typeof numberOfEmployees === 'number') {
+            let calculatedSegment = '';
+            if (numberOfEmployees > 4500) {
+              calculatedSegment = 'LE';
+            } else if (numberOfEmployees >= 1001) {
+              calculatedSegment = 'EE';
+            } else if (numberOfEmployees >= 251) {
+              calculatedSegment = 'MM';
+            } else {
+              calculatedSegment = 'EC';
+            }
+            
+            account.Account_Segment__c = calculatedSegment;
+          } else {
+            // Fallback to Salesforce fields if no employee count
+            if (segment) {
+              account.Account_Segment__c = segment;
+            } else if (marketSegment) {
+              account.Account_Segment__c = marketSegment;
+            } else if (customerTier) {
+              account.Account_Segment__c = customerTier;
+            }
+          }
+        }
+      } catch (segmentError) {
+        console.error('Error calculating account segment:', segmentError);
+        account.Account_Segment__c = undefined;
+      }
+      
+      return account;
     } catch (error) {
       console.error('Error getting account:', error);
       throw new Error('Failed to get Salesforce account');

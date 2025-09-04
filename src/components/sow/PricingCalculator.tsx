@@ -80,6 +80,7 @@ export default function PricingCalculator({
               )}
             </div>
 
+
             {/* Account Segment Hours */}
             {accountSegmentHours > 0 && (
               <div className="bg-white p-4 rounded-lg border border-blue-200">

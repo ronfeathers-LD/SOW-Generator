@@ -15,6 +15,7 @@ export interface SalesforceAccountData {
   };
   industry?: string;
   phone?: string;
+  account_segment?: string; // Account_Segment__c field
   selected_at: string; // ISO timestamp
 }
 
@@ -71,6 +72,7 @@ export interface SalesforceAccountResponse {
   BillingCountry?: string;
   Industry?: string;
   Phone?: string;
+  Account_Segment__c?: string;
 }
 
 export interface SalesforceContactResponse {
@@ -108,6 +110,7 @@ export const createSalesforceAccountData = (account: SalesforceAccountResponse):
   },
   industry: account.Industry,
   phone: account.Phone,
+  account_segment: account.Account_Segment__c,
   selected_at: new Date().toISOString(),
 });
 

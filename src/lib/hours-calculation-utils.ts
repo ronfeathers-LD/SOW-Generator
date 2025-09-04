@@ -3,14 +3,7 @@
  * This centralizes all hours calculation logic to ensure consistency
  */
 
-export interface SOWTemplate {
-  products?: string[];
-  number_of_units?: string;
-  units_consumption?: string;
-  bookit_forms_units?: string;
-  bookit_links_units?: string;
-  bookit_handoff_units?: string;
-}
+import { SOWTemplate } from '@/types/sow';
 
 export interface HoursCalculationResult {
   productHours: number;
@@ -19,6 +12,7 @@ export interface HoursCalculationResult {
   baseProjectHours: number;
   pmHours: number;
   totalUnits: number;
+  shouldAddProjectManager: boolean;
 }
 
 /**
@@ -65,11 +59,19 @@ export function calculateProductHours(products: string[]): number {
 /**
  * Calculate user group hours (every 50 users/units adds 5 hours)
  */
-export function calculateUserGroupHours(template: SOWTemplate): number {
-  const totalUnits = parseInt(template?.number_of_units || template?.units_consumption || '0') +
-                    parseInt(template?.bookit_forms_units || '0') +
-                    parseInt(template?.bookit_links_units || '0') +
-                    parseInt(template?.bookit_handoff_units || '0');
+export function calculateUserGroupHours(template: Partial<SOWTemplate>): number {
+  // Helper function to safely parse units, handling text values
+  const safeParseUnits = (value: string | undefined): number => {
+    if (!value) return 0;
+    const parsed = parseInt(value);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+  
+  const totalUnits = safeParseUnits(template?.number_of_units) + 
+                    safeParseUnits(template?.orchestration_units) + 
+                    safeParseUnits(template?.bookit_forms_units) +
+                    safeParseUnits(template?.bookit_links_units) +
+                    safeParseUnits(template?.bookit_handoff_units);
   
   if (totalUnits >= 50) {
     return Math.floor(totalUnits / 50) * 5;
@@ -80,19 +82,33 @@ export function calculateUserGroupHours(template: SOWTemplate): number {
 /**
  * Calculate total units from template
  */
-export function calculateTotalUnits(template: SOWTemplate): number {
-  return parseInt(template?.number_of_units || template?.units_consumption || '0') +
-         parseInt(template?.bookit_forms_units || '0') +
-         parseInt(template?.bookit_links_units || '0') +
-         parseInt(template?.bookit_handoff_units || '0');
+export function calculateTotalUnits(template: Partial<SOWTemplate>): number {
+  // Helper function to safely parse units, handling text values
+  const safeParseUnits = (value: string | undefined): number => {
+    if (!value) return 0;
+    const parsed = parseInt(value);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+  
+  const orchestrationUnits = safeParseUnits(template?.number_of_units) || 
+                            safeParseUnits(template?.orchestration_units);
+  const bookitFormsUnits = safeParseUnits(template?.bookit_forms_units);
+  const bookitLinksUnits = safeParseUnits(template?.bookit_links_units);
+  const bookitHandoffUnits = safeParseUnits(template?.bookit_handoff_units);
+  
+  const total = orchestrationUnits + bookitFormsUnits + bookitLinksUnits + bookitHandoffUnits;
+  
+  
+  return total;
 }
 
 /**
  * Calculate account segment hours
  * MM (MidMarket) accounts get 5 additional hours
+ * Note: The actual field name in Salesforce is Segment__c, not Account_Segment__c
  */
 export function calculateAccountSegmentHours(accountSegment?: string): number {
-  if (accountSegment === 'MM') {
+  if (accountSegment === 'MM' || accountSegment === 'MidMarket') {
     return 5;
   }
   return 0;
@@ -101,7 +117,7 @@ export function calculateAccountSegmentHours(accountSegment?: string): number {
 /**
  * Calculate base project hours (product hours + user group hours + account segment hours)
  */
-export function calculateBaseProjectHours(template: SOWTemplate, accountSegment?: string): number {
+export function calculateBaseProjectHours(template: Partial<SOWTemplate>, accountSegment?: string): number {
   const products = template?.products || [];
   const productHours = calculateProductHours(products);
   const userGroupHours = calculateUserGroupHours(template);
@@ -112,7 +128,7 @@ export function calculateBaseProjectHours(template: SOWTemplate, accountSegment?
 /**
  * Calculate PM hours (45% of total project hours, minimum 10)
  */
-export function calculatePMHours(template: SOWTemplate, accountSegment?: string): number {
+export function calculatePMHours(template: Partial<SOWTemplate>, accountSegment?: string): number {
   const baseProjectHours = calculateBaseProjectHours(template, accountSegment);
   return Math.max(10, Math.ceil(baseProjectHours * 0.45));
 }
@@ -121,14 +137,16 @@ export function calculatePMHours(template: SOWTemplate, accountSegment?: string)
  * Calculate all hours components for a given template
  * Returns a comprehensive result object
  */
-export function calculateAllHours(template: SOWTemplate, accountSegment?: string): HoursCalculationResult {
+export function calculateAllHours(template: Partial<SOWTemplate>, accountSegment?: string): HoursCalculationResult {
   const products = template?.products || [];
   const productHours = calculateProductHours(products);
   const userGroupHours = calculateUserGroupHours(template);
   const accountSegmentHours = calculateAccountSegmentHours(accountSegment);
   const baseProjectHours = productHours + userGroupHours + accountSegmentHours;
-  const pmHours = Math.max(10, Math.ceil(baseProjectHours * 0.45));
   const totalUnits = calculateTotalUnits(template);
+  const shouldAddPM = shouldAddProjectManager(template);
+  const pmHours = shouldAddPM ? Math.max(10, Math.ceil(baseProjectHours * 0.45)) : 0;
+  
   
   return {
     productHours,
@@ -136,7 +154,8 @@ export function calculateAllHours(template: SOWTemplate, accountSegment?: string
     accountSegmentHours,
     baseProjectHours,
     pmHours,
-    totalUnits
+    totalUnits,
+    shouldAddProjectManager: shouldAddPM
   };
 }
 
@@ -144,7 +163,7 @@ export function calculateAllHours(template: SOWTemplate, accountSegment?: string
  * Check if Project Manager should be added based on business rules
  * PM is added when: 3+ products OR 200+ units
  */
-export function shouldAddProjectManager(template: SOWTemplate): boolean {
+export function shouldAddProjectManager(template: Partial<SOWTemplate>): boolean {
   const products = template?.products || [];
   const totalUnits = calculateTotalUnits(template);
   return products.length >= 3 || totalUnits >= 200;

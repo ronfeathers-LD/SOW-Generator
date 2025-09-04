@@ -340,6 +340,33 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     fetchSalesforceInstanceUrl();
   }, []);
 
+  const loadStoredSalesforceData = async (sowId: string) => {
+    try {
+      const response = await fetch(`/api/sow/${sowId}/salesforce-data`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data?.account_data) {
+          const accountData = data.data.account_data;
+          // Update selectedAccount with stored data including account_segment
+          setSelectedAccount({
+            Id: accountData.id,
+            Name: accountData.name,
+            BillingStreet: accountData.billing_address?.street || '',
+            BillingCity: accountData.billing_address?.city || '',
+            BillingState: accountData.billing_address?.state || '',
+            BillingPostalCode: accountData.billing_address?.postal_code || '',
+            BillingCountry: accountData.billing_address?.country || '',
+            Billing_Contact__c: '',
+            Billing_Email__c: '',
+            Account_Segment__c: accountData.account_segment || ''
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading stored Salesforce data:', error);
+    }
+  };
+
   // Load existing data when editing
   useEffect(() => {
     if (initialData) {
@@ -352,6 +379,11 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           Id: accountId, // Use the Salesforce account ID if available
           Name: initialData.template?.client_name || initialData.header?.client_name || ''
         });
+      }
+      
+      // Load stored Salesforce data if we have a SOW ID
+      if (initialData.id) {
+        loadStoredSalesforceData(initialData.id);
       }
       
       // Set selected contact if contact information exists
@@ -551,12 +583,20 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     opportunities: unknown[];
   }) => {
     const { account, opportunities } = customerData;
-    const accountObj = account as { Id: string; Name: string };
+    const accountObj = account as { Id: string; Name: string; Account_Segment__c?: string };
     
     // Set the selected account for opportunity lookup
     setSelectedAccount({
       Id: accountObj.Id,
-      Name: accountObj.Name
+      Name: accountObj.Name,
+      BillingStreet: '',
+      BillingCity: '',
+      BillingState: '',
+      BillingPostalCode: '',
+      BillingCountry: '',
+      Billing_Contact__c: '',
+      Billing_Email__c: '',
+      Account_Segment__c: accountObj.Account_Segment__c || ''
     });
     
     // Store available opportunities - convert from uppercase API response to lowercase for component use

@@ -391,7 +391,7 @@ export default function BillingInformationTab({
                               <>
                                 <div className="flex justify-between items-center mb-4">
                                   <p className="text-sm text-gray-600">
-                                    Found {availableContacts.length} contact{availableContacts.length !== 1 ? 's' : ''} for {selectedAccount.name}
+                                    Found {availableContacts.length} contact{availableContacts.length !== 1 ? 's' : ''} for {selectedAccount.Name || selectedAccount.name}
                                   </p>
                                   <button
                                     onClick={refreshContacts}
@@ -425,7 +425,7 @@ export default function BillingInformationTab({
                             ) : (
                               <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
                                 <p className="text-sm text-yellow-800">
-                                  No contacts found for {selectedAccount.name}. Please ensure contacts exist in Salesforce.
+                                  No contacts found for {selectedAccount.Name || selectedAccount.name}. Please ensure contacts exist in Salesforce.
                                 </p>
                               </div>
                             )}
