@@ -29,6 +29,27 @@ export async function GET(
     // Get products from JSONB field
     const productNames = Array.isArray(sow.products) ? sow.products : [];
 
+    // Fetch Avoma recordings for this SOW
+    const { data: avomaRecordings, error: recordingsError } = await supabase
+      .from('avoma_recordings')
+      .select('*')
+      .eq('sow_id', (await params).id)
+      .order('created_at', { ascending: true });
+
+    if (recordingsError) {
+      console.error('Error fetching Avoma recordings:', recordingsError);
+    }
+
+    // Transform recordings to match frontend format
+    const transformedRecordings = (avomaRecordings || []).map(recording => ({
+      id: recording.id,
+      url: recording.url,
+      transcription: recording.transcription || '',
+      title: recording.title || '',
+      date: recording.date || recording.created_at,
+      status: recording.status || 'pending'
+    }));
+
     // Return snake_case data directly with nested structure
     const transformedSow = {
       ...sow,
@@ -37,6 +58,7 @@ export async function GET(
         key_objectives: sow.objectives_key_objectives || [],
         avoma_transcription: sow.avoma_transcription || '',
         avoma_url: sow.avoma_url || '',
+        avoma_recordings: transformedRecordings,
       },
       scope: {
 

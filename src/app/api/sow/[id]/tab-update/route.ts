@@ -87,6 +87,51 @@ export async function PUT(
           if (data.objectives.key_objectives !== undefined) updateData.objectives_key_objectives = data.objectives.key_objectives;
           if (data.objectives.avoma_transcription !== undefined) updateData.avoma_transcription = data.objectives.avoma_transcription;
           if (data.objectives.avoma_url !== undefined) updateData.avoma_url = data.objectives.avoma_url;
+          
+          // Handle multiple Avoma recordings
+          if (data.objectives.avoma_recordings !== undefined) {
+            console.log('🔍 Saving avoma_recordings:', data.objectives.avoma_recordings);
+            
+            // First, delete existing recordings for this SOW
+            const { error: deleteError } = await supabase
+              .from('avoma_recordings')
+              .delete()
+              .eq('sow_id', sowId);
+            
+            if (deleteError) {
+              console.error('Error deleting existing recordings:', deleteError);
+            }
+            
+            // Then insert the new recordings
+            if (data.objectives.avoma_recordings.length > 0) {
+              const recordingsToInsert = data.objectives.avoma_recordings.map((recording: {
+                id: string;
+                url: string;
+                transcription?: string;
+                title?: string;
+                date?: string;
+                status?: string;
+              }) => ({
+                sow_id: sowId,
+                url: recording.url,
+                transcription: recording.transcription || null,
+                title: recording.title || null,
+                date: recording.date || new Date().toISOString(),
+                status: recording.status || 'pending'
+              }));
+              
+              const { error: insertError } = await supabase
+                .from('avoma_recordings')
+                .insert(recordingsToInsert);
+              
+              if (insertError) {
+                console.error('Error inserting recordings:', insertError);
+                throw new Error('Failed to save Avoma recordings');
+              }
+              
+              console.log('✅ Saved', recordingsToInsert.length, 'Avoma recordings');
+            }
+          }
         }
         // Handle scope data (deliverables)
         if (data.scope) {

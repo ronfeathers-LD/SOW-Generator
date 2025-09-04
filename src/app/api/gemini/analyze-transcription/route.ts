@@ -68,20 +68,72 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error analyzing transcription:', error);
     
-    // Provide more specific error messages
+    // Provide more specific error messages based on error type
     if (error instanceof Error) {
-      if (error.message.includes('API key')) {
+      const errorMessage = error.message.toLowerCase();
+      
+      // API key and configuration issues
+      if (errorMessage.includes('api key') || errorMessage.includes('not configured')) {
         return NextResponse.json(
           { error: 'AI service is not properly configured. Please contact your administrator.' },
           { status: 500 }
         );
       }
-      if (error.message.includes('No content received')) {
+      
+      // Model overload issues
+      if (errorMessage.includes('overloaded') || errorMessage.includes('503') || errorMessage.includes('service unavailable')) {
+        return NextResponse.json(
+          { error: 'AI service is currently overloaded. Please try again in a few minutes.' },
+          { status: 503 }
+        );
+      }
+      
+      // Response parsing issues
+      if (errorMessage.includes('parse') || errorMessage.includes('json') || errorMessage.includes('response')) {
+        return NextResponse.json(
+          { error: 'AI response could not be processed. Please try again or contact support.' },
+          { status: 500 }
+        );
+      }
+      
+      // Network and timeout issues
+      if (errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('timeout')) {
+        return NextResponse.json(
+          { error: 'Network error occurred. Please check your connection and try again.' },
+          { status: 500 }
+        );
+      }
+      
+      // Rate limiting issues
+      if (errorMessage.includes('rate limit') || errorMessage.includes('quota') || errorMessage.includes('limit')) {
+        return NextResponse.json(
+          { error: 'AI service rate limit exceeded. Please try again later.' },
+          { status: 429 }
+        );
+      }
+      
+      // No content received
+      if (errorMessage.includes('no content received')) {
         return NextResponse.json(
           { error: 'The AI service did not return a response. Please try again.' },
           { status: 500 }
         );
       }
+      
+      // Database configuration issues
+      if (errorMessage.includes('no active ai prompts found') || errorMessage.includes('failed to fetch ai prompt')) {
+        return NextResponse.json(
+          { error: 'AI prompt configuration is missing. Please check the admin panel.' },
+          { status: 500 }
+        );
+      }
+      
+      // Log the specific error for debugging
+      console.error('Specific error details:', {
+        message: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString()
+      });
     }
     
     return NextResponse.json(

@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 interface GeminiBulletPoint {
   title: string;
@@ -287,19 +288,29 @@ Please provide a professional, 2-3 sentence project description that captures th
     supportingDocuments?: string
   ): Promise<TranscriptionAnalysisResponse> {
     // Fetch the AI prompt from the database
-    const { supabase } = await import('@/lib/supabase');
+    const supabase = await createServerSupabaseClient();
     
-    const { data: aiPrompt, error: promptError } = await supabase
+    const { data: aiPrompts, error: promptError } = await supabase
       .from('ai_prompts')
-      .select('prompt_content')
+      .select('prompt_content, name, id')
       .eq('is_active', true)
       .order('sort_order', { ascending: true })
-      .limit(1)
-      .single();
+      .limit(1);
 
-    if (promptError || !aiPrompt?.prompt_content) {
-      console.error('Failed to fetch AI prompt from database:', promptError);
-      throw new Error('Failed to fetch AI prompt from database. Please check the prompt configuration.');
+    if (promptError) {
+      console.error('Failed to fetch AI prompts from database:', promptError);
+      throw new Error('Failed to fetch AI prompts from database. Please check the prompt configuration.');
+    }
+
+    if (!aiPrompts || aiPrompts.length === 0) {
+      console.error('No active AI prompts found in database');
+      throw new Error('No active AI prompts found in database. Please create an active AI prompt in the admin panel.');
+    }
+
+    const aiPrompt = aiPrompts[0];
+    if (!aiPrompt?.prompt_content) {
+      console.error('AI prompt found but has no content:', aiPrompt);
+      throw new Error('AI prompt found but has no content. Please check the prompt configuration.');
     }
     
     // Database prompt loaded successfully
@@ -435,7 +446,34 @@ ${contentGuidance}`;
       }
     } catch (e) {
       error = e instanceof Error ? e : new Error(String(e));
-      console.error('Gemini API call failed:', error);
+      
+      // Enhanced error logging with more context
+      console.error('Gemini API call failed:', {
+        error: error.message,
+        stack: error.stack,
+        model: this.modelName,
+        customerName,
+        transcriptLength: transcript.length,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Check for specific error types and provide more descriptive messages
+      if (error.message.includes('503') || error.message.includes('Service Unavailable')) {
+        throw new Error('Model is currently overloaded. Please try again later.');
+      }
+      
+      if (error.message.includes('API_KEY_INVALID') || error.message.includes('Invalid API key')) {
+        throw new Error('API key is invalid or expired. Please check your configuration.');
+      }
+      
+      if (error.message.includes('quota') || error.message.includes('rate limit')) {
+        throw new Error('API quota exceeded. Please try again later.');
+      }
+      
+      if (error.message.includes('timeout') || error.message.includes('deadline')) {
+        throw new Error('Request timed out. Please try again.');
+      }
+      
       throw error;
     } finally {
       // Log the Gemini API call
@@ -506,13 +544,26 @@ export async function analyzeTranscription(
   
   const supabase = await createServerSupabaseClient();
   
-  const { data: config, error } = await supabase
+  // Get all active configurations and select the most recent one
+  const { data: configs, error } = await supabase
     .from('gemini_configs')
-    .select('api_key, model_name, is_active')
+    .select('api_key, model_name, is_active, created_at')
     .eq('is_active', true)
-    .single();
+    .order('created_at', { ascending: false })
+    .limit(1);
 
-  if (error || !config?.api_key) {
+  if (error) {
+    console.error('Error fetching Gemini configs:', error);
+    throw new Error('Failed to fetch Gemini configuration. Please check the admin panel.');
+  }
+
+  if (!configs || configs.length === 0) {
+    throw new Error('No active Gemini configuration found. Please configure it in the admin panel.');
+  }
+
+  const config = configs[0]; // Use the most recent active configuration
+
+  if (!config?.api_key) {
     throw new Error('Gemini API key not configured. Please configure it in the admin panel.');
   }
 

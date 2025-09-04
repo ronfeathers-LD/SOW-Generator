@@ -786,6 +786,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               key_objectives: formData.objectives?.key_objectives,
               avoma_transcription: formData.objectives?.avoma_transcription,
               avoma_url: formData.objectives?.avoma_url,
+              avoma_recordings: formData.objectives?.avoma_recordings,
             },
             scope: {
               deliverables: formData.scope?.deliverables,
@@ -935,11 +936,11 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         message: result.message || `${activeTab} saved successfully!`
       });
       
-      // Simple refresh: reload the page to show updated data
-      window.location.reload();
+      // Don't reload the page - just show success message
+      console.log('✅ Tab saved successfully:', result);
       
-      // Clear notification after 3 seconds
-      setTimeout(() => setNotification(null), 3000);
+      // Clear notification after 5 seconds
+      setTimeout(() => setNotification(null), 5000);
     } catch (error) {
       console.error(`Error saving ${activeTab}:`, error);
       

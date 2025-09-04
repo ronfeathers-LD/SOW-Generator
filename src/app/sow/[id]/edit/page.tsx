@@ -68,6 +68,7 @@ export default function EditSOWPage() {
               key_objectives: data.objectives?.key_objectives || [''],
               avoma_url: data.objectives?.avoma_url || '',
               avoma_transcription: data.objectives?.avoma_transcription || '',
+              avoma_recordings: data.objectives?.avoma_recordings || [],
             },
             scope: {
               deliverables: data.deliverables || '',
