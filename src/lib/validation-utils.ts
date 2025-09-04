@@ -22,13 +22,16 @@ export function validateSOWForApproval(sowData: { [key: string]: unknown }): SOW
 
 
   // Overview Tab validation
-  if (!sowData.number_of_units || (sowData.number_of_units as number) <= 0 || (sowData.number_of_units as number) >= 99) {
+  const regionsNum = parseInt(String(sowData.regions || ''));
+  if (!sowData.regions || isNaN(regionsNum) || regionsNum <= 0 || regionsNum >= 99) {
     errors.push('Regions must be greater than 0 and less than 99');
   }
-  if (!sowData.salesforce_tenants || (sowData.salesforce_tenants as number) <= 0 || (sowData.salesforce_tenants as number) >= 99) {
+  const tenantsNum = parseInt(String(sowData.salesforce_tenants || ''));
+  if (!sowData.salesforce_tenants || isNaN(tenantsNum) || tenantsNum <= 0 || tenantsNum >= 99) {
     errors.push('Tenants must be greater than 0 and less than 99');
   }
-  if (!sowData.timeline_weeks || (sowData.timeline_weeks as number) <= 0 || (sowData.timeline_weeks as number) >= 99) {
+  const timelineNum = parseInt(String(sowData.timeline_weeks || ''));
+  if (!sowData.timeline_weeks || isNaN(timelineNum) || timelineNum <= 0 || timelineNum >= 99) {
     errors.push('Timeline must be greater than 0 and less than 99');
   }
   if (!sowData.products || !Array.isArray(sowData.products) || (sowData.products as unknown[]).length === 0) {
