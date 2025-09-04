@@ -1,6 +1,5 @@
 
 import GoogleProvider from 'next-auth/providers/google';
-import { supabase } from '@/lib/supabase';
 import { createServiceRoleClient } from '@/lib/supabase-server';
 import type { NextAuthOptions } from 'next-auth';
 import { logger } from './utils/logger';
@@ -60,8 +59,10 @@ export const authOptions: NextAuthOptions = {
           
           let dbUser;
           
-          // Use Supabase
-          const { data: existingUser, error: fetchError } = await supabase
+          // Use service role client for user operations
+          const supabaseServer = createServiceRoleClient();
+          
+          const { data: existingUser, error: fetchError } = await supabaseServer
             .from('users')
             .select('*')
             .eq('email', user.email)
@@ -74,7 +75,7 @@ export const authOptions: NextAuthOptions = {
           if (existingUser) {
             logger.log('Updating existing user:', existingUser.email);
             // Update existing user
-            const { data: updatedUser, error: updateError } = await supabase
+            const { data: updatedUser, error: updateError } = await supabaseServer
               .from('users')
               .update({ name: user.name })
               .eq('email', user.email)
@@ -89,7 +90,7 @@ export const authOptions: NextAuthOptions = {
           } else {
             logger.log('Creating new user:', user.email);
             // Create new user
-            const { data: newUser, error: insertError } = await supabase
+            const { data: newUser, error: insertError } = await supabaseServer
               .from('users')
               .insert({
                 email: user.email,
@@ -161,8 +162,9 @@ export const authOptions: NextAuthOptions = {
       if (!token.role && token.email) {
         // Fetch user role from database if not in token
         try {
-          // Use Supabase
-          const { data: dbUser, error } = await supabase
+          // Use service role client for user operations
+          const supabaseServer = createServiceRoleClient();
+          const { data: dbUser, error } = await supabaseServer
             .from('users')
             .select('role')
             .eq('email', token.email)
