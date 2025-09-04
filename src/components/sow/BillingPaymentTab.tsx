@@ -22,6 +22,7 @@ interface DiscountConfig {
 interface BillingPaymentTabProps {
   formData: Partial<SOWData>;
   setFormData: (data: Partial<SOWData>) => void;
+  selectedAccount?: { Account_Segment__c?: string } | null;
 }
 
 // Standard LeanData roles with default rates (2025 rates)
@@ -44,6 +45,7 @@ interface PricingData {
 export default forwardRef<{ getCurrentPricingData?: () => PricingData }, BillingPaymentTabProps>(function BillingPaymentTab({
   formData,
   setFormData,
+  selectedAccount,
 }, ref) {
   const [pricingRoles, setPricingRoles] = useState<PricingRole[]>(STANDARD_ROLES.map(role => ({
     ...role,
@@ -169,7 +171,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
     
     try {
       // Use shared utility to calculate all hours
-      const hoursResult = calculateAllHours(formData.template);
+      const hoursResult = calculateAllHours(formData.template, selectedAccount?.Account_Segment__c);
       const { baseProjectHours, pmHours, totalUnits } = hoursResult;
       
       // Update the Onboarding Specialist role with calculated hours
@@ -296,6 +298,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
             // This callback is called after hours are calculated
             // The UI components now handle PM role display logic properly
           }}
+          selectedAccount={selectedAccount}
         />
 
       </div>

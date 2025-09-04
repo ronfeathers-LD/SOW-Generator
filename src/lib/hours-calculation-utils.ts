@@ -15,6 +15,7 @@ export interface SOWTemplate {
 export interface HoursCalculationResult {
   productHours: number;
   userGroupHours: number;
+  accountSegmentHours: number;
   baseProjectHours: number;
   pmHours: number;
   totalUnits: number;
@@ -87,20 +88,32 @@ export function calculateTotalUnits(template: SOWTemplate): number {
 }
 
 /**
- * Calculate base project hours (product hours + user group hours)
+ * Calculate account segment hours
+ * MM (MidMarket) accounts get 5 additional hours
  */
-export function calculateBaseProjectHours(template: SOWTemplate): number {
+export function calculateAccountSegmentHours(accountSegment?: string): number {
+  if (accountSegment === 'MM') {
+    return 5;
+  }
+  return 0;
+}
+
+/**
+ * Calculate base project hours (product hours + user group hours + account segment hours)
+ */
+export function calculateBaseProjectHours(template: SOWTemplate, accountSegment?: string): number {
   const products = template?.products || [];
   const productHours = calculateProductHours(products);
   const userGroupHours = calculateUserGroupHours(template);
-  return productHours + userGroupHours;
+  const accountSegmentHours = calculateAccountSegmentHours(accountSegment);
+  return productHours + userGroupHours + accountSegmentHours;
 }
 
 /**
  * Calculate PM hours (45% of total project hours, minimum 10)
  */
-export function calculatePMHours(template: SOWTemplate): number {
-  const baseProjectHours = calculateBaseProjectHours(template);
+export function calculatePMHours(template: SOWTemplate, accountSegment?: string): number {
+  const baseProjectHours = calculateBaseProjectHours(template, accountSegment);
   return Math.max(10, Math.ceil(baseProjectHours * 0.45));
 }
 
@@ -108,17 +121,19 @@ export function calculatePMHours(template: SOWTemplate): number {
  * Calculate all hours components for a given template
  * Returns a comprehensive result object
  */
-export function calculateAllHours(template: SOWTemplate): HoursCalculationResult {
+export function calculateAllHours(template: SOWTemplate, accountSegment?: string): HoursCalculationResult {
   const products = template?.products || [];
   const productHours = calculateProductHours(products);
   const userGroupHours = calculateUserGroupHours(template);
-  const baseProjectHours = productHours + userGroupHours;
+  const accountSegmentHours = calculateAccountSegmentHours(accountSegment);
+  const baseProjectHours = productHours + userGroupHours + accountSegmentHours;
   const pmHours = Math.max(10, Math.ceil(baseProjectHours * 0.45));
   const totalUnits = calculateTotalUnits(template);
   
   return {
     productHours,
     userGroupHours,
+    accountSegmentHours,
     baseProjectHours,
     pmHours,
     totalUnits

@@ -47,6 +47,7 @@ export interface SalesforceAccount {
   Purchase_Order_Required__c?: boolean;
   Invoice_Delivery_Preference__c?: string;
   Payment_Method__c?: string;
+  Account_Segment__c?: string;
 }
 
 export interface SalesforceContact {
@@ -269,7 +270,7 @@ class SalesforceClient {
       
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
-               BillingPostalCode, BillingCountry, Industry
+               BillingPostalCode, BillingCountry, Industry, Account_Segment__c
         FROM Account 
         WHERE Name LIKE '%${escapedSearchTerm}%' 
            OR BillingCity LIKE '%${escapedSearchTerm}%'
@@ -305,7 +306,7 @@ class SalesforceClient {
       // Use a simple query with just standard fields first
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
-               BillingPostalCode, BillingCountry
+               BillingPostalCode, BillingCountry, Account_Segment__c
         FROM Account 
         WHERE Id = '${accountId}'
       `;

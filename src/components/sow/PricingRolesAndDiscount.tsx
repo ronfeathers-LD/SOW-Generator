@@ -41,6 +41,7 @@ interface PricingRolesAndDiscountProps {
   autoCalculateHours: () => Promise<void>;
   isAutoCalculating: boolean;
   onHoursCalculated?: () => void;
+  selectedAccount?: { Account_Segment__c?: string } | null;
 }
 
 const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
@@ -51,7 +52,8 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   setDiscountConfig,
   autoCalculateHours,
   isAutoCalculating,
-  onHoursCalculated
+  onHoursCalculated,
+  selectedAccount
 }) => {
   // Helper function to safely get products array
   const getProducts = () => {
@@ -65,7 +67,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   const [showPMHoursApprovalOverlay, setShowPMHoursApprovalOverlay] = useState(false);
 
   // Use shared utility to calculate all hours
-  const hoursResult = calculateAllHours(formData.template || {});
+  const hoursResult = calculateAllHours(formData.template || {}, selectedAccount?.Account_Segment__c);
   const { productHours, userGroupHours, baseProjectHours, pmHours } = hoursResult;
 
   // Get total units for display

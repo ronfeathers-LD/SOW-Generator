@@ -49,7 +49,8 @@ export async function POST(request: NextRequest) {
       billingState: account.BillingState,
       billingCountry: account.BillingCountry,
       industry: account.Industry,
-      numberOfEmployees: account.NumberOfEmployees
+      numberOfEmployees: account.NumberOfEmployees,
+      accountSegment: account.Account_Segment__c
     }));
 
     // Search results processed

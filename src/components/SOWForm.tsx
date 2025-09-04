@@ -1221,6 +1221,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             <BillingPaymentTab
               formData={formData}
               setFormData={updateFormData}
+              selectedAccount={selectedAccount}
               ref={pricingRef}
             />
           </>
