@@ -25,7 +25,7 @@ export function calculateProductHours(products: string[]): number {
   
   // Routing products: first = 15 hours, additional = 5 hours each
   const routingProducts = products.filter((product: string) => 
-    ['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing'].includes(product)
+    ['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing', 'Any Object (custom) Routing'].includes(product)
   );
   
   if (routingProducts.length > 0) {
@@ -190,10 +190,10 @@ export function calculateProductHoursForProduct(product: string, allProducts: st
     if (allProducts.length === 1) {
       hours = 15;
     }
-  } else if (['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing'].includes(product)) {
+  } else if (['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing', 'Any Object (custom) Routing'].includes(product)) {
     // Routing products: first = 15 hours, additional = 5 hours each
     const routingProducts = allProducts.filter(p => 
-      ['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing'].includes(p)
+      ['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing', 'Any Object (custom) Routing'].includes(p)
     );
     const routingIndex = routingProducts.indexOf(product);
     if (routingIndex === 0) {
