@@ -385,6 +385,13 @@ export default function ObjectivesTab({
           .join('\n');
       };
 
+      // Helper function to clean nested UL tags
+      const cleanNestedUlTags = (html: string): string => {
+        // Remove nested <ul> tags that are directly inside other <ul> tags
+        // This handles cases like <ul><ul><li>...</li></ul></ul>
+        return html.replace(/<ul([^>]*)>\s*<ul([^>]*)>/g, '<ul$1>');
+      };
+
       // Convert solutions to HTML format with proper product family groupings
       const convertSolutionsToHTML = (solutions: Record<string, string | string[]>): string => {
         if (!solutions || typeof solutions !== 'object') return '';
@@ -395,16 +402,17 @@ export default function ObjectivesTab({
           if (typeof items === 'string' && items.trim()) {
             // New format: items is a single HTML string
             if (items.includes('<ul>') && items.includes('<li>')) {
-              // Already properly formatted HTML, just add the header
-              html += `<h4><strong>${category.toUpperCase()}</strong></h4>\n${items}\n`;
+              // Already properly formatted HTML, clean up nested ULs and add the header
+              const cleanedItems = cleanNestedUlTags(items);
+              html += `<h4><strong>${category.toUpperCase()}</strong></h4>\n${cleanedItems}\n`;
             } else {
               // Plain text, wrap in list
-              html += `<h4><strong>${category.toUpperCase()}</strong></h4>\n<ul>\n<li>${items}</li>\n</ul>\n`;
+              html += `<h4><strong>${category.toUpperCase()}</strong></h4>\n<ul class="list-disc pl-6 prose prose-md max-w-none">\n<li>${items}</li>\n</ul>\n`;
             }
           } else if (Array.isArray(items) && items.length > 0) {
             // Old format: items is an array of strings
             // Add product family header
-            html += `<h4><strong>${category.toUpperCase()}</strong></h4>\n<ul>\n`;
+            html += `<h4><strong>${category.toUpperCase()}</strong></h4>\n<ul class="list-disc pl-6 prose prose-md max-w-none">\n`;
             
             // Add items for this product family
             items.forEach(item => {
@@ -420,7 +428,7 @@ export default function ObjectivesTab({
                   if (targetMatch) {
                     const mainObjective = item.replace(/\.\s*Target:\s*.+$/, '.');
                     const target = targetMatch[1];
-                    html += `<li>${mainObjective}<ul><li>${target}</li></ul></li>\n`;
+                    html += `<li>${mainObjective}<ul class="list-disc pl-6 prose prose-md max-w-none"><li>${target}</li></ul></li>\n`;
                   } else {
                     html += `<li>${item}</li>\n`;
                   }
@@ -1032,7 +1040,7 @@ export default function ObjectivesTab({
                     if (trimmedObj.startsWith('**') && trimmedObj.endsWith(':**')) {
                       // Close any existing list
                       if (currentList) {
-                        htmlValue += `<ul>${currentList}</ul>`;
+                        htmlValue += `<ul class="list-disc pl-6 prose prose-md max-w-none">${currentList}</ul>`;
                         currentList = '';
                       }
                       // Add the product header - strip markdown
@@ -1043,7 +1051,7 @@ export default function ObjectivesTab({
                     else if (trimmedObj.endsWith(':')) {
                       // Close any existing list
                       if (currentList) {
-                        htmlValue += `<ul>${currentList}</ul>`;
+                        htmlValue += `<ul class="list-disc pl-6 prose prose-md max-w-none">${currentList}</ul>`;
                         currentList = '';
                       }
                       // Add the product header
@@ -1059,7 +1067,7 @@ export default function ObjectivesTab({
                     else if (trimmedObj === '') {
                       // Close any existing list
                       if (currentList) {
-                        htmlValue += `<ul>${currentList}</ul>`;
+                        htmlValue += `<ul class="list-disc pl-6 prose prose-md max-w-none">${currentList}</ul>`;
                         currentList = '';
                       }
                     }
@@ -1067,7 +1075,7 @@ export default function ObjectivesTab({
                     else {
                       // Close any existing list first
                       if (currentList) {
-                        htmlValue += `<ul>${currentList}</ul>`;
+                        htmlValue += `<ul class="list-disc pl-6 prose prose-md max-w-none">${currentList}</ul>`;
                         currentList = '';
                       }
                       // Add as a paragraph
@@ -1077,7 +1085,7 @@ export default function ObjectivesTab({
                   
                   // Close any remaining list
                   if (currentList) {
-                    htmlValue += `<ul>${currentList}</ul>`;
+                    htmlValue += `<ul class="list-disc pl-6 prose prose-md max-w-none">${currentList}</ul>`;
                   }
                   
                   // If no structured content was found, fall back to simple paragraphs

@@ -3,6 +3,7 @@ import puppeteerCore from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
 import { parseObjectives } from './utils/parse-objectives';
 import { sortProducts } from './utils/productSorting';
+import { processContent } from './text-to-html';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -392,15 +393,20 @@ export class PDFGenerator {
         .replace(/\{ClientName\}/g, `<strong>${clientName}</strong>`);
     };
     
+    // Process content with nested UL cleanup and placeholder replacement
+    const processContentWithPlaceholders = (content: string) => {
+      return replacePlaceholders(processContent(content));
+    };
+    
     // Use custom content fields when available, fallback to basic fields
-    const introContent = replacePlaceholders(sowData.custom_intro_content || sowData.objectives_description || 'Project introduction and overview content will be defined during the project planning phase.');
-    const scopeContent = replacePlaceholders(sowData.custom_scope_content || 'Project scope and deliverables will be detailed during the project kickoff and requirements gathering phase.');
-    const outOfScopeContent = replacePlaceholders(sowData.custom_out_of_scope_content || '');
-    const assumptionsContent = replacePlaceholders(sowData.custom_assumptions_content || 'Project assumptions and prerequisites will be documented during the project planning phase.');
-    const projectPhasesContent = replacePlaceholders(sowData.custom_project_phases_content || 'Project phases, activities, and artifacts will be detailed in the project plan developed during kickoff.');
-    const rolesContent = replacePlaceholders(sowData.custom_roles_content || 'Roles and responsibilities will be defined during the project planning phase based on the specific requirements of this engagement.');
-    const deliverablesContent = replacePlaceholders(sowData.custom_deliverables_content || 'Project deliverables will be detailed during the project planning phase based on the specific requirements and scope.');
-    const keyObjectivesContent = replacePlaceholders(sowData.custom_objectives_disclosure_content || sowData.custom_key_objectives_content || 'Key objectives and success criteria will be defined during the project kickoff and planning phase.');
+    const introContent = processContentWithPlaceholders(sowData.custom_intro_content || sowData.objectives_description || 'Project introduction and overview content will be defined during the project planning phase.');
+    const scopeContent = processContentWithPlaceholders(sowData.custom_scope_content || 'Project scope and deliverables will be detailed during the project kickoff and requirements gathering phase.');
+    const outOfScopeContent = processContentWithPlaceholders(sowData.custom_out_of_scope_content || '');
+    const assumptionsContent = processContentWithPlaceholders(sowData.custom_assumptions_content || 'Project assumptions and prerequisites will be documented during the project planning phase.');
+    const projectPhasesContent = processContentWithPlaceholders(sowData.custom_project_phases_content || 'Project phases, activities, and artifacts will be detailed in the project plan developed during kickoff.');
+    const rolesContent = processContentWithPlaceholders(sowData.custom_roles_content || 'Roles and responsibilities will be defined during the project planning phase based on the specific requirements of this engagement.');
+    const deliverablesContent = processContentWithPlaceholders(sowData.custom_deliverables_content || 'Project deliverables will be detailed during the project planning phase based on the specific requirements and scope.');
+    const keyObjectivesContent = processContentWithPlaceholders(sowData.custom_objectives_disclosure_content || sowData.custom_key_objectives_content || 'Key objectives and success criteria will be defined during the project kickoff and planning phase.');
     
     // Get template data for LeanData signatory
     const leanDataName = sowData.template?.lean_data_name || sowData.leandata_name || 'None Selected';

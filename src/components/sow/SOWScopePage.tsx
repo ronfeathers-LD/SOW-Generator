@@ -1,5 +1,7 @@
 'use client';
 
+import { processContent } from '@/lib/text-to-html';
+
 interface SOWScopePageProps {
   customContent?: string;
   customDeliverablesContent?: string;
@@ -23,7 +25,7 @@ export default function SOWScopePage({
           
           <div id="sow-content-scope" className="text-base leading-relaxed">
             {customContent ? (
-              <div dangerouslySetInnerHTML={{ __html: customContent }} />
+              <div dangerouslySetInnerHTML={{ __html: processContent(customContent) }} />
             ) : (
               <p className="text-gray-600 italic">No custom scope content found</p>
             )}
@@ -32,7 +34,7 @@ export default function SOWScopePage({
       ) : (
         <div id="sow-content-scope" className="text-base leading-relaxed">
           {customContent ? (
-            <div dangerouslySetInnerHTML={{ __html: customContent }} />
+            <div dangerouslySetInnerHTML={{ __html: processContent(customContent) }} />
           ) : (
             <p className="text-gray-600 italic">No custom scope content found</p>
           )}
@@ -42,7 +44,7 @@ export default function SOWScopePage({
       {/* Deliverables Content */}
       {customDeliverablesContent && (
         <div id="sow-content-deliverables" className="mt-6 text-base leading-relaxed">
-          <div dangerouslySetInnerHTML={{ __html: customDeliverablesContent }} />
+          <div dangerouslySetInnerHTML={{ __html: processContent(customDeliverablesContent) }} />
         </div>
       )}
     </div>

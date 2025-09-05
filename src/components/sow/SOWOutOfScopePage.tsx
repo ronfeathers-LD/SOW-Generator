@@ -1,5 +1,7 @@
 'use client';
 
+import { processContent } from '@/lib/text-to-html';
+
 interface SOWOutOfScopePageProps {
   customContent?: string;
   isEdited?: boolean;
@@ -22,7 +24,7 @@ export default function SOWOutOfScopePage({
           <div id="sow-content-out-of-scope" className="text-base leading-relaxed">
           <h2 className="text-2xl font-bold mb-6 mt-6">OUT OF SCOPE</h2>
             {customContent ? (
-              <div dangerouslySetInnerHTML={{ __html: customContent }} />
+              <div dangerouslySetInnerHTML={{ __html: processContent(customContent) }} />
             ) : (
               <p className="text-gray-600 italic">No custom out-of-scope content found</p>
             )}
@@ -32,7 +34,7 @@ export default function SOWOutOfScopePage({
         <div id="sow-content-out-of-scope" className="text-base leading-relaxed">
           <h2 className="text-2xl font-bold mb-6 mt-6">OUT OF SCOPE</h2>
           {customContent ? (
-            <div dangerouslySetInnerHTML={{ __html: customContent }} />
+            <div dangerouslySetInnerHTML={{ __html: processContent(customContent) }} />
           ) : (
             <p className="text-gray-600 italic">No custom out-of-scope content found</p>
           )}

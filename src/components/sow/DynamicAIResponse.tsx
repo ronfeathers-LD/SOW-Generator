@@ -8,6 +8,13 @@ interface DynamicAIResponseProps {
 }
 
 export default function DynamicAIResponse({ aiResponse, customerName }: DynamicAIResponseProps) {
+  // Helper function to clean nested UL tags
+  const cleanNestedUlTags = (html: string): string => {
+    // Remove nested <ul> tags that are directly inside other <ul> tags
+    // This handles cases like <ul><ul><li>...</li></ul></ul>
+    return html.replace(/<ul([^>]*)>\s*<ul([^>]*)>/g, '<ul$1>');
+  };
+
   // If there's an error, show it
   if (aiResponse.error) {
     return (
@@ -34,11 +41,11 @@ export default function DynamicAIResponse({ aiResponse, customerName }: DynamicA
           <h4 className="text-md font-semibold text-gray-800 mb-2 capitalize">
             {key.replace(/([A-Z])/g, ' $1').trim()}
           </h4>
-          <ul className="list-disc list-inside space-y-1">
+          <ul className="list-disc pl-6 prose prose-md max-w-none">
             {value.map((item, index) => (
               <li key={`ai-response-item-${index}-${String(item).slice(0, 20)}`} className="text-gray-700">
                 {typeof item === 'string' && item.includes('<') ? (
-                  <span dangerouslySetInnerHTML={{ __html: item }} />
+                  <span dangerouslySetInnerHTML={{ __html: cleanNestedUlTags(item) }} />
                 ) : (
                   item
                 )}
@@ -74,7 +81,7 @@ export default function DynamicAIResponse({ aiResponse, customerName }: DynamicA
             </h4>
             <div 
               className="text-gray-700"
-              dangerouslySetInnerHTML={{ __html: value }}
+              dangerouslySetInnerHTML={{ __html: cleanNestedUlTags(value) }}
             />
           </div>
         );

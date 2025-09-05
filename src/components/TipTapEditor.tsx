@@ -50,21 +50,31 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
     return trimmed.startsWith('<') && trimmed.includes('>');
   };
 
+  // Helper function to clean nested UL tags
+  const cleanNestedUlTags = (html: string): string => {
+    // Remove nested <ul> tags that are directly inside other <ul> tags
+    // This handles cases like <ul><ul><li>...</li></ul></ul>
+    return html.replace(/<ul([^>]*)>\s*<ul([^>]*)>/g, '<ul$1>');
+  };
+
   // Helper function to clean HTML content for TipTap
   const cleanHtmlForTipTap = useCallback((html: string): string => {
     if (!html) return '';
     
-    // If it's already HTML, return as is - don't modify it
+    // If it's already HTML, clean up nested UL tags and return
     if (isHtmlContent(html)) {
-      // Additional check: if it contains proper list structure, return unchanged
-      if (html.includes('<ul>') && html.includes('<li>')) {
-        return html;
+      // Clean up nested UL tags first
+      const cleanedHtml = cleanNestedUlTags(html);
+      
+      // Additional check: if it contains proper list structure, return cleaned version
+      if (cleanedHtml.includes('<ul>') && cleanedHtml.includes('<li>')) {
+        return cleanedHtml;
       }
-      if (html.includes('<ol>') && html.includes('<li>')) {
-        return html;
+      if (cleanedHtml.includes('<ol>') && cleanedHtml.includes('<li>')) {
+        return cleanedHtml;
       }
-      // For other HTML content, return as is
-      return html;
+      // For other HTML content, return cleaned version
+      return cleanedHtml;
     }
     
     // If it's plain text, convert to basic HTML but be conservative
@@ -156,13 +166,22 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
         // Also clean up any empty paragraphs that might be left
         html = html.replace(/<p><\/p>/g, '');
         
+        // Clean up nested UL tags
+        html = cleanNestedUlTags(html);
+        
         // Fix list structure: ensure list items are properly wrapped in ul/ol tags
         // This handles cases where TipTap generates individual <li> elements without proper list containers
-        html = html.replace(/(<li[^>]*>.*?<\/li>)(?=\s*<li[^>]*>)/g, '<ul>$1');
-        html = html.replace(/(<li[^>]*>.*?<\/li>)(?=\s*<[^l]|$)/g, '$1</ul>');
-        
-        // Clean up any duplicate ul tags that might have been created
-        html = html.replace(/<\/ul>\s*<ul>/g, '');
+        if (html.includes('<li>') && !html.includes('<ul>') && !html.includes('<ol>')) {
+          // Group consecutive <li> elements into a single <ul>
+          html = html.replace(
+            /(<li[^>]*>.*?<\/li>)(?:\s*(<li[^>]*>.*?<\/li>))*/g,
+            (match) => {
+              // Extract all <li> elements from the match
+              const liMatches = match.match(/<li[^>]*>.*?<\/li>/g) || [];
+              return `<ul class="list-disc pl-6 prose prose-md max-w-none">${liMatches.join('')}</ul>`;
+            }
+          );
+        }
         
         // Use debounced onChange to prevent too frequent updates
         debouncedOnChange(html);

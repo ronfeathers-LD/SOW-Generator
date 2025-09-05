@@ -5,28 +5,39 @@ export function isHtmlContent(content: string): boolean {
   return trimmed.startsWith('<') && trimmed.includes('>');
 }
 
+// Helper function to clean nested UL tags
+const cleanNestedUlTags = (html: string): string => {
+  // Remove nested <ul> tags that are directly inside other <ul> tags
+  // This handles cases like <ul><ul><li>...</li></ul></ul>
+  return html.replace(/<ul([^>]*)>\s*<ul([^>]*)>/g, '<ul$1>');
+};
+
 // Helper function to process content that could be either HTML or plain text
 export function processContent(content: string): string {
   if (!content) return '';
   
   // If it's already HTML, we still need to ensure proper list styling
   if (isHtmlContent(content)) {
+    // Clean up nested UL tags first
+    let processedContent = cleanNestedUlTags(content);
+    
     // For HTML content, we need to ensure lists are properly styled
     // Check if the content contains list items that might need styling
-    if (content.includes('<li>') || content.includes('<ul>') || content.includes('<ol>')) {
-      let processedContent = content;
+    if (processedContent.includes('<li>') || processedContent.includes('<ul>') || processedContent.includes('<ol>')) {
       
       // Fix malformed list structure: ensure list items are properly wrapped in ul/ol tags
       // This handles cases where individual <li> elements exist without proper list containers
-      if (content.includes('<li>') && !content.includes('<ul>') && !content.includes('<ol>')) {
-        // We have <li> elements but no list containers - wrap them properly
+      if (processedContent.includes('<li>') && !processedContent.includes('<ul>') && !processedContent.includes('<ol>')) {
+        // We have <li> elements but no list containers - group consecutive <li> elements
+        // First, find all consecutive <li> elements and group them
         processedContent = processedContent.replace(
-          /(<li[^>]*>.*?<\/li>)/g,
-          '<ul class="list-disc pl-6 prose prose-md max-w-none">$1</ul>'
+          /(<li[^>]*>.*?<\/li>)(?:\s*(<li[^>]*>.*?<\/li>))*/g,
+          (match) => {
+            // Extract all <li> elements from the match
+            const liMatches = match.match(/<li[^>]*>.*?<\/li>/g) || [];
+            return `<ul class="list-disc pl-6 prose prose-md max-w-none">${liMatches.join('')}</ul>`;
+          }
         );
-        
-        // Clean up any duplicate ul tags that might have been created
-        processedContent = processedContent.replace(/<\/ul>\s*<ul[^>]*>/g, '');
       }
       
       // Ensure ul elements have proper list styling classes
