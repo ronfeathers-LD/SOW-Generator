@@ -363,7 +363,14 @@ export class PDFGenerator {
 
     
     // Parse objectives that might be stored as HTML
-            const objectives = this.parseObjectivesInternal(sowData.objectives_key_objectives);
+    console.log('🔍 Objectives debug info:');
+    console.log('  - sowData.objectives_key_objectives:', sowData.objectives_key_objectives);
+    console.log('  - typeof sowData.objectives_key_objectives:', typeof sowData.objectives_key_objectives);
+    console.log('  - Array.isArray(sowData.objectives_key_objectives):', Array.isArray(sowData.objectives_key_objectives));
+    
+    const objectives = this.parseObjectivesInternal(sowData.objectives_key_objectives);
+    console.log('  - Parsed objectives:', objectives);
+    console.log('  - objectives.length:', objectives.length);
     const clientRoles = this.parseJSONField(sowData.client_roles, []) as ClientRole[];
     // Parse pricing roles - handle both direct array and nested structure
     let pricingRoles: PricingRole[] = [];
@@ -406,12 +413,31 @@ export class PDFGenerator {
     const projectPhasesContent = processContentWithPlaceholders(sowData.custom_project_phases_content || 'Project phases, activities, and artifacts will be detailed in the project plan developed during kickoff.');
     const rolesContent = processContentWithPlaceholders(sowData.custom_roles_content || 'Roles and responsibilities will be defined during the project planning phase based on the specific requirements of this engagement.');
     const deliverablesContent = processContentWithPlaceholders(sowData.custom_deliverables_content || 'Project deliverables will be detailed during the project planning phase based on the specific requirements and scope.');
-    const keyObjectivesContent = processContentWithPlaceholders(sowData.custom_objectives_disclosure_content || sowData.custom_key_objectives_content || 'Key objectives and success criteria will be defined during the project kickoff and planning phase.');
+    const keyObjectivesContent = processContentWithPlaceholders(sowData.custom_key_objectives_content || '');
+    const objectivesDisclosureContent = processContentWithPlaceholders(sowData.custom_objectives_disclosure_content || '');
+    
+    console.log('🔍 Key Objectives Content debug info:');
+    console.log('  - sowData.custom_objectives_disclosure_content:', sowData.custom_objectives_disclosure_content);
+    console.log('  - sowData.custom_key_objectives_content:', sowData.custom_key_objectives_content);
+    console.log('  - keyObjectivesContent:', keyObjectivesContent);
+    console.log('  - objectivesDisclosureContent:', objectivesDisclosureContent);
     
     // Get template data for LeanData signatory
-    const leanDataName = sowData.template?.lean_data_name || sowData.leandata_name || 'None Selected';
-    const leanDataTitle = sowData.template?.lean_data_title || sowData.leandata_title || 'None Selected';
-    const leanDataEmail = sowData.template?.lean_data_email || sowData.leandata_email || 'None Selected';
+    console.log('🔍 LeanData signatory debug info:');
+    console.log('  - sowData.template?.lean_data_name:', sowData.template?.lean_data_name);
+    console.log('  - sowData.leandata_name:', sowData.leandata_name);
+    console.log('  - sowData.template?.lean_data_title:', sowData.template?.lean_data_title);
+    console.log('  - sowData.leandata_title:', sowData.leandata_title);
+    console.log('  - sowData.template?.lean_data_email:', sowData.template?.lean_data_email);
+    console.log('  - sowData.leandata_email:', sowData.leandata_email);
+    
+    const leanDataName = sowData.leandata_name;
+    const leanDataTitle = sowData.leandata_title;
+    const leanDataEmail = sowData.leandata_email;
+    
+    console.log('  - Final leanDataName:', leanDataName);
+    console.log('  - Final leanDataTitle:', leanDataTitle);
+    console.log('  - Final leanDataEmail:', leanDataEmail);
     
     // Create a proper project overview from available data
     const projectOverview = replacePlaceholders(sowData.project_description || 
@@ -716,9 +742,23 @@ export class PDFGenerator {
                     <div>
                       <div class="signature-line"></div>
                       <div class="signature-info left">
-                        <strong>${leanDataName}</strong><br>
-                        ${leanDataTitle}<br>
-                        ${leanDataEmail}
+                        ${leanDataName && leanDataTitle && leanDataEmail ? `
+                          <strong>${leanDataName}</strong><br>
+                          ${leanDataTitle}<br>
+                          ${leanDataEmail}
+                        ` : `
+                          <div style="background-color: #fef2f2; border: 2px solid #dc2626; border-radius: 8px; padding: 12px; margin: 8px 0;">
+                            <div style="color: #dc2626; font-size: 14px; font-weight: bold; margin-bottom: 8px;">
+                              ⚠️ ERROR: LeanData Signatory Not Configured
+                            </div>
+                            <div style="color: #991b1b; font-size: 12px; line-height: 1.4;">
+                              <strong>CRITICAL:</strong> LeanData signatory information is missing. This SOW cannot be finalized without proper signatory details.
+                            </div>
+                            <div style="color: #7f1d1d; font-size: 10px; margin-top: 6px; font-style: italic;">
+                              Please configure the LeanData signatory in the SOW editor before generating the final PDF.
+                            </div>
+                          </div>
+                        `}
                       </div>
                     </div>
                     <div>
@@ -752,15 +792,7 @@ export class PDFGenerator {
             <!-- Key Objectives Section -->
             <div class="content">
               <h3>Key Objectives:</h3>
-              ${keyObjectivesContent || (objectives && objectives.length > 0 ? `
-              <ul style="margin: 0; padding-left: 24px; list-style-type: disc;">
-                ${objectives.map((objective: string) => {
-                  const trimmedObjective = objective.trim();
-                  if (!trimmedObjective) return '';
-                  return `<li style="margin-bottom: 8px; color: #374151;">${trimmedObjective}</li>`;
-                }).join('')}
-              </ul>
-              ` : `
+              ${keyObjectivesContent || `
               <div style="background-color: #fef2f2; border: 2px solid #dc2626; border-radius: 8px; padding: 20px; margin: 16px 0;">
                 <div style="color: #dc2626; font-size: 18px; font-weight: bold; margin-bottom: 12px;">
                   ⚠️ ERROR: Key Objectives Not Configured
@@ -772,7 +804,7 @@ export class PDFGenerator {
                   Please configure the Key Objectives content in the SOW editor before generating the final PDF.
                 </div>
               </div>
-              `)}
+              `}
             </div>
             
             <!-- Project Details Section -->
@@ -807,6 +839,13 @@ export class PDFGenerator {
               </div>
               ` : ''}
             </div>
+            
+            <!-- Objectives Disclosure Content -->
+            ${objectivesDisclosureContent ? `
+            <div class="content">
+              ${objectivesDisclosureContent}
+            </div>
+            ` : ''}
             
           </div>
 

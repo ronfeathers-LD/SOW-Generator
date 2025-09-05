@@ -96,6 +96,22 @@ export async function POST(
 
     console.log('✅ SOW data fetched successfully');
 
+    // Fetch LeanData signatory if one is selected
+    let leanDataSignatory = null;
+    if (sowData.leandata_signatory_id) {
+      const { data: signatory, error: signatoryError } = await supabase
+        .from('lean_data_signatories')
+        .select('*')
+        .eq('id', sowData.leandata_signatory_id)
+        .eq('is_active', true)
+        .single();
+      
+      if (!signatoryError && signatory) {
+        leanDataSignatory = signatory;
+        console.log('✅ LeanData signatory fetched:', signatory.name, signatory.title);
+      }
+    }
+
     // Transform the data to match the PDFGenerator interface
     const transformedData = {
       id: sowData.id,
@@ -147,9 +163,9 @@ export async function POST(
       approved_at: sowData.approved_at || '',
       approved_by: sowData.approved_by || '',
       project_description: sowData.objectives_description || sowData.project_description || '',
-      leandata_name: sowData.leandata_name || '',
-      leandata_title: sowData.leandata_title || '',
-      leandata_email: sowData.leandata_email || '',
+      leandata_name: leanDataSignatory?.name || '',
+      leandata_title: leanDataSignatory?.title || '',
+      leandata_email: leanDataSignatory?.email || '',
       opportunity_id: sowData.opportunity_id || '',
       opportunity_name: sowData.opportunity_name || '',
       opportunity_amount: (sowData.pricing_roles && typeof sowData.pricing_roles === 'object' && !Array.isArray(sowData.pricing_roles)) ? sowData.pricing_roles.total_amount || sowData.opportunity_amount || '' : sowData.opportunity_amount || '',
