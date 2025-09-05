@@ -363,6 +363,8 @@ export default function SOWDetailsPage() {
 
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
+  const isManager = session?.user?.role === 'manager';
+  const canApprove = isAdmin || isManager;
 
   // Check for URL error parameter
   useEffect(() => {
@@ -1158,7 +1160,7 @@ export default function SOWDetailsPage() {
                         </p>
                         
                         {/* Show approval component only for managers/admins */}
-                        {isAdmin ? (
+                        {canApprove ? (
                           <SimpleApproval
                             sowId={sow.id}
                             sowTitle={sow.sowTitle || 'Untitled SOW'}
