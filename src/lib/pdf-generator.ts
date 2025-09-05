@@ -877,7 +877,7 @@ export class PDFGenerator {
             <h2 class="section-title">5. PRICING</h2>
             
             <!-- Project Timeline -->
-            ${sowData.timeline_weeks ? `
+            ${sowData.timeline_weeks && sowData.timeline_weeks !== '999' ? `
             <div class="content">
               <h3>Project Timeline</h3>
               ${(() => {

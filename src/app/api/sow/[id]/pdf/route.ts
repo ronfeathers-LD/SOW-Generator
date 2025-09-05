@@ -119,7 +119,7 @@ export async function POST(
       pricing_discount_percentage: (sowData.pricing_roles && typeof sowData.pricing_roles === 'object' && !Array.isArray(sowData.pricing_roles)) ? sowData.pricing_roles.discount_percentage || 0 : 0,
       billing_info: sowData.billing_info || '',
       start_date: sowData.start_date || '',
-      timeline_weeks: sowData.timeline_weeks || '',
+      timeline_weeks: sowData.template?.timeline_weeks || sowData.timeline_weeks || '',
       products: sowData.products || [],
       number_of_units: sowData.number_of_units || '',
       regions: sowData.regions || '',
