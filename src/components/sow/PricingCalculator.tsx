@@ -23,6 +23,22 @@ export default function PricingCalculator({
   // Calculate account segment hours
   const accountSegmentHours = calculateAccountSegmentHours(selectedAccount?.Account_Segment__c);
 
+  // Helper function to get shared BookIt user count (maximum across all BookIt products)
+  const getSharedBookItUserCount = (): string => {
+    const safeParseUnits = (value: string | undefined): number => {
+      if (!value) return 0;
+      const parsed = parseInt(value);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+    
+    const bookitFormsUnits = safeParseUnits(formData.template?.bookit_forms_units);
+    const bookitLinksUnits = safeParseUnits(formData.template?.bookit_links_units);
+    const bookitHandoffUnits = safeParseUnits(formData.template?.bookit_handoff_units);
+    const maxBookitUnits = Math.max(bookitFormsUnits, bookitLinksUnits, bookitHandoffUnits);
+    
+    return maxBookitUnits.toString();
+  };
+
 
 
   return (
@@ -44,12 +60,12 @@ export default function PricingCalculator({
                     if (product === 'Lead to Account Matching' || product === 'Lead Routing' || product === 'Contact Routing' || product === 'Account Routing' || product === 'Opportunity Routing' || product === 'Case Routing') {
                       unitValue = formData.template?.number_of_units || formData.template?.units_consumption || '0';
                     } else if (product === 'BookIt for Forms') {
-                      unitValue = formData.template?.bookit_forms_units || '0';
+                      unitValue = getSharedBookItUserCount();
                     } else if (product === 'BookIt Handoff (without Smartrep)') {
-                    unitValue = formData.template?.bookit_links_units || '0';
+                      unitValue = getSharedBookItUserCount();
                       isNoCost = true;
                     } else if (product === 'BookIt Handoff (with Smartrep)') {
-                      unitValue = formData.template?.bookit_handoff_units || '0';
+                      unitValue = getSharedBookItUserCount();
                     }
                     
                     const productHours = calculateProductHours(product);

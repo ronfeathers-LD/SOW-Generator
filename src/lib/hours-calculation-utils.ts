@@ -59,6 +59,7 @@ export function calculateProductHours(products: string[]): number {
 
 /**
  * Calculate user group hours (every 50 users/units adds 5 hours)
+ * Note: BookIt products share the same user pool, so we use the maximum BookIt user count
  */
 export function calculateUserGroupHours(template: Partial<SOWTemplate>): number {
   // Helper function to safely parse units, handling text values
@@ -68,11 +69,15 @@ export function calculateUserGroupHours(template: Partial<SOWTemplate>): number 
     return isNaN(parsed) ? 0 : parsed;
   };
   
+  // BookIt products share the same user pool, so use the maximum count
+  const bookitFormsUnits = safeParseUnits(template?.bookit_forms_units);
+  const bookitLinksUnits = safeParseUnits(template?.bookit_links_units);
+  const bookitHandoffUnits = safeParseUnits(template?.bookit_handoff_units);
+  const maxBookitUnits = Math.max(bookitFormsUnits, bookitLinksUnits, bookitHandoffUnits);
+  
   const totalUnits = safeParseUnits(template?.number_of_units) + 
                     safeParseUnits(template?.orchestration_units) + 
-                    safeParseUnits(template?.bookit_forms_units) +
-                    safeParseUnits(template?.bookit_links_units) +
-                    safeParseUnits(template?.bookit_handoff_units);
+                    maxBookitUnits;
   
   if (totalUnits >= 50) {
     return Math.floor(totalUnits / 50) * 5;
@@ -82,6 +87,7 @@ export function calculateUserGroupHours(template: Partial<SOWTemplate>): number 
 
 /**
  * Calculate total units from template
+ * Note: BookIt products share the same user pool, so we use the maximum BookIt user count
  */
 export function calculateTotalUnits(template: Partial<SOWTemplate>): number {
   // Helper function to safely parse units, handling text values
@@ -93,12 +99,14 @@ export function calculateTotalUnits(template: Partial<SOWTemplate>): number {
   
   const orchestrationUnits = safeParseUnits(template?.number_of_units) || 
                             safeParseUnits(template?.orchestration_units);
+  
+  // BookIt products share the same user pool, so use the maximum count
   const bookitFormsUnits = safeParseUnits(template?.bookit_forms_units);
   const bookitLinksUnits = safeParseUnits(template?.bookit_links_units);
   const bookitHandoffUnits = safeParseUnits(template?.bookit_handoff_units);
+  const maxBookitUnits = Math.max(bookitFormsUnits, bookitLinksUnits, bookitHandoffUnits);
   
-  const total = orchestrationUnits + bookitFormsUnits + bookitLinksUnits + bookitHandoffUnits;
-  
+  const total = orchestrationUnits + maxBookitUnits;
   
   return total;
 }
