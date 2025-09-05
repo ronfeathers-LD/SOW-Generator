@@ -173,7 +173,9 @@ export default function ProjectOverviewTab({
           p.name.toLowerCase().includes('routing') || 
           p.name.toLowerCase().includes('orchestration') ||
           p.name.toLowerCase().includes('lead') ||
-          p.name.toLowerCase().includes('account')
+          p.name.toLowerCase().includes('account') ||
+          p.name.toLowerCase().includes('opportunity') ||
+          p.name.toLowerCase().includes('case')
         )
       },
       bookit: {
@@ -193,6 +195,8 @@ export default function ProjectOverviewTab({
           !p.name.toLowerCase().includes('orchestration') &&
           !p.name.toLowerCase().includes('lead') &&
           !p.name.toLowerCase().includes('account') &&
+          !p.name.toLowerCase().includes('opportunity') &&
+          !p.name.toLowerCase().includes('case') &&
           !p.name.toLowerCase().includes('bookit')
         )
       }

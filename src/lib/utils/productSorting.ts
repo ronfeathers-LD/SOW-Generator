@@ -10,10 +10,14 @@ export function sortProducts(products: string[]): string[] {
     'Lead Routing',
     'Contact Routing', 
     'Account Routing',
+    'Opportunity Routing',
+    'Case Routing',
+    'Any Object (custom) Routing',
     'BookIt for Forms',
     'BookIt Handoff (with Smartrep)',
     'BookIt Handoff (without Smartrep)',
-    'BookIt Links'
+    'BookIt Links',
+    'NotifyPlus'
   ];
   
   // Sort products based on the defined order
