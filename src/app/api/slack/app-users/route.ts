@@ -13,52 +13,39 @@ export async function GET() {
 
     const supabase = await createServerSupabaseClient();
     
-    // First try to get users with Slack mappings
-    const { data: initialAppUsers, error: initialError } = await supabase
+    // Get ALL users, but prioritize those with Slack mappings
+    const { data: allUsers, error: allUsersError } = await supabase
       .from('users')
       .select('id, email, name, slack_user_id, slack_username, role')
-      .or('slack_user_id.not.is.null,slack_username.not.is.null')
       .order('name');
 
-    // If no users with Slack mappings found, fall back to all users
-    let appUsers = initialAppUsers;
-    if (!appUsers || appUsers.length === 0) {
-      console.log('No users with Slack mappings found, falling back to all users');
-      const { data: allUsers, error: allUsersError } = await supabase
-        .from('users')
-        .select('id, email, name, role')
-        .order('name');
-      
-      if (allUsersError) {
-        console.error('Error fetching all users:', allUsersError);
-        return NextResponse.json({ 
-          error: 'Failed to fetch users',
-          users: []
-        }, { status: 500 });
-      }
-      
-      // Transform allUsers to match the expected structure by adding null Slack fields
-      appUsers = allUsers?.map(user => ({
-        ...user,
-        slack_user_id: null,
-        slack_username: null
-      })) || [];
-    }
-
-    if (initialError) {
-      console.error('Error fetching app users:', initialError);
+    if (allUsersError) {
+      console.error('Error fetching all users:', allUsersError);
       return NextResponse.json({ 
-        error: 'Failed to fetch app users',
+        error: 'Failed to fetch users',
         users: []
       }, { status: 500 });
     }
 
-    if (!appUsers || appUsers.length === 0) {
+    if (!allUsers || allUsers.length === 0) {
       return NextResponse.json({ 
         users: [],
-        message: 'No app users with Slack mappings found'
+        message: 'No users found'
       });
     }
+
+    // Sort users to prioritize those with Slack mappings
+    const appUsers = allUsers.sort((a, b) => {
+      const aHasSlackMapping = a.slack_user_id || a.slack_username;
+      const bHasSlackMapping = b.slack_user_id || b.slack_username;
+      
+      // Users with Slack mappings come first
+      if (aHasSlackMapping && !bHasSlackMapping) return -1;
+      if (!aHasSlackMapping && bHasSlackMapping) return 1;
+      
+      // Within each group, sort by name
+      return (a.name || a.email).localeCompare(b.name || b.email);
+    });
 
     // Transform app users to SlackUser format for consistency
     const slackUsers: SlackUser[] = appUsers.map(user => ({
@@ -73,12 +60,16 @@ export async function GET() {
       deleted: false // App users are never deleted
     }));
 
-    console.log(`Returning ${slackUsers.length} app users with Slack mappings`);
+    const usersWithSlackMappings = slackUsers.filter(user => 
+      user.id !== (user.profile.email?.split('@')[0] || '') // Not using email prefix as ID
+    ).length;
+
+    console.log(`Returning ${slackUsers.length} total users (${usersWithSlackMappings} with Slack mappings)`);
 
     return NextResponse.json({ 
       users: slackUsers,
       total: slackUsers.length,
-      message: 'App users with Slack mappings'
+      message: `All users (${usersWithSlackMappings} with Slack mappings)`
     });
 
   } catch (error) {

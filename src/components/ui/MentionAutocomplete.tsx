@@ -205,33 +205,52 @@ export default function MentionAutocomplete({
               <div className="px-3 py-2 text-xs font-medium text-gray-500 bg-gray-50 border-b">
                 Select a registered team member to mention:
               </div>
-              {filteredSuggestions.map((user, index) => (
-                <div
-                  key={user.id}
-                  className={`px-3 py-2 cursor-pointer hover:bg-blue-50 ${
-                    index === selectedIndex ? 'bg-blue-100' : ''
-                  }`}
-                  onClick={() => selectMention(user)}
-                >
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium text-blue-600">
-                        {user.profile.display_name?.[0] || user.name[0] || '?'}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900 truncate">
-                        {user.profile.display_name || user.profile.real_name || user.name}
+              {filteredSuggestions.map((user, index) => {
+                // Check if user has Slack mapping (not using email prefix as ID)
+                const hasSlackMapping = user.id !== (user.profile.email?.split('@')[0] || '');
+                
+                return (
+                  <div
+                    key={user.id}
+                    className={`px-3 py-2 cursor-pointer hover:bg-blue-50 ${
+                      index === selectedIndex ? 'bg-blue-100' : ''
+                    }`}
+                    onClick={() => selectMention(user)}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        hasSlackMapping ? 'bg-blue-100' : 'bg-gray-100'
+                      }`}>
+                        <span className={`text-sm font-medium ${
+                          hasSlackMapping ? 'text-blue-600' : 'text-gray-500'
+                        }`}>
+                          {user.profile.display_name?.[0] || user.name[0] || '?'}
+                        </span>
                       </div>
-                      <div className="text-xs text-gray-500 truncate">
-                        @{user.name}
-                        {user.profile.email && ` • ${user.profile.email}`}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-2">
+                          <div className="text-sm font-medium text-gray-900 truncate">
+                            {user.profile.display_name || user.profile.real_name || user.name}
+                          </div>
+                          {hasSlackMapping ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Slack
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                              App Only
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">
+                          @{user.name}
+                          {user.profile.email && ` • ${user.profile.email}`}
+                        </div>
                       </div>
                     </div>
-
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </>
           )}
         </div>
@@ -239,7 +258,7 @@ export default function MentionAutocomplete({
       
       {/* Help text */}
       <div className="mt-1 text-xs text-gray-500">
-        💡 Type @ to mention registered team members. Use arrow keys to navigate suggestions.
+        💡 Type @ to mention team members. <span className="text-green-600">Slack</span> users get notifications, <span className="text-gray-600">App Only</span> users don&apos;t. Use arrow keys to navigate.
       </div>
     </div>
   );

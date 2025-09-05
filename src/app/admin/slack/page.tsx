@@ -497,6 +497,37 @@ export default function SlackConfigPage() {
                 >
                   {isLoading ? 'Testing...' : 'Test Bot Token'}
                 </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsLoading(true);
+                    try {
+                      const response = await fetch('/api/admin/slack/bulk-map-users', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                      });
+                      if (response.ok) {
+                        const result = await response.json();
+                        setMessage({ 
+                          type: 'success', 
+                          text: `Bulk mapping completed! ${result.updated} users updated, ${result.failed} failed.` 
+                        });
+                      } else {
+                        const error = await response.json();
+                        setMessage({ type: 'error', text: error.error || 'Bulk mapping failed' });
+                      }
+                    } catch {
+                      setMessage({ type: 'error', text: 'Failed to perform bulk mapping' });
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  disabled={isLoading || !config.botToken}
+                  className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-400"
+                >
+                  {isLoading ? 'Mapping...' : 'Map All Users to Slack'}
+                </button>
               </div>
             </form>
           </div>

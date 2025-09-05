@@ -110,6 +110,38 @@ export const authOptions: NextAuthOptions = {
           if (dbUser) {
             user.role = dbUser.role;
             logger.log('User processed successfully:', dbUser.email, 'Role:', dbUser.role);
+            
+            // Automatically map user to Slack if bot token is configured
+            try {
+              const { SlackUserMappingService } = await import('./slack-user-mapping-service');
+              
+              // Get Slack bot token from database or environment
+              let botToken = process.env.SLACK_BOT_TOKEN;
+              if (!botToken) {
+                const { data: slackConfig } = await supabaseServer
+                  .from('slack_config')
+                  .select('bot_token')
+                  .order('id', { ascending: false })
+                  .limit(1)
+                  .single();
+                botToken = slackConfig?.bot_token;
+              }
+              
+              if (botToken) {
+                SlackUserMappingService.initialize(botToken);
+                const mappingResult = await SlackUserMappingService.mapUserAtLogin(dbUser.email);
+                if (mappingResult) {
+                  logger.log('Successfully mapped user to Slack:', dbUser.email);
+                } else {
+                  logger.log('No Slack mapping found for user:', dbUser.email);
+                }
+              } else {
+                logger.log('Slack bot token not configured, skipping user mapping for:', dbUser.email);
+              }
+            } catch (slackError) {
+              // Don't fail authentication if Slack mapping fails
+              console.warn('Failed to map user to Slack during login:', slackError);
+            }
           }
         }
         return true;
