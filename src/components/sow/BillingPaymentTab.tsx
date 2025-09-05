@@ -172,7 +172,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
     try {
       // Use shared utility to calculate all hours
       const hoursResult = calculateAllHours(formData.template, selectedAccount?.Account_Segment__c);
-      const { baseProjectHours, pmHours, totalUnits } = hoursResult;
+      const { baseProjectHours, pmHours } = hoursResult;
       
       // Update the Onboarding Specialist role with calculated hours
       let updatedRoles = pricingRoles.map(role => {
@@ -192,17 +192,6 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       const hasProjectManager = updatedRoles.some(role => role.role === 'Project Manager');
       const shouldAddPM = shouldAddProjectManager(formData.template);
 
-      // Debug logging
-      console.log('PM Hours Debug:', {
-        selectedProducts: formData.template.products,
-        selectedProductsLength: formData.template.products.length,
-        totalUnits: totalUnits,
-        shouldAddProjectManager: shouldAddPM,
-        hasProjectManager: hasProjectManager,
-        pm_hours_requirement_disabled: formData.pm_hours_requirement_disabled,
-        baseProjectHours: baseProjectHours,
-        pmHours: pmHours
-      });
 
       if (shouldAddPM && !formData.pm_hours_requirement_disabled) {
         if (!hasProjectManager) {

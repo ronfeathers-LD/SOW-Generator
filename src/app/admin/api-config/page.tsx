@@ -263,6 +263,12 @@ export default function ApiConfigPage() {
               Test Salesforce Connection
             </Link>
             <Link
+              href="/test-account-segment"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200"
+            >
+              Test Account Segment Formula
+            </Link>
+            <Link
               href="/admin/avoma/test"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
             >

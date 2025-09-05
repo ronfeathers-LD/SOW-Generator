@@ -158,20 +158,16 @@ class SalesforceClient {
     
     try {
       // Authentication attempt started
-      console.log('Salesforce authentication attempt started with login URL:', this.conn.loginUrl);
       
       // Try authentication with password + security token first
       try {
         await this.conn.login(username, password + (securityToken || ''));
-        console.log('Salesforce authentication successful with password + security token');
         // Authentication successful with password + token
       } catch (error) {
         // If that fails, try with password only (in case token is already appended)
         if (error instanceof Error && error.message.includes('INVALID_LOGIN')) {
-          console.log('First authentication attempt failed, trying with password only');
           // First attempt failed, trying with password only
           await this.conn.login(username, password);
-          console.log('Salesforce authentication successful with password only');
           // Authentication successful with password only
         } else {
           throw error;
@@ -540,6 +536,10 @@ class SalesforceClient {
       console.error('Salesforce connection test failed:', error);
       return false;
     }
+  }
+
+  async query(soql: string): Promise<any> {
+    return await this.conn.query(soql);
   }
 
   /**

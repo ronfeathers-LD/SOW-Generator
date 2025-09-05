@@ -746,8 +746,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
 
   const handleTabSave = async () => {
-    console.log('🔍 handleTabSave called at:', new Date().toISOString());
-    console.log('🔍 handleTabSave stack trace:', new Error().stack);
     
     if (!initialData?.id) {
       setNotification({
@@ -764,13 +762,10 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         setIsSaving(true);
         const url = `/api/sow/${initialData.id}/tab-update`;
         
-        console.log('🔍 API URL:', url);
         
         // Prepare tab-specific data
         let tabData: Record<string, unknown> = {};
       
-      console.log('🔍 handleTabSave - activeTab:', activeTab);
-      console.log('🔍 handleTabSave - formData:', formData);
       
       switch (activeTab) {
         case 'Project Overview':
@@ -789,7 +784,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               bookit_handoff_units: formData.template?.bookit_handoff_units,
             }
           };
-          console.log('🔍 Project Overview tabData:', tabData);
           break;
 
         case 'Customer Information':
@@ -886,7 +880,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           // For Pricing tab, we need to get the current data from the component state
           // Use the ref to get the most up-to-date pricing data
           const currentPricingData = pricingRef.current?.getCurrentPricingData?.();
-          console.log('🔍 Current pricing data from ref:', currentPricingData);
           tabData = {
             pricing: {
               roles: currentPricingData?.roles || formData.pricing?.roles || [],
@@ -902,7 +895,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             }
           };
           
-          console.log('🔍 Pricing tabData prepared:', tabData);
           
           // Reset unsaved changes for Pricing tab
           setHasUnsavedChanges(false);
@@ -944,13 +936,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
 
       
-      console.log('🔍 About to send to API:', {
-        tab: activeTab,
-        data: tabData,
-      });
-      
-      console.log('🔍 API call timestamp:', new Date().toISOString());
-      console.log('🔍 API call stack trace:', new Error().stack);
       
       const response = await fetch(url, {
         method: 'PUT',
@@ -977,7 +962,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       });
       
       // Don't reload the page - just show success message
-      console.log('✅ Tab saved successfully:', result);
       
       // Clear notification after 5 seconds
       setTimeout(() => setNotification(null), 5000);

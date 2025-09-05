@@ -155,7 +155,6 @@ export const authOptions: NextAuthOptions = {
         token.picture = user.image;
         token.email = user.email;
         token.role = user.role;
-        console.log('JWT callback: Initial sign in, set role:', user.role);
       }
       
       // Ensure role persists across token refreshes and is always available
