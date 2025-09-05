@@ -367,6 +367,9 @@ export default function TeamRolesTab({
       
       // Save to database
       await saveClientRoles();
+      
+      // Clear the timeout state after save completes
+      setResponsibilitiesSaveTimeout(null);
     }, 1500);
     
     setResponsibilitiesSaveTimeout(timeout);
@@ -1105,19 +1108,6 @@ export default function TeamRolesTab({
                 <h4 className="text-md font-semibold mb-3 text-gray-800">Role Details</h4>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Role (from Salesforce Contact Title)</label>
-                    <input
-                      type="text"
-                      value={role.role || role.contact_title || ''}
-                      readOnly
-                      className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm text-gray-600"
-                      placeholder="Role will be populated from selected contact's title"
-                    />
-                    <p className="mt-1 text-xs text-gray-500">
-                      Role is automatically set from the selected contact&apos;s Salesforce title
-                    </p>
-                  </div>
-                  <div>
                     <label className="block text-sm font-medium text-gray-700">Responsibilities</label>
                     <div className="relative">
                       <textarea
@@ -1138,6 +1128,89 @@ export default function TeamRolesTab({
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         placeholder="Describe the responsibilities for this role..."
                       />
+                      {/* Quick fill options */}
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Update only the specific role at this index
+                            const newRoles = [...(formData.roles?.client_roles || [])];
+                            newRoles[index] = { ...newRoles[index], responsibilities: 'Executive Sponsor\nThe Executive Sponsor is the client sponsor for the project and acts as the strategic point of contact for the project.' };
+                            setFormData({
+                              ...formData,
+                              roles: { ...formData.roles!, client_roles: newRoles }
+                            });
+                            debouncedSaveResponsibilities(index, 'Executive Sponsor\nThe Executive Sponsor is the client sponsor for the project and acts as the strategic point of contact for the project.');
+                          }}
+                          className="text-sm text-blue-600 hover:text-blue-800 underline"
+                        >
+                          Executive Sponsor
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Update only the specific role at this index
+                            const newRoles = [...(formData.roles?.client_roles || [])];
+                            newRoles[index] = { ...newRoles[index], responsibilities: 'Business Owner\nThe Business Lead provides input on the needs of Sales and/or Marketing, participates in relevant calls to confirm requirements.' };
+                            setFormData({
+                              ...formData,
+                              roles: { ...formData.roles!, client_roles: newRoles }
+                            });
+                            debouncedSaveResponsibilities(index, 'Business Owner\nThe Business Lead provides input on the needs of Sales and/or Marketing, participates in relevant calls to confirm requirements.');
+                          }}
+                          className="text-sm text-blue-600 hover:text-blue-800 underline"
+                        >
+                          Business Owner
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Update only the specific role at this index
+                            const newRoles = [...(formData.roles?.client_roles || [])];
+                            newRoles[index] = { ...newRoles[index], responsibilities: 'Implementation Project Lead\nThe Project lead acts as the main point of contact for the Client, is responsible for driving the use cases, business requirements and ensuring delivery as outlined in the SOW.' };
+                            setFormData({
+                              ...formData,
+                              roles: { ...formData.roles!, client_roles: newRoles }
+                            });
+                            debouncedSaveResponsibilities(index, 'Implementation Project Lead\nThe Project lead acts as the main point of contact for the Client, is responsible for driving the use cases, business requirements and ensuring delivery as outlined in the SOW.');
+                          }}
+                          className="text-sm text-blue-600 hover:text-blue-800 underline"
+                        >
+                          Implementation Project Lead
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Update only the specific role at this index
+                            const newRoles = [...(formData.roles?.client_roles || [])];
+                            newRoles[index] = { ...newRoles[index], responsibilities: 'LeanData Admin\nThe LeanData admin will be responsible for the control and administration of the LD system, helping build/test during implementation and serving ongoing configuration needs.' };
+                            setFormData({
+                              ...formData,
+                              roles: { ...formData.roles!, client_roles: newRoles }
+                            });
+                            debouncedSaveResponsibilities(index, 'LeanData Admin\nThe LeanData admin will be responsible for the control and administration of the LD system, helping build/test during implementation and serving ongoing configuration needs.');
+                          }}
+                          className="text-sm text-blue-600 hover:text-blue-800 underline"
+                        >
+                          LeanData Admin
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Update only the specific role at this index
+                            const newRoles = [...(formData.roles?.client_roles || [])];
+                            newRoles[index] = { ...newRoles[index], responsibilities: 'SFDC Admin / IT\nThe person with System Admin level permissions in SFDC who will assist in downloading LD, granting permissions, creating custom fields, and any other SFDC-related tasks.' };
+                            setFormData({
+                              ...formData,
+                              roles: { ...formData.roles!, client_roles: newRoles }
+                            });
+                            debouncedSaveResponsibilities(index, 'SFDC Admin / IT\nThe person with System Admin level permissions in SFDC who will assist in downloading LD, granting permissions, creating custom fields, and any other SFDC-related tasks.');
+                          }}
+                          className="text-sm text-blue-600 hover:text-blue-800 underline"
+                        >
+                          SFDC Admin / IT
+                        </button>
+                      </div>
                       {/* Show saving indicator when debounced save is active */}
                       {responsibilitiesSaveTimeout && (
                         <div className="absolute top-2 right-2">

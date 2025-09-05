@@ -22,7 +22,7 @@ export function processContent(content: string): string {
         // We have <li> elements but no list containers - wrap them properly
         processedContent = processedContent.replace(
           /(<li[^>]*>.*?<\/li>)/g,
-          '<ul class="list-disc list-inside mb-4">$1</ul>'
+          '<ul class="list-disc pl-6 prose prose-md max-w-none">$1</ul>'
         );
         
         // Clean up any duplicate ul tags that might have been created
@@ -32,7 +32,7 @@ export function processContent(content: string): string {
       // Ensure ul elements have proper list styling classes
       processedContent = processedContent.replace(
         /<ul([^>]*)>/g, 
-        '<ul$1 class="list-disc list-inside mb-4">'
+        '<ul$1 class="list-disc pl-6 prose prose-md max-w-none">'
       );
       
       // Ensure ol elements have proper list styling classes

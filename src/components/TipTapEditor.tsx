@@ -77,7 +77,7 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
       if (!trimmed) {
         // If we have a current list, close it
         if (currentList.length > 0) {
-          processedLines.push(`<ul>${currentList.join('')}</ul>`);
+          processedLines.push(`<ul class="list-disc pl-6 prose prose-md max-w-none">${currentList.join('')}</ul>`);
           currentList = [];
         }
         return;
@@ -95,11 +95,11 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
         return;
       }
       
-      // If we have a current list and encounter non-list content, close the list first
-      if (currentList.length > 0) {
-        processedLines.push(`<ul>${currentList.join('')}</ul>`);
-        currentList = [];
-      }
+              // If we have a current list and encounter non-list content, close the list first
+        if (currentList.length > 0) {
+          processedLines.push(`<ul class="list-disc pl-6 prose prose-md max-w-none">${currentList.join('')}</ul>`);
+          currentList = [];
+        }
       
       // Handle bold text
       let processed = trimmed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -113,7 +113,7 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
     
     // Close any remaining list
     if (currentList.length > 0) {
-      processedLines.push(`<ul>${currentList.join('')}</ul>`);
+      processedLines.push(`<ul class="list-disc pl-6 prose prose-md max-w-none">${currentList.join('')}</ul>`);
     }
     
     return processedLines.join('');
