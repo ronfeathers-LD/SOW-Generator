@@ -32,8 +32,9 @@ export function calculateProductHours(products: string[]): number {
     totalHours += 15 + (Math.max(0, routingProducts.length - 1) * 5);
   }
   
-  // Lead to Account Matching: only if it's the only product
-  if (products.includes('Lead to Account Matching') && products.length === 1) {
+  // Lead to Account Matching: only if it's the only product (excluding BookIt Links)
+  const productsExcludingBookItLinks = products.filter(product => product !== 'BookIt Links');
+  if (products.includes('Lead to Account Matching') && productsExcludingBookItLinks.length === 1) {
     totalHours += 15;
   }
   
@@ -162,9 +163,10 @@ export function calculateAllHours(template: Partial<SOWTemplate>, accountSegment
 /**
  * Check if Project Manager should be added based on business rules
  * PM is added when: 3+ products OR 200+ units
+ * Note: BookIt Links is excluded from product count as it's not counted as an object
  */
 export function shouldAddProjectManager(template: Partial<SOWTemplate>): boolean {
-  const products = template?.products || [];
+  const products = (template?.products || []).filter(product => product !== 'BookIt Links');
   const totalUnits = calculateTotalUnits(template);
   return products.length >= 3 || totalUnits >= 200;
 }

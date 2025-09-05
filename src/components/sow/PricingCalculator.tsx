@@ -35,7 +35,9 @@ export default function PricingCalculator({
               <h4 className="font-medium text-gray-900 mb-3">Selected Products & Units:</h4>
               {formData.template?.products && Array.isArray(formData.template.products) && formData.template.products.length > 0 ? (
                 <div className="space-y-2">
-                  {sortProducts(formData.template.products).map((product: string, index: number) => {
+                  {sortProducts(formData.template.products)
+                    .filter((product: string) => product !== 'BookIt Links') // Exclude BookIt Links from pricing calculation
+                    .map((product: string, index: number) => {
                     let unitValue = '';
                     let isNoCost = false;
                     
@@ -43,9 +45,6 @@ export default function PricingCalculator({
                       unitValue = formData.template?.number_of_units || formData.template?.units_consumption || '0';
                     } else if (product === 'BookIt for Forms') {
                       unitValue = formData.template?.bookit_forms_units || '0';
-                    } else if (product === 'BookIt Links') {
-                      unitValue = formData.template?.bookit_links_units || '0';
-                      isNoCost = true;
                     } else if (product === 'BookIt Handoff (without Smartrep)') {
                     unitValue = formData.template?.bookit_links_units || '0';
                       isNoCost = true;
