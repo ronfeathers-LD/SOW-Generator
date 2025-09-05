@@ -17,7 +17,9 @@ export default function PricingCalculator({
 
   // Calculate hours for each product using shared utility
   const calculateProductHours = (product: string): number => {
-    return calculateProductHoursForProduct(product, formData.template?.products || []);
+    // Filter out BookIt Links from the product list for accurate calculation
+    const filteredProducts = (formData.template?.products || []).filter(p => p !== 'BookIt Links');
+    return calculateProductHoursForProduct(product, filteredProducts);
   };
 
   // Calculate account segment hours

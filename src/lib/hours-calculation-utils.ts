@@ -195,7 +195,16 @@ export function calculateProductHoursForProduct(product: string, allProducts: st
     const routingProducts = allProducts.filter(p => 
       ['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing', 'Any Object (custom) Routing'].includes(p)
     );
-    const routingIndex = routingProducts.indexOf(product);
+    
+    // Sort routing products in the same order as the UI to ensure consistent first/additional logic
+    const routingOrder = ['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing', 'Any Object (custom) Routing'];
+    const sortedRoutingProducts = routingProducts.sort((a, b) => {
+      const aIndex = routingOrder.indexOf(a);
+      const bIndex = routingOrder.indexOf(b);
+      return aIndex - bIndex;
+    });
+    
+    const routingIndex = sortedRoutingProducts.indexOf(product);
     if (routingIndex === 0) {
       hours = 15; // First routing product
     } else {
