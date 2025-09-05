@@ -87,9 +87,9 @@ export async function GET(
         customer_signature_name: sow.client_signer_name || '',
         customer_email: sow.client_email || '',
         customer_signature: sow.client_title || '', // Add this missing mapping!
-        lean_data_name: leanDataSignatory?.name || sow.leandata_name || 'None Selected',
-        lean_data_title: leanDataSignatory?.title || sow.leandata_title || 'None Selected',
-        lean_data_email: leanDataSignatory?.email || sow.leandata_email || 'None Selected',
+        lean_data_name: leanDataSignatory?.name || sow.leandata_name || '',
+        lean_data_title: leanDataSignatory?.title || sow.leandata_title || '',
+        lean_data_email: leanDataSignatory?.email || sow.leandata_email || '',
         products: productNames,
         regions: sow.regions || '999',
         salesforce_tenants: sow.salesforce_tenants || '999',

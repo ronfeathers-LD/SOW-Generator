@@ -18,6 +18,7 @@ interface LeanDataSignatory {
   name: string;
   email: string;
   title: string;
+  is_active: boolean;
 }
 
 declare global {
@@ -59,10 +60,10 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             customer_signature: initialData.template?.customer_signature || '',
             customer_email: initialData.template?.customer_email || '',
             customer_signature_date: initialData.template?.customer_signature_date || null,
-            lean_data_name: initialData.template?.lean_data_name || 'None Selected',
-            lean_data_title: initialData.template?.lean_data_title || 'None Selected',
-            lean_data_email: initialData.template?.lean_data_email || 'None Selected',
-            lean_data_signature_name: initialData.template?.lean_data_signature_name || 'None Selected',
+            lean_data_name: initialData.template?.lean_data_name || '',
+            lean_data_title: initialData.template?.lean_data_title || '',
+            lean_data_email: initialData.template?.lean_data_email || '',
+            lean_data_signature_name: initialData.template?.lean_data_signature_name || '',
             lean_data_signature: initialData.template?.lean_data_signature || '',
             lean_data_signature_date: initialData.template?.lean_data_signature_date || null,
             products: initialData.template?.products || [],
@@ -149,10 +150,10 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             customer_signature_date: null,
             
             // LeanData Information
-            lean_data_name: 'None Selected',
-            lean_data_title: 'None Selected',
-            lean_data_email: 'None Selected',
-            lean_data_signature_name: 'None Selected',
+            lean_data_name: '',
+            lean_data_title: '',
+            lean_data_email: '',
+            lean_data_signature_name: '',
             lean_data_signature: '',
             lean_data_signature_date: null,
             
@@ -485,19 +486,39 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
     // Initialize selected LeanData signatory when signatories are loaded and we have initial data
   useEffect(() => {
-    if (leanDataSignatories && leanDataSignatories.length > 0 && initialData) {
-      // First try to use the stored leandata_signatory_id if available
-      if (initialData.leandata_signatory_id) {
-        setSelectedLeanDataSignatory(initialData.leandata_signatory_id);
-      } else {
-        // Fallback to matching by name or email for backward compatibility
-        const matchingSignatory = leanDataSignatories.find(signatory =>
-          signatory.name === initialData.template?.lean_data_name ||
-          signatory.email === initialData.template?.lean_data_email
-        );
+    if (leanDataSignatories && leanDataSignatories.length > 0) {
+      if (initialData) {
+        // First try to use the stored leandata_signatory_id if available
+        if (initialData.leandata_signatory_id) {
+          setSelectedLeanDataSignatory(initialData.leandata_signatory_id);
+        } else {
+          // Fallback to matching by name or email for backward compatibility
+          const matchingSignatory = leanDataSignatories.find(signatory =>
+            signatory.name === initialData.template?.lean_data_name ||
+            signatory.email === initialData.template?.lean_data_email
+          );
 
-        if (matchingSignatory) {
-          setSelectedLeanDataSignatory(matchingSignatory.id);
+          if (matchingSignatory) {
+            setSelectedLeanDataSignatory(matchingSignatory.id);
+          }
+        }
+      } else {
+        // For new SOWs, automatically select the first active signatory
+        const firstActiveSignatory = leanDataSignatories.find(signatory => signatory.is_active);
+        if (firstActiveSignatory) {
+          setSelectedLeanDataSignatory(firstActiveSignatory.id);
+          // Update form data with the selected signatory
+          setFormData(prevData => ({
+            ...prevData,
+            template: {
+              ...prevData.template!,
+              lean_data_name: firstActiveSignatory.name,
+              lean_data_title: firstActiveSignatory.title,
+              lean_data_email: firstActiveSignatory.email,
+              lean_data_signature_name: firstActiveSignatory.name,
+              lean_data_signature: firstActiveSignatory.title
+            }
+          }));
         }
       }
     }
