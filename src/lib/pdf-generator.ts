@@ -402,10 +402,10 @@ export class PDFGenerator {
     const deliverablesContent = replacePlaceholders(sowData.custom_deliverables_content || 'Project deliverables will be detailed during the project planning phase based on the specific requirements and scope.');
     const keyObjectivesContent = replacePlaceholders(sowData.custom_objectives_disclosure_content || sowData.custom_key_objectives_content || 'Key objectives and success criteria will be defined during the project kickoff and planning phase.');
     
-    // Get template data
-    const leanDataName = sowData.leandata_name || 'Agam Vasani';
-    const leanDataTitle = sowData.leandata_title || 'VP Customer Success';
-    const leanDataEmail = sowData.leandata_email || 'agam.vasani@leandata.com';
+    // Get template data for LeanData signatory
+    const leanDataName = sowData.template?.lean_data_name || sowData.leandata_name || 'Agam Vasani';
+    const leanDataTitle = sowData.template?.lean_data_title || sowData.leandata_title || 'VP Customer Success';
+    const leanDataEmail = sowData.template?.lean_data_email || sowData.leandata_email || 'agam.vasani@leandata.com';
     
     // Create a proper project overview from available data
     const projectOverview = replacePlaceholders(sowData.project_description || 
@@ -678,7 +678,7 @@ export class PDFGenerator {
                     </div>
                     <div>
                       <div class="signature-line"></div>
-                      <div class="signature-info center">DATE<br><br><br></div>
+                      <div class="signature-info left">DATE<br><br><br></div>
                     </div>
                   </div>
                 </div>
@@ -697,7 +697,7 @@ export class PDFGenerator {
                     </div>
                     <div>
                       <div class="signature-line"></div>
-                      <div class="signature-info center">DATE<br><br></div>
+                      <div class="signature-info left">DATE<br><br></div>
                     </div>
                   </div>
                 </div>
@@ -717,7 +717,7 @@ export class PDFGenerator {
                     </div>
                     <div>
                       <div class="signature-line"></div>
-                      <div class="signature-info center">DATE<br><br></div>
+                      <div class="signature-info left">DATE<br><br></div>
                     </div>
                   </div>
                 </div>

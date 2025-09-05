@@ -29,6 +29,21 @@ export async function GET(
     // Get products from JSONB field
     const productNames = Array.isArray(sow.products) ? sow.products : [];
 
+    // Fetch LeanData signatory if one is selected
+    let leanDataSignatory = null;
+    if (sow.leandata_signatory_id) {
+      const { data: signatory, error: signatoryError } = await supabase
+        .from('lean_data_signatories')
+        .select('*')
+        .eq('id', sow.leandata_signatory_id)
+        .eq('is_active', true)
+        .single();
+      
+      if (!signatoryError && signatory) {
+        leanDataSignatory = signatory;
+      }
+    }
+
     // Fetch Avoma recordings for this SOW
     const { data: avomaRecordings, error: recordingsError } = await supabase
       .from('avoma_recordings')
@@ -72,9 +87,9 @@ export async function GET(
         customer_signature_name: sow.client_signer_name || '',
         customer_email: sow.client_email || '',
         customer_signature: sow.client_title || '', // Add this missing mapping!
-        lean_data_name: sow.leandata_name || '',
-        lean_data_title: sow.leandata_title || '',
-        lean_data_email: sow.leandata_email || '',
+        lean_data_name: leanDataSignatory?.name || sow.leandata_name || '',
+        lean_data_title: leanDataSignatory?.title || sow.leandata_title || '',
+        lean_data_email: leanDataSignatory?.email || sow.leandata_email || '',
         products: productNames,
         regions: sow.regions || '999',
         salesforce_tenants: sow.salesforce_tenants || '999',
