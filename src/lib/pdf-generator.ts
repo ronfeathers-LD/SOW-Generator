@@ -880,49 +880,66 @@ export class PDFGenerator {
             ${sowData.timeline_weeks ? `
             <div class="content">
               <h3>Project Timeline</h3>
-              <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
-                <thead>
-                  <tr style="background-color: #f3f4f6;">
-                    <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Phase</th>
-                    <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Description</th>
-                    <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Duration</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">1. ENGAGE</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">Project kickoff and planning</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.125)} ${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.125) < 1 ? 'day' : 'days'}</td>
-                  </tr>
-                  <tr>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">2. DISCOVERY</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">Requirements gathering and analysis</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.25)} ${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.25) < 1 ? 'day' : 'days'}</td>
-                  </tr>
-                  <tr>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">3. BUILD</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">Solution development and configuration</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.25)} ${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.25) < 1 ? 'day' : 'days'}</td>
-                  </tr>
-                  <tr>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">4. TEST</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">Quality assurance and validation</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.125)} ${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.125) < 1 ? 'day' : 'days'}</td>
-                  </tr>
-                  <tr>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">5. DEPLOY</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">Production deployment and go-live</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.125)} ${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.125) < 1 ? 'day' : 'days'}</td>
-                  </tr>
-                  <tr>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">6. HYPERCARE</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">Post-deployment support and transition</td>
-                    <td style="border: 1px solid #d1d5db; padding: 12px;">${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.125)} ${Math.ceil((parseFloat(sowData.timeline_weeks) || 0) * 0.125) < 1 ? 'day' : 'days'}</td>
-                  </tr>
-                </tbody>
-              </table>
+              ${(() => {
+                const totalWeeks = parseFloat(sowData.timeline_weeks) || 0;
+                
+                // Helper function to format duration with appropriate units
+                const formatDuration = (weeks: number) => {
+                  if (weeks < 1) {
+                    // Convert to days and round up to nearest day
+                    const days = Math.ceil(weeks * 7);
+                    return `${days} ${days === 1 ? 'day' : 'days'}`;
+                  } else {
+                    // Round to 1 decimal place for weeks
+                    const roundedWeeks = Math.round(weeks * 10) / 10;
+                    return `${roundedWeeks} ${roundedWeeks === 1 ? 'week' : 'weeks'}`;
+                  }
+                };
+                
+                const phaseDurations = {
+                  engage: 0.125, discovery: 0.25, build: 0.25, 
+                  test: 0.125, deploy: 0.125, hypercare: 0.125
+                };
+                
+                const phases = [
+                  { name: 'ENGAGE', description: 'Project kickoff and planning', duration: totalWeeks * phaseDurations.engage },
+                  { name: 'DISCOVERY', description: 'Requirements gathering and analysis', duration: totalWeeks * phaseDurations.discovery },
+                  { name: 'BUILD', description: 'Solution development and configuration', duration: totalWeeks * phaseDurations.build },
+                  { name: 'TEST', description: 'Quality assurance and validation', duration: totalWeeks * phaseDurations.test },
+                  { name: 'DEPLOY', description: 'Production deployment and go-live', duration: totalWeeks * phaseDurations.deploy },
+                  { name: 'HYPERCARE', description: 'Post-deployment support and transition', duration: totalWeeks * phaseDurations.hypercare }
+                ];
+                
+                return `
+                  <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+                    <thead>
+                      <tr style="background-color: #f3f4f6;">
+                        <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Phase</th>
+                        <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Description</th>
+                        <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Duration</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${phases.map((phase, index) => `
+                        <tr>
+                          <td style="border: 1px solid #d1d5db; padding: 12px;">${index + 1}. ${phase.name}</td>
+                          <td style="border: 1px solid #d1d5db; padding: 12px;">${phase.description}</td>
+                          <td style="border: 1px solid #d1d5db; padding: 12px;">${formatDuration(phase.duration)}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                `;
+              })()}
             </div>
-            ` : ''}
+            ` : `
+            <div class="content">
+              <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 16px; color: #dc2626;">
+                <strong>Project Timeline Required</strong><br>
+                Please set the project timeline in the Project Overview tab before generating the PDF.
+              </div>
+            </div>
+            `}
             
             <!-- Pricing Introduction -->
             <div class="content">
