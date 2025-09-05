@@ -363,14 +363,7 @@ export class PDFGenerator {
 
     
     // Parse objectives that might be stored as HTML
-    console.log('🔍 Objectives debug info:');
-    console.log('  - sowData.objectives_key_objectives:', sowData.objectives_key_objectives);
-    console.log('  - typeof sowData.objectives_key_objectives:', typeof sowData.objectives_key_objectives);
-    console.log('  - Array.isArray(sowData.objectives_key_objectives):', Array.isArray(sowData.objectives_key_objectives));
-    
     const objectives = this.parseObjectivesInternal(sowData.objectives_key_objectives);
-    console.log('  - Parsed objectives:', objectives);
-    console.log('  - objectives.length:', objectives.length);
     const clientRoles = this.parseJSONField(sowData.client_roles, []) as ClientRole[];
     // Parse pricing roles - handle both direct array and nested structure
     let pricingRoles: PricingRole[] = [];
@@ -416,28 +409,10 @@ export class PDFGenerator {
     const keyObjectivesContent = processContentWithPlaceholders(sowData.custom_key_objectives_content || '');
     const objectivesDisclosureContent = processContentWithPlaceholders(sowData.custom_objectives_disclosure_content || '');
     
-    console.log('🔍 Key Objectives Content debug info:');
-    console.log('  - sowData.custom_objectives_disclosure_content:', sowData.custom_objectives_disclosure_content);
-    console.log('  - sowData.custom_key_objectives_content:', sowData.custom_key_objectives_content);
-    console.log('  - keyObjectivesContent:', keyObjectivesContent);
-    console.log('  - objectivesDisclosureContent:', objectivesDisclosureContent);
-    
     // Get template data for LeanData signatory
-    console.log('🔍 LeanData signatory debug info:');
-    console.log('  - sowData.template?.lean_data_name:', sowData.template?.lean_data_name);
-    console.log('  - sowData.leandata_name:', sowData.leandata_name);
-    console.log('  - sowData.template?.lean_data_title:', sowData.template?.lean_data_title);
-    console.log('  - sowData.leandata_title:', sowData.leandata_title);
-    console.log('  - sowData.template?.lean_data_email:', sowData.template?.lean_data_email);
-    console.log('  - sowData.leandata_email:', sowData.leandata_email);
-    
     const leanDataName = sowData.leandata_name;
     const leanDataTitle = sowData.leandata_title;
     const leanDataEmail = sowData.leandata_email;
-    
-    console.log('  - Final leanDataName:', leanDataName);
-    console.log('  - Final leanDataTitle:', leanDataTitle);
-    console.log('  - Final leanDataEmail:', leanDataEmail);
     
     // Create a proper project overview from available data
     const projectOverview = replacePlaceholders(sowData.project_description || 
