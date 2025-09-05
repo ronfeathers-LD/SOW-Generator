@@ -105,9 +105,9 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
               </div>
             </div>
             {/* Date Line */}
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-left">
               <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-              <div className="text-sm mt-2 text-center">DATE<br /><br /><br /></div>
+              <div className="text-sm mt-2 text-left">DATE<br /><br /><br /></div>
             </div>
           </div>
         </div>
@@ -141,9 +141,9 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
                 </div>
               </div>
               {/* Date Line */}
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-left">
                 <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                <div className="text-sm mt-2 text-center">DATE<br /><br /><br /></div>
+                <div className="text-sm mt-2 text-left">DATE<br /><br /><br /></div>
               </div>
             </div>
           </div>
@@ -172,9 +172,9 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
                 </div>
               </div>
               {/* Date Line */}
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-left">
                 <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                <div className="text-sm mt-2 text-center">DATE<br /><br /><br /></div>
+                <div className="text-sm mt-2 text-left">DATE<br /><br /><br /></div>
               </div>
             </div>
           ) : (

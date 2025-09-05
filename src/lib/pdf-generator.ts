@@ -678,7 +678,7 @@ export class PDFGenerator {
                     </div>
                     <div>
                       <div class="signature-line"></div>
-                      <div class="signature-info left">DATE<br><br><br></div>
+                      <div class="signature-info text-left">DATE<br><br><br></div>
                     </div>
                   </div>
                 </div>
@@ -697,7 +697,7 @@ export class PDFGenerator {
                     </div>
                     <div>
                       <div class="signature-line"></div>
-                      <div class="signature-info left">DATE<br><br></div>
+                      <div class="signature-info text-left">DATE<br><br></div>
                     </div>
                   </div>
                 </div>
