@@ -749,6 +749,24 @@ export class PDFGenerator {
               <p>${projectOverview}</p>
             </div>
             
+            <!-- Key Objectives Section -->
+            <div class="content">
+              <h3>Key Objectives:</h3>
+              ${keyObjectivesContent || (objectives && objectives.length > 0 ? `
+              <ul style="margin: 0; padding-left: 24px; list-style-type: disc;">
+                ${objectives.map((objective: string) => {
+                  const trimmedObjective = objective.trim();
+                  if (!trimmedObjective) return '';
+                  return `<li style="margin-bottom: 8px; color: #374151;">${trimmedObjective}</li>`;
+                }).join('')}
+              </ul>
+              ` : `
+              <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; color: #6b7280;">
+                <strong>Key Objectives</strong><br>
+                Key objectives will be defined during the project kickoff and planning phase based on the specific requirements and goals of this engagement.
+              </div>
+              `)}
+            </div>
             
             <!-- Project Details Section -->
             <div class="content">
@@ -783,12 +801,6 @@ export class PDFGenerator {
               ` : ''}
             </div>
             
-            <!-- Objectives Disclosure Content -->
-            ${keyObjectivesContent ? `
-            <div class="content">
-              ${keyObjectivesContent}
-            </div>
-            ` : ''}
           </div>
 
           <!-- PAGE 4: SCOPE -->
