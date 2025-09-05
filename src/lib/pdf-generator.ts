@@ -761,9 +761,16 @@ export class PDFGenerator {
                 }).join('')}
               </ul>
               ` : `
-              <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; color: #6b7280;">
-                <strong>Key Objectives</strong><br>
-                Key objectives will be defined during the project kickoff and planning phase based on the specific requirements and goals of this engagement.
+              <div style="background-color: #fef2f2; border: 2px solid #dc2626; border-radius: 8px; padding: 20px; margin: 16px 0;">
+                <div style="color: #dc2626; font-size: 18px; font-weight: bold; margin-bottom: 12px;">
+                  ⚠️ ERROR: Key Objectives Not Configured
+                </div>
+                <div style="color: #991b1b; font-size: 14px; line-height: 1.5;">
+                  <strong>CRITICAL:</strong> Key objectives have not been defined for this SOW. This content must be configured before the SOW can be finalized and sent to the client.
+                </div>
+                <div style="color: #7f1d1d; font-size: 12px; margin-top: 8px; font-style: italic;">
+                  Please configure the Key Objectives content in the SOW editor before generating the final PDF.
+                </div>
               </div>
               `)}
             </div>
