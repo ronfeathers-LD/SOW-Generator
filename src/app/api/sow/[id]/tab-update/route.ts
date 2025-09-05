@@ -277,7 +277,7 @@ export async function PUT(
     }
 
     // Update the SOW with the tab-specific data
-    // console.log('🔍 About to update database with:', JSON.stringify(updateData, null, 2));
+    console.log('🔍 About to update database with:', JSON.stringify(updateData, null, 2));
     console.log('🔍 SOW ID:', sowId);
     
     const { data: updatedSOW, error: updateError } = await supabase
@@ -295,7 +295,7 @@ export async function PUT(
       );
     }
 
-    // console.log('✅ Database update successful:', JSON.stringify(updatedSOW, null, 2));
+    console.log('✅ Database update successful:', JSON.stringify(updatedSOW, null, 2));
 
     // Log changes to changelog
     try {

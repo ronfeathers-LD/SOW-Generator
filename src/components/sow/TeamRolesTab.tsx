@@ -360,13 +360,14 @@ export default function TeamRolesTab({
     const timeout = setTimeout(async () => {
       const newRoles = [...(formData.roles?.client_roles || [])];
       newRoles[roleIndex] = { ...newRoles[roleIndex], responsibilities };
-      setFormData({
+      const updatedFormData = {
         ...formData,
         roles: { ...formData.roles!, client_roles: newRoles }
-      });
+      };
+      setFormData(updatedFormData);
       
-      // Save to database
-      await saveClientRoles();
+      // Save to database using the updated roles data
+      await saveClientRolesWithRoles(newRoles);
       
       // Clear the timeout state after save completes
       setResponsibilitiesSaveTimeout(null);

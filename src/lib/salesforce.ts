@@ -538,7 +538,7 @@ class SalesforceClient {
     }
   }
 
-  async query(soql: string): Promise<any> {
+  async query(soql: string): Promise<{ records: unknown[]; totalSize: number; done: boolean }> {
     return await this.conn.query(soql);
   }
 

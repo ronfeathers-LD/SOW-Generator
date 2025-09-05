@@ -104,6 +104,25 @@ export default function EditSOWPage() {
               Billing_Contact__c: '',
               Billing_Email__c: '',
             } as SalesforceAccount : undefined,
+            // Include custom content fields
+            custom_intro_content: data.custom_intro_content || null,
+            custom_scope_content: data.custom_scope_content || null,
+            custom_objectives_disclosure_content: data.custom_objectives_disclosure_content || null,
+            custom_assumptions_content: data.custom_assumptions_content || null,
+            custom_project_phases_content: data.custom_project_phases_content || null,
+            custom_roles_content: data.custom_roles_content || null,
+            custom_deliverables_content: data.custom_deliverables_content || null,
+            custom_objective_overview_content: data.custom_objective_overview_content || null,
+            custom_key_objectives_content: data.custom_key_objectives_content || null,
+            intro_content_edited: data.intro_content_edited || false,
+            scope_content_edited: data.scope_content_edited || false,
+            objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false,
+            assumptions_content_edited: data.assumptions_content_edited || false,
+            project_phases_content_edited: data.project_phases_content_edited || false,
+            roles_content_edited: data.roles_content_edited || false,
+            deliverables_content_edited: data.deliverables_content_edited || false,
+            objective_overview_content_edited: data.objective_overview_content_edited || false,
+            key_objectives_content_edited: data.key_objectives_content_edited || false,
           };
 
           setSOW(transformedData);

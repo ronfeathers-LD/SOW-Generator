@@ -48,7 +48,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const account = result.records[0];
+    const account = result.records[0] as {
+      Id: string;
+      Name: string;
+      NumberOfEmployees?: number;
+      Employee_Band__c?: string;
+    };
     
     return NextResponse.json({
       success: true,
