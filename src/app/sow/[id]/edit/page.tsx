@@ -47,9 +47,9 @@ export default function EditSOWPage() {
               client_name: data.client_name || data.template?.client_name || '',
               // Include other template fields
               sow_title: data.sow_title || data.template?.sow_title || '',
-              lean_data_name: data.leandata_name || data.template?.lean_data_name || 'Agam Vasani',
-              lean_data_title: data.leandata_title || data.template?.lean_data_title || 'VP Customer Success',
-              lean_data_email: data.leandata_email || data.template?.lean_data_email || 'agam.vasani@leandata.com',
+              lean_data_name: data.leandata_name || data.template?.lean_data_name || 'None Selected',
+              lean_data_title: data.leandata_title || data.template?.lean_data_title || 'None Selected',
+              lean_data_email: data.leandata_email || data.template?.lean_data_email || 'None Selected',
             },
             // Required properties for SOWData interface
             header: {

@@ -86,9 +86,9 @@ export async function POST(request: Request) {
         // Note: access_requirements, travel_requirements, working_hours, testing_responsibilities columns have been removed
         
         // LeanData Information
-        leandata_name: data.template?.lean_data_name || 'Agam Vasani',
-        leandata_title: data.template?.lean_data_title || 'VP Customer Success',
-        leandata_email: data.template?.lean_data_email || 'agam.vasani@leandata.com',
+        leandata_name: data.template?.lean_data_name || 'None Selected',
+        leandata_title: data.template?.lean_data_title || 'None Selected',
+        leandata_email: data.template?.lean_data_email || 'None Selected',
         
         // Salesforce Account Information
         salesforce_account_id: data.selectedAccount?.id || null,

@@ -403,9 +403,9 @@ export class PDFGenerator {
     const keyObjectivesContent = replacePlaceholders(sowData.custom_objectives_disclosure_content || sowData.custom_key_objectives_content || 'Key objectives and success criteria will be defined during the project kickoff and planning phase.');
     
     // Get template data for LeanData signatory
-    const leanDataName = sowData.template?.lean_data_name || sowData.leandata_name || 'Agam Vasani';
-    const leanDataTitle = sowData.template?.lean_data_title || sowData.leandata_title || 'VP Customer Success';
-    const leanDataEmail = sowData.template?.lean_data_email || sowData.leandata_email || 'agam.vasani@leandata.com';
+    const leanDataName = sowData.template?.lean_data_name || sowData.leandata_name || 'None Selected';
+    const leanDataTitle = sowData.template?.lean_data_title || sowData.leandata_title || 'None Selected';
+    const leanDataEmail = sowData.template?.lean_data_email || sowData.leandata_email || 'None Selected';
     
     // Create a proper project overview from available data
     const projectOverview = replacePlaceholders(sowData.project_description || 

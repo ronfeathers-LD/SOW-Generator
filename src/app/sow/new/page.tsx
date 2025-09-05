@@ -49,9 +49,9 @@ export default function NewSOWPage() {
               day: 'numeric' 
             })}`,
             client_name: customerName,
-            lean_data_name: 'Agam Vasani',
-            lean_data_title: 'VP Customer Success',
-            lean_data_email: 'agam.vasani@leandata.com',
+            lean_data_name: 'None Selected',
+            lean_data_title: 'None Selected',
+            lean_data_email: 'None Selected',
             products: [],
             number_of_units: '',
             regions: '',
