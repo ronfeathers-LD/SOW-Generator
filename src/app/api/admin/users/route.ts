@@ -23,7 +23,7 @@ export async function GET() {
 
     const { data: users, error } = await supabase
       .from('users')
-      .select('id, name, email, role')
+      .select('id, name, email, role, slack_user_id, slack_username, slack_mapping_updated_at')
       .order('name', { ascending: true });
 
     if (error) {

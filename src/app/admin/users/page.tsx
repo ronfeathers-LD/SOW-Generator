@@ -10,6 +10,9 @@ interface User {
   name: string;
   email: string;
   role: string;
+  slack_user_id?: string;
+  slack_username?: string;
+  slack_mapping_updated_at?: string;
 }
 
 export default function UserManagementPage() {
@@ -112,6 +115,10 @@ export default function UserManagementPage() {
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
+  };
+
+  const isSlackEnabled = (user: User) => {
+    return !!(user.slack_user_id && user.slack_username);
   };
 
   if (loading) {
@@ -221,6 +228,19 @@ export default function UserManagementPage() {
                         </Link>
                       </div>
                       <div className="text-sm text-gray-500">{user.email}</div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Slack notifications: 
+                        <span className={`ml-1 font-medium ${
+                          isSlackEnabled(user) ? 'text-green-600' : 'text-gray-500'
+                        }`}>
+                          {isSlackEnabled(user) ? 'Enabled' : 'Disabled'}
+                        </span>
+                        {isSlackEnabled(user) && user.slack_username && (
+                          <span className="ml-1 text-gray-400">
+                            (@{user.slack_username})
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   

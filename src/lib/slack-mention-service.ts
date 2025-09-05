@@ -46,7 +46,26 @@ export class SlackMentionService {
       }
 
       // Initialize Slack user lookup service
-      const botToken = process.env.SLACK_BOT_TOKEN;
+      let botToken = process.env.SLACK_BOT_TOKEN;
+      if (!botToken) {
+        // Try to get bot token from database
+        try {
+          const { createServiceRoleClient } = await import('./supabase-server');
+          const supabase = createServiceRoleClient();
+          
+          const { data: slackConfig } = await supabase
+            .from('slack_config')
+            .select('bot_token')
+            .order('id', { ascending: false })
+            .limit(1)
+            .single();
+          
+          botToken = slackConfig?.bot_token;
+        } catch (error) {
+          console.warn('Failed to get bot token from database:', error);
+        }
+      }
+      
       if (!botToken) {
         console.warn('SLACK_BOT_TOKEN not configured - cannot lookup users for mentions');
         return false;
@@ -204,7 +223,26 @@ export class SlackMentionService {
     error?: string;
   }> {
     try {
-      const botToken = process.env.SLACK_BOT_TOKEN;
+      let botToken = process.env.SLACK_BOT_TOKEN;
+      if (!botToken) {
+        // Try to get bot token from database
+        try {
+          const { createServiceRoleClient } = await import('./supabase-server');
+          const supabase = createServiceRoleClient();
+          
+          const { data: slackConfig } = await supabase
+            .from('slack_config')
+            .select('bot_token')
+            .order('id', { ascending: false })
+            .limit(1)
+            .single();
+          
+          botToken = slackConfig?.bot_token;
+        } catch (error) {
+          console.warn('Failed to get bot token from database:', error);
+        }
+      }
+      
       if (!botToken) {
         return {
           success: false,

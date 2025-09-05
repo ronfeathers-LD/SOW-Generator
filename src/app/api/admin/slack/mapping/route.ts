@@ -39,8 +39,22 @@ export async function POST(request: NextRequest) {
     const { action } = body;
 
     if (action === 'bulk-update') {
-      // Initialize the service with bot token
-      const botToken = process.env.SLACK_BOT_TOKEN;
+      // Get Slack bot token from database or environment
+      let botToken = process.env.SLACK_BOT_TOKEN;
+      if (!botToken) {
+        const { createServiceRoleClient } = await import('@/lib/supabase-server');
+        const supabase = createServiceRoleClient();
+        
+        const { data: slackConfig } = await supabase
+          .from('slack_config')
+          .select('bot_token')
+          .order('id', { ascending: false })
+          .limit(1)
+          .single();
+        
+        botToken = slackConfig?.bot_token;
+      }
+      
       if (!botToken) {
         return NextResponse.json(
           { error: 'Slack bot token not configured' },
@@ -69,8 +83,22 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Initialize the service
-      const botToken = process.env.SLACK_BOT_TOKEN;
+      // Get Slack bot token from database or environment
+      let botToken = process.env.SLACK_BOT_TOKEN;
+      if (!botToken) {
+        const { createServiceRoleClient } = await import('@/lib/supabase-server');
+        const supabase = createServiceRoleClient();
+        
+        const { data: slackConfig } = await supabase
+          .from('slack_config')
+          .select('bot_token')
+          .order('id', { ascending: false })
+          .limit(1)
+          .single();
+        
+        botToken = slackConfig?.bot_token;
+      }
+      
       if (!botToken) {
         return NextResponse.json(
           { error: 'Slack bot token not configured' },
