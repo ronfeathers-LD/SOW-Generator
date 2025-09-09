@@ -6,6 +6,7 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
+import Image from '@tiptap/extension-image';
 import { useEffect, useRef, useCallback } from 'react';
 
 interface TipTapEditorProps {
@@ -149,6 +150,11 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
       TableRow,
       TableHeader,
       TableCell,
+      Image.configure({
+        HTMLAttributes: {
+          class: 'max-w-full h-auto rounded-lg',
+        },
+      }),
     ],
     content: cleanHtmlForTipTap(value),
     onUpdate: ({ editor }) => {
@@ -227,6 +233,49 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
     if (url) {
       editor.chain().focus().setLink({ href: url }).run();
     }
+  };
+
+  const addImage = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        try {
+          // Show loading state
+          const loadingText = editor.getHTML() + '<p><em>Uploading image...</em></p>';
+          editor.commands.setContent(loadingText);
+
+          // Upload image to Vercel Blob
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const response = await fetch('/api/upload/image', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            
+            // Insert image into editor
+            editor.chain().focus().setImage({ src: result.url }).run();
+          } else {
+            const error = await response.json();
+            alert(`Failed to upload image: ${error.error}`);
+            // Restore previous content
+            editor.commands.setContent(value);
+          }
+        } catch (error) {
+          console.error('Error uploading image:', error);
+          alert('Failed to upload image. Please try again.');
+          // Restore previous content
+          editor.commands.setContent(value);
+        }
+      }
+    };
+    input.click();
   };
 
   return (
@@ -331,6 +380,14 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
           title="Add Link"
         >
           🔗
+        </button>
+        <button
+          type="button"
+          onClick={addImage}
+          className="px-2 py-1 rounded hover:bg-gray-200 text-gray-700"
+          title="Add Image"
+        >
+          🖼️
         </button>
 
         <div className="w-px h-6 bg-gray-300"></div>
