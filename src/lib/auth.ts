@@ -210,12 +210,7 @@ export const authOptions: NextAuthOptions = {
         }
       }
       
-      // Debug logging
-      console.log('JWT callback - Token state:', {
-        email: token.email,
-        role: token.role,
-        hasRole: !!token.role
-      });
+      // Debug logging removed for cleaner output
       
       return token;
     },

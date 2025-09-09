@@ -13,7 +13,7 @@ import { join } from 'path';
 function getLeanDataLogoBase64(): string {
   try {
     const logoPath = join(process.cwd(), 'public', 'images', 'leandata-logo.png');
-    console.log('🔍 Looking for logo at:', logoPath);
+    // Looking for logo at: ${logoPath}
     
     // Check if file exists before trying to read it
     if (!existsSync(logoPath)) {
@@ -23,7 +23,7 @@ function getLeanDataLogoBase64(): string {
     
     const logoBuffer = readFileSync(logoPath);
     const base64Logo = logoBuffer.toString('base64');
-    console.log('✅ Logo loaded successfully, size:', logoBuffer.length, 'bytes');
+    // Logo loaded successfully, size: ${logoBuffer.length} bytes
     return `data:image/png;base64,${base64Logo}`;
   } catch (error) {
     console.warn('⚠️ Could not load LeanData logo, using fallback:', error);
@@ -249,7 +249,7 @@ export class PDFGenerator {
           console.log('✅ Vercel-optimized Chromium launched successfully');
         } else {
           // Use full puppeteer for local development
-          console.log('🚀 Launching full Puppeteer for local development...');
+          // Launching full Puppeteer for local development...
           
           this.browser = await puppeteer.launch({
             headless: true,
@@ -261,7 +261,7 @@ export class PDFGenerator {
             timeout: 60000
           });
           
-          console.log('✅ Full Puppeteer launched successfully');
+          // Full Puppeteer launched successfully
         }
       } catch (error) {
         console.error('❌ Failed to launch browser:', error);
@@ -276,7 +276,7 @@ export class PDFGenerator {
   }
 
   async generateSOWPDF(sowData: SOWData): Promise<Uint8Array> {
-    console.log('🚀 Starting PDF generation for SOW:', sowData.id);
+    // Starting PDF generation for SOW: ${sowData.id}
     
     try {
       await this.initialize();
@@ -285,27 +285,27 @@ export class PDFGenerator {
         throw new Error('Browser not initialized');
       }
 
-      console.log('✅ Browser initialized successfully');
+      // Browser initialized successfully
       const page = await this.browser.newPage();
-      console.log('✅ New page created');
+      // New page created
       
       try {
         // Generate HTML content for the SOW
-        console.log('📝 Generating HTML content...');
+        // Generating HTML content...
         const htmlContent = this.generateSOWHTML(sowData);
-        console.log('✅ HTML content generated, length:', htmlContent.length);
+        // HTML content generated, length: ${htmlContent.length}
         
         // Set content and wait for any dynamic content to load
-        console.log('🌐 Setting page content...');
+        // Setting page content...
         await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-        console.log('✅ Page content set successfully');
+        // Page content set successfully
         
         // Set viewport for consistent rendering
         await page.setViewport({ width: 1200, height: 1600 });
-        console.log('✅ Viewport set');
+        // Viewport set
         
         // Generate PDF
-        console.log('📄 Generating PDF...');
+        // Generating PDF...
         const pdfBuffer = await page.pdf({
           format: 'A4',
           printBackground: true,
@@ -317,7 +317,7 @@ export class PDFGenerator {
           }
         });
         
-        console.log('✅ PDF generated successfully, size:', pdfBuffer.length, 'bytes');
+        // PDF generated successfully, size: ${pdfBuffer.length} bytes
         return new Uint8Array(pdfBuffer);
         
       } catch (error) {
@@ -325,7 +325,7 @@ export class PDFGenerator {
         throw error;
       } finally {
         await page.close();
-        console.log('✅ Page closed');
+        // Page closed
       }
     } catch (error) {
       console.error('❌ Fatal error in PDF generation:', error);
@@ -362,8 +362,7 @@ export class PDFGenerator {
     
 
     
-    // Parse objectives that might be stored as HTML
-    const objectives = this.parseObjectivesInternal(sowData.objectives_key_objectives);
+    // Parse client roles
     const clientRoles = this.parseJSONField(sowData.client_roles, []) as ClientRole[];
     // Parse pricing roles - handle both direct array and nested structure
     let pricingRoles: PricingRole[] = [];

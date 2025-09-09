@@ -558,3 +558,16 @@ body[style*="--print-sow-active: true"] {
   margin: 0 !important;
   background: white !important;
 }
+
+/* Override gray background for print page (both web and print media) */
+body.print-sow-route .min-h-screen.bg-gray-50,
+body[style*="--print-sow-active: true"] .min-h-screen.bg-gray-50 {
+  background-color: white !important;
+}
+
+/* Also override for print media */
+@media print {
+  .min-h-screen.bg-gray-50 {
+    background-color: white !important;
+  }
+}

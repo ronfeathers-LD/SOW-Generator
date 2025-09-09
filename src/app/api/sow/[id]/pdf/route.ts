@@ -11,9 +11,8 @@ export async function GET(
   try {
     const { id } = await params;
     
-    console.log('🧪 PDF environment test for SOW:', id);
-    console.log('🌍 Environment:', process.env.NODE_ENV);
-    console.log('📁 Current working directory:', process.cwd());
+    // PDF environment test for SOW: ${id}
+    console.log('PDF environment test for SOW:', id);
     
     // Test file system access
     const logoPath = join(process.cwd(), 'public', 'images', 'leandata-logo.png');
@@ -59,9 +58,7 @@ export async function POST(
   try {
     const { id } = await params;
     
-    console.log('🚀 PDF generation request for SOW:', id);
-    console.log('🌍 Environment:', process.env.NODE_ENV);
-    console.log('📁 Current working directory:', process.cwd());
+    // PDF generation request for SOW: ${id}
     
     // Check if we're in production and warn about potential Chrome issues
     if (process.env.NODE_ENV === 'production') {
@@ -94,7 +91,7 @@ export async function POST(
       );
     }
 
-    console.log('✅ SOW data fetched successfully');
+    // SOW data fetched successfully
 
     // Fetch LeanData signatory if one is selected
     let leanDataSignatory = null;
@@ -108,7 +105,7 @@ export async function POST(
       
       if (!signatoryError && signatory) {
         leanDataSignatory = signatory;
-        console.log('✅ LeanData signatory fetched:', signatory.name, signatory.title);
+        // LeanData signatory fetched: ${signatory.name}, ${signatory.title}
       }
     }
 
@@ -183,7 +180,7 @@ export async function POST(
     
     try {
       // Generate the PDF with timeout
-      console.log('⏱️ Starting PDF generation with timeout...');
+      // Starting PDF generation with timeout...
       const pdfBuffer = await Promise.race([
         pdfGenerator.generateSOWPDF(transformedData),
         new Promise<never>((_, reject) => 
@@ -191,7 +188,7 @@ export async function POST(
         )
       ]);
       
-      console.log('✅ PDF generated successfully, size:', pdfBuffer.length, 'bytes');
+      // PDF generated successfully, size: ${pdfBuffer.length} bytes
       
       // Check if this is an alternative format (HTML instead of PDF)
       const isHTML = pdfBuffer.length > 0 && 
@@ -217,7 +214,7 @@ export async function POST(
     } finally {
       // Clean up
       await pdfGenerator.close();
-      console.log('✅ PDF generator cleaned up');
+      // PDF generator cleaned up
     }
     
   } catch (error) {
