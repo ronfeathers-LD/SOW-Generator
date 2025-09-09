@@ -55,6 +55,20 @@ export async function GET(
       console.error('Error fetching Avoma recordings:', recordingsError);
     }
 
+    // Fetch submission information if SOW was submitted for review
+    let submittedByName = null;
+    if (sow.submitted_by) {
+      const { data: submitter, error: submitterError } = await supabase
+        .from('users')
+        .select('name, email')
+        .eq('id', sow.submitted_by)
+        .single();
+      
+      if (!submitterError && submitter) {
+        submittedByName = submitter.name || submitter.email || 'Unknown User';
+      }
+    }
+
     // Transform recordings to match frontend format
     const transformedRecordings = (avomaRecordings || []).map(recording => ({
       id: recording.id,
@@ -152,6 +166,10 @@ export async function GET(
       deliverables_content_edited: sow.deliverables_content_edited || false,
       objective_overview_content_edited: sow.objective_overview_content_edited || false,
       key_objectives_content_edited: sow.key_objectives_content_edited || false,
+      // Include submission tracking
+      submitted_by: sow.submitted_by || null,
+      submitted_at: sow.submitted_at || null,
+      submitted_by_name: submittedByName,
       // Include client roles
       roles: {
         client_roles: sow.client_roles || []
@@ -256,6 +274,10 @@ export async function PUT(
     } else if (data.status === 'draft' && data.rejected_at) {
       // This was a rejection, track who rejected it
       data.rejected_by = user.id;
+    } else if (data.status === 'in_review') {
+      // Track who submitted the SOW for review
+      data.submitted_by = user.id;
+      data.submitted_at = new Date().toISOString();
     }
 
     // Update the SOW

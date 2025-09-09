@@ -186,6 +186,9 @@ interface SOW {
     totalCost: number;
   }>;
   status: 'draft' | 'in_review' | 'approved' | 'rejected';
+  submitted_by?: string;
+  submitted_at?: string;
+  submitted_by_name?: string;
   pricing: {
     roles: Array<{
       role: string;
@@ -1358,6 +1361,16 @@ export default function SOWDisplay({
                               <p className="text-sm text-blue-800">
                                 <strong>Waiting for approval:</strong> This SOW has been submitted for review and is waiting for a Manager or Admin to approve it.
                               </p>
+                              {sow.submitted_by_name && (
+                                <p className="text-sm text-blue-700 mt-2">
+                                  <strong>Submitted by:</strong> {sow.submitted_by_name}
+                                </p>
+                              )}
+                              {sow.submitted_at && (
+                                <p className="text-sm text-blue-700">
+                                  <strong>Submitted on:</strong> {new Date(sow.submitted_at).toLocaleDateString()}
+                                </p>
+                              )}
                             </div>
                             <div className="bg-gray-50 border border-gray-200 rounded p-3">
                               <p className="text-xs text-gray-600">

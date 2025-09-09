@@ -65,6 +65,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   const [showPricingCalculator, setShowPricingCalculator] = useState(false);
   const [showPMHoursRemovalModal, setShowPMHoursRemovalModal] = useState(false);
   const [showPMHoursApprovalOverlay, setShowPMHoursApprovalOverlay] = useState(false);
+  const [isManuallyEditing, setIsManuallyEditing] = useState(false);
 
   // Use shared utility to calculate all hours
   const hoursResult = calculateAllHours(formData.template || {}, selectedAccount?.Account_Segment__c);
@@ -137,8 +138,10 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   }, [formData.template, pricingRoles, approvedPMHoursRequest, isAutoCalculating, getProducts, getTotalUnits]);
 
   // Auto-sync Onboarding Specialist hours to always use baseProjectHours (includes account segment)
+  // Only run this when baseProjectHours changes or when PM hours status changes, not when pricingRoles change
+  // Skip this if user is manually editing to prevent overriding manual changes
   useEffect(() => {
-    if (pricingRoles.length > 0) {
+    if (pricingRoles.length > 0 && !isManuallyEditing) {
       const updatedRoles = pricingRoles.map(role => {
         if (role.role === 'Onboarding Specialist') {
           // Onboarding Specialist should always get the full base hours (including account segment)
@@ -169,10 +172,13 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
         setPricingRoles(updatedRoles);
       }
     }
-  }, [pricingRoles, baseProjectHours, approvedPMHoursRequest, setPricingRoles]);
+  }, [baseProjectHours, approvedPMHoursRequest, setPricingRoles, isManuallyEditing]); // Added isManuallyEditing to dependencies
 
   // Wrapper for autoCalculateHours that triggers PM status check
   const handleRecalculateHours = useCallback(async () => {
+    // Reset manual editing flag when auto-calculating
+    setIsManuallyEditing(false);
+    
     // Only recalculate the base hours and role assignments
     // Don't recalculate costs - those are handled separately
     await autoCalculateHours();
@@ -217,6 +223,11 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
 
   // Update role
   const updateRole = (id: string, field: keyof PricingRole, value: string | number) => {
+    // Set manual editing flag when user changes hours or rates
+    if (field === 'totalHours' || field === 'ratePerHour') {
+      setIsManuallyEditing(true);
+    }
+    
     setPricingRoles(pricingRoles.map(role => {
       if (role.id === id) {
         const updatedRole = { ...role, [field]: value };
@@ -227,6 +238,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
         }
         
         // Special handling for Onboarding Specialist when PM hours are removed
+        // Only apply this logic if the user is not manually editing the hours
         if (role.role === 'Onboarding Specialist' && field === 'totalHours' && approvedPMHoursRequest) {
           // When PM hours are removed, Onboarding Specialist should get full base hours
           const baseHours = baseProjectHours;
