@@ -242,10 +242,13 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
+        // Store current content for restoration
+        const currentContent = editor.getHTML();
+        
         try {
-          // Show loading state
-          const loadingText = editor.getHTML() + '<p><em>Uploading image...</em></p>';
-          editor.commands.setContent(loadingText);
+          // Insert loading placeholder at cursor position
+          const loadingPlaceholder = '<p data-loading="true"><em>Uploading image...</em></p>';
+          editor.chain().focus().insertContent(loadingPlaceholder).run();
 
           // Upload image to Vercel Blob
           const formData = new FormData();
@@ -259,19 +262,24 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
           if (response.ok) {
             const result = await response.json();
             
-            // Insert image into editor
-            editor.chain().focus().setImage({ src: result.url }).run();
+            // Replace loading placeholder with actual image
+            const currentHtml = editor.getHTML();
+            const updatedHtml = currentHtml.replace(
+              '<p data-loading="true"><em>Uploading image...</em></p>',
+              `<img src="${result.url}" alt="Uploaded image" style="max-width: 100%; height: auto;" />`
+            );
+            editor.commands.setContent(updatedHtml);
           } else {
             const error = await response.json();
             alert(`Failed to upload image: ${error.error}`);
             // Restore previous content
-            editor.commands.setContent(value);
+            editor.commands.setContent(currentContent);
           }
         } catch (error) {
           console.error('Error uploading image:', error);
           alert('Failed to upload image. Please try again.');
           // Restore previous content
-          editor.commands.setContent(value);
+          editor.commands.setContent(currentContent);
         }
       }
     };
