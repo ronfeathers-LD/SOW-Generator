@@ -1054,7 +1054,7 @@ export class PDFGenerator {
                   </div>
                   <div>
                     <div class="billing-label">Purchase Order Number:</div>
-                    <div class="billing-value">${billingInfo?.po_number || 'PO provided by customer'}</div>
+                    <div class="billing-value">${billingInfo?.po_number || 'N/A'}</div>
                   </div>
                   <div>
                     <div class="billing-label">Payment Terms:</div>

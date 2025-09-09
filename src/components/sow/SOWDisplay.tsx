@@ -851,7 +851,7 @@ export default function SOWDisplay({
                   <dd className="text-gray-900">{sow.template?.billing_email || 'N/A'}</dd>
                   
                   <dt className="font-semibold text-gray-700">Purchase Order Number:</dt>
-                  <dd className="text-gray-900">{sow.template?.purchase_order_number || 'PO provided by customer'}</dd>
+                  <dd className="text-gray-900">{sow.template?.purchase_order_number || 'N/A'}</dd>
                   
                   <dt className="font-semibold text-gray-700">Payment Terms:</dt>
                   <dd className="text-gray-900">Net 30</dd>
@@ -1253,7 +1253,7 @@ export default function SOWDisplay({
                         <dd className="text-gray-900">{sow.template?.billing_email || 'N/A'}</dd>
                         
                         <dt className="font-semibold text-gray-700">Purchase Order Number:</dt>
-                        <dd className="text-gray-900">{sow.template?.purchase_order_number || 'PO provided by customer'}</dd>
+                        <dd className="text-gray-900">{sow.template?.purchase_order_number || 'N/A'}</dd>
                         
                         <dt className="font-semibold text-gray-700">Payment Terms:</dt>
                         <dd className="text-gray-900">Net 30</dd>
