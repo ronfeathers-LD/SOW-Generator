@@ -193,7 +193,7 @@ export default function PricingCalculatorForm({ products, data, onChange }: Pric
           </span>
         </label>
         <p className="mt-1 text-sm text-gray-500">
-          When enabled, Project Manager hours will be excluded from calculations (no approval required)
+          When enabled, Project Manager hours will be excluded from calculations (PM Hours Removal requires Approval)
         </p>
       </div>
 
