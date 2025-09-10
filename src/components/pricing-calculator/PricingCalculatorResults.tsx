@@ -222,14 +222,31 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
           )}
           
           <div className="flex justify-between items-center border-t pt-3">
-            <span className="font-medium text-gray-900">Onboarding Specialist:</span>
-            <span className="font-semibold text-gray-900">{roleDistribution.onboardingSpecialistHours} hours</span>
+            <span className="font-medium text-gray-900">Base Hours:</span>
+            <span className="font-semibold text-gray-900">{baseProjectHours} hours</span>
           </div>
 
           {roleDistribution.projectManagerHours > 0 && (
+            <>
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-gray-900">Onboarding Specialist Deduction:</span>
+                <span className="font-semibold text-red-600">-{pmHours / 2} hours</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-gray-900">Onboarding Specialist (final):</span>
+                <span className="font-semibold text-gray-900">{roleDistribution.onboardingSpecialistHours} hours</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-gray-900">Project Manager (45%):</span>
+                <span className="font-semibold text-gray-900">{roleDistribution.projectManagerHours} hours</span>
+              </div>
+            </>
+          )}
+
+          {!roleDistribution.projectManagerHours && shouldAddProjectManager && (
             <div className="flex justify-between items-center">
-              <span className="font-medium text-gray-900">Project Manager (45%):</span>
-              <span className="font-semibold text-gray-900">{roleDistribution.projectManagerHours} hours</span>
+              <span className="font-medium text-gray-900">Onboarding Specialist:</span>
+              <span className="font-semibold text-gray-900">{roleDistribution.onboardingSpecialistHours} hours</span>
             </div>
           )}
 
