@@ -172,7 +172,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
         setPricingRoles(updatedRoles);
       }
     }
-  }, [baseProjectHours, approvedPMHoursRequest, setPricingRoles, isManuallyEditing]); // Added isManuallyEditing to dependencies
+  }, [baseProjectHours, approvedPMHoursRequest, setPricingRoles, isManuallyEditing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Wrapper for autoCalculateHours that triggers PM status check
   const handleRecalculateHours = useCallback(async () => {

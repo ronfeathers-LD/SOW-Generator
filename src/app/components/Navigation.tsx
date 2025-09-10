@@ -84,6 +84,16 @@ export default function Navigation() {
               >
                 SOWs
               </Link>
+              <Link 
+                href="/pricing-calculator" 
+                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  pathname.startsWith('/pricing-calculator') 
+                    ? 'border-white text-white' 
+                    : 'border-transparent text-green-100 hover:border-green-200 hover:text-white'
+                }`}
+              >
+                Pricing Calculator
+              </Link>
               {(isPMO || isAdmin) && (
                 <Link 
                   href="/pmo" 
