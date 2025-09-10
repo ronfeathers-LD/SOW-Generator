@@ -63,10 +63,16 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
     // Onboarding Specialist gets base project hours
     const onboardingSpecialist = STANDARD_ROLES.find(r => r.role === 'Onboarding Specialist');
     if (onboardingSpecialist) {
+      // When PM hours are removed, Onboarding Specialist gets the full base hours
+      // When PM hours are included, Onboarding Specialist gets base hours (PM gets the additional hours)
+      const onboardingHours = data.pm_hours_removed && shouldAddProjectManager 
+        ? baseProjectHours + pmHours  // Full hours when PM removed
+        : baseProjectHours;           // Base hours when PM included
+      
       roles.push({
         ...onboardingSpecialist,
-        totalHours: baseProjectHours,
-        totalCost: baseProjectHours * onboardingSpecialist.ratePerHour
+        totalHours: onboardingHours,
+        totalCost: onboardingHours * onboardingSpecialist.ratePerHour
       });
     }
 
@@ -86,7 +92,9 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
   }, [baseProjectHours, pmHours, shouldAddProjectManager, data.pm_hours_removed]);
 
   const subtotal = pricingRoles.reduce((sum, role) => sum + role.totalCost, 0);
-  const totalHours = baseProjectHours + (shouldAddProjectManager && !data.pm_hours_removed ? pmHours : 0);
+  const totalHours = data.pm_hours_removed && shouldAddProjectManager 
+    ? baseProjectHours + pmHours  // Full hours when PM removed (Onboarding Specialist gets them)
+    : baseProjectHours + (shouldAddProjectManager ? pmHours : 0);  // Normal calculation when PM included
   
   // Calculate discount
   const discountTotal = useMemo(() => {
@@ -118,10 +126,15 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
       // Onboarding Specialist
       const onboardingSpecialist = STANDARD_ROLES.find(r => r.role === 'Onboarding Specialist');
       if (onboardingSpecialist) {
+        // When PM hours are removed, Onboarding Specialist gets the full base hours
+        const onboardingHours = scenario.pm_hours_removed && scenarioHours.shouldAddProjectManager 
+          ? scenarioHours.baseProjectHours + scenarioHours.pmHours  // Full hours when PM removed
+          : scenarioHours.baseProjectHours;  // Base hours when PM included
+        
         scenarioRoles.push({
           ...onboardingSpecialist,
-          totalHours: scenarioHours.baseProjectHours,
-          totalCost: scenarioHours.baseProjectHours * onboardingSpecialist.ratePerHour
+          totalHours: onboardingHours,
+          totalCost: onboardingHours * onboardingSpecialist.ratePerHour
         });
       }
 
@@ -138,7 +151,9 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
       }
 
       const scenarioSubtotal = scenarioRoles.reduce((sum, role) => sum + role.totalCost, 0);
-      const scenarioTotalHours = scenarioHours.baseProjectHours + (scenarioHours.shouldAddProjectManager && !scenario.pm_hours_removed ? scenarioHours.pmHours : 0);
+      const scenarioTotalHours = scenario.pm_hours_removed && scenarioHours.shouldAddProjectManager 
+        ? scenarioHours.baseProjectHours + scenarioHours.pmHours  // Full hours when PM removed
+        : scenarioHours.baseProjectHours + (scenarioHours.shouldAddProjectManager ? scenarioHours.pmHours : 0);  // Normal calculation
       
       // Calculate scenario discount
       let scenarioDiscountTotal = 0;
