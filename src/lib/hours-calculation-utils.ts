@@ -15,6 +15,12 @@ export interface HoursCalculationResult {
   shouldAddProjectManager: boolean;
 }
 
+export interface RoleHoursDistribution {
+  onboardingSpecialistHours: number;
+  projectManagerHours: number;
+  totalProjectHours: number;
+}
+
 /**
  * Calculate hours for individual products based on business rules
  */
@@ -177,6 +183,35 @@ export function shouldAddProjectManager(template: Partial<SOWTemplate>): boolean
   const products = (template?.products || []).filter(product => product !== 'BookIt Links');
   const totalUnits = calculateTotalUnits(template);
   return products.length >= 3 || totalUnits >= 200;
+}
+
+/**
+ * Calculate role hours distribution between Onboarding Specialist and Project Manager
+ * When PM is added: Onboarding Specialist loses half of PM hours, PM gets full PM hours
+ * When PM is removed: Onboarding Specialist gets full base hours, PM gets 0
+ */
+export function calculateRoleHoursDistribution(
+  baseProjectHours: number,
+  pmHours: number,
+  shouldAddPM: boolean,
+  pmHoursRemoved: boolean = false
+): RoleHoursDistribution {
+  if (!shouldAddPM || pmHoursRemoved) {
+    // No PM or PM removed: Onboarding Specialist gets full base hours
+    return {
+      onboardingSpecialistHours: baseProjectHours,
+      projectManagerHours: 0,
+      totalProjectHours: baseProjectHours
+    };
+  } else {
+    // PM added: Onboarding Specialist loses half of PM hours, PM gets full PM hours
+    const onboardingHours = baseProjectHours - (pmHours / 2);
+    return {
+      onboardingSpecialistHours: onboardingHours,
+      projectManagerHours: pmHours,
+      totalProjectHours: baseProjectHours + (pmHours / 2)
+    };
+  }
 }
 
 /**

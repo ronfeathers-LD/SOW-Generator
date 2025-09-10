@@ -2,7 +2,7 @@ import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'rea
 import { SOWData } from '@/types/sow';
 import PricingRolesAndDiscount from '@/components/sow/PricingRolesAndDiscount';
 import LoadingModal from '@/components/ui/LoadingModal';
-import { calculateAllHours, shouldAddProjectManager } from '@/lib/hours-calculation-utils';
+import { calculateAllHours, calculateRoleHoursDistribution } from '@/lib/hours-calculation-utils';
 
 interface PricingRole {
   id: string;
@@ -172,17 +172,25 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
     try {
       // Use shared utility to calculate all hours
       const hoursResult = calculateAllHours(formData.template, selectedAccount?.Account_Segment__c);
-      const { baseProjectHours, pmHours } = hoursResult;
+      const { baseProjectHours, pmHours, shouldAddProjectManager: shouldAddPM } = hoursResult;
+      
+      // Calculate role hours distribution
+      const roleDistribution = calculateRoleHoursDistribution(
+        baseProjectHours,
+        pmHours,
+        shouldAddPM,
+        formData.pm_hours_requirement_disabled
+      );
       
       // Update the Onboarding Specialist role with calculated hours
       let updatedRoles = pricingRoles.map(role => {
         if (role.role === 'Onboarding Specialist') {
-          // Onboarding Specialist gets full base hours (no PM deduction when PM role is added)
+          // Onboarding Specialist gets distributed hours
           return {
             ...role,
             ratePerHour: 250, // Set the base rate for Onboarding Specialist
-            totalHours: baseProjectHours,
-            totalCost: 250 * baseProjectHours,
+            totalHours: roleDistribution.onboardingSpecialistHours,
+            totalCost: 250 * roleDistribution.onboardingSpecialistHours,
           };
         }
         return role;
@@ -190,7 +198,6 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
 
       // Check if we need to add or update a Project Manager role
       const hasProjectManager = updatedRoles.some(role => role.role === 'Project Manager');
-      const shouldAddPM = shouldAddProjectManager(formData.template);
 
 
       if (shouldAddPM && !formData.pm_hours_requirement_disabled) {
@@ -200,8 +207,8 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
             id: Math.random().toString(36).substr(2, 9),
             role: 'Project Manager',
             ratePerHour: 250, // Standard PM rate
-            totalHours: pmHours,
-            totalCost: 250 * pmHours,
+            totalHours: roleDistribution.projectManagerHours,
+            totalCost: 250 * roleDistribution.projectManagerHours,
           };
           updatedRoles.push(pmRole);
         } else {
@@ -210,8 +217,8 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
             if (role.role === 'Project Manager') {
               return {
                 ...role,
-                totalHours: pmHours,
-                totalCost: 250 * pmHours,
+                totalHours: roleDistribution.projectManagerHours,
+                totalCost: 250 * roleDistribution.projectManagerHours,
               };
             }
             return role;

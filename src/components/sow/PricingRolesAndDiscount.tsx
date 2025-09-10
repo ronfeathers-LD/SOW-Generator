@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { PMHoursRequirementDisableRequest } from '@/types/sow';
 import PMHoursRemovalModal from './PMHoursRemovalModal';
 import PMHoursRemovalApprovalOverlay from './PMHoursRemovalApprovalOverlay';
-import { calculateAllHours, HOURS_CALCULATION_RULES } from '@/lib/hours-calculation-utils';
+import { calculateAllHours, calculateRoleHoursDistribution, HOURS_CALCULATION_RULES } from '@/lib/hours-calculation-utils';
 
 interface PricingRole {
   id: string;
@@ -69,7 +69,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
 
   // Use shared utility to calculate all hours
   const hoursResult = calculateAllHours(formData.template || {}, selectedAccount?.Account_Segment__c);
-  const { productHours, userGroupHours, accountSegmentHours, baseProjectHours, pmHours, totalUnits } = hoursResult;
+  const { productHours, userGroupHours, accountSegmentHours, baseProjectHours, pmHours, totalUnits, shouldAddProjectManager } = hoursResult;
 
   // Get total units for display
   const getTotalUnits = useCallback((): number => {
@@ -137,26 +137,33 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.template, pricingRoles, approvedPMHoursRequest, isAutoCalculating, getProducts, getTotalUnits]);
 
-  // Auto-sync Onboarding Specialist hours to always use baseProjectHours (includes account segment)
+  // Calculate role hours distribution
+  const roleDistribution = calculateRoleHoursDistribution(
+    baseProjectHours,
+    pmHours,
+    shouldAddProjectManager,
+    !!approvedPMHoursRequest
+  );
+
+  // Auto-sync role hours based on calculated distribution
   // Only run this when baseProjectHours changes or when PM hours status changes, not when pricingRoles change
   // Skip this if user is manually editing to prevent overriding manual changes
   useEffect(() => {
     if (pricingRoles.length > 0 && !isManuallyEditing) {
       const updatedRoles = pricingRoles.map(role => {
         if (role.role === 'Onboarding Specialist') {
-          // Onboarding Specialist should always get the full base hours (including account segment)
-          const baseHours = baseProjectHours;
+          // Onboarding Specialist gets distributed hours
           return {
             ...role,
-            totalHours: baseHours,
-            totalCost: baseHours * role.ratePerHour
+            totalHours: roleDistribution.onboardingSpecialistHours,
+            totalCost: roleDistribution.onboardingSpecialistHours * role.ratePerHour
           };
-        } else if (role.role === 'Project Manager' && approvedPMHoursRequest) {
-          // Project Manager gets 0 hours when PM hours are removed
+        } else if (role.role === 'Project Manager') {
+          // Project Manager gets distributed hours (0 if PM removed)
           return {
             ...role,
-            totalHours: 0,
-            totalCost: 0
+            totalHours: roleDistribution.projectManagerHours,
+            totalCost: roleDistribution.projectManagerHours * role.ratePerHour
           };
         }
         return role;
@@ -172,7 +179,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
         setPricingRoles(updatedRoles);
       }
     }
-  }, [baseProjectHours, approvedPMHoursRequest, setPricingRoles, isManuallyEditing]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [baseProjectHours, pmHours, shouldAddProjectManager, approvedPMHoursRequest, setPricingRoles, isManuallyEditing, roleDistribution]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Wrapper for autoCalculateHours that triggers PM status check
   const handleRecalculateHours = useCallback(async () => {
@@ -276,9 +283,8 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
     }, 0);
   };
 
-  // Get current calculations
-  const currentPMHours = approvedPMHoursRequest ? 0 : pmHours;
-  const totalHours = baseProjectHours + currentPMHours;
+  // Get current calculations using role distribution
+  const totalHours = roleDistribution.totalProjectHours;
 
   return (
     <div className="space-y-6">
@@ -392,14 +398,14 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
             )}
             
             <div className="flex justify-between items-center border-t pt-3">
-              <span className="font-medium text-gray-900">Base Hours:</span>
-              <span className="font-semibold text-gray-900">{baseProjectHours} hours</span>
+              <span className="font-medium text-gray-900">Onboarding Specialist:</span>
+              <span className="font-semibold text-gray-900">{roleDistribution.onboardingSpecialistHours} hours</span>
             </div>
 
-            {!approvedPMHoursRequest && currentPMHours > 0 && (
+            {roleDistribution.projectManagerHours > 0 && (
               <div className="flex justify-between items-center">
                 <span className="font-medium text-gray-900">Project Manager (45%):</span>
-                <span className="font-semibold text-gray-900">{currentPMHours} hours</span>
+                <span className="font-semibold text-gray-900">{roleDistribution.projectManagerHours} hours</span>
               </div>
             )}
 
@@ -667,7 +673,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
         isOpen={showPMHoursRemovalModal}
         onClose={() => setShowPMHoursRemovalModal(false)}
         sowId={formData.id || ''}
-        currentPMHours={currentPMHours}
+        currentPMHours={roleDistribution.projectManagerHours}
         onRequestSubmitted={handlePMHoursRemovalRequestSubmitted}
       />
 
