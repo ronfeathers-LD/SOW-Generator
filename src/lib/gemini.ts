@@ -350,7 +350,8 @@ ${solutionsTemplate}
   "isFallback": false
 }
 
-CRITICAL: The solutions object must maintain the EXACT order of products as shown above. Do not reorder, rename, or change the product names.
+CRITICAL: 
+The solutions object must maintain the EXACT order of products as shown above. Do not reorder, rename, or change the existing product names. Additionally, you must analyze the transcript for any other solutions, features, or related requirements discussed, and create new keys for each of these items within the solutions object (e.g., 'Reporting').
 
 Input Variables Available:
 - customerName: "${customerName}"
