@@ -148,7 +148,8 @@ export default function ObjectivesTab({
     setNewAvomaUrl('');
     
     // Automatically fetch transcription for the new recording
-    await handleFetchTranscriptionForRecording(newRecording);
+    // Pass the updated recordings array to ensure we have the latest state
+    await handleFetchTranscriptionForRecording(newRecording, updatedRecordings);
   };
 
   // Remove Avoma recording
@@ -166,7 +167,7 @@ export default function ObjectivesTab({
   };
 
   // Fetch transcription for a specific recording
-  const handleFetchTranscriptionForRecording = async (recording: AvomaRecording) => {
+  const handleFetchTranscriptionForRecording = async (recording: AvomaRecording, currentRecordings?: AvomaRecording[]) => {
     if (!recording) return;
     
     setIsFetchingTranscription(true);
@@ -190,7 +191,9 @@ export default function ObjectivesTab({
       }
 
       // Update the specific recording with transcription
-      const updatedRecordings = (formData.objectives?.avoma_recordings || []).map(r => 
+      // Use currentRecordings if provided, otherwise fall back to formData
+      const recordingsToUpdate = currentRecordings || formData.objectives?.avoma_recordings || [];
+      const updatedRecordings = recordingsToUpdate.map(r => 
         r.id === recording.id 
           ? { ...r, transcription: result.transcription, status: 'completed' as const }
           : r
@@ -208,7 +211,9 @@ export default function ObjectivesTab({
       console.error('Error fetching transcription:', error);
       
       // Update recording status to failed
-      const updatedRecordings = (formData.objectives?.avoma_recordings || []).map(r => 
+      // Use currentRecordings if provided, otherwise fall back to formData
+      const recordingsToUpdate = currentRecordings || formData.objectives?.avoma_recordings || [];
+      const updatedRecordings = recordingsToUpdate.map(r => 
         r.id === recording.id 
           ? { ...r, status: 'failed' as const }
           : r
@@ -902,7 +907,7 @@ export default function ObjectivesTab({
 
                   {recording.status === 'failed' && (
                     <button
-                      onClick={() => handleFetchTranscriptionForRecording(recording)}
+                      onClick={() => handleFetchTranscriptionForRecording(recording, formData.objectives?.avoma_recordings)}
                       disabled={isFetchingTranscription}
                       className="w-full px-3 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 disabled:opacity-50"
                     >
