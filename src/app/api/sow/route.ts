@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { ChangelogService } from '@/lib/changelog-service';
 import { supabaseApi } from '@/lib/supabase-api';
 import { getSlackService } from '@/lib/slack';
+import { getSOWUrl } from '@/lib/utils/app-url';
 
 export async function POST(request: Request) {
   try {
@@ -180,8 +181,7 @@ export async function POST(request: Request) {
         console.warn('Slack service not configured - cannot send notifications');
       } else {
         const clientName = sow.client_name || 'Unknown Client';
-        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-        const sowUrl = `${baseUrl}/sow/${sow.id}`;
+        const sowUrl = getSOWUrl(sow.id);
 
         await slackService.sendMessage(
           `:new: *New SOW Created*\n\n` +

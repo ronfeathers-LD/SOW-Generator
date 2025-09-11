@@ -1,4 +1,6 @@
 import nodemailer from 'nodemailer';
+import { logInvalidEmailWarning } from './utils/email-domain-validation';
+import { getSOWUrl, getPMHoursRemovalUrl } from './utils/app-url';
 
 interface EmailConfig {
   provider: 'gmail' | 'sendgrid' | 'mailgun' | 'smtp';
@@ -74,6 +76,21 @@ class EmailService {
     variables: Record<string, string> = {}
   ): Promise<boolean> {
     try {
+      // Validate recipient email domain
+      if (!recipientEmail || typeof recipientEmail !== 'string') {
+        console.error('❌ Invalid recipient email address provided');
+        return false;
+      }
+
+      // Check if email has @leandata.com domain
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const domain = recipientEmail.toLowerCase().split('@')[1];
+      
+      if (!emailRegex.test(recipientEmail) || domain !== 'leandata.com') {
+        logInvalidEmailWarning(recipientEmail, 'email template');
+        return false;
+      }
+
       if (!this.transporter) {
         console.warn('Email transporter not initialized');
         return false;
@@ -138,6 +155,19 @@ class EmailService {
     approverEmail: string,
     authorName: string
   ): Promise<boolean> {
+    // Validate approver email domain
+    if (!approverEmail || typeof approverEmail !== 'string') {
+      console.error('❌ Invalid approver email address provided');
+      return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const domain = approverEmail.toLowerCase().split('@')[1];
+    
+    if (!emailRegex.test(approverEmail) || domain !== 'leandata.com') {
+      logInvalidEmailWarning(approverEmail, 'SOW approval notification');
+      return false;
+    }
     const template: EmailTemplate = {
       name: 'sow_approval_request',
       subject: 'SOW Approval Required: {{sowTitle}}',
@@ -166,8 +196,7 @@ class EmailService {
       `
     };
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    const sowUrl = `${baseUrl}/sow/${sowId}`;
+    const sowUrl = getSOWUrl(sowId);
 
     return this.sendTemplateEmail(template, approverEmail, {
       sowTitle,
@@ -189,6 +218,19 @@ class EmailService {
     approverName: string,
     comments?: string
   ): Promise<boolean> {
+    // Validate author email domain
+    if (!authorEmail || typeof authorEmail !== 'string') {
+      console.error('❌ Invalid author email address provided');
+      return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const domain = authorEmail.toLowerCase().split('@')[1];
+    
+    if (!emailRegex.test(authorEmail) || domain !== 'leandata.com') {
+      logInvalidEmailWarning(authorEmail, 'SOW status notification');
+      return false;
+    }
     const template: EmailTemplate = {
       name: 'sow_status_change',
       subject: 'SOW {{status}}: {{sowTitle}}',
@@ -214,8 +256,7 @@ class EmailService {
       `
     };
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    const sowUrl = `${baseUrl}/sow/${sowId}`;
+    const sowUrl = getSOWUrl(sowId);
     const statusColor = status === 'approved' ? '#059669' : '#dc2626';
 
     return this.sendTemplateEmail(template, authorEmail, {
@@ -241,6 +282,19 @@ class EmailService {
     mentionedUserName: string,
     sowUrl: string
   ): Promise<boolean> {
+    // Validate mentioned user email domain
+    if (!mentionedUserEmail || typeof mentionedUserEmail !== 'string') {
+      console.error('❌ Invalid mentioned user email address provided');
+      return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const domain = mentionedUserEmail.toLowerCase().split('@')[1];
+    
+    if (!emailRegex.test(mentionedUserEmail) || domain !== 'leandata.com') {
+      logInvalidEmailWarning(mentionedUserEmail, 'mention notification');
+      return false;
+    }
     const template: EmailTemplate = {
       name: 'mention_notification',
       subject: 'You were mentioned in a SOW comment: {{sowTitle}}',
@@ -293,6 +347,19 @@ class EmailService {
     hoursToRemove: number,
     reason: string
   ): Promise<boolean> {
+    // Validate PM director email domain
+    if (!pmDirectorEmail || typeof pmDirectorEmail !== 'string') {
+      console.error('❌ Invalid PM director email address provided');
+      return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const domain = pmDirectorEmail.toLowerCase().split('@')[1];
+    
+    if (!emailRegex.test(pmDirectorEmail) || domain !== 'leandata.com') {
+      logInvalidEmailWarning(pmDirectorEmail, 'PM hours removal notification');
+      return false;
+    }
     const template: EmailTemplate = {
       name: 'pm_hours_removal_request',
       subject: 'PM Hours Removal Request: {{sowTitle}}',
@@ -322,8 +389,7 @@ class EmailService {
       `
     };
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    const requestUrl = `${baseUrl}/pmo/pm-hours-removal?id=${requestId}`;
+    const requestUrl = getPMHoursRemovalUrl(requestId);
 
     return this.sendTemplateEmail(template, pmDirectorEmail, {
       sowTitle,

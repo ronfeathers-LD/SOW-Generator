@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { getSlackService } from '@/lib/slack';
+import { getSOWUrl } from '@/lib/utils/app-url';
 
 export async function GET(
   request: Request,
@@ -327,8 +328,7 @@ export async function PUT(
 
             // Get SOW title from either direct field or template
             const clientName = sowDetails.client_name || 'Unknown Client';
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
-            const sowUrl = `${baseUrl}/sow/${id}`;
+            const sowUrl = getSOWUrl(id);
 
             await slackService.sendMessage(
               `:memo: *New SOW Submitted for Review*\n\n` +
@@ -373,8 +373,7 @@ export async function PUT(
 
             // Get SOW title from either direct field or template
             const clientName = sowDetails.client_name || 'Unknown Client';
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
-            const sowUrl = `${baseUrl}/sow/${id}`;
+            const sowUrl = getSOWUrl(id);
 
             await slackService.sendMessage(
               `:white_check_mark: *SOW Approved*\n\n` +
@@ -419,8 +418,7 @@ export async function PUT(
             }
 
             const clientName = sowDetails.client_name || 'Unknown Client';
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
-            const sowUrl = `${baseUrl}/sow/${id}`;
+            const sowUrl = getSOWUrl(id);
             const comments = data.approval_comments || 'No comments provided';
 
             await slackService.sendMessage(

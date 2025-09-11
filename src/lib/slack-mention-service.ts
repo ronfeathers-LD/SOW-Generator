@@ -4,6 +4,8 @@ import { SlackUserLookupService, SlackUser } from './slack-user-lookup';
 import { SlackService } from './slack';
 import { getEmailService } from './email';
 import { createServerSupabaseClient } from './supabase-server';
+import { filterValidLeandataEmails, logInvalidEmailWarning } from './utils/email-domain-validation';
+import { getSOWUrl } from './utils/app-url';
 
 export interface CommentMentionNotification {
   sowId: string;
@@ -28,8 +30,7 @@ export class SlackMentionService {
     sowId: string,
     sowTitle: string,
     clientName: string,
-    commentAuthor: string,
-    baseUrl: string = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    commentAuthor: string
   ): Promise<boolean> {
     try {
       // Check if comment has mentions
@@ -89,7 +90,7 @@ export class SlackMentionService {
         commentText,
         commentAuthor,
         mentionedUsers: usersWithSlackIds,
-        sowUrl: `${baseUrl}/sow/${sowId}`
+        sowUrl: getSOWUrl(sowId)
       };
 
       // Send Slack notification
@@ -308,10 +309,22 @@ export class SlackMentionService {
         return;
       }
 
+      // Filter to only @leandata.com email addresses
+      const validLeandataEmails = filterValidLeandataEmails(userEmails);
+      
+      // Log warnings for invalid emails
+      const invalidEmails = userEmails.filter(email => !validLeandataEmails.includes(email));
+      invalidEmails.forEach(email => logInvalidEmailWarning(email, 'mention notification'));
+
+      if (validLeandataEmails.length === 0) {
+        console.log('No @leandata.com email addresses found for mentioned users');
+        return;
+      }
+
       const { data: users } = await supabase
         .from('users')
         .select('id, name, email')
-        .in('email', userEmails);
+        .in('email', validLeandataEmails);
 
       if (!users || users.length === 0) {
         console.log('No mentioned users found in database for email notifications');

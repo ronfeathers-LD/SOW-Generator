@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { createServiceRoleClient } from './supabase-server';
 
 export interface GeminiLogEntry {
   id?: string;
@@ -67,7 +67,8 @@ export class GeminiLoggingService {
         }
       };
 
-      // Insert into database
+      // Insert into database using service role client
+      const supabase = createServiceRoleClient();
       const { error: insertError } = await supabase
         .from('gemini_logs')
         .insert(logEntry);
@@ -95,6 +96,7 @@ export class GeminiLoggingService {
     offset?: number;
   } = {}): Promise<GeminiLogEntry[]> {
     try {
+      const supabase = createServiceRoleClient();
       let query = supabase
         .from('gemini_logs')
         .select('*')
@@ -166,6 +168,7 @@ export class GeminiLoggingService {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
       
+      const supabase = createServiceRoleClient();
       const { data, error } = await supabase
         .from('gemini_logs')
         .delete()

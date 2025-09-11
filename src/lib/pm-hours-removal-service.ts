@@ -1,6 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PMHoursRequirementDisableRequest, PMHoursComment, PMHoursRequirementDisableDashboardItem } from '@/types/sow';
 import { getEmailService } from './email';
+import { filterValidLeandataEmails, logInvalidEmailWarning } from './utils/email-domain-validation';
 
 // Fallback client for client-side usage
 const fallbackSupabase = createClient(
@@ -685,6 +686,19 @@ export class PMHoursRemovalService {
         return;
       }
 
+      // Filter to only @leandata.com email addresses
+      const pmoEmails = pmoUsers.map(user => user.email);
+      const validLeandataEmails = filterValidLeandataEmails(pmoEmails);
+      
+      // Log warnings for invalid emails
+      const invalidEmails = pmoEmails.filter(email => !validLeandataEmails.includes(email));
+      invalidEmails.forEach(email => logInvalidEmailWarning(email, 'PM hours removal notification'));
+
+      if (validLeandataEmails.length === 0) {
+        console.log('No @leandata.com PMO users found for email notification');
+        return;
+      }
+
       // Get email service
       const emailService = await getEmailService();
       if (!emailService) {
@@ -692,13 +706,13 @@ export class PMHoursRemovalService {
         return;
       }
 
-      // Send email to each PMO user
-      const emailPromises = pmoUsers.map(pmoUser => 
+      // Send email to each valid PMO user
+      const emailPromises = validLeandataEmails.map(email => 
         emailService.sendPMHoursRemovalNotification(
           request.id,
           sow.title,
           sow.client_name,
-          pmoUser.email,
+          email,
           requester.name || requester.email,
           request.hours_to_remove || 0,
           request.reason
@@ -706,7 +720,7 @@ export class PMHoursRemovalService {
       );
 
       await Promise.all(emailPromises);
-      console.log(`Sent PM hours removal notifications to ${pmoUsers.length} PMO users`);
+      console.log(`Sent PM hours removal notifications to ${validLeandataEmails.length} PMO users`);
     } catch (error) {
       console.error('Error sending PM hours removal emails:', error);
       throw error;

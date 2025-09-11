@@ -1,3 +1,5 @@
+import { getSOWUrl } from './utils/app-url';
+
 interface SlackMessage {
   text?: string;
   blocks?: SlackBlock[];
@@ -215,7 +217,7 @@ class SlackService {
             emoji: true
           },
           style: 'primary',
-          url: `${process.env.NEXT_PUBLIC_APP_URL}/sow/${sowId}`
+          url: getSOWUrl(sowId)
         }
       ]
     });
@@ -305,7 +307,7 @@ class SlackService {
               emoji: true
             },
             style: 'primary',
-            url: `${process.env.NEXT_PUBLIC_APP_URL}/sow/${sowId}`
+            url: getSOWUrl(sowId)
           }
         ]
       }
@@ -395,7 +397,7 @@ class SlackService {
               emoji: true
             },
             style: 'primary',
-            url: `${process.env.NEXT_PUBLIC_APP_URL}/sow/${sowId}`
+            url: getSOWUrl(sowId)
           }
         ]
       }
@@ -484,7 +486,7 @@ class SlackService {
               emoji: true
             },
             style: 'primary',
-            url: `${process.env.NEXT_PUBLIC_APP_URL}/sow/${sowId}`
+            url: getSOWUrl(sowId)
           }
         ]
       }
