@@ -11,6 +11,15 @@ interface ObjectivesTabProps {
   selectedAccount?: SalesforceAccount | null;
 }
 
+interface AvomaRecording {
+  id: string;
+  url: string;
+  transcription?: string;
+  title?: string;
+  date?: string;
+  status: 'pending' | 'completed' | 'failed';
+}
+
 export default function ObjectivesTab({
   formData,
   setFormData,
@@ -127,6 +136,7 @@ export default function ObjectivesTab({
       newRecording
     ];
     
+    // Update state first
     setFormData({
       ...formData,
       objectives: {
@@ -138,7 +148,7 @@ export default function ObjectivesTab({
     setNewAvomaUrl('');
     
     // Automatically fetch transcription for the new recording
-    await handleFetchTranscriptionForRecording(newRecording.id);
+    await handleFetchTranscriptionForRecording(newRecording);
   };
 
   // Remove Avoma recording
@@ -156,8 +166,7 @@ export default function ObjectivesTab({
   };
 
   // Fetch transcription for a specific recording
-  const handleFetchTranscriptionForRecording = async (recordingId: string) => {
-    const recording = formData.objectives?.avoma_recordings?.find(r => r.id === recordingId);
+  const handleFetchTranscriptionForRecording = async (recording: AvomaRecording) => {
     if (!recording) return;
     
     setIsFetchingTranscription(true);
@@ -182,7 +191,7 @@ export default function ObjectivesTab({
 
       // Update the specific recording with transcription
       const updatedRecordings = (formData.objectives?.avoma_recordings || []).map(r => 
-        r.id === recordingId 
+        r.id === recording.id 
           ? { ...r, transcription: result.transcription, status: 'completed' as const }
           : r
       );
@@ -200,7 +209,7 @@ export default function ObjectivesTab({
       
       // Update recording status to failed
       const updatedRecordings = (formData.objectives?.avoma_recordings || []).map(r => 
-        r.id === recordingId 
+        r.id === recording.id 
           ? { ...r, status: 'failed' as const }
           : r
       );
@@ -803,7 +812,8 @@ export default function ObjectivesTab({
         <div className="mb-8">
           <h3 className="text-lg font-semibold mb-4 text-gray-900">Avoma Recordings & Transcriptions</h3>
           <p className="text-sm text-gray-600 mb-4">
-            Add multiple Avoma meeting URLs to automatically fetch transcriptions and generate comprehensive objectives and deliverables.
+            Add multiple Avoma meeting URLs to automatically fetch transcriptions and generate comprehensive objectives and deliverables. 
+            <span className="font-medium text-blue-600">Transcriptions will be fetched automatically when you add a recording.</span>
           </p>
           
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
@@ -821,10 +831,10 @@ export default function ObjectivesTab({
                                   <button
                     type="button"
                     onClick={handleAddAvomaRecording}
-                    disabled={!newAvomaUrl.trim()}
+                    disabled={!newAvomaUrl.trim() || isFetchingTranscription}
                     className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Add Recording
+                    {isFetchingTranscription ? 'Adding & Fetching...' : 'Add Recording'}
                   </button>
               </div>
             </div>
@@ -882,18 +892,17 @@ export default function ObjectivesTab({
                   </div>
 
                   {recording.status === 'pending' && (
-                    <button
-                      onClick={() => handleFetchTranscriptionForRecording(recording.id)}
-                      disabled={isFetchingTranscription}
-                      className="w-full px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      {isFetchingTranscription ? 'Fetching...' : 'Fetch Transcription'}
-                    </button>
+                    <div className="w-full px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-md text-center">
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
+                        <span className="text-yellow-800 text-sm">Automatically fetching transcription...</span>
+                      </div>
+                    </div>
                   )}
 
                   {recording.status === 'failed' && (
                     <button
-                      onClick={() => handleFetchTranscriptionForRecording(recording.id)}
+                      onClick={() => handleFetchTranscriptionForRecording(recording)}
                       disabled={isFetchingTranscription}
                       className="w-full px-3 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 disabled:opacity-50"
                     >
