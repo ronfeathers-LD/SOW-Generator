@@ -8,6 +8,7 @@ export interface GeminiLogEntry {
   customer_name: string;
   transcript_length: number;
   prompt_content: string;
+  full_transcript?: string; // Store the complete transcript
   gemini_response: string;
   parsed_result?: Record<string, unknown>;
   error_message?: string;
@@ -46,6 +47,7 @@ export class GeminiLoggingService {
         customer_name: customerName,
         transcript_length: transcript.length,
         prompt_content: promptContent,
+        full_transcript: transcript, // Store the complete transcript
         gemini_response: geminiResponse,
         parsed_result: parsedResult,
         error_message: error?.message,
@@ -55,7 +57,7 @@ export class GeminiLoggingService {
         success: !error,
         metadata: {
           // Show transcript info without cluttering logs
-          transcript_info: `[TRANSCRIPT: ${transcript.length} characters] - Full transcript available in prompt_content`,
+          transcript_info: `[TRANSCRIPT: ${transcript.length} characters] - Full transcript stored in full_transcript field`,
           // Show response info
           response_length: geminiResponse.length,
           // Show parsing result info

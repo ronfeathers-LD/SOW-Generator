@@ -366,10 +366,13 @@ The response must be valid JSON. Do not include any text before or after the JSO
     // We use it as-is since the fixed structure already includes all the dynamic data
     const contentGuidance = aiPrompt.prompt_content;
 
-    // Combine fixed structure with editable guidance
+    // Combine fixed structure with editable guidance and include the actual transcript
     const finalPrompt = `${jsonStructure}
 
-${contentGuidance}`;
+${contentGuidance}
+
+ACTUAL TRANSCRIPT TO ANALYZE:
+${transcript}`;
 
 
 
