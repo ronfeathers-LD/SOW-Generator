@@ -281,6 +281,10 @@ export class PDFGenerator {
     try {
       await this.initialize();
       
+      // Sort products for consistent display order
+      const productsArray = Array.isArray(sowData.products) ? sowData.products : (sowData.products ? [sowData.products] : []);
+      const sortedProducts = productsArray.length > 0 ? await sortProducts(productsArray) : [];
+      
       if (!this.browser) {
         throw new Error('Browser not initialized');
       }
@@ -292,7 +296,7 @@ export class PDFGenerator {
       try {
         // Generate HTML content for the SOW
         // Generating HTML content...
-        const htmlContent = this.generateSOWHTML(sowData);
+        const htmlContent = this.generateSOWHTML(sowData, sortedProducts);
         // HTML content generated, length: ${htmlContent.length}
         
         // Set content and wait for any dynamic content to load
@@ -347,14 +351,14 @@ export class PDFGenerator {
   private generatePDFAlternative(sowData: SOWData): Uint8Array {
     console.log('📄 Generating alternative PDF format (HTML file)...');
     
-    const htmlContent = this.generateSOWHTML(sowData);
+    const htmlContent = this.generateSOWHTML(sowData, []);
     const htmlBytes = new TextEncoder().encode(htmlContent);
     
     console.log('✅ Alternative HTML content generated, size:', htmlBytes.length, 'bytes');
     return htmlBytes;
   }
 
-  private generateSOWHTML(sowData: SOWData): string {
+  private generateSOWHTML(sowData: SOWData, sortedProducts: string[] = []): string {
     const title = sowData.sow_title || 'Untitled SOW';
     const clientName = sowData.client_name || 'Unknown Client';
     const companyLogo = sowData.company_logo || '';
@@ -785,11 +789,11 @@ export class PDFGenerator {
             <div class="content">
               <p>The following are the high-level details as part of the implementation:</p>
               <ul>
-                ${sowData.products && Array.isArray(sowData.products) && sowData.products.length > 0 ? `
+                ${sortedProducts.length > 0 ? `
                 <li>
                   <strong>Products:</strong>
                   <ul>
-                    ${sortProducts(sowData.products).map((product: string) => `<li>${product}</li>`).join('')}
+                    ${sortedProducts.map((product: string) => `<li>${product}</li>`).join('')}
                   </ul>
                 </li>
                 ` : ''}

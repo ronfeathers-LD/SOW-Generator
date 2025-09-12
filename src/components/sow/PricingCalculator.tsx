@@ -2,7 +2,7 @@
 
 
 import { SOWData } from '@/types/sow';
-import { sortProducts } from '@/lib/utils/productSorting';
+// Note: Products are already sorted by sort_order when fetched from API
 import { calculateProductHoursForProduct, calculateAccountSegmentHours } from '@/lib/hours-calculation-utils';
 
 interface PricingCalculatorProps {
@@ -53,7 +53,7 @@ export default function PricingCalculator({
               <h4 className="font-medium text-gray-900 mb-3">Selected Products & Units:</h4>
               {formData.template?.products && Array.isArray(formData.template.products) && formData.template.products.length > 0 ? (
                 <div className="space-y-2">
-                  {sortProducts(formData.template.products)
+                  {formData.template.products
                     .filter((product: string) => product !== 'BookIt Links') // Exclude BookIt Links from pricing calculation
                     .map((product: string, index: number) => {
                     let unitValue = '';
