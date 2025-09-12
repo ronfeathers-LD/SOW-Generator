@@ -278,6 +278,7 @@ class SalesforceClient {
       // Calculate account segment for each account based on NumberOfEmployees
       result.records.forEach((record: Record<string, unknown>) => {
         const numberOfEmployees = record.NumberOfEmployees as number;
+        const accountName = record.Name as string;
         
         if (numberOfEmployees !== null && numberOfEmployees !== undefined && typeof numberOfEmployees === 'number') {
           let calculatedSegment = '';
@@ -292,6 +293,10 @@ class SalesforceClient {
           }
           
           record.Account_Segment__c = calculatedSegment;
+          console.log(`✅ Search: Calculated Account Segment for ${accountName}: ${calculatedSegment} (${numberOfEmployees} employees)`);
+        } else {
+          console.log(`⚠️ Search: No employee count available for ${accountName}`);
+          record.Account_Segment__c = undefined;
         }
       });
       
@@ -324,15 +329,13 @@ class SalesforceClient {
       
       // Calculate account segment based on NumberOfEmployees using the same logic as Salesforce formula
       try {
-        const segmentQuery = `SELECT NumberOfEmployees, Segment__c, Market_Segment__c, Customer_Tier__c FROM Account WHERE Id = '${accountId}'`;
-        const result = await this.conn.query(segmentQuery);
+        // First try to get NumberOfEmployees from the basic account query
+        const employeeQuery = `SELECT NumberOfEmployees FROM Account WHERE Id = '${accountId}'`;
+        const employeeResult = await this.conn.query(employeeQuery);
         
-        if (result.records.length > 0) {
-          const record = result.records[0];
+        if (employeeResult.records.length > 0) {
+          const record = employeeResult.records[0];
           const numberOfEmployees = record.NumberOfEmployees as number;
-          const segment = record.Segment__c as string;
-          const marketSegment = record.Market_Segment__c as string;
-          const customerTier = record.Customer_Tier__c as string;
           
           // Calculate segment using the same formula logic as Salesforce
           if (numberOfEmployees !== null && numberOfEmployees !== undefined && typeof numberOfEmployees === 'number') {
@@ -348,20 +351,19 @@ class SalesforceClient {
             }
             
             account.Account_Segment__c = calculatedSegment;
+            console.log(`✅ Calculated Account Segment for ${account.Name}: ${calculatedSegment} (${numberOfEmployees} employees)`);
           } else {
-            // Fallback to Salesforce fields if no employee count
-            if (segment) {
-              account.Account_Segment__c = segment;
-            } else if (marketSegment) {
-              account.Account_Segment__c = marketSegment;
-            } else if (customerTier) {
-              account.Account_Segment__c = customerTier;
-            }
+            console.log(`⚠️ No employee count available for ${account.Name}, setting Account Segment to undefined`);
+            account.Account_Segment__c = undefined;
           }
+        } else {
+          console.log(`⚠️ No account found for ID ${accountId}`);
+          account.Account_Segment__c = undefined;
         }
       } catch (segmentError) {
         console.error('Error calculating account segment:', segmentError);
-        account.Account_Segment__c = undefined;
+        // Don't set to undefined, let it remain as calculated from search
+        console.log(`⚠️ Error calculating segment for ${account.Name}, keeping existing value: ${account.Account_Segment__c}`);
       }
       
       return account;

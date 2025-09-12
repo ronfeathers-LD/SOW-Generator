@@ -41,8 +41,17 @@ export async function POST(request: NextRequest) {
     // Searching for accounts
     const salesforceAccounts = await salesforceClient.searchAccounts(searchTerm);
 
-    // Transform Salesforce account objects to match frontend expectations
+    // Return accounts in the format expected by the frontend
     const accounts = salesforceAccounts.map(account => ({
+      Id: account.Id,
+      Name: account.Name,
+      BillingCity: account.BillingCity,
+      BillingState: account.BillingState,
+      BillingCountry: account.BillingCountry,
+      Industry: account.Industry,
+      NumberOfEmployees: account.NumberOfEmployees,
+      Account_Segment__c: account.Account_Segment__c,
+      // Also include lowercase versions for compatibility
       id: account.Id,
       name: account.Name,
       billingCity: account.BillingCity,
