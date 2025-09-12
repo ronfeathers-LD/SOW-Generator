@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { PMHoursRequirementDisableRequest } from '@/types/sow';
 import PMHoursRemovalModal from './PMHoursRemovalModal';
 import PMHoursRemovalApprovalOverlay from './PMHoursRemovalApprovalOverlay';
-import { calculateAllHours, calculateRoleHoursDistribution, HOURS_CALCULATION_RULES } from '@/lib/hours-calculation-utils';
+import { calculateAllHours, calculateRoleHoursDistribution, HOURS_CALCULATION_RULES, calculateProductHoursForProduct } from '@/lib/hours-calculation-utils';
 
 interface PricingRole {
   id: string;
@@ -18,6 +18,8 @@ interface PricingRolesAndDiscountProps {
     template?: {
       products?: string[];
       number_of_units?: string;
+      orchestration_units?: string;
+      units_consumption?: string;
       bookit_forms_units?: string;
       bookit_links_units?: string;
       bookit_handoff_units?: string;
@@ -70,6 +72,21 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   // Use shared utility to calculate all hours
   const hoursResult = calculateAllHours(formData.template || {}, selectedAccount?.Account_Segment__c);
   const { productHours, userGroupHours, accountSegmentHours, baseProjectHours, pmHours, totalUnits, shouldAddProjectManager } = hoursResult;
+
+  // Helper function to get units for a specific product
+  const getProductUnits = (product: string): string => {
+    if (product === 'Lead to Account Matching' || product === 'Lead Routing' || product === 'Contact Routing' || product === 'Account Routing' || product === 'Opportunity Routing' || product === 'Case Routing') {
+      return formData.template?.orchestration_units || formData.template?.number_of_units || formData.template?.units_consumption || '0';
+    } else if (product === 'BookIt for Forms') {
+      return (formData.template?.bookit_forms_units || '0');
+    } else if (product === 'BookIt Handoff (without Smartrep)') {
+      return (formData.template?.bookit_handoff_units || '0');
+    } else if (product === 'BookIt Handoff (with Smartrep)') {
+      return (formData.template?.bookit_handoff_units || '0');
+    }
+    
+    return '0';
+  };
 
   // Get total units for display
   const getTotalUnits = useCallback((): number => {
@@ -651,19 +668,24 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <h4 className="font-medium text-gray-900 mb-3">Selected Products & Units:</h4>
                   <div className="space-y-2">
-                    {formData.template?.products?.map((product: string) => (
-                      <div key={product} className="flex justify-between items-center p-2 bg-white rounded border">
-                        <span className="font-medium text-gray-700">{product}</span>
-                        <div className="text-right">
-                          <div className="text-sm text-gray-600">
-                            <div>Units: {totalUnits} users/endpoints</div>
-                            <div className="text-blue-600 font-medium">
-                              Hours: {productHours} hrs
+                    {formData.template?.products?.map((product: string) => {
+                      const productUnits = getProductUnits(product);
+                      const individualProductHours = calculateProductHoursForProduct(product, formData.template?.products || []);
+                      
+                      return (
+                        <div key={product} className="flex justify-between items-center p-2 bg-white rounded border">
+                          <span className="font-medium text-gray-700">{product}</span>
+                          <div className="text-right">
+                            <div className="text-sm text-gray-600">
+                              <div>Units: {productUnits} {productUnits === '1' ? 'user/endpoint' : 'users/endpoints'}</div>
+                              <div className="text-blue-600 font-medium">
+                                Hours: {individualProductHours} {individualProductHours === 1 ? 'hr' : 'hrs'}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
                 
