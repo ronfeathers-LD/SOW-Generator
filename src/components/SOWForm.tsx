@@ -350,6 +350,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         const data = await response.json();
         if (data.success && data.data?.account_data) {
           const accountData = data.data.account_data;
+          console.log('🔍 Loading stored Salesforce data:', accountData);
+          console.log('🔍 Account segment from stored data:', accountData.account_segment);
+          
           // Update selectedAccount with stored data including account_segment
           setSelectedAccount({
             Id: accountData.id,
@@ -363,6 +366,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             Billing_Email__c: '',
             Account_Segment__c: accountData.account_segment || ''
           });
+          
+          console.log('✅ Set selectedAccount with Account_Segment__c:', accountData.account_segment);
         }
       }
     } catch (error) {
@@ -1060,13 +1065,44 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [tabs]);
 
+  // Update page title based on SOW data
+  useEffect(() => {
+    const updatePageTitle = () => {
+      const isEdit = !!initialData;
+      const sowTitle = formData.template?.sow_title || 'SOW';
+      const action = isEdit ? 'Edit' : 'View';
+      document.title = `${action} - ${sowTitle}`;
+    };
+
+    updatePageTitle();
+  }, [initialData, formData.template?.sow_title]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-gray-900">
-          {initialData ? 'Edit SOW' : 'Create New SOW'}
-              </h1>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {initialData ? `Edit ${formData.template?.sow_title || 'SOW'}` : 'Create New SOW'}
+                </h1>
+                {initialData && (
+                  <div className="mt-1">
+                    {selectedAccount?.Account_Segment__c ? (
+                 <span className="text-lg font-normal text-gray-600">
+                   (Using &quot;{selectedAccount.Account_Segment__c}&quot; project guidelines)
+                 </span>
+                    ) : selectedAccount ? (
+                      <span className="text-lg font-normal text-yellow-600">
+                        (account segment: {selectedAccount.Account_Segment__c || 'undefined'})
+                      </span>
+                    ) : (
+                      <span className="text-lg font-normal text-red-600">
+                        (no account selected)
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
         {initialData && (
           <div className="flex items-center space-x-3">
             <a
@@ -1177,7 +1213,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           </div>
         )}
 
-      <div className="space-y-8">
+      <div className="space-y-8 pb-20">
       {/* Tab Navigation */}
       <div className="mb-8 border-b border-gray-200">
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
@@ -1297,29 +1333,32 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         />
       )}
 
-      {/* Submit Button - Hidden for Content Editing, Signers & Roles, and Billing Information tabs since they have auto-save */}
-      {activeTab !== 'Content Editing' && activeTab !== 'Signers & Roles' && activeTab !== 'Billing Information' && (
-        <div className="flex justify-end">
-                <button
-            type="button"
-            onClick={handleTabSave}
-            disabled={isSaving}
-            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Saving...
-              </>
-            ) : (
-              `Save ${activeTab}`
-            )}
-                </button>
-        </div>
-      )}
+      {/* Floating Save Button - Always visible for all tabs */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          type="button"
+          onClick={handleTabSave}
+          disabled={isSaving}
+          className="inline-flex items-center px-6 py-3 border border-transparent shadow-lg text-sm font-medium rounded-full text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-xl"
+        >
+          {isSaving ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Saving...
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Save {activeTab}
+            </>
+          )}
+        </button>
+      </div>
     </div>
     </div>
   );

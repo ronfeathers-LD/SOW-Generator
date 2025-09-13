@@ -1,6 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PMHoursRequirementDisableRequest, PMHoursComment, PMHoursRequirementDisableDashboardItem } from '@/types/sow';
 import { getEmailService } from './email';
+import { getSlackService } from './slack';
 import { filterValidLeandataEmails, logInvalidEmailWarning } from './utils/email-domain-validation';
 
 // Fallback client for client-side usage
@@ -307,6 +308,14 @@ export class PMHoursRemovalService {
         client
       );
 
+      // Send notification to requester
+      try {
+        await this.sendApprovalNotification(request, approverId, comments, client);
+      } catch (notificationError) {
+        console.error('Error sending approval notification:', notificationError);
+        // Don't fail the approval if notification fails
+      }
+
       return { success: true };
     } catch (error) {
       console.error('Error in approveRequest:', error);
@@ -368,6 +377,14 @@ export class PMHoursRemovalService {
         { rejection_reason: reason },
         client
       );
+
+      // Send notification to requester
+      try {
+        await this.sendRejectionNotification(request, approverId, reason, client);
+      } catch (notificationError) {
+        console.error('Error sending rejection notification:', notificationError);
+        // Don't fail the rejection if notification fails
+      }
 
       return { success: true };
     } catch (error) {
@@ -652,11 +669,16 @@ export class PMHoursRemovalService {
   ): Promise<void> {
     try {
       // Get SOW information
-      const { data: sow } = await supabaseClient
+      const { data: sow, error: sowError } = await supabaseClient
         .from('sows')
-        .select('title, client_name')
+        .select('sow_title, client_name')
         .eq('id', sowId)
         .single();
+
+      if (sowError) {
+        console.error('Error querying SOW:', sowError);
+        return;
+      }
 
       if (!sow) {
         console.error('SOW not found for email notification:', sowId);
@@ -707,20 +729,33 @@ export class PMHoursRemovalService {
       }
 
       // Send email to each valid PMO user
-      const emailPromises = validLeandataEmails.map(email => 
-        emailService.sendPMHoursRemovalNotification(
-          request.id,
-          sow.title,
-          sow.client_name,
-          email,
-          requester.name || requester.email,
-          request.hours_to_remove || 0,
-          request.reason
-        )
-      );
+      const emailPromises = validLeandataEmails.map(async (email) => {
+        try {
+          return await emailService.sendPMHoursRemovalNotification(
+            request.id,
+            sow.sow_title,
+            sow.client_name,
+            email,
+            requester.name || requester.email,
+            request.hours_to_remove || 0,
+            request.reason
+          );
+        } catch (error) {
+          console.error(`Failed to send email to ${email}:`, error);
+          throw error;
+        }
+      });
 
-      await Promise.all(emailPromises);
+      await Promise.allSettled(emailPromises);
       console.log(`Sent PM hours removal notifications to ${validLeandataEmails.length} PMO users`);
+
+      // Send Slack notification
+      try {
+        await this.sendSlackNotification(request, sow, requester);
+      } catch (slackError) {
+        console.error('Error sending Slack notification for PM hours removal:', slackError);
+        // Don't fail the email notification if Slack fails
+      }
     } catch (error) {
       console.error('Error sending PM hours removal emails:', error);
       throw error;
@@ -890,6 +925,218 @@ export class PMHoursRemovalService {
     } catch (error) {
       console.error('Error in deleteRequest:', error);
       return { success: false, error: 'Internal server error' };
+    }
+  }
+
+  /**
+   * Send Slack notification for PM hours removal request
+   */
+  private static async sendSlackNotification(
+    request: PMHoursRequirementDisableRequest,
+    sow: { sow_title: string; client_name: string },
+    requester: { name: string; email: string }
+  ): Promise<void> {
+    try {
+      const slackService = await getSlackService();
+      if (!slackService) {
+        console.log('Slack service not configured - skipping Slack notification');
+        return;
+      }
+
+      const sowUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/pmo/pm-hours-removal`;
+      
+      const message = `:warning: *PM Hours Removal Request*\n\n` +
+        `*SOW:* ${sow.sow_title}\n` +
+        `*Client:* ${sow.client_name}\n` +
+        `*Requested by:* ${requester.name} (${requester.email})\n` +
+        `*Hours to remove:* ${request.hours_to_remove}\n` +
+        `*Reason:* ${request.reason}\n\n` +
+        `:link: <${sowUrl}|Review Request>\n\n` +
+        `This request requires PMO approval.`;
+
+      await slackService.sendMessage(message);
+      console.log('Slack notification sent for PM hours removal request');
+    } catch (error) {
+      console.error('Error sending Slack notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send approval notification to requester
+   */
+  private static async sendApprovalNotification(
+    request: PMHoursRequirementDisableRequest,
+    approverId: string,
+    comments: string | undefined,
+    supabaseClient: SupabaseClient
+  ): Promise<void> {
+    try {
+      // Get SOW information
+      const { data: sow } = await supabaseClient
+        .from('sows')
+        .select('sow_title, client_name')
+        .eq('id', request.sow_id)
+        .single();
+
+      if (!sow) {
+        console.error('SOW not found for approval notification:', request.sow_id);
+        return;
+      }
+
+      // Get requester information
+      const { data: requester } = await supabaseClient
+        .from('users')
+        .select('name, email')
+        .eq('id', request.requester_id)
+        .single();
+
+      if (!requester) {
+        console.error('Requester not found for approval notification:', request.requester_id);
+        return;
+      }
+
+      // Get approver information
+      const { data: approver } = await supabaseClient
+        .from('users')
+        .select('name, email')
+        .eq('id', approverId)
+        .single();
+
+      if (!approver) {
+        console.error('Approver not found for approval notification:', approverId);
+        return;
+      }
+
+      // Send email notification
+      const emailService = await getEmailService();
+      if (emailService) {
+        await emailService.sendPMHoursRemovalApprovalNotification(
+          request.id,
+          sow.sow_title,
+          sow.client_name,
+          requester.email,
+          requester.name,
+          approver.name,
+          request.hours_to_remove || 0,
+          comments || 'No comments provided'
+        );
+        console.log('Approval email sent to requester:', requester.email);
+      }
+
+      // Send Slack notification
+      try {
+        const slackService = await getSlackService();
+        if (slackService) {
+          const sowUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/sow/${request.sow_id}/edit`;
+          const message = `✅ *PM Hours Removal Request Approved*\n\n` +
+            `*SOW:* ${sow.sow_title}\n` +
+            `*Client:* ${sow.client_name}\n` +
+            `*Approved by:* ${approver.name}\n` +
+            `*Hours removed:* ${request.hours_to_remove}\n` +
+            `*Comments:* ${comments || 'No comments provided'}\n\n` +
+            `:link: <${sowUrl}|View SOW>\n\n` +
+            `Your PM hours removal request has been approved and the hours have been removed from the SOW.`;
+
+          await slackService.sendMessage(message);
+          console.log('Approval Slack notification sent');
+        }
+      } catch (slackError) {
+        console.error('Error sending approval Slack notification:', slackError);
+      }
+
+    } catch (error) {
+      console.error('Error sending approval notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send rejection notification to requester
+   */
+  private static async sendRejectionNotification(
+    request: PMHoursRequirementDisableRequest,
+    approverId: string,
+    reason: string,
+    supabaseClient: SupabaseClient
+  ): Promise<void> {
+    try {
+      // Get SOW information
+      const { data: sow } = await supabaseClient
+        .from('sows')
+        .select('sow_title, client_name')
+        .eq('id', request.sow_id)
+        .single();
+
+      if (!sow) {
+        console.error('SOW not found for rejection notification:', request.sow_id);
+        return;
+      }
+
+      // Get requester information
+      const { data: requester } = await supabaseClient
+        .from('users')
+        .select('name, email')
+        .eq('id', request.requester_id)
+        .single();
+
+      if (!requester) {
+        console.error('Requester not found for rejection notification:', request.requester_id);
+        return;
+      }
+
+      // Get approver information
+      const { data: approver } = await supabaseClient
+        .from('users')
+        .select('name, email')
+        .eq('id', approverId)
+        .single();
+
+      if (!approver) {
+        console.error('Approver not found for rejection notification:', approverId);
+        return;
+      }
+
+      // Send email notification
+      const emailService = await getEmailService();
+      if (emailService) {
+        await emailService.sendPMHoursRemovalRejectionNotification(
+          request.id,
+          sow.sow_title,
+          sow.client_name,
+          requester.email,
+          requester.name,
+          approver.name,
+          request.hours_to_remove || 0,
+          reason
+        );
+        console.log('Rejection email sent to requester:', requester.email);
+      }
+
+      // Send Slack notification
+      try {
+        const slackService = await getSlackService();
+        if (slackService) {
+          const sowUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/sow/${request.sow_id}/edit`;
+          const message = `❌ *PM Hours Removal Request Rejected*\n\n` +
+            `*SOW:* ${sow.sow_title}\n` +
+            `*Client:* ${sow.client_name}\n` +
+            `*Rejected by:* ${approver.name}\n` +
+            `*Hours requested:* ${request.hours_to_remove}\n` +
+            `*Reason:* ${reason}\n\n` +
+            `:link: <${sowUrl}|View SOW>\n\n` +
+            `Your PM hours removal request has been rejected. Please review the reason and consider resubmitting if appropriate.`;
+
+          await slackService.sendMessage(message);
+          console.log('Rejection Slack notification sent');
+        }
+      } catch (slackError) {
+        console.error('Error sending rejection Slack notification:', slackError);
+      }
+
+    } catch (error) {
+      console.error('Error sending rejection notification:', error);
+      throw error;
     }
   }
 }

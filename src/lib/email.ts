@@ -402,6 +402,122 @@ class EmailService {
   }
 
   /**
+   * Send PM hours removal approval notification to requester
+   */
+  async sendPMHoursRemovalApprovalNotification(
+    requestId: string,
+    sowTitle: string,
+    clientName: string,
+    requesterEmail: string,
+    requesterName: string,
+    approverName: string,
+    hoursRemoved: number,
+    comments: string
+  ): Promise<boolean> {
+    if (!this.config.apiKey || !this.config.fromEmail) {
+      console.error('Email service not configured');
+      return false;
+    }
+    const template: EmailTemplate = {
+      name: 'pm_hours_removal_approval',
+      subject: 'PM Hours Removal Request Approved: {{sowTitle}}',
+      htmlContent: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #10b981;">PM Hours Removal Request Approved</h2>
+          
+          <div style="background-color: #d1fae5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">{{sowTitle}}</h3>
+            <p><strong>Client:</strong> {{clientName}}</p>
+            <p><strong>Approved by:</strong> {{approverName}}</p>
+            <p><strong>Hours removed:</strong> {{hoursRemoved}}</p>
+            <p><strong>Comments:</strong> {{comments}}</p>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{sowUrl}}" 
+               style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              View SOW
+            </a>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px;">
+            Your PM hours removal request has been approved and the hours have been removed from the SOW.
+          </p>
+        </div>
+      `
+    };
+
+    const sowUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/sow/${requestId}/edit`;
+
+    return this.sendTemplateEmail(template, requesterEmail, {
+      sowTitle,
+      clientName,
+      approverName,
+      hoursRemoved: hoursRemoved.toString(),
+      comments,
+      sowUrl
+    });
+  }
+
+  /**
+   * Send PM hours removal rejection notification to requester
+   */
+  async sendPMHoursRemovalRejectionNotification(
+    requestId: string,
+    sowTitle: string,
+    clientName: string,
+    requesterEmail: string,
+    requesterName: string,
+    approverName: string,
+    hoursRequested: number,
+    reason: string
+  ): Promise<boolean> {
+    if (!this.config.apiKey || !this.config.fromEmail) {
+      console.error('Email service not configured');
+      return false;
+    }
+    const template: EmailTemplate = {
+      name: 'pm_hours_removal_rejection',
+      subject: 'PM Hours Removal Request Rejected: {{sowTitle}}',
+      htmlContent: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #ef4444;">PM Hours Removal Request Rejected</h2>
+          
+          <div style="background-color: #fee2e2; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">{{sowTitle}}</h3>
+            <p><strong>Client:</strong> {{clientName}}</p>
+            <p><strong>Rejected by:</strong> {{approverName}}</p>
+            <p><strong>Hours requested:</strong> {{hoursRequested}}</p>
+            <p><strong>Reason:</strong> {{reason}}</p>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{sowUrl}}" 
+               style="background-color: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              View SOW
+            </a>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px;">
+            Your PM hours removal request has been rejected. Please review the reason and consider resubmitting if appropriate.
+          </p>
+        </div>
+      `
+    };
+
+    const sowUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/sow/${requestId}/edit`;
+
+    return this.sendTemplateEmail(template, requesterEmail, {
+      sowTitle,
+      clientName,
+      approverName,
+      hoursRequested: hoursRequested.toString(),
+      reason,
+      sowUrl
+    });
+  }
+
+  /**
    * Log email sending activity
    */
   private async logEmail(log: EmailLog): Promise<void> {

@@ -114,9 +114,9 @@ export async function POST(request: Request) {
     );
 
     if (!result.success) {
+      console.error('Failed to create PM hours removal request:', result.error);
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
-
     return NextResponse.json({ 
       success: true, 
       request: result.request 

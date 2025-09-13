@@ -101,6 +101,10 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   const hoursResult = calculateAllHours(formData.template || {}, selectedAccount?.Account_Segment__c);
   const { productHours, userGroupHours, accountSegmentHours, baseProjectHours, pmHours, totalUnits, shouldAddProjectManager } = hoursResult;
 
+  // Debug logging
+  console.log('🔍 PricingRolesAndDiscount - Account_Segment__c:', selectedAccount?.Account_Segment__c);
+  console.log('🔍 PricingRolesAndDiscount - Should show PM removal link:', selectedAccount?.Account_Segment__c === 'EC' || selectedAccount?.Account_Segment__c === 'MM');
+
   // Helper function to get units for a specific product
   const getProductUnits = (product: string): string => {
     // Check if it's a routing product (by ID)
@@ -317,8 +321,13 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
     const roleToRemove = pricingRoles.find(role => role.id === id);
     
     if (roleToRemove?.role === 'Project Manager') {
-      // For Project Manager, open PM Hours Removal modal
-      setShowPMHoursRemovalModal(true);
+      // For Project Manager, only allow PM Hours Removal for EC and MM accounts
+      if (selectedAccount?.Account_Segment__c === 'EC' || selectedAccount?.Account_Segment__c === 'MM') {
+        setShowPMHoursRemovalModal(true);
+      } else {
+        // For other account segments, just remove the role directly
+        setPricingRoles(pricingRoles.filter(role => role.id !== id));
+      }
     } else {
       // For other roles, just remove them from the table
       setPricingRoles(pricingRoles.filter(role => role.id !== id));
@@ -466,16 +475,27 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
                   <span className="font-semibold text-gray-900">{roleDistribution.onboardingSpecialistHours} hours</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="font-medium text-gray-900">Project Manager (45%):</span>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-gray-900">{roleDistribution.projectManagerHours} hours</span>
-                    <button
-                      onClick={() => setShowPMHoursRemovalModal(true)}
-                      className="text-xs text-blue-600 hover:text-blue-800 underline"
-                    >
-                      (Request Removal)
-                    </button>
+                    <span className="font-medium text-gray-900">Project Manager (45%):</span>
+                    {(selectedAccount?.Account_Segment__c === 'EC' || selectedAccount?.Account_Segment__c === 'MM' || !selectedAccount?.Account_Segment__c) && (
+                      pendingPMHoursRequest ? (
+                        <button
+                          onClick={() => setShowPMHoursApprovalOverlay(true)}
+                          className="text-xs text-blue-600 hover:text-blue-800 underline"
+                        >
+                          (Request Pending)
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setShowPMHoursRemovalModal(true)}
+                          className="text-xs text-blue-600 hover:text-blue-800 underline"
+                        >
+                          (Request Removal)
+                        </button>
+                      )
+                    )}
                   </div>
+                  <span className="font-semibold text-gray-900">{roleDistribution.projectManagerHours} hours</span>
                 </div>
               </>
             )}

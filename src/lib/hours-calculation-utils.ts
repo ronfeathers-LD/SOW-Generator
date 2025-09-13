@@ -38,17 +38,17 @@ export function calculateProductHours(products: string[]): number {
   
   let totalHours = 0;
   
-  // Routing products: first = 15 hours, additional = 5 hours each
-  const routingProducts = products.filter(product => isRoutingProductById(product));
-  
-  if (routingProducts.length > 0) {
-    totalHours += 15 + (Math.max(0, routingProducts.length - 1) * 5);
-  }
-  
   // Lead to Account Matching: only if it's the only product (excluding BookIt Links)
   const productsExcludingBookItLinks = products.filter(product => !isLinksProductById(product));
   if (products.some(product => isLeadToAccountProductById(product)) && productsExcludingBookItLinks.length === 1) {
     totalHours += 15;
+  } else {
+    // Routing products: first = 15 hours, additional = 5 hours each (excluding Lead to Account Matching)
+    const routingProducts = products.filter(product => isRoutingProductById(product) && !isLeadToAccountProductById(product));
+    
+    if (routingProducts.length > 0) {
+      totalHours += 15 + (Math.max(0, routingProducts.length - 1) * 5);
+    }
   }
   
   // BookIt products
@@ -228,9 +228,13 @@ export function calculateProductHoursForProduct(product: string, allProducts: st
   let hours = 0;
   
   if (isLeadToAccountProductById(product)) {
-    // Only count if it's the only product
-    if (allProducts.length === 1) {
+    // Lead to Account Matching: 15 hours ONLY if it's the only product (excluding BookIt Links)
+    const productsExcludingBookItLinks = allProducts.filter(p => !isLinksProductById(p));
+    if (productsExcludingBookItLinks.length === 1) {
       hours = 15;
+    } else {
+      // If there are multiple products, Lead to Account Matching gets 0 hours
+      hours = 0;
     }
   } else if (isRoutingProductById(product)) {
     // Routing products: first = 15 hours, additional = 5 hours each
@@ -238,7 +242,7 @@ export function calculateProductHoursForProduct(product: string, allProducts: st
     
     // Sort routing products in the same order as the UI to ensure consistent first/additional logic
     // Use centralized category mapping for maintainability
-    const routingOrder = PRODUCT_IDS_BY_CATEGORY.routing.slice(0, -1); // Exclude Lead to Account Matching from routing order
+    const routingOrder = PRODUCT_IDS_BY_CATEGORY.routing; // Include all routing products in order
     const sortedRoutingProducts = routingProducts.sort((a, b) => {
       const aIndex = routingOrder.indexOf(a as typeof routingOrder[number]);
       const bIndex = routingOrder.indexOf(b as typeof routingOrder[number]);
