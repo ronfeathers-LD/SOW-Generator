@@ -20,10 +20,15 @@ export async function POST(request: NextRequest) {
         const supabase = await createServerSupabaseClient();
         
         // Fetch products with their sort_order to maintain proper order
+        // Check if selectedProducts contains IDs (UUIDs) or names
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const firstProduct = selectedProducts[0];
+        const isUsingIds = isUUID.test(firstProduct);
+        
         const { data: productsWithOrder, error } = await supabase
           .from('products')
           .select('name, sort_order')
-          .in('name', selectedProducts)
+          .in(isUsingIds ? 'id' : 'name', selectedProducts)
           .order('sort_order', { ascending: true });
         
         if (error) {

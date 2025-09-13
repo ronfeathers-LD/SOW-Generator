@@ -4,6 +4,15 @@ import PMHoursRemovalModal from './PMHoursRemovalModal';
 import PMHoursRemovalApprovalOverlay from './PMHoursRemovalApprovalOverlay';
 import { calculateAllHours, calculateRoleHoursDistribution, HOURS_CALCULATION_RULES, calculateProductHoursForProduct } from '@/lib/hours-calculation-utils';
 
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  is_active: boolean;
+  sort_order: number;
+}
+
 interface PricingRole {
   id: string;
   role: string;
@@ -23,6 +32,7 @@ interface PricingRolesAndDiscountProps {
       bookit_forms_units?: string;
       bookit_links_units?: string;
       bookit_handoff_units?: string;
+      other_products_units?: string;
     };
     [key: string]: unknown;
   };
@@ -67,7 +77,25 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   const [showPricingCalculator, setShowPricingCalculator] = useState(false);
   const [showPMHoursRemovalModal, setShowPMHoursRemovalModal] = useState(false);
   const [showPMHoursApprovalOverlay, setShowPMHoursApprovalOverlay] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isManuallyEditing, setIsManuallyEditing] = useState(false);
+
+  // Fetch products on component mount
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch('/api/products');
+        if (response.ok) {
+          const data = await response.json();
+          setProducts(data);
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   // Use shared utility to calculate all hours
   const hoursResult = calculateAllHours(formData.template || {}, selectedAccount?.Account_Segment__c);
@@ -75,14 +103,22 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
 
   // Helper function to get units for a specific product
   const getProductUnits = (product: string): string => {
-    if (product === 'Lead to Account Matching' || product === 'Lead Routing' || product === 'Contact Routing' || product === 'Account Routing' || product === 'Opportunity Routing' || product === 'Case Routing') {
+    // Check if it's a routing product (by ID)
+    if (product === 'b1f01145-94a9-4000-9f89-59555afedf03' || // Lead Routing
+        product === 'f59381c7-40b4-4def-b83f-053a2b6e48bd' || // Contact Routing
+        product === 'a9f4cc66-5649-4ae4-a7b5-cbfe89b2ef60' || // Account Routing
+        product === 'c980026d-08e0-49da-be39-fe37c40f47c7' || // Opportunity Routing
+        product === '5d83b73b-363b-4983-be2d-31d53058633e' || // Case Routing
+        product === '88415274-4cb2-409c-8c01-1c37f3a122bc' || // Any Object (custom) Routing
+        product === '4a3f2862-dbf2-4558-8b66-67701cbbee14') { // Lead to Account Matching
       return formData.template?.orchestration_units || formData.template?.number_of_units || formData.template?.units_consumption || '0';
-    } else if (product === 'BookIt for Forms') {
+    } else if (product === '6dde4839-6d67-4821-a7c7-18c227ffcc93') { // BookIt for Forms
       return (formData.template?.bookit_forms_units || '0');
-    } else if (product === 'BookIt Handoff (without Smartrep)') {
+    } else if (product === '6698b269-10b0-485b-be59-ad9c3cc33368' || // BookIt Handoff (without Smartrep)
+               product === '159b4183-ee40-4255-a7d0-968b1482e451') { // BookIt Handoff (with Smartrep)
       return (formData.template?.bookit_handoff_units || '0');
-    } else if (product === 'BookIt Handoff (with Smartrep)') {
-      return (formData.template?.bookit_handoff_units || '0');
+    } else if (product === 'c417d9e5-4792-40c2-b461-b8fec985948a') { // NotifyPlus
+      return (formData.template?.other_products_units || '0');
     }
     
     return '0';
@@ -431,7 +467,15 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-gray-900">Project Manager (45%):</span>
-                  <span className="font-semibold text-gray-900">{roleDistribution.projectManagerHours} hours</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-gray-900">{roleDistribution.projectManagerHours} hours</span>
+                    <button
+                      onClick={() => setShowPMHoursRemovalModal(true)}
+                      className="text-xs text-blue-600 hover:text-blue-800 underline"
+                    >
+                      (Request Removal)
+                    </button>
+                  </div>
                 </div>
               </>
             )}
@@ -672,9 +716,15 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
                       const productUnits = getProductUnits(product);
                       const individualProductHours = calculateProductHoursForProduct(product, formData.template?.products || []);
                       
+                      // Get product name from products array
+                      const getProductName = (productId: string): string => {
+                        const product = products.find(p => p.id === productId);
+                        return product?.name || productId;
+                      };
+                      
                       return (
                         <div key={product} className="flex justify-between items-center p-2 bg-white rounded border">
-                          <span className="font-medium text-gray-700">{product}</span>
+                          <span className="font-medium text-gray-700">{getProductName(product)}</span>
                           <div className="text-right">
                             <div className="text-sm text-gray-600">
                               <div>Units: {productUnits} {productUnits === '1' ? 'user/endpoint' : 'users/endpoints'}</div>

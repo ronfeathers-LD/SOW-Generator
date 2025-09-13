@@ -115,6 +115,7 @@ export async function GET(
         bookit_forms_units: sow.bookit_forms_units || '',
         bookit_links_units: sow.bookit_links_units || '',
         bookit_handoff_units: sow.bookit_handoff_units || '',
+        other_products_units: sow.other_products_units || '',
         opportunity_id: sow.opportunity_id || '',
         opportunity_name: sow.opportunity_name || '',
         opportunity_amount: sow.opportunity_amount || undefined,

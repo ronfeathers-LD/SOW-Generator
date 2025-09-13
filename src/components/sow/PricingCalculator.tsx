@@ -4,21 +4,36 @@
 import { SOWData } from '@/types/sow';
 // Note: Products are already sorted by sort_order when fetched from API
 import { calculateProductHoursForProduct, calculateAccountSegmentHours } from '@/lib/hours-calculation-utils';
+import { isLinksProductById, isRoutingProductById, isLeadToAccountProductById, isFormsProductById, isHandoffProductById, isNoCostProductById, isOtherProduct } from '@/lib/constants/products';
+
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  is_active: boolean;
+  sort_order: number;
+}
 
 interface PricingCalculatorProps {
   formData: SOWData; // Use proper SOWData type
   selectedAccount?: { Account_Segment__c?: string } | null;
+  products?: Product[];
 }
 
 export default function PricingCalculator({ 
   formData, 
   selectedAccount,
+  products = [],
 }: PricingCalculatorProps) {
 
   // Calculate hours for each product using shared utility
   const calculateProductHours = (product: string): number => {
     // Filter out BookIt Links from the product list for accurate calculation
-    const filteredProducts = (formData.template?.products || []).filter(p => p !== 'BookIt Links');
+    const filteredProducts = (formData.template?.products || []).filter(p => {
+      const productObj = products.find(prod => prod.id === p || prod.name === p);
+      return productObj ? !isLinksProductById(productObj.id) : true;
+    });
     return calculateProductHoursForProduct(product, filteredProducts);
   };
 
@@ -54,27 +69,34 @@ export default function PricingCalculator({
               {formData.template?.products && Array.isArray(formData.template.products) && formData.template.products.length > 0 ? (
                 <div className="space-y-2">
                   {formData.template.products
-                    .filter((product: string) => product !== 'BookIt Links') // Exclude BookIt Links from pricing calculation
+                    .filter((product: string) => {
+                      const productObj = products.find(p => p.id === product || p.name === product);
+                      return productObj ? !isLinksProductById(productObj.id) : true;
+                    }) // Exclude BookIt Links from pricing calculation
                     .map((product: string, index: number) => {
                     let unitValue = '';
                     let isNoCost = false;
                     
-                    if (product === 'Lead to Account Matching' || product === 'Lead Routing' || product === 'Contact Routing' || product === 'Account Routing' || product === 'Opportunity Routing' || product === 'Case Routing') {
+                    const productObj = products.find(p => p.id === product || p.name === product);
+                    
+                    if (productObj && (isRoutingProductById(productObj.id) || isLeadToAccountProductById(productObj.id))) {
                       unitValue = formData.template?.number_of_units || formData.template?.units_consumption || '0';
-                    } else if (product === 'BookIt for Forms') {
+                    } else if (productObj && isFormsProductById(productObj.id)) {
                       unitValue = getSharedBookItUserCount();
-                    } else if (product === 'BookIt Handoff (without Smartrep)') {
+                    } else if (productObj && isHandoffProductById(productObj.id)) {
                       unitValue = getSharedBookItUserCount();
-                      isNoCost = true;
-                    } else if (product === 'BookIt Handoff (with Smartrep)') {
-                      unitValue = getSharedBookItUserCount();
+                      if (isNoCostProductById(productObj.id)) {
+                        isNoCost = true;
+                      }
+                    } else if (productObj && isOtherProduct(productObj)) {
+                      unitValue = formData.template?.other_products_units || '0';
                     }
                     
                     const productHours = calculateProductHours(product);
                     
                     return (
                       <div key={`pricing-product-${index}-${product.slice(0, 15)}`} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                        <span className="font-medium text-gray-700">{product}</span>
+                        <span className="font-medium text-gray-700">{productObj?.name || product}</span>
                         <div className="text-right">
                           <div className="text-sm text-gray-600">
                             <div>Units: {unitValue} {unitValue === '1' ? 'user/endpoint' : 'users/endpoints'}</div>

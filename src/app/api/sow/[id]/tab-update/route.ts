@@ -48,10 +48,20 @@ export async function PUT(
           if (data.template.bookit_forms_units !== undefined) updateData.bookit_forms_units = data.template.bookit_forms_units;
           if (data.template.bookit_links_units !== undefined) updateData.bookit_links_units = data.template.bookit_links_units;
           if (data.template.bookit_handoff_units !== undefined) updateData.bookit_handoff_units = data.template.bookit_handoff_units;
-          
-          // Handle Orchestration Units (number_of_units)
-          if (data.template.number_of_units !== undefined) updateData.orchestration_units = data.template.number_of_units;
+          if (data.template.other_products_units !== undefined) {
+            updateData.other_products_units = data.template.other_products_units;
+            console.log('✅ Setting other_products_units from template to:', data.template.other_products_units);
+          }
         }
+        
+        // Also check for other_products_units at root level (fallback)
+        if (data.other_products_units !== undefined) {
+          updateData.other_products_units = data.other_products_units;
+          console.log('✅ Setting other_products_units from root to:', data.other_products_units);
+        }
+        
+        // Handle Orchestration Units (number_of_units)
+        if (data.template?.number_of_units !== undefined) updateData.orchestration_units = data.template.number_of_units;
 
         // Handle products - use JSONB field
         if (data.template?.products !== undefined) {

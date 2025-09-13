@@ -55,6 +55,7 @@ export interface SOWTemplate {
   bookit_forms_units: string;
   bookit_links_units: string;
   bookit_handoff_units: string;
+  other_products_units: string;
   
   // Billing Information
   billing_company_name: string;

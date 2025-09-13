@@ -1,10 +1,20 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SOWData } from '@/types/sow';
+import { isRoutingProductById, isLeadToAccountProductById, isFormsProductById, isLinksProductById, isHandoffProductById, isOtherProduct } from '@/lib/constants/products';
+import { 
+  findProductByIdOrName, 
+  isProductSelectedByIdOrName, 
+  isAnyRoutingProductSelected, 
+  isAnyBookItProductSelected, 
+  isFormsProductSelected, 
+  isHandoffProductSelected 
+} from '@/lib/utils/productCompatibility';
 
 interface Product {
   id: string;
   name: string;
   description: string;
+  category: string;
   is_active: boolean;
   sort_order: number;
 }
@@ -76,29 +86,32 @@ export default function ProjectOverviewTab({
 
   const selectedProducts = useMemo(() => formData.template?.products || [], [formData.template?.products]);
   
-  const handleProductToggle = (productName: string) => {
+  const handleProductToggle = (identifier: string) => {
     const currentProducts = formData.template?.products || [];
-    const isCurrentlySelected = currentProducts.includes(productName);
-    
+    const isCurrentlySelected = currentProducts.includes(identifier);
+
     // Handle mutual exclusivity for BookIt Handoff variants
     let newProducts: string[];
-    if (productName === 'BookIt Handoff (with Smartrep)' || productName === 'BookIt Handoff (without Smartrep)') {
+    const product = findProductByIdOrName(products, identifier);
+    const isHandoffProductSelected = product && isHandoffProductById(product.id);
+    
+    if (isHandoffProductSelected) {
       if (isCurrentlySelected) {
         // If deselecting, just remove the current one
-        newProducts = currentProducts.filter(p => p !== productName);
+        newProducts = currentProducts.filter(p => p !== identifier);
       } else {
         // If selecting, remove the other variant and add the current one
-        newProducts = currentProducts.filter(p => 
-          p !== 'BookIt Handoff (with Smartrep)' && 
-          p !== 'BookIt Handoff (without Smartrep)'
-        );
-        newProducts.push(productName);
+        newProducts = currentProducts.filter(p => {
+          const otherProduct = findProductByIdOrName(products, p);
+          return !otherProduct || !isHandoffProductById(otherProduct.id);
+        });
+        newProducts.push(identifier);
       }
     } else {
       // Normal toggle behavior for other products
       newProducts = isCurrentlySelected
-        ? currentProducts.filter(p => p !== productName)
-        : [...currentProducts, productName];
+        ? currentProducts.filter(p => p !== identifier)
+        : [...currentProducts, identifier];
     }
     
     // Prepare the updated template with new products
@@ -106,7 +119,8 @@ export default function ProjectOverviewTab({
     
     // Clear validation error and field value when product is deselected
     if (isCurrentlySelected) {
-      const fieldName = getUnitFieldName(productName);
+      const product = findProductByIdOrName(products, identifier);
+      const fieldName = product ? getUnitFieldName(product.id) : null;
       if (fieldName) {
         setValidationErrors(prev => {
           const newErrors = { ...prev };
@@ -123,21 +137,18 @@ export default function ProjectOverviewTab({
           updatedTemplate.bookit_links_units = '';
         } else if (fieldName === 'bookit_handoff_units') {
           updatedTemplate.bookit_handoff_units = '';
+        } else if (fieldName === 'other_products_units') {
+          updatedTemplate.other_products_units = '';
         }
       }
       
       // Special handling for routing products - clear number_of_units if no routing products remain
-      if (productName.toLowerCase().includes('routing') || 
-          productName.toLowerCase().includes('orchestration') ||
-          productName.toLowerCase().includes('lead') ||
-          productName.toLowerCase().includes('account')) {
+      if (product && (isRoutingProductById(product.id) || isLeadToAccountProductById(product.id))) {
         
-        const remainingProducts = newProducts.filter(p => 
-          p.toLowerCase().includes('routing') || 
-          p.toLowerCase().includes('orchestration') ||
-          p.toLowerCase().includes('lead') ||
-          p.toLowerCase().includes('account')
-        );
+        const remainingProducts = newProducts.filter(p => {
+          const remainingProduct = findProductByIdOrName(products, p);
+          return remainingProduct && (isRoutingProductById(remainingProduct.id) || isLeadToAccountProductById(remainingProduct.id));
+        });
         
         if (remainingProducts.length === 0) {
           setValidationErrors(prev => {
@@ -158,76 +169,72 @@ export default function ProjectOverviewTab({
     });
   };
 
-  const isProductSelected = (productName: string) => {
-    return selectedProducts.includes(productName);
+  const isProductSelected = (identifier: string) => {
+    return isProductSelectedByIdOrName(selectedProducts, identifier);
   };
 
-  // Group products by category
+  // Helper function to check if any BookIt product is selected
+  const isAnyBookItProductSelectedCallback = useCallback((): boolean => {
+    return isAnyBookItProductSelected(products, selectedProducts);
+  }, [selectedProducts, products]);
+
+  // Helper function to check if Forms product is selected
+  const isFormsProductSelectedCallback = useCallback((): boolean => {
+    return isFormsProductSelected(products, selectedProducts);
+  }, [selectedProducts, products]);
+
+
+  // Group products by category from database
   const groupProducts = (products: Product[]) => {
     const groups = {
       routing: {
         title: 'Routing & Orchestration',
         icon: '⚡',
         color: 'blue',
-        products: products.filter(p => 
-          p.name.toLowerCase().includes('routing') || 
-          p.name.toLowerCase().includes('orchestration') ||
-          p.name.toLowerCase().includes('lead') ||
-          p.name.toLowerCase().includes('account') ||
-          p.name.toLowerCase().includes('opportunity') ||
-          p.name.toLowerCase().includes('case')
-        )
+        products: products.filter(p => p.category === 'routing')
       },
       bookit: {
         title: 'BookIt Family',
         icon: '📋',
         color: 'green',
-        products: products.filter(p => 
-          p.name.toLowerCase().includes('bookit')
-        )
+        products: products.filter(p => p.category === 'bookit')
       },
       other: {
         title: 'Other Products',
         icon: '🔧',
         color: 'gray',
-        products: products.filter(p => 
-          !p.name.toLowerCase().includes('routing') && 
-          !p.name.toLowerCase().includes('orchestration') &&
-          !p.name.toLowerCase().includes('lead') &&
-          !p.name.toLowerCase().includes('account') &&
-          !p.name.toLowerCase().includes('opportunity') &&
-          !p.name.toLowerCase().includes('case') &&
-          !p.name.toLowerCase().includes('bookit')
-        )
+        products: products.filter(p => p.category === 'other')
       }
     };
 
     // Only return groups that have products
-              return Object.entries(groups).filter(([, group]) => group.products.length > 0);
+    return Object.entries(groups).filter(([, group]) => group.products.length > 0);
   };
 
   // Helper function to get the corresponding unit field name for a product
-  const getUnitFieldName = (productName: string): string | null => {
-    const productToFieldMap: Record<string, string> = {
-      'Orchestration': 'orchestration_units',
-      'BookIt for Forms': 'bookit_forms_units',
-      'BookIt Links': 'bookit_links_units',
-      'BookIt Handoff': 'bookit_handoff_units',
-      'BookIt Handoff (without Smartrep)': 'bookit_handoff_units',
-      'BookIt Handoff (with Smartrep)': 'bookit_handoff_units'
-    };
-    return productToFieldMap[productName] || null;
+  const getUnitFieldName = (productId: string): string | null => {
+    if (isRoutingProductById(productId) || isLeadToAccountProductById(productId)) {
+      return 'orchestration_units';
+    } else if (isFormsProductById(productId)) {
+      return 'bookit_forms_units';
+    } else if (isLinksProductById(productId)) {
+      return 'bookit_links_units';
+    } else if (isHandoffProductById(productId)) {
+      return 'bookit_handoff_units';
+    } else {
+      // Check if it's an "other" product by looking up the product in the products array
+      const product = products.find(p => p.id === productId);
+      if (product && isOtherProduct(product)) {
+        return 'other_products_units';
+      }
+    }
+    return null;
   };
 
   // Helper function to check if any routing product is selected
-  const isAnyRoutingProductSelected = useCallback((): boolean => {
-    return selectedProducts.some(productName => 
-      productName.toLowerCase().includes('routing') || 
-      productName.toLowerCase().includes('orchestration') ||
-      productName.toLowerCase().includes('lead') ||
-      productName.toLowerCase().includes('account')
-    );
-  }, [selectedProducts]);
+  const isAnyRoutingProductSelectedCallback = useCallback((): boolean => {
+    return isAnyRoutingProductSelected(products, selectedProducts);
+  }, [selectedProducts, products]);
 
   // Validation function
   const validateUnitFields = useCallback(() => {
@@ -235,48 +242,80 @@ export default function ProjectOverviewTab({
     
     // Helper function to check if a unit field is required
     const isUnitFieldRequired = (fieldName: string): boolean => {
-      const fieldToProductMap: Record<string, string[]> = {
-        'orchestration_units': ['Orchestration'],
-        'bookit_forms_units': ['BookIt for Forms'],
-        'bookit_links_units': ['BookIt Links'],
-        'bookit_handoff_units': ['BookIt Handoff', 'BookIt Handoff (without Smartrep)', 'BookIt Handoff (with Smartrep)'],
-        'number_of_units': [] // Will be handled separately for routing products
-      };
-      const productNames = fieldToProductMap[fieldName] || [];
-      
       if (fieldName === 'number_of_units') {
-        return isAnyRoutingProductSelected();
+        return isAnyRoutingProductSelectedCallback();
       }
       
-      return productNames.some(productName => selectedProducts.includes(productName));
+      return selectedProducts.some(identifier => {
+        const product = findProductByIdOrName(products, identifier);
+        if (!product) return false;
+        
+        switch (fieldName) {
+          case 'orchestration_units':
+            return isRoutingProductById(product.id) || isLeadToAccountProductById(product.id);
+          case 'bookit_forms_units':
+            return isFormsProductById(product.id);
+          case 'bookit_links_units':
+            return isLinksProductById(product.id);
+          case 'bookit_handoff_units':
+            return isHandoffProductById(product.id);
+          case 'other_products_units':
+            return product.category === 'other';
+          default:
+            return false;
+        }
+      });
     };
     
-    // Check each BookIt unit field
-    const unitFields = ['orchestration_units', 'bookit_forms_units', 'bookit_links_units', 'bookit_handoff_units', 'number_of_units'];
+    // Check each unit field
+    const unitFields = ['orchestration_units', 'bookit_forms_units', 'bookit_links_units', 'bookit_handoff_units', 'other_products_units', 'number_of_units'];
     
     unitFields.forEach(fieldName => {
       if (isUnitFieldRequired(fieldName)) {
         const value = formData.template?.[fieldName as keyof typeof formData.template] as string;
-        if (!value || value.trim() === '') {
-          const fieldToProductMap: Record<string, string[]> = {
-            'orchestration_units': ['Orchestration'],
-            'bookit_forms_units': ['BookIt for Forms'],
-            'bookit_links_units': ['BookIt Links'],
-            'bookit_handoff_units': ['BookIt Handoff', 'BookIt Handoff (without Smartrep)', 'BookIt Handoff (with Smartrep)'],
-            'number_of_units': ['Orchestration']
-          };
-          const productNames = fieldToProductMap[fieldName] || [];
-          const matchingSelectedProducts = productNames.filter(productName => selectedProducts.includes(productName));
+      if (!value || value.trim() === '') {
+          // Get product names for error messages based on field type
+          let productDisplayName = '';
           
-          if (fieldName === 'number_of_units') {
-            errors[fieldName] = 'Number of Units: Orchestration is required when any routing product is selected';
+          if (fieldName === 'number_of_units' || fieldName === 'orchestration_units') {
+            // Find routing products that are selected to show specific names
+            const routingProducts = selectedProducts
+              .map(identifier => findProductByIdOrName(products, identifier))
+              .filter(product => product && (isRoutingProductById(product.id) || isLeadToAccountProductById(product.id)))
+              .map(product => product!.name);
+            
+            if (routingProducts.length > 0) {
+              productDisplayName = routingProducts.join(', ');
+            } else {
+              productDisplayName = 'Routing products';
+            }
+          } else if (fieldName === 'bookit_forms_units') {
+            const formsProduct = products.find(p => isFormsProductById(p.id));
+            productDisplayName = formsProduct?.name || 'Forms product';
+          } else if (fieldName === 'bookit_links_units') {
+            const linksProduct = products.find(p => isLinksProductById(p.id));
+            productDisplayName = linksProduct?.name || 'Links product';
           } else if (fieldName === 'bookit_handoff_units') {
-            const productDisplayName = matchingSelectedProducts.length > 0 ? matchingSelectedProducts.join(' or ') : 'BookIt Handoff';
-            errors[fieldName] = `BookIt Handoff Units is required when ${productDisplayName} is selected`;
-          } else {
-            const productName = productNames[0];
-            errors[fieldName] = `${productName} Units is required when ${productName} is selected`;
+            const handoffProducts = products.filter(p => isHandoffProductById(p.id));
+            if (handoffProducts.length > 0) {
+              productDisplayName = handoffProducts.map(p => p.name).join(', ');
+            } else {
+              productDisplayName = 'BookIt Handoff products';
+            }
+          } else if (fieldName === 'other_products_units') {
+            const otherProducts = selectedProducts
+              .map(identifier => findProductByIdOrName(products, identifier))
+              .filter(product => product && product.category === 'other')
+              .map(product => product!.name);
+            
+            if (otherProducts.length > 0) {
+              productDisplayName = otherProducts.join(', ');
+            } else {
+              productDisplayName = 'Other products';
+            }
           }
+          
+          errors[fieldName] = `${productDisplayName} Units is required when ${productDisplayName} is selected`;
         }
       }
     });
@@ -285,7 +324,7 @@ export default function ProjectOverviewTab({
     const isValid = Object.keys(errors).length === 0;
     
     return isValid;
-  }, [formData, selectedProducts, isAnyRoutingProductSelected]);
+  }, [formData, selectedProducts, isAnyRoutingProductSelectedCallback, products]);
 
   // Run validation whenever form data or selected products change
   useEffect(() => {
@@ -320,19 +359,19 @@ export default function ProjectOverviewTab({
       <div className="bg-white shadow rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-4">SOW Title</h3>
         <div className="max-w-2xl">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
             <span className="inline-flex items-center">
               <svg className="w-4 h-4 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               Statement of Work Title
             </span>
-          </label>
-          <input
-            type="text"
+            </label>
+            <input
+              type="text"
             value={formData.template?.sow_title ?? getDefaultTitle()}
             onChange={(e) => setFormData({
-              ...formData,
+                  ...formData,
               template: { ...formData.template!, sow_title: e.target.value }
             })}
             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -343,7 +382,7 @@ export default function ProjectOverviewTab({
           </p>
         </div>
       </div>
-      
+
       {/* Project Configuration */}
       <div className="bg-white shadow rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-4">Project Configuration</h3>
@@ -375,7 +414,7 @@ export default function ProjectOverviewTab({
                 <svg className="w-4 h-4 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                 </svg>
-                Salesforce Tenants
+              Salesforce Tenants
               </span>
             </label>
             <input
@@ -395,7 +434,7 @@ export default function ProjectOverviewTab({
                 <svg className="w-4 h-4 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Timeline (Weeks)
+              Timeline (Weeks)
               </span>
             </label>
             <input
@@ -418,7 +457,7 @@ export default function ProjectOverviewTab({
                 <svg className="w-4 h-4 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
-                Units Consumption
+              Units Consumption
               </span>
             </label>
             <select
@@ -483,7 +522,7 @@ export default function ProjectOverviewTab({
                         {/* Group Products */}
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                           {group.products.map((product) => {
-                            const isSelected = isProductSelected(product.name);
+                            const isSelected = isProductSelected(product.id);
                             const colorClasses = {
                               blue: {
                                 selected: 'border-blue-500 bg-blue-50',
@@ -510,7 +549,7 @@ export default function ProjectOverviewTab({
                             return (
                               <div
                                 key={product.id}
-                                onClick={() => handleProductToggle(product.name)}
+                                onClick={() => handleProductToggle(product.id)}
                                 className={`
                                   relative p-3 border rounded-lg cursor-pointer transition-all duration-150 hover:shadow-sm
                                   ${isSelected ? colors.selected : colors.unselected}
@@ -543,7 +582,7 @@ export default function ProjectOverviewTab({
                         </div>
                         
                         {/* Unit Fields for this Group */}
-                        {groupKey === 'routing' && isAnyRoutingProductSelected() && (
+                        {groupKey === 'routing' && isAnyRoutingProductSelectedCallback() && (
                           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {/* Legacy Number of Units (for Orchestration) */}
@@ -576,10 +615,10 @@ export default function ProjectOverviewTab({
                           </div>
                         )}
                         
-                        {groupKey === 'bookit' && (isProductSelected('BookIt for Forms') || isProductSelected('BookIt Links') || isProductSelected('BookIt Handoff') || isProductSelected('BookIt Handoff (without Smartrep)') || isProductSelected('BookIt Handoff (with Smartrep)')) && (
+                        {groupKey === 'bookit' && isAnyBookItProductSelectedCallback() && (
                           <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {isProductSelected('BookIt for Forms') && (
+                              {isFormsProductSelectedCallback() && (
                                 <div>
                                   <label className="block text-sm font-medium text-green-700 mb-2">
                                     <span className="inline-flex items-center">
@@ -607,7 +646,7 @@ export default function ProjectOverviewTab({
                                 </div>
                               )}
                               
-                              {isProductSelected('BookIt Links') && (
+                              {isProductSelected('dbe57330-23a9-42bc-bef2-5bbfbcef4e09') && (
                                 <div>
                                   <label className="block text-sm font-medium text-green-700 mb-2">
                                     <span className="inline-flex items-center">
@@ -635,7 +674,7 @@ export default function ProjectOverviewTab({
                                 </div>
                               )}
                               
-                              {(isProductSelected('BookIt Handoff') || isProductSelected('BookIt Handoff (without Smartrep)') || isProductSelected('BookIt Handoff (with Smartrep)')) && (
+                              {isHandoffProductSelected(products, selectedProducts) && (
                                 <div>
                                   <label className="block text-sm font-medium text-green-700 mb-2">
                                     <span className="inline-flex items-center">
@@ -673,6 +712,54 @@ export default function ProjectOverviewTab({
             </div>
           </div>
         </div>
+        
+        {/* Other Products Unit Fields */}
+        {(() => {
+          // Check if any "other" products are selected
+          const otherProducts = selectedProducts.filter(identifier => {
+            const product = findProductByIdOrName(products, identifier);
+            return product ? product.category === 'other' : false;
+          });
+          return otherProducts.length > 0;
+        })() && (
+          <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <h4 className="text-lg font-medium text-gray-900 mb-4">
+              <span className="inline-flex items-center">
+                <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                Other Products Configuration
+              </span>
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <span className="inline-flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    Other Products Units
+                    <span className="text-red-500 ml-1">*</span>
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.template?.other_products_units || ''}
+                  onChange={(e) => handleUnitFieldChange('other_products_units', e.target.value)}
+                  className={`block w-full rounded-md shadow-sm focus:ring-gray-500 focus:border-gray-500 ${
+                    validationErrors.other_products_units 
+                      ? 'border-red-300' 
+                      : 'border-gray-300'
+                  }`}
+                  placeholder="Enter number of units"
+                />
+                {validationErrors.other_products_units && (
+                  <p className="mt-1 text-sm text-red-600">{validationErrors.other_products_units}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Validation Summary */}
@@ -689,4 +776,4 @@ export default function ProjectOverviewTab({
 
     </section>
   );
-} 
+}

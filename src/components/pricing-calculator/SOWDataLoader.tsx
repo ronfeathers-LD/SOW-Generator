@@ -22,6 +22,7 @@ interface SOWSummary {
     bookit_forms_units?: string;
     bookit_links_units?: string;
     bookit_handoff_units?: string;
+    other_products_units?: string;
   };
   selectedAccount?: {
     Account_Segment__c?: string;
@@ -107,6 +108,7 @@ export default function SOWDataLoader({ isOpen, onClose, onDataLoad }: SOWDataLo
           bookit_forms_units: selectedSOW.template.bookit_forms_units || '',
           bookit_links_units: selectedSOW.template.bookit_links_units || '',
           bookit_handoff_units: selectedSOW.template.bookit_handoff_units || '',
+          other_products_units: selectedSOW.template.other_products_units || '',
           billing_company_name: '',
           billing_contact_name: '',
           billing_address: '',

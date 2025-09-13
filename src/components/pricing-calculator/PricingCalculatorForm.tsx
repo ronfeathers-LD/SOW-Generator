@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { isRoutingProductById, isLeadToAccountProductById, isFormsProductById, isLinksProductById, isHandoffProductById } from '@/lib/constants/products';
 
 interface Product {
   id: string;
@@ -96,12 +97,7 @@ export default function PricingCalculatorForm({ products, data, onChange }: Pric
         icon: '⚡',
         color: 'blue',
         products: products.filter(p => 
-          p.name.toLowerCase().includes('routing') || 
-          p.name.toLowerCase().includes('orchestration') ||
-          p.name.toLowerCase().includes('lead') ||
-          p.name.toLowerCase().includes('account') ||
-          p.name.toLowerCase().includes('opportunity') ||
-          p.name.toLowerCase().includes('case')
+          isRoutingProductById(p.id) || isLeadToAccountProductById(p.id)
         )
       },
       bookit: {
@@ -109,7 +105,7 @@ export default function PricingCalculatorForm({ products, data, onChange }: Pric
         icon: '📋',
         color: 'green',
         products: products.filter(p => 
-          p.name.toLowerCase().includes('bookit')
+          isFormsProductById(p.id) || isLinksProductById(p.id) || isHandoffProductById(p.id)
         )
       },
       other: {
@@ -117,13 +113,11 @@ export default function PricingCalculatorForm({ products, data, onChange }: Pric
         icon: '🔧',
         color: 'gray',
         products: products.filter(p => 
-          !p.name.toLowerCase().includes('routing') && 
-          !p.name.toLowerCase().includes('orchestration') &&
-          !p.name.toLowerCase().includes('lead') &&
-          !p.name.toLowerCase().includes('account') &&
-          !p.name.toLowerCase().includes('opportunity') &&
-          !p.name.toLowerCase().includes('case') &&
-          !p.name.toLowerCase().includes('bookit')
+          !isRoutingProductById(p.id) && 
+          !isLeadToAccountProductById(p.id) &&
+          !isFormsProductById(p.id) &&
+          !isLinksProductById(p.id) &&
+          !isHandoffProductById(p.id)
         )
       }
     };
@@ -131,25 +125,23 @@ export default function PricingCalculatorForm({ products, data, onChange }: Pric
     return Object.entries(groups).filter(([, group]) => group.products.length > 0);
   };
 
-  const getUnitFieldName = (productName: string): keyof CalculatorData | null => {
-    if (productName === 'Lead to Account Matching' || 
-        productName.includes('Routing')) {
+  const getUnitFieldName = (productId: string): keyof CalculatorData | null => {
+    if (isLeadToAccountProductById(productId) || isRoutingProductById(productId)) {
       return 'number_of_units';
-    } else if (productName === 'BookIt for Forms') {
+    } else if (isFormsProductById(productId)) {
       return 'bookit_forms_units';
-    } else if (productName === 'BookIt Links') {
+    } else if (isLinksProductById(productId)) {
       return 'bookit_links_units';
-    } else if (productName.includes('BookIt Handoff')) {
+    } else if (isHandoffProductById(productId)) {
       return 'bookit_handoff_units';
     }
     return null;
   };
 
-  const getUnitLabel = (productName: string): string => {
-    if (productName === 'Lead to Account Matching' || 
-        productName.includes('Routing')) {
+  const getUnitLabel = (productId: string): string => {
+    if (isLeadToAccountProductById(productId) || isRoutingProductById(productId)) {
       return 'Users/Endpoints';
-    } else if (productName.includes('BookIt')) {
+    } else if (isFormsProductById(productId) || isLinksProductById(productId) || isHandoffProductById(productId)) {
       return 'Users';
     }
     return 'Units';
@@ -249,24 +241,24 @@ export default function PricingCalculatorForm({ products, data, onChange }: Pric
                       <input
                         type="checkbox"
                         id={`product-${product.id}`}
-                        checked={isProductSelected(product.name)}
-                        onChange={() => handleProductToggle(product.name)}
+                        checked={isProductSelected(product.id)}
+                        onChange={() => handleProductToggle(product.id)}
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
                       <label htmlFor={`product-${product.id}`} className="ml-3 text-sm font-medium text-gray-900">
                         {product.name}
                       </label>
                     </div>
-                    {isProductSelected(product.name) && getUnitFieldName(product.name) && (
+                    {isProductSelected(product.id) && getUnitFieldName(product.id) && (
                       <div className="flex items-center space-x-2">
                         <label className="text-sm text-gray-600">
-                          {getUnitLabel(product.name)}:
+                          {getUnitLabel(product.id)}:
                         </label>
                         <input
                           type="number"
                           min="0"
-                          value={localData[getUnitFieldName(product.name) as keyof CalculatorData] as string}
-                          onChange={(e) => handleUnitChange(getUnitFieldName(product.name) as keyof CalculatorData, e.target.value)}
+                          value={localData[getUnitFieldName(product.id) as keyof CalculatorData] as string}
+                          onChange={(e) => handleUnitChange(getUnitFieldName(product.id) as keyof CalculatorData, e.target.value)}
                           className="w-20 px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           placeholder="0"
                         />

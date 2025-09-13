@@ -78,6 +78,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             bookit_forms_units: initialData.template?.bookit_forms_units || '',
             bookit_links_units: initialData.template?.bookit_links_units || '',
             bookit_handoff_units: initialData.template?.bookit_handoff_units || '',
+            other_products_units: initialData.template?.other_products_units || '',
             billing_company_name: initialData.template?.billing_company_name || '',
             billing_contact_name: initialData.template?.billing_contact_name || '',
             billing_address: initialData.template?.billing_address || '',
@@ -170,6 +171,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             bookit_forms_units: '',
             bookit_links_units: '',
             bookit_handoff_units: '',
+            other_products_units: '',
             
             // Billing Information
             billing_company_name: '',
@@ -545,7 +547,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         setFormData(updatedFormData);
 
         // Save to database immediately
-        if (formData.id) {
+    if (formData.id) {
           try {
             const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
               method: 'PUT',
@@ -569,8 +571,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
             if (!response.ok) {
               console.error('Failed to save LeanData signatory:', response.statusText);
-            }
-          } catch (error) {
+          }
+        } catch (error) {
             console.error('Error saving LeanData signatory:', error);
           }
         }
@@ -676,10 +678,10 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         const accountData = createSalesforceAccountData(accountObj);
         
         await fetch(`/api/sow/${initialData.id}/salesforce-data`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
           body: JSON.stringify({
             account_data: accountData,
             opportunity_data: opportunities.length > 0 ? createSalesforceOpportunityData({
@@ -761,7 +763,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           console.error('Error saving opportunity data:', error);
         }
       }
-    } else {
+      } else {
       // Clear opportunity information when deselected
       setFormData({
         ...formData,
@@ -816,6 +818,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               bookit_forms_units: formData.template?.bookit_forms_units,
               bookit_links_units: formData.template?.bookit_links_units,
               bookit_handoff_units: formData.template?.bookit_handoff_units,
+              other_products_units: formData.template?.other_products_units,
             }
           };
           break;
@@ -1061,9 +1064,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-gray-900">
           {initialData ? 'Edit SOW' : 'Create New SOW'}
-        </h1>
+              </h1>
         {initialData && (
           <div className="flex items-center space-x-3">
             <a
@@ -1120,11 +1123,11 @@ export default function SOWForm({ initialData }: SOWFormProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
               Delete
-            </button>
-          </div>
+              </button>
+        </div>
         )}
       </div>
-      
+
       {/* Notification */}
       {notification && (
         <div className={`fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg max-w-sm transform transition-all duration-300 ease-in-out ${
@@ -1135,7 +1138,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             : 'bg-red-50 border border-red-200 text-red-800'
         }`}>
           <div className="flex items-center">
-            <div className="flex-shrink-0">
+              <div className="flex-shrink-0">
               {notification.type === 'success' ? (
                 <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -1149,8 +1152,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
               )}
-            </div>
-            <div className="ml-3">
+              </div>
+              <div className="ml-3">
               <p className="text-sm font-medium">{notification.message}</p>
             </div>
             <div className="ml-auto pl-3">
@@ -1169,10 +1172,10 @@ export default function SOWForm({ initialData }: SOWFormProps) {
                   <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
               </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       <div className="space-y-8">
       {/* Tab Navigation */}
@@ -1197,7 +1200,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             </a>
           ))}
         </nav>
-      </div>
+              </div>
 
       {/* Project Overview Section */}
       {activeTab === 'Project Overview' && (
@@ -1210,10 +1213,10 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       {/* Customer Information Section */}
       {activeTab === 'Customer Information' && (
         <CustomerInformationTab
-          formData={formData}
+            formData={formData}
           setFormData={updateFormData}
-          initialData={initialData}
-          selectedAccount={selectedAccount}
+            initialData={initialData}
+            selectedAccount={selectedAccount}
           selectedOpportunity={selectedOpportunity}
           availableOpportunities={availableOpportunities}
           onCustomerSelectedFromSalesforce={handleCustomerSelectedFromSalesforce}
@@ -1238,11 +1241,11 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         <TeamRolesTab
           formData={formData}
           setFormData={updateFormData}
-          leanDataSignatories={leanDataSignatories}
+            leanDataSignatories={leanDataSignatories}
           selectedLeanDataSignatory={selectedLeanDataSignatory}
           onLeanDataSignatoryChange={handleLeanDataSignatoryChange}
           selectedAccount={selectedAccount}
-          selectedContact={selectedContact}
+            selectedContact={selectedContact}
           getSalesforceLink={getSalesforceLink}
           isActiveTab={activeTab === 'Signers & Roles'}
           onContactChange={(contact) => setSelectedContact(contact)}
@@ -1271,7 +1274,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
                   <div className="text-yellow-800">
                     <p className="font-medium">Unsaved Changes</p>
                     <p className="text-sm">You have unsaved pricing changes. Please save your changes before navigating away from this tab.</p>
-                  </div>
+      </div>
                 </div>
               </div>
             )}
@@ -1297,7 +1300,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       {/* Submit Button - Hidden for Content Editing, Signers & Roles, and Billing Information tabs since they have auto-save */}
       {activeTab !== 'Content Editing' && activeTab !== 'Signers & Roles' && activeTab !== 'Billing Information' && (
         <div className="flex justify-end">
-          <button
+                <button
             type="button"
             onClick={handleTabSave}
             disabled={isSaving}
@@ -1314,10 +1317,10 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             ) : (
               `Save ${activeTab}`
             )}
-          </button>
+                </button>
         </div>
       )}
     </div>
     </div>
   );
-} 
+}

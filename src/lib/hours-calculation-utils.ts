@@ -4,6 +4,15 @@
  */
 
 import { SOWTemplate } from '@/types/sow';
+import { 
+  PRODUCT_IDS, 
+  PRODUCT_IDS_BY_CATEGORY,
+  isRoutingProductById, 
+  isLeadToAccountProductById, 
+  isFormsProductById, 
+  isLinksProductById, 
+  isNoCostProductById 
+} from '@/lib/constants/products';
 
 export interface HoursCalculationResult {
   productHours: number;
@@ -30,33 +39,31 @@ export function calculateProductHours(products: string[]): number {
   let totalHours = 0;
   
   // Routing products: first = 15 hours, additional = 5 hours each
-  const routingProducts = products.filter((product: string) => 
-    ['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing', 'Any Object (custom) Routing'].includes(product)
-  );
+  const routingProducts = products.filter(product => isRoutingProductById(product));
   
   if (routingProducts.length > 0) {
     totalHours += 15 + (Math.max(0, routingProducts.length - 1) * 5);
   }
   
   // Lead to Account Matching: only if it's the only product (excluding BookIt Links)
-  const productsExcludingBookItLinks = products.filter(product => product !== 'BookIt Links');
-  if (products.includes('Lead to Account Matching') && productsExcludingBookItLinks.length === 1) {
+  const productsExcludingBookItLinks = products.filter(product => !isLinksProductById(product));
+  if (products.some(product => isLeadToAccountProductById(product)) && productsExcludingBookItLinks.length === 1) {
     totalHours += 15;
   }
   
   // BookIt products
-  if (products.includes('BookIt for Forms')) {
+  if (products.some(product => isFormsProductById(product))) {
     totalHours += 10;
-    if (products.includes('BookIt Handoff (with Smartrep)')) {
+    if (products.some(product => product === PRODUCT_IDS.BOOKIT_HANDOFF_WITH_SMARTREP)) {
       totalHours += 5;
     }
   }
   
-  if (products.includes('BookIt Links')) {
+  if (products.some(product => product === PRODUCT_IDS.BOOKIT_LINKS)) {
     totalHours += 1;
   }
   
-  if (products.includes('BookIt Handoff (without Smartrep)')) {
+  if (products.some(product => product === PRODUCT_IDS.BOOKIT_HANDOFF_WITHOUT_SMARTREP)) {
     totalHours += 1;
   }
   
@@ -180,7 +187,7 @@ export function calculateAllHours(template: Partial<SOWTemplate>, accountSegment
  * Note: BookIt Links is excluded from product count as it's not counted as an object
  */
 export function shouldAddProjectManager(template: Partial<SOWTemplate>): boolean {
-  const products = (template?.products || []).filter(product => product !== 'BookIt Links');
+  const products = (template?.products || []).filter(product => product !== PRODUCT_IDS.BOOKIT_LINKS);
   const totalUnits = calculateTotalUnits(template);
   return products.length >= 3 || totalUnits >= 200;
 }
@@ -220,22 +227,21 @@ export function calculateRoleHoursDistribution(
 export function calculateProductHoursForProduct(product: string, allProducts: string[]): number {
   let hours = 0;
   
-  if (product === 'Lead to Account Matching') {
+  if (isLeadToAccountProductById(product)) {
     // Only count if it's the only product
     if (allProducts.length === 1) {
       hours = 15;
     }
-  } else if (['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing', 'Any Object (custom) Routing'].includes(product)) {
+  } else if (isRoutingProductById(product)) {
     // Routing products: first = 15 hours, additional = 5 hours each
-    const routingProducts = allProducts.filter(p => 
-      ['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing', 'Any Object (custom) Routing'].includes(p)
-    );
+    const routingProducts = allProducts.filter(p => isRoutingProductById(p));
     
     // Sort routing products in the same order as the UI to ensure consistent first/additional logic
-    const routingOrder = ['Lead Routing', 'Contact Routing', 'Account Routing', 'Opportunity Routing', 'Case Routing', 'Any Object (custom) Routing'];
+    // Use centralized category mapping for maintainability
+    const routingOrder = PRODUCT_IDS_BY_CATEGORY.routing.slice(0, -1); // Exclude Lead to Account Matching from routing order
     const sortedRoutingProducts = routingProducts.sort((a, b) => {
-      const aIndex = routingOrder.indexOf(a);
-      const bIndex = routingOrder.indexOf(b);
+      const aIndex = routingOrder.indexOf(a as typeof routingOrder[number]);
+      const bIndex = routingOrder.indexOf(b as typeof routingOrder[number]);
       return aIndex - bIndex;
     });
     
@@ -245,14 +251,14 @@ export function calculateProductHoursForProduct(product: string, allProducts: st
     } else {
       hours = 5; // Additional routing products
     }
-  } else if (product === 'BookIt for Forms') {
+  } else if (isFormsProductById(product)) {
     hours = 10; // Base BookIt for Forms hours
-  } else if (product === 'BookIt Handoff (with Smartrep)') {
+  } else if (product === PRODUCT_IDS.BOOKIT_HANDOFF_WITH_SMARTREP) {
     // Only add hours if BookIt for Forms is also selected
-    if (allProducts.includes('BookIt for Forms')) {
+    if (allProducts.some(p => isFormsProductById(p))) {
       hours = 5;
     }
-  } else if (['BookIt Links', 'BookIt Handoff (without Smartrep)'].includes(product)) {
+  } else if (isNoCostProductById(product)) {
     hours = 1; // No-cost items, but count hours
   }
   
@@ -275,16 +281,16 @@ export const HOURS_CALCULATION_RULES = {
   },
   bookitForms: {
     hours: 10,
-    description: "BookIt for Forms: 10 hours"
+    description: "Forms products: 10 hours"
   },
   bookitHandoffWithSmartrep: {
     hours: 5,
-    condition: "requires BookIt for Forms",
-    description: "BookIt Handoff (with Smartrep): 5 hours (requires BookIt for Forms)"
+    condition: "requires Forms products",
+    description: "Handoff products (with Smartrep): 5 hours (requires Forms products)"
   },
   bookitLinks: {
     hours: 1,
-    description: "BookIt Links/Handoff (without Smartrep): 1 hour each"
+    description: "Links/Handoff products (without Smartrep): 1 hour each"
   },
   userGroups: {
     hoursPerGroup: 5,
