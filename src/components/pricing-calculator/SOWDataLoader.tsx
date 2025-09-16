@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
+import { Product } from '@/lib/constants/products';
 
 interface SOWDataLoaderProps {
   isOpen: boolean;
@@ -35,10 +36,12 @@ export default function SOWDataLoader({ isOpen, onClose, onDataLoad }: SOWDataLo
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSOW, setSelectedSOW] = useState<SOWSummary | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     if (isOpen) {
       fetchSOWs();
+      fetchProducts();
     }
   }, [isOpen]);
 
@@ -54,6 +57,32 @@ export default function SOWDataLoader({ isOpen, onClose, onDataLoad }: SOWDataLo
       console.error('Error fetching SOWs:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch('/api/products');
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
+
+  const resolveProductName = (productIdentifier: string): string => {
+    // Check if it's a UUID (product ID) or a name
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productIdentifier);
+    
+    if (isUuid) {
+      // It's a product ID, find the corresponding name
+      const product = products.find(p => p.id === productIdentifier);
+      return product ? product.name : productIdentifier;
+    } else {
+      // It's already a name, return as-is
+      return productIdentifier;
     }
   };
 
@@ -262,7 +291,7 @@ export default function SOWDataLoader({ isOpen, onClose, onDataLoad }: SOWDataLo
                         {selectedSOW.template?.products?.length ? (
                           <ul className="list-disc list-inside mt-1">
                             {selectedSOW.template.products.map((product, index) => (
-                              <li key={index}>{product}</li>
+                              <li key={index}>{resolveProductName(product)}</li>
                             ))}
                           </ul>
                         ) : (

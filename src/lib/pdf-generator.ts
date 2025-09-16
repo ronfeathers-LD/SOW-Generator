@@ -2,7 +2,7 @@ import puppeteer, { Browser } from 'puppeteer';
 import puppeteerCore from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
 import { parseObjectives } from './utils/parse-objectives';
-import { sortProducts } from './utils/productSorting';
+import { sortProducts, resolveProductNames } from './utils/productSorting';
 import { processContent } from './text-to-html';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
@@ -281,9 +281,10 @@ export class PDFGenerator {
     try {
       await this.initialize();
       
-      // Sort products for consistent display order
+      // Sort products for consistent display order and resolve IDs to names
       const productsArray = Array.isArray(sowData.products) ? sowData.products : (sowData.products ? [sowData.products] : []);
       const sortedProducts = productsArray.length > 0 ? await sortProducts(productsArray) : [];
+      const resolvedProductNames = sortedProducts.length > 0 ? await resolveProductNames(sortedProducts) : [];
       
       if (!this.browser) {
         throw new Error('Browser not initialized');
@@ -296,7 +297,7 @@ export class PDFGenerator {
       try {
         // Generate HTML content for the SOW
         // Generating HTML content...
-        const htmlContent = this.generateSOWHTML(sowData, sortedProducts);
+        const htmlContent = this.generateSOWHTML(sowData, resolvedProductNames);
         // HTML content generated, length: ${htmlContent.length}
         
         // Set content and wait for any dynamic content to load

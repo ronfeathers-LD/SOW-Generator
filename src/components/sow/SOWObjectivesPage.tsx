@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { getContentTemplate } from '@/lib/sow-content';
 import { processContent } from '@/lib/text-to-html';
+import { Product } from '@/lib/constants/products';
 // Note: Products are already sorted by sort_order when fetched from API
 
 interface SOWObjectivesPageProps {
@@ -41,6 +42,7 @@ export default function SOWObjectivesPage({
 }: SOWObjectivesPageProps) {
   const [objectivesDisclosureContent, setObjectivesDisclosureContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     async function loadObjectivesDisclosureContent() {
@@ -83,6 +85,36 @@ export default function SOWObjectivesPage({
 
     loadObjectivesDisclosureContent();
   }, [customContent]);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch('/api/products');
+        if (response.ok) {
+          const data = await response.json();
+          setProducts(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  const resolveProductName = (productIdentifier: string): string => {
+    // Check if it's a UUID (product ID) or a name
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productIdentifier);
+    
+    if (isUuid) {
+      // It's a product ID, find the corresponding name
+      const product = products.find(p => p.id === productIdentifier);
+      return product ? product.name : productIdentifier;
+    } else {
+      // It's already a name, return as-is
+      return productIdentifier;
+    }
+  };
 
   return (
     <div className="max-w-none text-left">
@@ -135,7 +167,7 @@ export default function SOWObjectivesPage({
                 <strong>Products:</strong>
                 <ul className="list-disc pl-6 mt-1">
                   {projectDetails.products.map((product, index) => (
-                    <li key={`product-${index}-${product.slice(0, 15)}`}>{product}</li>
+                    <li key={`product-${index}-${product.slice(0, 15)}`}>{resolveProductName(product)}</li>
                   ))}
                 </ul>
               </li>
