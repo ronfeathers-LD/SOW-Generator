@@ -80,7 +80,7 @@ export default function EditSOWPage() {
               client_roles: data.client_roles || [],
             },
             pricing: {
-              roles: data.pricing_roles || [],
+              roles: data.pricingRoles || [],
               billing: data.billing_info || {
                 companyName: '',
                 billingContact: '',
@@ -90,6 +90,19 @@ export default function EditSOWPage() {
                 paymentTerms: '',
                 currency: '',
               },
+              // Include pricing configuration fields
+              project_management_included: data.pricing?.project_management_included || false,
+              project_management_hours: data.pricing?.project_management_hours || 40,
+              project_management_rate: data.pricing?.project_management_rate || 225,
+              base_hourly_rate: data.pricing?.base_hourly_rate || 200,
+              discount_type: data.pricing?.discount_type || 'none',
+              discount_amount: data.pricing?.discount_amount || 0,
+              discount_percentage: data.pricing?.discount_percentage || 0,
+              subtotal: data.pricing?.subtotal || 0,
+              discount_total: data.pricing?.discount_total || 0,
+              total_amount: data.pricing?.total_amount || 0,
+              auto_calculated: data.pricing?.auto_calculated || false,
+              last_calculated: data.pricing?.last_calculated || null,
             },
             // Set selectedAccount immediately if we have salesforce_account_id
             selectedAccount: data.salesforce_account_id ? {

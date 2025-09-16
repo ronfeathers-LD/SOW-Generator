@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { createServerSupabaseClient } from './supabase-server';
 
 export interface ChangelogEntry {
   id: string;
@@ -58,6 +58,7 @@ export class ChangelogService {
       const diffSummary = this.generateDiffSummary(fieldName, prevValueStr, newValueStr, changeType);
 
       // Get current SOW version
+      const supabase = await createServerSupabaseClient();
       const { data: sow } = await supabase
         .from('sows')
         .select('version, parent_id')
@@ -104,6 +105,7 @@ export class ChangelogService {
       }
 
       // Get current SOW version
+      const supabase = await createServerSupabaseClient();
       const { data: sow, error: sowError } = await supabase
         .from('sows')
         .select('version, parent_id')
@@ -112,7 +114,7 @@ export class ChangelogService {
 
       if (sowError) {
         console.error('❌ Error fetching SOW version:', sowError);
-        return;
+        throw new Error(`Failed to fetch SOW version for changelog: ${sowError.message}`);
       }
 
       const changelogEntries = changes.map(change => ({
@@ -152,6 +154,7 @@ export class ChangelogService {
     metadata?: Record<string, unknown>
   ): Promise<void> {
     try {
+      const supabase = await createServerSupabaseClient();
 
       const { data: sow } = await supabase
         .from('sows')
@@ -190,6 +193,7 @@ export class ChangelogService {
     metadata?: Record<string, unknown>
   ): Promise<void> {
     try {
+      const supabase = await createServerSupabaseClient();
 
       const { data: sow } = await supabase
         .from('sows')
@@ -223,6 +227,7 @@ export class ChangelogService {
    */
   static async getChangelog(sowId: string): Promise<ChangelogEntry[]> {
     try {
+      const supabase = await createServerSupabaseClient();
       const { data, error } = await supabase
         .from('sow_changelog')
         .select('*')
@@ -259,6 +264,7 @@ export class ChangelogService {
     }
   ): Promise<ChangelogEntry[]> {
     try {
+      const supabase = await createServerSupabaseClient();
       let query = supabase
         .from('sow_changelog')
         .select('*')

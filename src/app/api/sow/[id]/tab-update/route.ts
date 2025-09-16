@@ -33,12 +33,8 @@ export async function PUT(
     switch (tab) {
       case 'Project Overview':
         // Handle project overview data
-        console.log('🔍 Project Overview tab - incoming data:', JSON.stringify(data, null, 2));
         if (data.template) {
-          if (data.template.sow_title !== undefined) {
-            updateData.sow_title = data.template.sow_title;
-            console.log('✅ Setting sow_title to:', data.template.sow_title);
-          }
+          if (data.template.sow_title !== undefined) updateData.sow_title = data.template.sow_title;
           if (data.template.regions !== undefined) updateData.regions = data.template.regions;
           if (data.template.salesforce_tenants !== undefined) updateData.salesforce_tenants = data.template.salesforce_tenants;
           if (data.template.timeline_weeks !== undefined) updateData.timeline_weeks = data.template.timeline_weeks;
@@ -50,14 +46,12 @@ export async function PUT(
           if (data.template.bookit_handoff_units !== undefined) updateData.bookit_handoff_units = data.template.bookit_handoff_units;
           if (data.template.other_products_units !== undefined) {
             updateData.other_products_units = data.template.other_products_units;
-            console.log('✅ Setting other_products_units from template to:', data.template.other_products_units);
           }
         }
         
         // Also check for other_products_units at root level (fallback)
         if (data.other_products_units !== undefined) {
           updateData.other_products_units = data.other_products_units;
-          console.log('✅ Setting other_products_units from root to:', data.other_products_units);
         }
         
         // Handle Orchestration Units (number_of_units)
@@ -68,7 +62,7 @@ export async function PUT(
           updateData.products = data.template.products;
         }
         
-        console.log('🔍 Project Overview tab - updateData:', JSON.stringify(updateData, null, 2));
+        console.log('✅ Project Overview tab updated with fields:', Object.keys(updateData));
         break;
 
       case 'Customer Information':
@@ -287,9 +281,6 @@ export async function PUT(
     }
 
     // Update the SOW with the tab-specific data
-    console.log('🔍 About to update database with:', JSON.stringify(updateData, null, 2));
-    console.log('🔍 SOW ID:', sowId);
-    
     const { data: updatedSOW, error: updateError } = await supabase
       .from('sows')
       .update(updateData)
@@ -305,7 +296,12 @@ export async function PUT(
       );
     }
 
-    console.log('✅ Database update successful:', JSON.stringify(updatedSOW, null, 2));
+    if (!updatedSOW) {
+      return NextResponse.json(
+        { error: 'SOW update returned no data' },
+        { status: 500 }
+      );
+    }
 
     // Log changes to changelog
     try {
