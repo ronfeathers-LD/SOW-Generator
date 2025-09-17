@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { getSlackService } from '@/lib/slack';
+import { getEmailService } from '@/lib/email';
 import { getSOWUrl } from '@/lib/utils/app-url';
 
 export async function GET(
@@ -306,7 +307,7 @@ export async function PUT(
           // Get SOW details for the notification
           const { data: sowDetails } = await supabase
             .from('sows')
-            .select('client_name, author_id, template')
+            .select('client_name, author_id, template, sow_title')
             .eq('id', id)
             .single();
 
@@ -329,6 +330,7 @@ export async function PUT(
 
             // Get SOW title from either direct field or template
             const clientName = sowDetails.client_name || 'Unknown Client';
+            const sowTitle = sowDetails.sow_title || 'Untitled SOW';
             const sowUrl = getSOWUrl(id);
 
             await slackService.sendMessage(
@@ -338,6 +340,24 @@ export async function PUT(
               `:link: <${sowUrl}|Review SOW>\n\n` +
               `Please review and approve/reject this SOW when ready.`
             );
+
+            // Send email notification to commercial approvals team
+            try {
+              const emailService = await getEmailService();
+              if (emailService) {
+                await emailService.sendSOWApprovalNotification(
+                  id,
+                  sowTitle,
+                  clientName,
+                  'sowapprovalscommercial@leandata.com',
+                  submitterName
+                );
+                console.log('✅ Email notification sent to sowapprovalscommercial@leandata.com');
+              }
+            } catch (emailError) {
+              console.error('Email notification failed for SOW submission:', emailError);
+              // Don't fail the main operation if email notification fails
+            }
           }
         }
       } catch (slackError) {
