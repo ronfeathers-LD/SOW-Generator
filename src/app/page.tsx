@@ -2,12 +2,30 @@ import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import LoginButton from '../components/LoginButton';
 import { authOptions } from '@/lib/auth';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export default async function Home() {
   const session = await getServerSession(authOptions);
 
-  // If user is authenticated, redirect to dashboard
+  // If user is authenticated, check if they need to see help page
   if (session?.user) {
+    try {
+      const supabase = await createServerSupabaseClient();
+      const { data: userData } = await supabase
+        .from('users')
+        .select('has_seen_help_page')
+        .eq('email', session.user.email)
+        .single();
+      
+      // If user hasn't seen help page, redirect there first
+      if (userData && !userData.has_seen_help_page) {
+        redirect('/help');
+      }
+    } catch (error) {
+      console.error('Error checking help page status:', error);
+    }
+    
+    // Otherwise redirect to dashboard
     redirect('/dashboard');
   }
 

@@ -96,6 +96,7 @@ export const authOptions: NextAuthOptions = {
                 email: user.email,
                 name: user.name,
                 role: 'user',
+                has_seen_help_page: false, // New users haven't seen help page yet
               })
               .select()
               .single();

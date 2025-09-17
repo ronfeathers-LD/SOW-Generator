@@ -94,6 +94,16 @@ export default function Navigation() {
               >
                 Pricing Calculator
               </Link>
+              <Link 
+                href="/help" 
+                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  pathname.startsWith('/help') 
+                    ? 'border-white text-white' 
+                    : 'border-transparent text-green-100 hover:border-green-200 hover:text-white'
+                }`}
+              >
+                Help
+              </Link>
               {(isPMO || isAdmin) && (
                 <Link 
                   href="/pmo" 
