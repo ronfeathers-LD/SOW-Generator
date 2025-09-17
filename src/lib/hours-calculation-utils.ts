@@ -54,16 +54,16 @@ export function calculateProductHours(products: string[]): number {
   // BookIt products
   if (products.some(product => isFormsProductById(product))) {
     totalHours += 10;
-    if (products.some(product => product === PRODUCT_IDS.BOOKIT_HANDOFF_WITH_SMARTREP)) {
+    if (products.some(product => product === '159b4183-ee40-4255-a7d0-968b1482e451')) { // BookIt Handoff with SmartRep
       totalHours += 5;
     }
   }
   
-  if (products.some(product => product === PRODUCT_IDS.BOOKIT_LINKS)) {
+  if (products.some(product => product === 'dbe57330-23a9-42bc-bef2-5bbfbcef4e09')) { // BookIt Links
     totalHours += 1;
   }
   
-  if (products.some(product => product === PRODUCT_IDS.BOOKIT_HANDOFF_WITHOUT_SMARTREP)) {
+  if (products.some(product => product === '6698b269-10b0-485b-be59-ad9c3cc33368')) { // BookIt Handoff without SmartRep
     totalHours += 1;
   }
   
@@ -257,7 +257,7 @@ export function calculateProductHoursForProduct(product: string, allProducts: st
     }
   } else if (isFormsProductById(product)) {
     hours = 10; // Base BookIt for Forms hours
-  } else if (product === PRODUCT_IDS.BOOKIT_HANDOFF_WITH_SMARTREP) {
+  } else if (product === '159b4183-ee40-4255-a7d0-968b1482e451') { // BookIt Handoff with SmartRep
     // Only add hours if BookIt for Forms is also selected
     if (allProducts.some(p => isFormsProductById(p))) {
       hours = 5;
