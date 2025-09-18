@@ -151,8 +151,8 @@ export interface SOWData {
     project_management_rate?: number;
     base_hourly_rate?: number;
     discount_type?: 'none' | 'fixed' | 'percentage';
-    discount_amount?: number;
-    discount_percentage?: number;
+    discount_amount?: number | null;
+    discount_percentage?: number | null;
     subtotal?: number;
     discount_total?: number;
     total_amount?: number;

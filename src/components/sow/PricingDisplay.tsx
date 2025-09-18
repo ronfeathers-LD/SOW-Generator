@@ -128,7 +128,7 @@ export default function PricingDisplay({
               ${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
-          {(discountType === 'fixed' && discountAmount > 0) || (discountType === 'percentage' && discountPercentage > 0) ? (
+          {(discountType === 'fixed' && discountAmount && discountAmount > 0) || (discountType === 'percentage' && discountPercentage && discountPercentage > 0) ? (
             <div className="bg-white p-3 rounded border">
               <div className="text-sm text-gray-600">Discount</div>
               <div className="text-xl font-bold text-red-600">

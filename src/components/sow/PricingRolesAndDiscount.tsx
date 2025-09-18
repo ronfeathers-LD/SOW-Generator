@@ -578,13 +578,13 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
               </div>
 
               {/* Discount */}
-              {discountConfig?.type && discountConfig.type !== 'none' && discountConfig.amount && (
+              {discountConfig?.type && discountConfig.type !== 'none' && ((discountConfig.type === 'fixed' && discountConfig.amount && discountConfig.amount > 0) || (discountConfig.type === 'percentage' && discountConfig.percentage && discountConfig.percentage > 0)) && (
                 <div className="flex justify-between items-center text-green-600">
                   <span className="font-medium">Discount {discountConfig.type === 'fixed' ? '($)' : '(%)'}:</span>
                   <span className="font-medium">
                     {discountConfig.type === 'fixed' 
-                      ? `-$${discountConfig.amount.toLocaleString()}` 
-                      : `-${discountConfig.amount}%`
+                      ? `-$${(discountConfig.amount || 0).toLocaleString()}` 
+                      : `-${discountConfig.percentage || 0}%`
                     }
                   </span>
                 </div>
@@ -596,10 +596,10 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
                 <span className="font-bold text-lg text-gray-900">
                   ${(() => {
                     const subtotal = calculateTotalCost();
-                    if (discountConfig?.type === 'fixed' && discountConfig.amount) {
+                    if (discountConfig?.type === 'fixed' && discountConfig.amount && discountConfig.amount > 0) {
                       return Math.max(0, subtotal - discountConfig.amount).toLocaleString();
-                    } else if (discountConfig?.type === 'percentage' && discountConfig.amount) {
-                      return Math.max(0, subtotal * (1 - discountConfig.amount / 100)).toLocaleString();
+                    } else if (discountConfig?.type === 'percentage' && discountConfig.percentage && discountConfig.percentage > 0) {
+                      return Math.max(0, subtotal * (1 - discountConfig.percentage / 100)).toLocaleString();
                     }
                     return subtotal.toLocaleString();
                   })()}

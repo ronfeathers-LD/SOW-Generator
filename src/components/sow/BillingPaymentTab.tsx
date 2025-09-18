@@ -35,8 +35,8 @@ const STANDARD_ROLES = [
 interface PricingData {
   roles: Array<{ role: string; ratePerHour: number; defaultRate: number; totalHours: number }>;
   discount_type: string;
-  discount_amount: number;
-  discount_percentage: number;
+  discount_amount: number | null;
+  discount_percentage: number | null;
   subtotal: number;
   discount_total: number;
   total_amount: number;
@@ -101,8 +101,8 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
           totalHours: role.totalHours,
         })),
         discount_type: discountConfig.type,
-        discount_amount: discountConfig.amount || 0,
-        discount_percentage: discountConfig.percentage || 0,
+        discount_amount: discountConfig.type === 'fixed' ? (discountConfig.amount || null) : null,
+        discount_percentage: discountConfig.type === 'percentage' ? (discountConfig.percentage || null) : null,
         subtotal,
         discount_total: discountTotal,
         total_amount: totalAmount,
@@ -182,8 +182,8 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
                   totalHours: role.totalHours,
                 })),
                 discount_type: discountConfig.type,
-                discount_amount: discountConfig.amount || 0,
-                discount_percentage: discountConfig.percentage || 0,
+                discount_amount: discountConfig.type === 'fixed' ? (discountConfig.amount || null) : null,
+                discount_percentage: discountConfig.type === 'percentage' ? (discountConfig.percentage || null) : null,
                 subtotal,
                 discount_total: discountTotal,
                 total_amount: totalAmount,
@@ -331,8 +331,8 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
             totalHours: role.totalHours,
           })),
           discount_type: discountConfig.type,
-          discount_amount: discountConfig.amount || 0,
-          discount_percentage: discountConfig.percentage || 0,
+                discount_amount: discountConfig.type === 'fixed' ? (discountConfig.amount || null) : null,
+                discount_percentage: discountConfig.type === 'percentage' ? (discountConfig.percentage || null) : null,
           subtotal: newSubtotal,
           discount_total: newDiscountTotal,
           total_amount: newTotalAmount,
