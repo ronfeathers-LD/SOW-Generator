@@ -3,11 +3,13 @@ import { SOWData } from '@/types/sow';
 import PricingRolesAndDiscount from '@/components/sow/PricingRolesAndDiscount';
 import LoadingModal from '@/components/ui/LoadingModal';
 import { calculateAllHours, calculateRoleHoursDistribution } from '@/lib/hours-calculation-utils';
+import { getPricingRolesConfig, getDefaultRateForRole, PricingRoleConfig } from '@/lib/pricing-roles-config';
 
 interface PricingRole {
   id: string;
   role: string;
   ratePerHour: number;
+  defaultRate: number;
   totalHours: number;
   totalCost: number;
 }
@@ -27,7 +29,7 @@ interface BillingPaymentTabProps {
 
 // Standard LeanData roles with default rates (2025 rates)
 const STANDARD_ROLES = [
-  { role: 'Onboarding Specialist', ratePerHour: 250, defaultHours: 0 },
+  { role: 'Onboarding Specialist', ratePerHour: 250, defaultRate: 250, defaultHours: 0 },
 ];
 
 interface PricingData {
@@ -47,9 +49,11 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
   setFormData,
   selectedAccount,
 }, ref) {
+  const [pricingRolesConfig, setPricingRolesConfig] = useState<PricingRoleConfig[]>([]);
   const [pricingRoles, setPricingRoles] = useState<PricingRole[]>(STANDARD_ROLES.map(role => ({
     ...role,
     id: Math.random().toString(36).substr(2, 9),
+    defaultRate: 250, // Default rate
     totalHours: 0,
     totalCost: 0,
   })));
@@ -62,6 +66,20 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
   });
   
   const [isAutoCalculating, setIsAutoCalculating] = useState(false);
+
+  // Load pricing roles configuration
+  useEffect(() => {
+    const loadPricingRolesConfig = async () => {
+      try {
+        const configs = await getPricingRolesConfig();
+        setPricingRolesConfig(configs);
+      } catch (error) {
+        console.error('Failed to load pricing roles configuration:', error);
+      }
+    };
+
+    loadPricingRolesConfig();
+  }, []);
 
   // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({
@@ -79,6 +97,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
         roles: pricingRoles.map(role => ({
           role: role.role,
           rate_per_hour: role.ratePerHour,
+          default_rate: role.defaultRate,
           total_hours: role.totalHours,
         })),
         discount_type: discountConfig.type,
@@ -108,15 +127,15 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
 
       // Load saved pricing roles
       // Check if roles is an object with a roles array property, or if it's directly an array
-      let rolesArray: Array<{ role: string; ratePerHour?: number; rate_per_hour?: number; totalHours?: number; total_hours?: number }> = [];
+      let rolesArray: Array<{ role: string; ratePerHour?: number; rate_per_hour?: number; defaultRate?: number; default_rate?: number; totalHours?: number; total_hours?: number }> = [];
       
       if (formData.pricing.roles && typeof formData.pricing.roles === 'object' && !Array.isArray(formData.pricing.roles)) {
         // If roles is an object, look for the roles array property
-        const rolesObj = formData.pricing.roles as { roles?: Array<{ role: string; ratePerHour?: number; rate_per_hour?: number; totalHours?: number; total_hours?: number }> };
+        const rolesObj = formData.pricing.roles as { roles?: Array<{ role: string; ratePerHour?: number; rate_per_hour?: number; defaultRate?: number; default_rate?: number; totalHours?: number; total_hours?: number }> };
         rolesArray = rolesObj.roles || [];
       } else if (Array.isArray(formData.pricing.roles)) {
         // If roles is directly an array, use it
-        rolesArray = formData.pricing.roles as Array<{ role: string; ratePerHour?: number; rate_per_hour?: number; totalHours?: number; total_hours?: number }>;
+        rolesArray = formData.pricing.roles as Array<{ role: string; ratePerHour?: number; rate_per_hour?: number; defaultRate?: number; default_rate?: number; totalHours?: number; total_hours?: number }>;
       }
       
       if (rolesArray && rolesArray.length > 0) {
@@ -124,6 +143,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
           id: Math.random().toString(36).substr(2, 9), // Generate new ID for each role
           role: role.role,
           ratePerHour: role.ratePerHour || role.rate_per_hour || 0,
+          defaultRate: role.defaultRate || role.default_rate || getDefaultRateForRole(role.role, pricingRolesConfig) || 250,
           totalHours: role.totalHours || role.total_hours || 0,
           totalCost: (role.ratePerHour || role.rate_per_hour || 0) * (role.totalHours || role.total_hours || 0),
         }));
@@ -133,33 +153,58 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
         setPricingRoles(savedRoles);
       }
     }
-  }, [formData.pricing, discountConfig.initialized, formData.pm_hours_requirement_disabled]); // Removed pricingRoles from dependencies to avoid circular dependency
+  }, [formData.pricing, discountConfig.initialized, formData.pm_hours_requirement_disabled, pricingRolesConfig]); // Include pricingRolesConfig to ensure it's loaded
 
-  // Sync pricing roles when form data changes (for auto-calculate updates)
-  useEffect(() => {
-    if (formData.pricing?.roles && Array.isArray(formData.pricing.roles)) {
-      const rolesArray = formData.pricing.roles;
-      if (rolesArray.length > 0) {
-        const updatedRoles = rolesArray.map((role) => ({
-          id: Math.random().toString(36).substr(2, 9),
-          role: role.role,
-          ratePerHour: role.rate_per_hour || 0,
-          totalHours: role.total_hours || 0,
-          totalCost: (role.rate_per_hour || 0) * (role.total_hours || 0),
-        }));
-        
-                    // Only update if the roles have actually changed
-            setPricingRoles(prev => {
-              const hasChanged = JSON.stringify(prev) !== JSON.stringify(updatedRoles);
-              if (hasChanged) {
-                // Don't filter out Project Manager role here - let the UI components handle display logic
-                return updatedRoles;
-              }
-              return prev;
-            });
-      }
-    }
-  }, [formData.pricing?.roles, formData.pm_hours_requirement_disabled]);
+  // This effect was causing infinite re-renders - removed
+
+  // Auto-save pricing roles when they change - DISABLED to prevent infinite re-renders
+  // useEffect(() => {
+  //   if (formData.id && pricingRoles.length > 0) {
+  //     const savePricingRoles = async () => {
+  //       try {
+  //         const requestBody = {
+  //           tab: 'Pricing',
+  //           data: {
+  //             pricing: {
+  //               roles: pricingRoles.map(role => ({
+  //                 role: role.role,
+  //                 rate_per_hour: role.ratePerHour,
+  //                 default_rate: role.defaultRate,
+  //                 total_hours: role.totalHours,
+  //               })),
+  //               discount_type: discountConfig.type,
+  //               discount_amount: discountConfig.amount || 0,
+  //               discount_percentage: discountConfig.percentage || 0,
+  //               subtotal: pricingRoles.reduce((sum, role) => sum + role.totalCost, 0),
+  //               discount_total: 0,
+  //               total_amount: pricingRoles.reduce((sum, role) => sum + role.totalCost, 0),
+  //               auto_calculated: false,
+  //               last_calculated: new Date().toISOString(),
+  //             }
+  //           }
+  //         };
+
+  //         const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
+  //           method: 'PUT',
+  //           headers: {
+  //             'Content-Type': 'application/json',
+  //           },
+  //           body: JSON.stringify(requestBody),
+  //         });
+
+  //         if (!response.ok) {
+  //           console.error('Failed to save pricing roles:', response.statusText);
+  //         }
+  //       } catch (error) {
+  //         console.error('Error saving pricing roles:', error);
+  //       }
+  //     };
+
+  //     // Debounce the save operation to avoid too many API calls
+  //     const timeoutId = setTimeout(savePricingRoles, 1000);
+  //     return () => clearTimeout(timeoutId);
+  //   }
+  // }, [pricingRoles, formData.id, discountConfig, pricingRolesConfig]);
 
   // Auto-calculate hours based on selected products and units
   const autoCalculateHours = async () => {
@@ -186,11 +231,15 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       let updatedRoles = pricingRoles.map(role => {
         if (role.role === 'Onboarding Specialist') {
           // Onboarding Specialist gets distributed hours
+          const defaultRate = getDefaultRateForRole('Onboarding Specialist', pricingRolesConfig);
+          // Preserve the user's custom rate (don't override it with default)
+          const currentRate = role.ratePerHour;
           return {
             ...role,
-            ratePerHour: 250, // Set the base rate for Onboarding Specialist
+            ratePerHour: currentRate,
+            defaultRate: defaultRate,
             totalHours: roleDistribution.onboardingSpecialistHours,
-            totalCost: 250 * roleDistribution.onboardingSpecialistHours,
+            totalCost: currentRate * roleDistribution.onboardingSpecialistHours,
           };
         }
         return role;
@@ -203,22 +252,25 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       if (shouldAddPM && !formData.pm_hours_requirement_disabled) {
         if (!hasProjectManager) {
           // Add new Project Manager role
+          const defaultRate = getDefaultRateForRole('Project Manager', pricingRolesConfig);
           const pmRole: PricingRole = {
             id: Math.random().toString(36).substr(2, 9),
             role: 'Project Manager',
-            ratePerHour: 250, // Standard PM rate
+            ratePerHour: defaultRate,
+            defaultRate: defaultRate,
             totalHours: roleDistribution.projectManagerHours,
-            totalCost: 250 * roleDistribution.projectManagerHours,
+            totalCost: defaultRate * roleDistribution.projectManagerHours,
           };
           updatedRoles.push(pmRole);
         } else {
           // Update existing Project Manager role
+          const defaultRate = getDefaultRateForRole('Project Manager', pricingRolesConfig);
           updatedRoles = updatedRoles.map(role => {
             if (role.role === 'Project Manager') {
               return {
                 ...role,
                 totalHours: roleDistribution.projectManagerHours,
-                totalCost: 250 * roleDistribution.projectManagerHours,
+                totalCost: defaultRate * roleDistribution.projectManagerHours,
               };
             }
             return role;
@@ -247,6 +299,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
           roles: updatedRoles.map(role => ({
             role: role.role,
             rate_per_hour: role.ratePerHour,
+            default_rate: role.defaultRate,
             total_hours: role.totalHours,
           })),
           discount_type: discountConfig.type,
@@ -295,6 +348,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
             // The UI components now handle PM role display logic properly
           }}
           selectedAccount={selectedAccount}
+          pricingRolesConfig={pricingRolesConfig}
         />
 
       </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { PMHoursRequirementDisableRequest } from '@/types/sow';
 import PMHoursRemovalModal from './PMHoursRemovalModal';
 import PMHoursRemovalApprovalOverlay from './PMHoursRemovalApprovalOverlay';
@@ -17,6 +17,7 @@ interface PricingRole {
   id: string;
   role: string;
   ratePerHour: number;
+  defaultRate: number;
   totalHours: number;
   totalCost: number;
 }
@@ -54,6 +55,7 @@ interface PricingRolesAndDiscountProps {
   isAutoCalculating: boolean;
   onHoursCalculated?: () => void;
   selectedAccount?: { Account_Segment__c?: string } | null;
+  pricingRolesConfig?: Array<{ role_name: string; default_rate: number; is_active: boolean }>;
 }
 
 const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
@@ -65,13 +67,15 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   autoCalculateHours,
   isAutoCalculating,
   onHoursCalculated,
-  selectedAccount
+  selectedAccount,
+  pricingRolesConfig: _pricingRolesConfig = [] // eslint-disable-line @typescript-eslint/no-unused-vars
 }) => {
   // Helper function to safely get products array
   const getProducts = () => {
     const template = formData.template;
     return template?.products && Array.isArray(template.products) ? template.products : [];
   };
+
   const [pendingPMHoursRequest, setPendingPMHoursRequest] = useState<PMHoursRequirementDisableRequest | null>(null);
   const [approvedPMHoursRequest, setApprovedPMHoursRequest] = useState<PMHoursRequirementDisableRequest | null>(null);
   const [showPricingCalculator, setShowPricingCalculator] = useState(false);
@@ -79,6 +83,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   const [showPMHoursApprovalOverlay, setShowPMHoursApprovalOverlay] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [isManuallyEditing, setIsManuallyEditing] = useState(false);
+  const hasAutoCalculated = useRef(false);
 
   // Fetch products on component mount
   useEffect(() => {
@@ -101,9 +106,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   const hoursResult = calculateAllHours(formData.template || {}, selectedAccount?.Account_Segment__c);
   const { productHours, userGroupHours, accountSegmentHours, baseProjectHours, pmHours, totalUnits, shouldAddProjectManager } = hoursResult;
 
-  // Debug logging
-  console.log('🔍 PricingRolesAndDiscount - Account_Segment__c:', selectedAccount?.Account_Segment__c);
-  console.log('🔍 PricingRolesAndDiscount - Should show PM removal link:', selectedAccount?.Account_Segment__c === 'EC' || selectedAccount?.Account_Segment__c === 'MM');
+  // Debug logging removed to prevent console spam
 
   // Helper function to get units for a specific product
   const getProductUnits = (product: string): string => {
@@ -158,9 +161,23 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
     checkPMHoursStatus();
   }, [checkPMHoursStatus]);
 
+  // Reset auto-calculate flag when form data changes
+  useEffect(() => {
+    hasAutoCalculated.current = false;
+  }, [formData.id]);
+
   // Auto-calculate hours on page load if they haven't been calculated yet
   useEffect(() => {
     const shouldAutoCalculate = () => {
+      // Don't auto-calculate if we've already done it
+      if (hasAutoCalculated.current) {
+        return false;
+      }
+
+      // TEMPORARILY DISABLE AUTO-CALCULATE TO PREVENT OVERRIDING USER RATES
+      // Only allow manual calculation via "Reset Role Hours" button
+      return false;
+
       // Check if we have products selected
       const products = getProducts();
       if (!products || products.length === 0) {
@@ -174,8 +191,15 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
 
       // Check if Onboarding Specialist exists and has hours
       const onboardingSpecialist = pricingRoles.find(role => role.role === 'Onboarding Specialist');
-      if (!onboardingSpecialist || onboardingSpecialist.totalHours === 0) {
+      if (!onboardingSpecialist || onboardingSpecialist?.totalHours === 0) {
         return true;
+      }
+
+      // Don't auto-calculate if user has manually set custom rates
+      // Check if the rate is different from the expected default (250 for Onboarding Specialist)
+      const expectedDefaultRate = 250; // Default rate for Onboarding Specialist
+      if (onboardingSpecialist?.ratePerHour !== expectedDefaultRate) {
+        return false;
       }
 
       // Check if Project Manager should exist but doesn't
@@ -189,10 +213,11 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
     };
 
     if (shouldAutoCalculate() && !isAutoCalculating) {
+      hasAutoCalculated.current = true;
       handleRecalculateHours();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.template, pricingRoles, approvedPMHoursRequest, isAutoCalculating, getProducts, getTotalUnits]);
+  }, [formData.template, approvedPMHoursRequest, isAutoCalculating, getProducts, getTotalUnits, pricingRoles]);
 
   // Calculate role hours distribution
   const roleDistribution = calculateRoleHoursDistribution(
@@ -596,7 +621,8 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ROLE</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RATE/HOUR ($)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DEFAULT RATE ($)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">OVERRIDDEN RATE ($)</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TOTAL HOURS</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TOTAL COST ($)</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTIONS</th>
@@ -632,6 +658,9 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
                           )}
                         </div>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${role.defaultRate}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <input
                           type="number"
@@ -641,7 +670,13 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
                             isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
                           }`}
                           disabled={!!isPMRemoved || !!isPMPending}
+                          placeholder="Enter overridden rate"
                         />
+                        {role.ratePerHour !== role.defaultRate && (
+                          <div className="text-xs text-green-600 font-medium mt-1">
+                            Override: ${role.ratePerHour}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <input

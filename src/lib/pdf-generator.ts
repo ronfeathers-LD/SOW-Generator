@@ -123,6 +123,8 @@ interface PricingRole {
   name?: string;
   ratePerHour?: number;
   rate_per_hour?: number;
+  defaultRate?: number;
+  default_rate?: number;
   totalHours?: number;
   total_hours?: number;
 }
@@ -984,20 +986,38 @@ export class PDFGenerator {
                 <thead>
                   <tr style="background-color: #f3f4f6;">
                     <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Role</th>
-                    <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Rate/Hr</th>
+                    <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Standard Rate/Hr</th>
+                    <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Discounted Rate/Hr</th>
                     <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Total Hours</th>
                     <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Total Cost</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${pricingRoles.map((role: PricingRole) => `
+                  ${pricingRoles.map((role: PricingRole) => {
+                    const currentRate = role.ratePerHour || role.rate_per_hour || 0;
+                    const defaultRate = role.defaultRate || role.default_rate || 0;
+                    const hasDiscount = defaultRate > 0 && defaultRate !== currentRate;
+                    
+                    return `
                     <tr>
                       <td style="border: 1px solid #d1d5db; padding: 12px; font-weight: 600;">${role.role || role.name || 'N/A'}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 12px;">$${(role.ratePerHour || role.rate_per_hour || 0).toFixed(2)}</td>
+                      <td style="border: 1px solid #d1d5db; padding: 12px;">
+                        ${hasDiscount ? 
+                          `<span style="text-decoration: line-through; color: #6b7280;">$${defaultRate.toFixed(2)}</span>` : 
+                          `$${currentRate.toFixed(2)}`
+                        }
+                      </td>
+                      <td style="border: 1px solid #d1d5db; padding: 12px;">
+                        ${hasDiscount ? 
+                          `<span style="color: #059669; font-weight: 600;">$${currentRate.toFixed(2)}</span>` : 
+                          `$${currentRate.toFixed(2)}`
+                        }
+                      </td>
                       <td style="border: 1px solid #d1d5db; padding: 12px;">${role.totalHours || role.total_hours || 0}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 12px; font-weight: 600;">$${(role.ratePerHour || role.rate_per_hour || 0) * (role.totalHours || role.total_hours || 0)}</td>
+                      <td style="border: 1px solid #d1d5db; padding: 12px; font-weight: 600;">$${((role.ratePerHour || role.rate_per_hour || 0) * (role.totalHours || role.total_hours || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
-                  `).join('')}
+                  `;
+                  }).join('')}
                 </tbody>
               </table>
               

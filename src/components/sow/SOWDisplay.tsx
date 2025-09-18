@@ -182,6 +182,7 @@ interface SOW {
   pricingRoles?: Array<{
     role: string;
     rate_per_hour: number;
+    default_rate?: number;
     total_hours: number;
     totalCost: number;
   }>;
@@ -806,6 +807,7 @@ export default function SOWDisplay({
                 pricingRoles={Array.isArray(sow.pricingRoles) ? sow.pricingRoles.map(role => ({
                   role: role.role || '',
                   ratePerHour: role.rate_per_hour || 0,
+                  defaultRate: role.default_rate || 0,
                   totalHours: role.total_hours || 0,
                   totalCost: (role.rate_per_hour || 0) * (role.total_hours || 0)
                 })) : []}
@@ -1204,13 +1206,14 @@ export default function SOWDisplay({
                     </div>
 
                     {/* Pricing Display Component */}
-                    <PricingDisplay
-                      pricingRoles={Array.isArray(sow.pricingRoles) ? sow.pricingRoles.map(role => ({
-                        role: role.role || '',
-                        ratePerHour: role.rate_per_hour || 0,
-                        totalHours: role.total_hours || 0,
-                        totalCost: (role.rate_per_hour || 0) * (role.total_hours || 0)
-                      })) : []}
+              <PricingDisplay
+                pricingRoles={Array.isArray(sow.pricingRoles) ? sow.pricingRoles.map(role => ({
+                  role: role.role || '',
+                  ratePerHour: role.rate_per_hour || 0,
+                  defaultRate: role.default_rate || 0, // Pass default_rate
+                  totalHours: role.total_hours || 0,
+                  totalCost: (role.rate_per_hour || 0) * (role.total_hours || 0)
+                })) : []}
                       discountType={sow.pricing?.discount_type || 'none'}
                       discountAmount={sow.pricing?.discount_amount || 0}
                       discountPercentage={sow.pricing?.discount_percentage || 0}

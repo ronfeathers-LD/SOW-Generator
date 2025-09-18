@@ -350,8 +350,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         const data = await response.json();
         if (data.success && data.data?.account_data) {
           const accountData = data.data.account_data;
-          console.log('🔍 Loading stored Salesforce data:', accountData);
-          console.log('🔍 Account segment from stored data:', accountData.account_segment);
+          // Debug logging removed
           
           // Update selectedAccount with stored data including account_segment
           setSelectedAccount({
@@ -367,7 +366,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             Account_Segment__c: accountData.account_segment || ''
           });
           
-          console.log('✅ Set selectedAccount with Account_Segment__c:', accountData.account_segment);
+          // Debug logging removed
         }
       }
     } catch (error) {

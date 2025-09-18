@@ -3,6 +3,7 @@
 interface PricingRole {
   role: string;
   ratePerHour: number;
+  defaultRate?: number;
   totalHours: number;
   totalCost: number;
 }
@@ -48,7 +49,10 @@ export default function PricingDisplay({
                   Role
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Rate/Hr
+                  Standard Rate/Hr
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Discounted Rate/Hr
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Total Hours
@@ -60,19 +64,35 @@ export default function PricingDisplay({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredPricingRoles && filteredPricingRoles.length > 0 ? (
-                filteredPricingRoles.map((role, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">{role.role}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-700">${role.ratePerHour?.toFixed(2) || '0.00'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-700">{role.totalHours}</td>
-                    <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">
-                      ${role.totalCost?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
-                    </td>
-                  </tr>
-                ))
+                filteredPricingRoles.map((role, idx) => {
+                  const hasDiscount = role.defaultRate && role.defaultRate !== role.ratePerHour;
+                  return (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">{role.role}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                        {hasDiscount ? (
+                          <span className="line-through text-gray-500">${role.defaultRate?.toFixed(2) || '0.00'}</span>
+                        ) : (
+                          `$${role.ratePerHour?.toFixed(2) || '0.00'}`
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                        {hasDiscount ? (
+                          <span className="text-green-600 font-semibold">${role.ratePerHour?.toFixed(2) || '0.00'}</span>
+                        ) : (
+                          `$${role.ratePerHour?.toFixed(2) || '0.00'}`
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-700">{role.totalHours}</td>
+                      <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">
+                        ${role.totalCost?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                     No pricing roles defined
                   </td>
                 </tr>
