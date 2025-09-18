@@ -102,7 +102,7 @@ export function validateSOWForApproval(sowData: { [key: string]: unknown }): SOW
     } else {
       // Check if any role has hours > 0
       const hasValidHours = pricingRoles.some(role => 
-        role.total_hours && (role.total_hours as number) > 0
+        role.totalHours && (role.totalHours as number) > 0
       );
       if (!hasValidHours) {
         errors.push('Hours must be greater than 0');

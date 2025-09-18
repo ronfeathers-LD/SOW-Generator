@@ -141,8 +141,8 @@ export interface SOWData {
   pricing: {
     roles: Array<{
       role: string;
-      rate_per_hour: number;
-      total_hours: number;
+      ratePerHour: number;
+      totalHours: number;
     }>;
     billing: BillingInfo;
     // New pricing configuration fields

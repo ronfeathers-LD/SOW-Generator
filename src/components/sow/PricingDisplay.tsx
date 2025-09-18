@@ -33,6 +33,11 @@ export default function PricingDisplay({
   const filteredPricingRoles = pmHoursRemoved 
     ? pricingRoles.filter(role => role.role !== 'Project Manager')
     : pricingRoles;
+
+  // Check if any role has a discount (different defaultRate and ratePerHour)
+  const hasAnyDiscount = filteredPricingRoles.some(role => 
+    role.defaultRate && role.defaultRate !== role.ratePerHour
+  );
   return (
     <div className="space-y-6">
       {/* Pricing Roles Table */}
@@ -49,11 +54,13 @@ export default function PricingDisplay({
                   Role
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Standard Rate/Hr
+                  {hasAnyDiscount ? 'Standard Rate/Hr' : 'Rate/Hr'}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Discounted Rate/Hr
-                </th>
+                {hasAnyDiscount && (
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    Discounted Rate/Hr
+                  </th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Total Hours
                 </th>
@@ -76,13 +83,15 @@ export default function PricingDisplay({
                           `$${role.ratePerHour?.toFixed(2) || '0.00'}`
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                        {hasDiscount ? (
-                          <span className="text-green-600 font-semibold">${role.ratePerHour?.toFixed(2) || '0.00'}</span>
-                        ) : (
-                          `$${role.ratePerHour?.toFixed(2) || '0.00'}`
-                        )}
-                      </td>
+                      {hasAnyDiscount && (
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                          {hasDiscount ? (
+                            <span className="text-green-600 font-semibold">${role.ratePerHour?.toFixed(2) || '0.00'}</span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap text-gray-700">{role.totalHours}</td>
                       <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">
                         ${role.totalCost?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
@@ -92,7 +101,7 @@ export default function PricingDisplay({
                 })
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={hasAnyDiscount ? 5 : 4} className="px-6 py-8 text-center text-gray-500">
                     No pricing roles defined
                   </td>
                 </tr>

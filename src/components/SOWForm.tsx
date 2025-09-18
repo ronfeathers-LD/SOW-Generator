@@ -28,7 +28,7 @@ declare global {
 }
 
 interface PricingData {
-  roles: Array<{ role: string; rate_per_hour: number; total_hours: number }>;
+  roles: Array<{ role: string; ratePerHour: number; defaultRate: number; totalHours: number }>;
   discount_type: string;
   discount_amount: number;
   discount_percentage: number;
@@ -105,8 +105,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             ...initialData.pricing,
             roles: initialData.pricing?.roles || [{
               role: '',
-              rate_per_hour: 0,
-              total_hours: 0,
+              ratePerHour: 0,
+              totalHours: 0,
             }],
             billing: initialData.pricing?.billing || {
               company_name: '',
@@ -222,8 +222,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           pricing: {
             roles: [{
               role: '',
-              rate_per_hour: 0,
-              total_hours: 0,
+              ratePerHour: 0,
+              totalHours: 0,
             }],
             billing: {
               company_name: '',

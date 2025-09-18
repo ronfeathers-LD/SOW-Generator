@@ -312,10 +312,10 @@ class SalesforceClient {
    */
   async getAccount(accountId: string): Promise<SalesforceAccount> {
     try {
-      // First try without Account_Segment__c
+      // Query account with Account_Segment__c field
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
-               BillingPostalCode, BillingCountry
+               BillingPostalCode, BillingCountry, Account_Segment__c
         FROM Account 
         WHERE Id = '${accountId}'
       `;
@@ -327,43 +327,46 @@ class SalesforceClient {
       
       const account = result.records[0] as SalesforceAccount;
       
-      // Calculate account segment based on NumberOfEmployees using the same logic as Salesforce formula
-      try {
-        // First try to get NumberOfEmployees from the basic account query
-        const employeeQuery = `SELECT NumberOfEmployees FROM Account WHERE Id = '${accountId}'`;
-        const employeeResult = await this.conn.query(employeeQuery);
-        
-        if (employeeResult.records.length > 0) {
-          const record = employeeResult.records[0];
-          const numberOfEmployees = record.NumberOfEmployees as number;
+      // Use Account_Segment__c from Salesforce if available, otherwise calculate it
+      if (!account.Account_Segment__c) {
+        try {
+          // Get NumberOfEmployees to calculate segment if Account_Segment__c is not available
+          const employeeQuery = `SELECT NumberOfEmployees FROM Account WHERE Id = '${accountId}'`;
+          const employeeResult = await this.conn.query(employeeQuery);
           
-          // Calculate segment using the same formula logic as Salesforce
-          if (numberOfEmployees !== null && numberOfEmployees !== undefined && typeof numberOfEmployees === 'number') {
-            let calculatedSegment = '';
-            if (numberOfEmployees > 4500) {
-              calculatedSegment = 'LE';
-            } else if (numberOfEmployees >= 1001) {
-              calculatedSegment = 'EE';
-            } else if (numberOfEmployees >= 251) {
-              calculatedSegment = 'MM';
-            } else {
-              calculatedSegment = 'EC';
-            }
+          if (employeeResult.records.length > 0) {
+            const record = employeeResult.records[0];
+            const numberOfEmployees = record.NumberOfEmployees as number;
             
-            account.Account_Segment__c = calculatedSegment;
-            console.log(`✅ Calculated Account Segment for ${account.Name}: ${calculatedSegment} (${numberOfEmployees} employees)`);
+            // Calculate segment using the same formula logic as Salesforce
+            if (numberOfEmployees !== null && numberOfEmployees !== undefined && typeof numberOfEmployees === 'number') {
+              let calculatedSegment = '';
+              if (numberOfEmployees > 4500) {
+                calculatedSegment = 'LE';
+              } else if (numberOfEmployees >= 1001) {
+                calculatedSegment = 'EE';
+              } else if (numberOfEmployees >= 251) {
+                calculatedSegment = 'MM';
+              } else {
+                calculatedSegment = 'EC';
+              }
+              
+              account.Account_Segment__c = calculatedSegment;
+              console.log(`✅ Calculated Account Segment for ${account.Name}: ${calculatedSegment} (${numberOfEmployees} employees)`);
+            } else {
+              console.log(`⚠️ No employee count available for ${account.Name}, setting Account Segment to undefined`);
+              account.Account_Segment__c = undefined;
+            }
           } else {
-            console.log(`⚠️ No employee count available for ${account.Name}, setting Account Segment to undefined`);
+            console.log(`⚠️ No account found for ID ${accountId}`);
             account.Account_Segment__c = undefined;
           }
-        } else {
-          console.log(`⚠️ No account found for ID ${accountId}`);
-          account.Account_Segment__c = undefined;
+        } catch (segmentError) {
+          console.error('Error calculating account segment:', segmentError);
+          console.log(`⚠️ Error calculating segment for ${account.Name}, keeping existing value: ${account.Account_Segment__c}`);
         }
-      } catch (segmentError) {
-        console.error('Error calculating account segment:', segmentError);
-        // Don't set to undefined, let it remain as calculated from search
-        console.log(`⚠️ Error calculating segment for ${account.Name}, keeping existing value: ${account.Account_Segment__c}`);
+      } else {
+        console.log(`✅ Using Account_Segment__c from Salesforce for ${account.Name}: ${account.Account_Segment__c}`);
       }
       
       return account;

@@ -96,9 +96,9 @@ export async function PUT(
     // Calculate current PM hours from pricing roles
     let currentPMHours = 0;
     if (sowData.pricing_roles && Array.isArray(sowData.pricing_roles)) {
-      const pmRole = sowData.pricing_roles.find((role: { role: string; total_hours?: number }) => role.role === 'Project Manager');
+      const pmRole = sowData.pricing_roles.find((role: { role: string; totalHours?: number }) => role.role === 'Project Manager');
       if (pmRole) {
-        currentPMHours = pmRole.total_hours || 0;
+        currentPMHours = pmRole.totalHours || 0;
       }
     }
 

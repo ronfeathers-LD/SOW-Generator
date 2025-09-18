@@ -3,6 +3,7 @@ import { PMHoursRequirementDisableRequest } from '@/types/sow';
 import PMHoursRemovalModal from './PMHoursRemovalModal';
 import PMHoursRemovalApprovalOverlay from './PMHoursRemovalApprovalOverlay';
 import { calculateAllHours, calculateRoleHoursDistribution, HOURS_CALCULATION_RULES, calculateProductHoursForProduct } from '@/lib/hours-calculation-utils';
+import { getDefaultRateForRole } from '@/lib/pricing-roles-config';
 
 interface Product {
   id: string;
@@ -70,6 +71,23 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   selectedAccount,
   pricingRolesConfig: _pricingRolesConfig = [] // eslint-disable-line @typescript-eslint/no-unused-vars
 }) => {
+  const [openDropdowns, setOpenDropdowns] = useState<Set<string>>(new Set());
+
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.role-dropdown-container')) {
+        setOpenDropdowns(new Set());
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   // Helper function to safely get products array
   const getProducts = () => {
     const template = formData.template;
@@ -339,6 +357,20 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
       }
       return role;
     }));
+  };
+
+  // Add new role
+  const addRole = () => {
+    const defaultRate = 250; // Default fallback rate
+    const newRole: PricingRole = {
+      id: Math.random().toString(36).substr(2, 9),
+      role: '',
+      ratePerHour: defaultRate,
+      defaultRate: defaultRate,
+      totalHours: 0,
+      totalCost: 0,
+    };
+    setPricingRoles([...pricingRoles, newRole]);
   };
 
   // Remove role
@@ -616,16 +648,16 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
         <div className="mb-6">
           <h4 className="font-medium text-gray-900 mb-4">Role Costs:</h4>
           
-          <div className="overflow-x-auto">
+          <div>
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ROLE</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DEFAULT RATE ($)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">OVERRIDDEN RATE ($)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TOTAL HOURS</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TOTAL COST ($)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTIONS</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">ROLE</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">DEFAULT RATE ($)</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">DISCOUNTED RATE ($)</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">TOTAL HOURS</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">TOTAL COST ($)</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">ACTIONS</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -637,17 +669,83 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
                       isPMRemoved ? 'bg-gray-50' : 
                       isPMPending ? 'bg-blue-50 border-l-4 border-blue-400' : ''
                     }>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4 whitespace-nowrap w-64">
                         <div className="flex items-center space-x-2">
-                          <input
-                            type="text"
-                            value={role.role}
-                            onChange={(e) => updateRole(role.id, 'role', e.target.value)}
-                            className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
-                              isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
-                            }`}
-                            disabled={!!isPMRemoved || !!isPMPending}
-                          />
+                          <div className="relative w-full role-dropdown-container">
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={role.role}
+                                onChange={(e) => {
+                                  const newRoleName = e.target.value;
+                                  updateRole(role.id, 'role', newRoleName);
+                                  
+                                  // Auto-update default rate when role name changes
+                                  const defaultRate = getDefaultRateForRole(newRoleName, _pricingRolesConfig);
+                                  if (defaultRate !== role.defaultRate) {
+                                    updateRole(role.id, 'defaultRate', defaultRate);
+                                    updateRole(role.id, 'ratePerHour', defaultRate);
+                                  }
+                                }}
+                                onFocus={() => setOpenDropdowns(prev => new Set(prev).add(role.id))}
+                                className={`block w-full pr-10 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                                  isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
+                                }`}
+                                disabled={!!isPMRemoved || !!isPMPending}
+                                placeholder={_pricingRolesConfig.length === 0 ? "Loading roles..." : "Enter role name or select from list"}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newSet = new Set(openDropdowns);
+                                  if (newSet.has(role.id)) {
+                                    newSet.delete(role.id);
+                                  } else {
+                                    newSet.add(role.id);
+                                  }
+                                  setOpenDropdowns(newSet);
+                                }}
+                                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                                disabled={!!isPMRemoved || !!isPMPending || _pricingRolesConfig.length === 0}
+                              >
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                            </div>
+                            
+                            {/* Custom dropdown */}
+                            {openDropdowns.has(role.id) && _pricingRolesConfig.length > 0 && (
+                              <div className="absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-xl" style={{ zIndex: 9999, maxHeight: '200px', overflowY: 'auto', minWidth: 'max-content', width: '250px' }}>
+                                {_pricingRolesConfig.map((config) => {
+                                  return (
+                                    <button
+                                      key={config.role_name}
+                                      type="button"
+                                      onClick={() => {
+                                        updateRole(role.id, 'role', config.role_name);
+                                        const defaultRate = getDefaultRateForRole(config.role_name, _pricingRolesConfig);
+                                        if (defaultRate !== role.defaultRate) {
+                                          updateRole(role.id, 'defaultRate', defaultRate);
+                                          updateRole(role.id, 'ratePerHour', defaultRate);
+                                        }
+                                        setOpenDropdowns(prev => {
+                                          const newSet = new Set(prev);
+                                          newSet.delete(role.id);
+                                          return newSet;
+                                        });
+                                      }}
+                                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-100 last:border-b-0"
+                                      disabled={!!isPMRemoved || !!isPMPending}
+                                      style={{ display: 'block', minHeight: '40px' }}
+                                    >
+                                      {config.role_name}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                           {isPMPending && (
                             <div className="flex items-center text-blue-600 text-xs">
                               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -658,27 +756,34 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 w-32">
                         ${role.defaultRate}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <input
-                          type="number"
-                          value={role.ratePerHour}
-                          onChange={(e) => updateRole(role.id, 'ratePerHour', parseFloat(e.target.value) || 0)}
-                          className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
-                            isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
-                          }`}
-                          disabled={!!isPMRemoved || !!isPMPending}
-                          placeholder="Enter overridden rate"
-                        />
-                        {role.ratePerHour !== role.defaultRate && (
-                          <div className="text-xs text-green-600 font-medium mt-1">
-                            Override: ${role.ratePerHour}
-                          </div>
-                        )}
+                      <td className="px-3 py-4 whitespace-nowrap w-32">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="number"
+                            value={role.ratePerHour}
+                            onChange={(e) => updateRole(role.id, 'ratePerHour', parseFloat(e.target.value) || 0)}
+                            className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                              isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
+                            }`}
+                            disabled={!!isPMRemoved || !!isPMPending}
+                            placeholder="Enter overridden rate"
+                          />
+                          {role.ratePerHour !== role.defaultRate && !isPMRemoved && !isPMPending && (
+                            <button
+                              type="button"
+                              onClick={() => updateRole(role.id, 'ratePerHour', role.defaultRate)}
+                              className="text-xs text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border border-gray-300"
+                              title="Clear override and reset to default rate"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4 whitespace-nowrap w-24">
                         <input
                           type="number"
                           value={role.totalHours}
@@ -689,10 +794,10 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
                           disabled={!!isPMRemoved || !!isPMPending}
                         />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 w-32">
                         ${role.totalCost.toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <td className="px-3 py-4 whitespace-nowrap text-sm font-medium w-20">
                         {isPMRemoved ? (
                           <span className="text-gray-400 text-xs">Removed by approval</span>
                         ) : isPMPending ? (
@@ -719,6 +824,20 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
               </tbody>
             </table>
           </div>
+          
+          {/* Add Role Button */}
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={addRole}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm"
+            >
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              Add Role
+            </button>
+          </div>
         </div>
 
         {/* Recalculate Button */}
@@ -739,7 +858,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            💡 The calculated hours have been assigned to the Onboarding Specialist role. Project Manager role is auto-added for 3+ products. You can manually adjust the distribution or add additional roles as needed.
+            💡 The calculated hours have been assigned to the Onboarding Specialist role. Project Manager role is auto-added for 3+ products. You can manually adjust the distribution or add additional roles as needed. Use the &quot;Add Role&quot; button to create custom roles, and select from predefined roles or enter custom role names.
           </div>
         </div>
       </div>
