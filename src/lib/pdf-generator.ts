@@ -1027,17 +1027,17 @@ export class PDFGenerator {
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
                   <div style="background-color: white; padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px;">
                     <div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">Subtotal</div>
-                    <div style="font-size: 20px; font-weight: 700; color: #111827;">$${(sowData.pricing_subtotal || 0).toLocaleString()}</div>
+                    <div style="font-size: 20px; font-weight: 700; color: #111827;">$${(sowData.pricing_subtotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                   </div>
                   ${sowData.pricing_discount && sowData.pricing_discount_type && sowData.pricing_discount_type !== 'none' ? `
                   <div style="background-color: white; padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px;">
                     <div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">Discount</div>
-                    <div style="font-size: 20px; font-weight: 700; color: #dc2626;">${sowData.pricing_discount_type === 'percentage' ? `-${sowData.pricing_discount_percentage || 0}%` : `-$${(sowData.pricing_discount || 0).toLocaleString()}`}</div>
+                    <div style="font-size: 20px; font-weight: 700; color: #dc2626;">${sowData.pricing_discount_type === 'percentage' ? `-${sowData.pricing_discount_percentage || 0}%` : `-$${(sowData.pricing_discount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</div>
                   </div>
                   ` : ''}
                   <div style="background-color: white; padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px;">
                     <div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">Total Amount</div>
-                    <div style="font-size: 20px; font-weight: 700; color: #059669;">$${((sowData.pricing_subtotal || 0) - (sowData.pricing_discount_type && sowData.pricing_discount_type !== 'none' ? (sowData.pricing_discount || 0) : 0)).toLocaleString()}</div>
+                    <div style="font-size: 20px; font-weight: 700; color: #059669;">$${((sowData.pricing_subtotal || 0) - (sowData.pricing_discount_type && sowData.pricing_discount_type !== 'none' ? (sowData.pricing_discount || 0) : 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                   </div>
                 </div>
                 
