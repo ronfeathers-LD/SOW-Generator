@@ -19,6 +19,11 @@ export function validateSOWForApproval(sowData: { [key: string]: unknown }): SOW
   // Basic required fields
   if (!sowData.sow_title) missingFields.push('SOW Title');
   if (!sowData.client_name) missingFields.push('Client Name');
+  
+  // Account owner validation - required for proper approval routing
+  if (!sowData.salesforce_account_owner_name || !sowData.salesforce_account_owner_email) {
+    missingFields.push('Account Owner Information');
+  }
 
 
   // Overview Tab validation

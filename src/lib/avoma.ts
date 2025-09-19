@@ -1,3 +1,20 @@
+interface AvomaApiMeeting {
+  uuid: string;
+  subject?: string;
+  start_at?: string;
+  duration?: number;
+  organizer_email?: string;
+  attendees?: Array<Record<string, unknown>>;
+  transcription_uuid?: string;
+  transcript_ready?: boolean;
+  audio_ready?: boolean;
+  video_ready?: boolean;
+  notes_ready?: boolean;
+  state?: string;
+  type?: Record<string, unknown>;
+  purpose?: Record<string, unknown>;
+}
+
 interface AvomaCall {
   id?: string;
   external_id?: string;
@@ -248,6 +265,89 @@ class AvomaClient {
   }
 
   /**
+   * Get transcript for a meeting (alias for getMeetingTranscriptText)
+   */
+  async getTranscript(meetingUuid: string): Promise<{ transcript: string; speakers: Array<Record<string, unknown>> }> {
+    const result = await this.getMeetingTranscriptText(meetingUuid);
+    return {
+      transcript: result.text,
+      speakers: result.speakers
+    };
+  }
+
+  /**
+   * Get meeting details by ID
+   */
+  async getMeetingDetails(meetingId: string): Promise<AvomaCall | null> {
+    try {
+      return await this.makeRequest(`/meetings/${meetingId}`);
+    } catch (error) {
+      console.error('Error getting meeting details:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Test transcriptions API with CRM filtering
+   */
+  async testTranscriptionsCrmFiltering(salesforceAccountId: string, fromDate: string, toDate: string): Promise<AvomaCall[]> {
+    try {
+      // Test 1: Basic transcriptions call
+      const basicParams = new URLSearchParams({
+        from_date: fromDate,
+        to_date: toDate,
+        page_size: '10'
+      });
+      
+      const basicResult = await this.makeRequest(`/transcriptions?${basicParams.toString()}`); // eslint-disable-line @typescript-eslint/no-unused-vars
+      
+      // Test 2: With CRM account ID
+      const crmParams = new URLSearchParams({
+        from_date: fromDate,
+        to_date: toDate,
+        page_size: '10',
+        crm_account_ids: salesforceAccountId
+      });
+      
+      const crmResult = await this.makeRequest(`/transcriptions?${crmParams.toString()}`);
+      
+      return crmResult;
+      
+    } catch (error) {
+      console.error('Transcriptions API error:', error instanceof Error ? error.message : String(error));
+      return [];
+    }
+  }
+
+  /**
+   * Test different CRM parameter names to see which one works
+   */
+  async testCrmParameters(salesforceAccountId: string, fromDate: string, toDate: string): Promise<void> {
+    const testParams = [
+      { name: 'crm_account_ids', value: salesforceAccountId },
+      { name: 'crm_account_id', value: salesforceAccountId },
+      { name: 'account_id', value: salesforceAccountId },
+      { name: 'salesforce_account_id', value: salesforceAccountId },
+      { name: 'external_account_id', value: salesforceAccountId }
+    ];
+    
+    for (const param of testParams) {
+      try {
+        const params = new URLSearchParams({
+          from_date: fromDate,
+          to_date: toDate,
+          page_size: '10' // Small number for testing
+        });
+        params.append(param.name, param.value);
+        
+        const result = await this.makeRequest(`/meetings?${params.toString()}`); // eslint-disable-line @typescript-eslint/no-unused-vars
+      } catch (error) {
+        console.error(`${param.name} test failed:`, error instanceof Error ? error.message : String(error));
+      }
+    }
+  }
+
+  /**
    * Find meetings for a specific customer using the search endpoint
    */
   async findScopingCalls(customerName: string): Promise<AvomaCall[]> {
@@ -304,6 +404,396 @@ class AvomaClient {
       return [];
     } catch (error) {
       console.error('Error searching for scoping calls:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Enhanced search for meetings using Salesforce account and opportunity data
+   */
+  async findMeetingsWithSalesforceContext(
+    accountName: string,
+    opportunityName?: string,
+    contactEmails?: string[],
+    additionalSearchTerms?: string[],
+    salesforceAccountId?: string,
+    salesforceOpportunityId?: string,
+    fromDate?: string,
+    toDate?: string
+  ): Promise<AvomaCall[]> {
+    try {
+      // Use provided date range or default to last 12 months
+      const defaultFromDate = new Date();
+      defaultFromDate.setMonth(defaultFromDate.getMonth() - 12);
+      const defaultToDate = new Date();
+      
+      // Format dates to match Postman working format (ISO string)
+      const searchFromDate = fromDate ? `${fromDate}T00:00:00` : defaultFromDate.toISOString();
+      const searchToDate = toDate ? `${toDate}T23:59:59` : defaultToDate.toISOString();
+      
+      // Use meetings API with CRM filtering
+      if (salesforceAccountId) {
+        const meetingParams = new URLSearchParams({
+          from_date: searchFromDate,
+          to_date: searchToDate,
+          crm_account_ids: salesforceAccountId
+        });
+
+        // Add opportunity ID if available
+        if (salesforceOpportunityId) {
+          meetingParams.append('crm_opportunity_ids', salesforceOpportunityId);
+        }
+        
+        try {
+          const meetingResults = await this.makeRequest(`/meetings?${meetingParams.toString()}`);
+          
+          if (meetingResults.results && meetingResults.results.length > 0) {
+            // Convert to our expected format and filter out meetings without transcripts
+            const allMeetings = meetingResults.results.map((meeting: AvomaApiMeeting) => ({
+              id: meeting.uuid,
+              uuid: meeting.uuid,
+              title: meeting.subject || 'Untitled Meeting',
+              subject: meeting.subject,
+              start_at: meeting.start_at,
+              duration: meeting.duration,
+              organizer_email: meeting.organizer_email,
+              attendees: meeting.attendees || [],
+              hasTranscript: !!meeting.transcription_uuid,
+              transcription_uuid: meeting.transcription_uuid,
+              transcript_ready: meeting.transcript_ready,
+              audio_ready: meeting.audio_ready,
+              video_ready: meeting.video_ready,
+              notes_ready: meeting.notes_ready,
+              state: meeting.state,
+              type: meeting.type?.label,
+              purpose: meeting.purpose?.label
+            }));
+            
+            // Filter to only include meetings with transcripts
+            const meetingsWithTranscripts = allMeetings.filter((meeting: any) => 
+              meeting.transcript_ready && meeting.transcription_uuid
+            );
+            
+            // Log attendees for each meeting
+            meetingsWithTranscripts.forEach((meeting: any) => {
+              console.log(`Meeting: ${meeting.title}`);
+              console.log(`  Organizer: ${meeting.organizer_email}`);
+              console.log(`  Attendees (${meeting.attendees?.length || 0}):`, 
+                meeting.attendees?.map((a: any) => `${a.name || 'Unknown'} (${a.email || 'No email'})`).join(', ') || 'None'
+              );
+            });
+            
+            return meetingsWithTranscripts;
+          }
+        } catch (error) {
+          console.error('Meetings API error:', error instanceof Error ? error.message : String(error));
+        }
+      }
+
+      // Fallback to meetings API with attendee email filtering
+      const params = new URLSearchParams({
+        from_date: searchFromDate,
+        to_date: searchToDate,
+        page_size: '100'
+      });
+
+      
+      // Use attendee emails if we have contact emails
+      if (contactEmails && contactEmails.length > 0) {
+        params.append('attendee_emails', contactEmails.join(','));
+      }
+
+      const apiUrl = `/meetings?${params.toString()}`;
+      
+      try {
+        const searchResults = await this.makeRequest(apiUrl);
+        if (searchResults.results && Array.isArray(searchResults.results)) {
+          
+          const relevantMeetings = searchResults.results.filter((meeting: AvomaCall) => {
+            return this.isMeetingRelevantToSalesforceContext(
+              meeting,
+              accountName,
+              opportunityName,
+              contactEmails,
+              additionalSearchTerms,
+              salesforceAccountId,
+              salesforceOpportunityId
+            );
+          });
+
+
+          // Log attendees for each meeting
+          relevantMeetings.forEach((meeting: any) => {
+            console.log(`Fallback Meeting: ${meeting.title}`);
+            console.log(`  Organizer: ${meeting.organizer_email}`);
+            console.log(`  Attendees (${meeting.attendees?.length || 0}):`, 
+              meeting.attendees?.map((a: any) => `${a.name || 'Unknown'} (${a.email || 'No email'})`).join(', ') || 'None'
+            );
+          });
+
+          // Sort by relevance and recency
+          return this.sortMeetingsByRelevance(relevantMeetings, accountName, opportunityName).slice(0, 25);
+        }
+        
+        return [];
+      } catch (apiError) {
+        console.warn('Advanced API parameters failed, falling back to basic search:', apiError);
+        
+        // Fallback to basic parameters if advanced ones fail
+        const basicParams = new URLSearchParams({
+          from_date: searchFromDate,
+          to_date: searchToDate,
+          page_size: '100'
+        });
+        
+        // Still try to use CRM account ID in fallback
+        if (salesforceAccountId) {
+          basicParams.append('crm_account_ids', salesforceAccountId);
+        }
+
+        const fallbackResults = await this.makeRequest(`/meetings?${basicParams.toString()}`);
+        
+        if (fallbackResults.results && Array.isArray(fallbackResults.results)) {
+          console.log(`Fallback API returned ${fallbackResults.results.length} meetings`);
+          
+          const relevantMeetings = fallbackResults.results.filter((meeting: AvomaCall) => {
+            return this.isMeetingRelevantToSalesforceContext(
+              meeting,
+              accountName,
+              opportunityName,
+              contactEmails,
+              additionalSearchTerms,
+              salesforceAccountId,
+              salesforceOpportunityId
+            );
+          });
+
+          return this.sortMeetingsByRelevance(relevantMeetings, accountName, opportunityName).slice(0, 25);
+        }
+        
+        return [];
+      }
+    } catch (error) {
+      console.error('Error searching for meetings with Salesforce context:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Check if a meeting is relevant to the Salesforce context
+   */
+  private isMeetingRelevantToSalesforceContext(
+    meeting: AvomaCall,
+    accountName: string,
+    opportunityName?: string,
+    contactEmails?: string[],
+    additionalSearchTerms?: string[],
+    salesforceAccountId?: string,
+    salesforceOpportunityId?: string
+  ): boolean {
+    const subject = (meeting.subject || '').toLowerCase();
+    const organizerEmail = (meeting.organizer_email || '').toLowerCase();
+    const purpose = (typeof meeting.purpose === 'string' ? meeting.purpose : '').toLowerCase();
+    const attendees = meeting.attendees || [];
+    
+    // Extract attendee emails
+    const attendeeEmails = attendees
+      .map((attendee: any) => attendee.email?.toLowerCase())
+      .filter(Boolean);
+
+    // Check for account name matches
+    const hasAccountName = subject.includes(accountName.toLowerCase()) || 
+                          organizerEmail.includes(accountName.toLowerCase()) ||
+                          purpose.includes(accountName.toLowerCase());
+
+    // Check for Salesforce Account ID matches (if available)
+    // This could be useful if Avoma stores Salesforce IDs or if there are custom fields
+    const hasSalesforceAccountId = salesforceAccountId ? 
+      (subject.includes(salesforceAccountId.toLowerCase()) || 
+       organizerEmail.includes(salesforceAccountId.toLowerCase()) ||
+       purpose.includes(salesforceAccountId.toLowerCase())) : true;
+
+    // Check for opportunity name matches (if provided)
+    const hasOpportunityName = opportunityName ? 
+      (subject.includes(opportunityName.toLowerCase()) || 
+       purpose.includes(opportunityName.toLowerCase())) : true;
+
+    // Check for Salesforce Opportunity ID matches (if available)
+    const hasSalesforceOpportunityId = salesforceOpportunityId ? 
+      (subject.includes(salesforceOpportunityId.toLowerCase()) || 
+       organizerEmail.includes(salesforceOpportunityId.toLowerCase()) ||
+       purpose.includes(salesforceOpportunityId.toLowerCase())) : true;
+
+    // Check for contact email matches (if provided)
+    const hasContactEmail = contactEmails && contactEmails.length > 0 ?
+      contactEmails.some(email => 
+        organizerEmail.includes(email.toLowerCase()) ||
+        attendeeEmails.some(attendeeEmail => attendeeEmail.includes(email.toLowerCase()))
+      ) : true;
+
+    // Check for additional search terms (if provided)
+    const hasAdditionalTerms = additionalSearchTerms && additionalSearchTerms.length > 0 ?
+      additionalSearchTerms.some(term => 
+        subject.includes(term.toLowerCase()) ||
+        purpose.includes(term.toLowerCase())
+      ) : true;
+
+    // Check for scoping-related keywords
+    const hasScopingKeywords = subject.includes('scoping') || 
+                              subject.includes('scope') || 
+                              subject.includes('requirements') ||
+                              subject.includes('discovery') ||
+                              subject.includes('project') ||
+                              subject.includes('proposal') ||
+                              subject.includes('sow') ||
+                              purpose.includes('scoping') ||
+                              purpose.includes('scope') ||
+                              purpose.includes('requirements') ||
+                              purpose.includes('discovery') ||
+                              purpose.includes('project') ||
+                              purpose.includes('proposal') ||
+                              purpose.includes('sow');
+
+    return hasAccountName && hasSalesforceAccountId && hasOpportunityName && hasSalesforceOpportunityId && hasContactEmail && 
+           (hasAdditionalTerms || hasScopingKeywords);
+  }
+
+  /**
+   * Sort meetings by relevance and recency
+   */
+  private sortMeetingsByRelevance(meetings: AvomaCall[], accountName: string, opportunityName?: string): AvomaCall[] {
+    return meetings.sort((a, b) => {
+      // Calculate relevance scores
+      const scoreA = this.calculateRelevanceScore(a, accountName, opportunityName);
+      const scoreB = this.calculateRelevanceScore(b, accountName, opportunityName);
+      
+      // Sort by relevance score (higher first), then by date (newer first)
+      if (scoreA !== scoreB) {
+        return scoreB - scoreA;
+      }
+      
+      const dateA = new Date(a.start_at || a.created || '');
+      const dateB = new Date(b.start_at || b.created || '');
+      return dateB.getTime() - dateA.getTime();
+    });
+  }
+
+  /**
+   * Calculate relevance score for a meeting
+   */
+  private calculateRelevanceScore(meeting: AvomaCall, accountName: string, opportunityName?: string): number {
+    let score = 0;
+    const subject = (meeting.subject || '').toLowerCase();
+    const purpose = (typeof meeting.purpose === 'string' ? meeting.purpose : '').toLowerCase();
+    
+    // Base score for having the account name
+    if (subject.includes(accountName.toLowerCase())) score += 10;
+    if (purpose.includes(accountName.toLowerCase())) score += 5;
+    
+    // Bonus for opportunity name match
+    if (opportunityName && subject.includes(opportunityName.toLowerCase())) score += 8;
+    if (opportunityName && purpose.includes(opportunityName.toLowerCase())) score += 4;
+    
+    // Bonus for scoping-related keywords
+    const scopingKeywords = ['scoping', 'scope', 'requirements', 'discovery', 'project', 'proposal', 'sow'];
+    scopingKeywords.forEach(keyword => {
+      if (subject.includes(keyword)) score += 3;
+      if (purpose.includes(keyword)) score += 2;
+    });
+    
+    // Bonus for recent meetings (within last 3 months)
+    const meetingDate = new Date(meeting.start_at || meeting.created || '');
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    
+    if (meetingDate > threeMonthsAgo) {
+      score += 5;
+    }
+    
+    return score;
+  }
+
+  /**
+   * Smart search with multiple fallback strategies
+   */
+  async smartSearchMeetings(
+    accountName: string,
+    opportunityName?: string,
+    contactEmails?: string[],
+    additionalSearchTerms?: string[],
+    salesforceAccountId?: string,
+    salesforceOpportunityId?: string,
+    fromDate?: string,
+    toDate?: string
+  ): Promise<AvomaCall[]> {
+    try {
+      // Strategy 1: Full context search with optimized API parameters
+      let meetings = await this.findMeetingsWithSalesforceContext(
+        accountName,
+        opportunityName,
+        contactEmails,
+        additionalSearchTerms,
+        salesforceAccountId,
+        salesforceOpportunityId,
+        fromDate,
+        toDate
+      );
+
+      // Strategy 2: If no results, try broader account-only search
+      if (meetings.length === 0) {
+        meetings = await this.findMeetingsWithSalesforceContext(
+          accountName,
+          undefined, // No opportunity filter
+          undefined, // No contact filter
+          ['scoping', 'scope', 'requirements', 'discovery', 'project', 'proposal', 'sow'],
+          salesforceAccountId,
+          undefined, // No opportunity ID filter
+          fromDate,
+          toDate
+        );
+      }
+
+      // Strategy 3: If still no results, try partial account name matching
+      if (meetings.length === 0 && accountName.length > 3) {
+        const accountWords = accountName.split(' ').filter(word => word.length > 3);
+        for (const word of accountWords) {
+          meetings = await this.findMeetingsWithSalesforceContext(
+            word,
+            undefined,
+            undefined,
+            ['scoping', 'scope', 'requirements', 'discovery', 'project', 'proposal', 'sow'],
+            undefined, // No account ID for partial matching
+            undefined, // No opportunity ID for partial matching
+            fromDate,
+            toDate
+          );
+          if (meetings.length > 0) break;
+        }
+      }
+
+      // Strategy 4: If still no results, try contact email search
+      if (meetings.length === 0 && contactEmails && contactEmails.length > 0) {
+        for (const email of contactEmails) {
+          const domain = email.split('@')[1];
+          if (domain) {
+            meetings = await this.findMeetingsWithSalesforceContext(
+              domain.split('.')[0], // Use domain name as account name
+              undefined,
+              [email],
+              ['scoping', 'scope', 'requirements', 'discovery', 'project', 'proposal', 'sow'],
+              undefined, // No account ID for domain matching
+              undefined, // No opportunity ID for domain matching
+              fromDate,
+              toDate
+            );
+            if (meetings.length > 0) break;
+          }
+        }
+      }
+
+      return meetings;
+    } catch (error) {
+      console.error('Error in smart search:', error);
       return [];
     }
   }

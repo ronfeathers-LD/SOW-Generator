@@ -108,14 +108,24 @@ export async function POST(
       throw error;
     }
 
-    // Update the SOW table with the Salesforce account ID if account data is provided
+    // Update the SOW table with the Salesforce account ID and owner information if account data is provided
     if (salesforceData.account_data?.id) {
+      const updateData: Record<string, unknown> = { 
+        salesforce_account_id: salesforceData.account_data.id,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Add account owner information if available
+      if (salesforceData.account_data.owner) {
+        updateData.salesforce_account_owner_name = salesforceData.account_data.owner;
+      }
+      if (salesforceData.account_data.owner_email) {
+        updateData.salesforce_account_owner_email = salesforceData.account_data.owner_email;
+      }
+      
       await supabase
         .from('sows')
-        .update({ 
-          salesforce_account_id: salesforceData.account_data.id,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', sowId);
     }
 
@@ -178,14 +188,24 @@ export async function PATCH(
       throw error;
     }
 
-    // Update the SOW table with the Salesforce account ID if account data is provided
+    // Update the SOW table with the Salesforce account ID and owner information if account data is provided
     if (updates.account_data?.id) {
+      const updateData: Record<string, unknown> = { 
+        salesforce_account_id: updates.account_data.id,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Add account owner information if available
+      if (updates.account_data.owner) {
+        updateData.salesforce_account_owner_name = updates.account_data.owner;
+      }
+      if (updates.account_data.owner_email) {
+        updateData.salesforce_account_owner_email = updates.account_data.owner_email;
+      }
+      
       await supabase
         .from('sows')
-        .update({ 
-          salesforce_account_id: updates.account_data.id,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', sowId);
     }
 

@@ -169,6 +169,8 @@ export interface SOWData {
   
   // Salesforce Information
   salesforce_account_id?: string;
+  salesforce_account_owner_name?: string;
+  salesforce_account_owner_email?: string;
   salesforce_contact_id?: string;
   opportunity_id?: string;
   opportunity_name?: string;

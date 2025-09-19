@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
       Industry: account.Industry,
       NumberOfEmployees: account.NumberOfEmployees,
       Employee_Band__c: account.Employee_Band__c,
+      Owner: account.Owner,
       // Also include lowercase versions for compatibility
       id: account.Id,
       name: account.Name,
@@ -59,7 +60,8 @@ export async function POST(request: NextRequest) {
       billingCountry: account.BillingCountry,
       industry: account.Industry,
       numberOfEmployees: account.NumberOfEmployees,
-      accountSegment: account.Employee_Band__c
+      accountSegment: account.Employee_Band__c,
+      owner: account.Owner
     }));
 
     // Search results processed

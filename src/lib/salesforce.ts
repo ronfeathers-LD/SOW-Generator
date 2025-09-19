@@ -16,6 +16,10 @@ export interface SalesforceAccount {
   AnnualRevenue?: number;
   NumberOfEmployees?: number;
   CurrencyIsoCode?: string;
+  Owner?: {
+    Name: string;
+    Email: string;
+  };
   // Lowercase properties for API responses
   id?: string;
   name?: string;
@@ -263,7 +267,8 @@ class SalesforceClient {
       
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
-               BillingPostalCode, BillingCountry, Industry, NumberOfEmployees
+               BillingPostalCode, BillingCountry, Industry, NumberOfEmployees,
+               Owner.Name, Owner.Email
         FROM Account 
         WHERE Name LIKE '%${escapedSearchTerm}%' 
            OR BillingCity LIKE '%${escapedSearchTerm}%'
@@ -312,10 +317,11 @@ class SalesforceClient {
    */
   async getAccount(accountId: string): Promise<SalesforceAccount> {
     try {
-      // Query account with Employee_Band__c field
+      // Query account with Employee_Band__c field and Owner information
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
-               BillingPostalCode, BillingCountry, Employee_Band__c
+               BillingPostalCode, BillingCountry, Employee_Band__c,
+               Owner.Name, Owner.Email
         FROM Account 
         WHERE Id = '${accountId}'
       `;

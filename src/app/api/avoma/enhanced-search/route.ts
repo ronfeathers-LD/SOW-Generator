@@ -61,23 +61,22 @@ interface AvomaCall {
 export async function POST(request: NextRequest) {
   try {
     const { 
-      customerName, 
-      // New Salesforce context parameters
+      sowId,
       accountName,
       opportunityName,
       contactEmails,
       additionalSearchTerms,
-      sowId, // Optional SOW ID to fetch Salesforce data
-      projectContext,
+      useSmartSearch = true,
       salesforceAccountId,
       salesforceOpportunityId,
       fromDate,
-      toDate
+      toDate,
+      projectContext // eslint-disable-line @typescript-eslint/no-unused-vars
     } = await request.json();
 
-    if (!customerName && !accountName) {
+    if (!sowId && !accountName) {
       return NextResponse.json(
-        { error: 'Customer name or account name is required' },
+        { error: 'SOW ID or account name is required' },
         { status: 400 }
       );
     }
@@ -116,12 +115,27 @@ export async function POST(request: NextRequest) {
 
     // Initialize clients
     const avomaClient = new AvomaClient(avomaConfig.api_key, avomaConfig.api_url);
-    const geminiClient = new GeminiClient(geminiConfig.api_key, geminiConfig.model_name);
+    const geminiClient = new GeminiClient(geminiConfig.api_key, geminiConfig.model_name); // eslint-disable-line @typescript-eslint/no-unused-vars
 
     // Fetch Salesforce data if SOW ID is provided
     let salesforceData = null;
+    let sowData = null;
+    
     if (sowId) {
       try {
+        // Get SOW data
+        const { data: sow } = await supabase
+          .from('sows')
+          .select('*')
+          .eq('id', sowId)
+          .eq('is_hidden', false)
+          .single();
+        
+        if (sow) {
+          sowData = sow;
+        }
+
+        // Get Salesforce data
         const { data: sfData } = await supabase
           .from('sow_salesforce_data')
           .select('account_data, opportunity_data, contacts_data')
@@ -131,26 +145,36 @@ export async function POST(request: NextRequest) {
         if (sfData) {
           salesforceData = sfData;
         }
-      } catch {
-        console.log('No Salesforce data found for SOW:', sowId);
+      } catch (error) {
+        console.log('Error fetching SOW or Salesforce data:', error);
       }
     }
 
-    // Determine search parameters
-    const searchAccountName = accountName || salesforceData?.account_data?.name || customerName;
-    const searchOpportunityName = opportunityName || salesforceData?.opportunity_data?.name;
-    const searchContactEmails = contactEmails || salesforceData?.contacts_data?.map((contact: SalesforceContact) => contact.Email).filter(Boolean);
-    const searchTerms = additionalSearchTerms || ['scoping', 'scope', 'requirements', 'discovery', 'project', 'proposal', 'sow'];
+    // Determine search parameters with priority order
+    const searchAccountName = accountName || 
+                             salesforceData?.account_data?.name || 
+                             sowData?.header?.client_name || 
+                             'Unknown Account';
+    
+    const searchOpportunityName = opportunityName || 
+                                  salesforceData?.opportunity_data?.name;
+    
+    const searchContactEmails = contactEmails || 
+                                salesforceData?.contacts_data?.map((contact: SalesforceContact) => contact.Email).filter(Boolean);
+    
+    const searchTerms = additionalSearchTerms || 
+                       ['scoping', 'scope', 'requirements', 'discovery', 'project', 'proposal', 'sow'];
+
     // Use provided IDs with priority over fetched ones
     const finalSalesforceAccountId = salesforceAccountId || salesforceData?.account_data?.id;
     const finalSalesforceOpportunityId = salesforceOpportunityId || salesforceData?.opportunity_data?.id;
-
-    // Use enhanced search with Salesforce context
-    let scopingCalls: AvomaCall[] = [];
     
-    if (salesforceData || accountName || opportunityName || contactEmails) {
-      // Use smart search with Salesforce context
-      scopingCalls = await avomaClient.smartSearchMeetings(
+
+    // Perform enhanced search
+    let meetings: AvomaCall[] = [];
+    
+    if (useSmartSearch) {
+      meetings = await avomaClient.smartSearchMeetings(
         searchAccountName,
         searchOpportunityName,
         searchContactEmails,
@@ -161,88 +185,65 @@ export async function POST(request: NextRequest) {
         toDate
       );
     } else {
-      // Fallback to original search method
-      scopingCalls = await avomaClient.findScopingCalls(customerName);
+      meetings = await avomaClient.findMeetingsWithSalesforceContext(
+        searchAccountName,
+        searchOpportunityName,
+        searchContactEmails,
+        searchTerms,
+        finalSalesforceAccountId,
+        finalSalesforceOpportunityId,
+        fromDate,
+        toDate
+      );
     }
 
-    if (scopingCalls.length === 0) {
+    if (meetings.length === 0) {
       return NextResponse.json({
-        message: 'No scoping calls found for this customer',
-        calls: [],
-        bulletPoints: [],
-        projectDescription: '',
+        message: 'No relevant meetings found',
+        meetings: [],
         searchContext: {
           accountName: searchAccountName,
           opportunityName: searchOpportunityName,
           contactEmails: searchContactEmails,
           searchTerms: searchTerms,
           usedSalesforceData: !!salesforceData,
-          salesforceAccountId: salesforceAccountId,
-          salesforceOpportunityId: salesforceOpportunityId
+          usedSOWData: !!sowData,
+          salesforceAccountId: finalSalesforceAccountId,
+          salesforceOpportunityId: finalSalesforceOpportunityId,
+          searchMethod: useSmartSearch ? 'smartSearch' : 'contextSearch'
         }
       });
     }
 
-    // Get the most recent call transcript
-    const mostRecentCall = scopingCalls[0]; // Assuming they're sorted by date
     
-    if (!mostRecentCall.id) {
-      return NextResponse.json({
-        message: 'Call found but ID is not available',
-        calls: scopingCalls,
-        bulletPoints: [],
-        projectDescription: ''
-      });
-    }
-    
-    const transcript = await avomaClient.getCallTranscriptText(mostRecentCall.id);
-
-    if (!transcript) {
-      return NextResponse.json({
-        message: 'Call found but transcript is not available',
-        calls: scopingCalls,
-        bulletPoints: [],
-        projectDescription: ''
-      });
-    }
-
-    // Generate bullet points using Gemini
-    const bulletPointsResponse = await geminiClient.generateSOWBulletPoints(
-      transcript,
-      customerName,
-      projectContext
-    );
-
-    // Generate project description
-    const projectDescription = await geminiClient.generateProjectDescription(
-      transcript,
-      customerName
-    );
-
     return NextResponse.json({
-      message: 'Successfully analyzed scoping calls',
-      calls: scopingCalls,
-      selectedCall: mostRecentCall,
-      bulletPoints: bulletPointsResponse.bulletPoints,
-      summary: bulletPointsResponse.summary,
-      projectDescription,
+      message: `Found ${meetings.length} meetings with transcripts available for analysis.`,
+      meetings: meetings,
+      selectedMeeting: null, // No automatic selection
+      meetingTranscripts: [], // No transcripts fetched yet
+      bulletPoints: [], // No analysis yet
+      summary: '', // No summary yet
+      projectDescription: '', // No description yet
       searchContext: {
         accountName: searchAccountName,
         opportunityName: searchOpportunityName,
         contactEmails: searchContactEmails,
         searchTerms: searchTerms,
         usedSalesforceData: !!salesforceData,
-          salesforceAccountId: finalSalesforceAccountId,
-          salesforceOpportunityId: finalSalesforceOpportunityId,
-        searchMethod: salesforceData || accountName || opportunityName || contactEmails ? 'smartSearch' : 'legacySearch'
+        usedSOWData: !!sowData,
+        salesforceAccountId: finalSalesforceAccountId,
+        salesforceOpportunityId: finalSalesforceOpportunityId,
+        searchMethod: useSmartSearch ? 'smartSearch' : 'contextSearch',
+        totalMeetingsFound: meetings.length,
+        meetingsWithTranscripts: meetings.length // All meetings have transcripts
       }
     });
 
   } catch (error) {
-    console.error('Error in Avoma search:', error);
+    console.error('Error in enhanced Avoma search:', error);
     return NextResponse.json(
-      { error: 'Failed to search Avoma calls' },
+      { error: 'Failed to perform enhanced Avoma search' },
       { status: 500 }
     );
   }
-} 
+}

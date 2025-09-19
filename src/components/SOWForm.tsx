@@ -377,15 +377,32 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   // Load existing data when editing
   useEffect(() => {
     if (initialData) {
+      console.log('🔍 SOWForm Debug - initialData:', {
+        salesforce_account_owner_name: initialData.salesforce_account_owner_name,
+        salesforce_account_owner_email: initialData.salesforce_account_owner_email,
+        salesforce_account_id: initialData.salesforce_account_id,
+        selectedAccount: initialData.selectedAccount,
+        template_client_name: initialData.template?.client_name,
+        header_client_name: initialData.header?.client_name
+      });
+
       // Set selected account if available from initialData or if customer name exists
       if (initialData.selectedAccount) {
+        console.log('🔍 SOWForm: Using selectedAccount from initialData');
         setSelectedAccount(initialData.selectedAccount);
       } else if (initialData.template?.client_name || initialData.header?.client_name) {
         const accountId = initialData.salesforce_account_id || '';
-        setSelectedAccount({
+        const reconstructedAccount = {
           Id: accountId, // Use the Salesforce account ID if available
-          Name: initialData.template?.client_name || initialData.header?.client_name || ''
-        });
+          Name: initialData.template?.client_name || initialData.header?.client_name || '',
+          // Include account owner information if available
+          Owner: (initialData.salesforce_account_owner_name || initialData.salesforce_account_owner_email) ? {
+            Name: initialData.salesforce_account_owner_name || '',
+            Email: initialData.salesforce_account_owner_email || ''
+          } : undefined
+        };
+        console.log('🔍 SOWForm: Reconstructing selectedAccount:', reconstructedAccount);
+        setSelectedAccount(reconstructedAccount);
       }
       
       // Load stored Salesforce data if we have a SOW ID
@@ -621,6 +638,10 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       BillingCountry?: string;
       Billing_Contact__c?: string;
       Billing_Email__c?: string;
+      Owner?: {
+        Name: string;
+        Email: string;
+      };
     };
     
     // Set the selected account for opportunity lookup with full data from customer-info response
@@ -634,10 +655,12 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       BillingCountry: accountObj.BillingCountry || '',
       Billing_Contact__c: accountObj.Billing_Contact__c || '',
       Billing_Email__c: accountObj.Billing_Email__c || '',
-      Employee_Band__c: accountObj.Employee_Band__c || ''
+      Employee_Band__c: accountObj.Employee_Band__c || '',
+      Owner: accountObj.Owner
     });
     
     console.log('✅ SOWForm: Updated selectedAccount with Account Segment:', accountObj.Employee_Band__c);
+    console.log('✅ SOWForm: Account Owner Info:', accountObj.Owner);
     
     // Store available opportunities - convert from uppercase API response to lowercase for component use
     setAvailableOpportunities((opportunities as Array<{
@@ -1268,6 +1291,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           formData={formData}
           setFormData={updateFormData}
           selectedAccount={selectedAccount}
+          selectedOpportunity={selectedOpportunity}
         />
       )}
 

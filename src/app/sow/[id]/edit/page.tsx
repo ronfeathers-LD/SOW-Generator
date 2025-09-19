@@ -38,6 +38,9 @@ export default function EditSOWPage() {
             updated_at: new Date(data.updated_at),
             // Include salesforce_account_id
             salesforce_account_id: data.salesforce_account_id,
+            // Include Salesforce account owner information
+            salesforce_account_owner_name: data.salesforce_account_owner_name,
+            salesforce_account_owner_email: data.salesforce_account_owner_email,
             // Include salesforce_contact_id
             salesforce_contact_id: data.salesforce_contact_id,
             // Use the template data from the API response, merging with top-level fields

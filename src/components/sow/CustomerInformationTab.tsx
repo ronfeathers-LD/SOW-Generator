@@ -64,6 +64,30 @@ export default function CustomerInformationTab({
   const [currentStep, setCurrentStep] = useState<SelectionStep>('account');
   const [, setIsLoadingOpportunities] = useState(false);
 
+  // Debug logging to help troubleshoot account owner issue
+  console.log('🔍 CustomerInformationTab Debug:', {
+    selectedAccount: selectedAccount ? {
+      Id: selectedAccount.Id,
+      Name: selectedAccount.Name,
+      Owner: selectedAccount.Owner
+    } : null,
+    initialData: initialData ? {
+      salesforce_account_owner_name: initialData.salesforce_account_owner_name,
+      salesforce_account_owner_email: initialData.salesforce_account_owner_email,
+      salesforce_account_id: initialData.salesforce_account_id
+    } : null
+  });
+
+  // Helper function to get account owner information
+  const getAccountOwnerInfo = () => {
+    const hasOwnerFromState = selectedAccount?.Owner?.Name;
+    const hasOwnerFromData = initialData?.salesforce_account_owner_name;
+    const ownerName = hasOwnerFromState || hasOwnerFromData;
+    const hasOwner = hasOwnerFromState || hasOwnerFromData;
+    
+    return { ownerName, hasOwner };
+  };
+
   const handleStepButtonClick = async (step: SelectionStep) => {
     setCurrentStep(step);
     
@@ -238,6 +262,34 @@ export default function CustomerInformationTab({
                         </svg>
                         <span>Account Segment: <span className="font-medium">{selectedAccount.Employee_Band__c || 'N/A'}</span></span>
                       </div>
+                      {(() => {
+                        const { ownerName, hasOwner } = getAccountOwnerInfo();
+                        
+                        return (
+                          <>
+                            {ownerName ? (
+                              <div className="flex items-center">
+                                <svg className="h-3 w-3 mr-1 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                </svg>
+                                <span>Account Owner: <span className="font-medium">{ownerName}</span></span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center">
+                                <svg className="h-3 w-3 mr-1 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                                <span className="text-red-600 font-medium">Account Owner: Missing - Please re-select account</span>
+                              </div>
+                            )}
+                            {!hasOwner && (
+                              <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                                <strong>⚠️ Action Required:</strong> Account owner information is missing. This is required for SOW approval routing. Please go back to the Account step and re-select the account to capture the owner details.
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                       <a
                         href={getSalesforceLink(selectedAccount.Id || '', 'Account')}
                         target="_blank"

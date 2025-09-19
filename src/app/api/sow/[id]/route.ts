@@ -148,6 +148,9 @@ export async function GET(
       client_signer_name: sow.client_signer_name || '',
       // Explicitly include salesforce_account_id
       salesforce_account_id: sow.salesforce_account_id || null,
+      // Include Salesforce account owner information
+      salesforce_account_owner_name: sow.salesforce_account_owner_name || null,
+      salesforce_account_owner_email: sow.salesforce_account_owner_email || null,
       // Include LeanData signatory ID
       leandata_signatory_id: sow.leandata_signatory_id || null,
       // Include custom content fields
@@ -252,7 +255,19 @@ export async function PUT(
 
     // Anyone can submit for review (draft → in_review)
     if (data.status === 'in_review') {
-      // Allow this transition for anyone
+      // Check if account owner information is available before allowing submission
+      const { data: currentSOW } = await supabase
+        .from('sows')
+        .select('salesforce_account_owner_name, salesforce_account_owner_email')
+        .eq('id', id)
+        .single();
+      
+      if (!currentSOW?.salesforce_account_owner_name || !currentSOW?.salesforce_account_owner_email) {
+        return NextResponse.json(
+          { error: 'Cannot submit for review: Account owner information is missing. Please re-select the account to capture owner details.' },
+          { status: 400 }
+        );
+      }
     }
     // Only managers/admins can approve/reject
     else if (data.status === 'approved' || data.status === 'rejected') {
@@ -341,18 +356,28 @@ export async function PUT(
               `Please review and approve/reject this SOW when ready.`
             );
 
-            // Send email notification to commercial approvals team
+            // Send email notification to account owner or commercial approvals team
             try {
               const emailService = await getEmailService();
               if (emailService) {
+                // Get account owner email from SOW data
+                const { data: sowWithOwner } = await supabase
+                  .from('sows')
+                  .select('salesforce_account_owner_email')
+                  .eq('id', id)
+                  .single();
+
+                // Use account owner email if available, otherwise fall back to commercial approvals
+                const approverEmail = sowWithOwner?.salesforce_account_owner_email || 'sowapprovalscommercial@leandata.com';
+                
                 await emailService.sendSOWApprovalNotification(
                   id,
                   sowTitle,
                   clientName,
-                  'sowapprovalscommercial@leandata.com',
+                  approverEmail,
                   submitterName
                 );
-                console.log('✅ Email notification sent to sowapprovalscommercial@leandata.com');
+                console.log(`✅ Email notification sent to ${approverEmail}`);
               }
             } catch (emailError) {
               console.error('Email notification failed for SOW submission:', emailError);

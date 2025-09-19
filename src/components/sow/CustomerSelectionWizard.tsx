@@ -10,6 +10,10 @@ interface Account {
   billingCountry?: string;
   industry?: string;
   numberOfEmployees?: number;
+  Owner?: {
+    Name: string;
+    Email: string;
+  };
 }
 
 interface Opportunity {
@@ -309,6 +313,9 @@ export default function CustomerSelectionWizard({ onComplete }: CustomerSelectio
                               ),
                               account.numberOfEmployees && (
                                 <span key="employees">{account.numberOfEmployees} employees</span>
+                              ),
+                              account.Owner?.Name && (
+                                <span key="owner" className="text-purple-600">Owner: {account.Owner.Name}</span>
                               )
                             ].filter(Boolean)}
                           </div>

@@ -6,6 +6,7 @@ export interface SalesforceAccountData {
   website?: string;
   type?: string;
   owner?: string;
+  owner_email?: string;
   billing_address?: {
     street?: string;
     city?: string;
@@ -64,7 +65,7 @@ export interface SalesforceAccountResponse {
   Name: string;
   Website?: string;
   Type?: string;
-  Owner?: { Name: string };
+  Owner?: { Name: string; Email?: string };
   BillingStreet?: string;
   BillingCity?: string;
   BillingState?: string;
@@ -101,6 +102,7 @@ export const createSalesforceAccountData = (account: SalesforceAccountResponse):
   website: account.Website,
   type: account.Type,
   owner: account.Owner?.Name,
+  owner_email: account.Owner?.Email,
   billing_address: {
     street: account.BillingStreet,
     city: account.BillingCity,

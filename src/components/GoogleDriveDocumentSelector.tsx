@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 
 interface DriveDocument {
   id: string;
@@ -25,13 +25,13 @@ interface GoogleDriveDocumentSelectorProps {
   folderId?: string; // Optional: specific folder to browse
 }
 
-export default function GoogleDriveDocumentSelector({
+const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
   onDocumentsSelected,
   selectedDocuments,
   customerName,
   folderId
 }: GoogleDriveDocumentSelectorProps) {
-  console.log('GoogleDriveDocumentSelector rendered with customerName:', customerName);
+  // console.log('GoogleDriveDocumentSelector rendered with customerName:', customerName);
   const [folderContents, setFolderContents] = useState<DriveDocument[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,11 +48,45 @@ export default function GoogleDriveDocumentSelector({
   
   // Ref to track if we've already loaded for this customer
   const hasLoadedRef = useRef<Set<string>>(new Set());
+  const loadingRef = useRef<Set<string>>(new Set());
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // New state for manual search
   const [showManualSearch, setShowManualSearch] = useState(false);
   const [manualSearchTerm, setManualSearchTerm] = useState('');
   const [isManualSearching, setIsManualSearching] = useState(false);
+
+  // Load folder contents
+  const loadFolderContents = useCallback(async (folderId: string) => {
+    console.log('Loading folder contents for ID:', folderId);
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`/api/google-drive/folders/${folderId}/contents`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load folder contents: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      const contents = data.contents?.map((item: GoogleDriveSearchResult) => ({
+        id: item.id,
+        name: item.name,
+        mimeType: item.mimeType,
+        size: item.size,
+        isFolder: item.mimeType === 'application/vnd.google-apps.folder'
+      })) || [];
+      
+      console.log('Folder contents loaded:', contents.length, 'items');
+      setFolderContents(contents);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load folder contents');
+      console.error('Error loading folder contents:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   // Preload customer folders in the background
   const preloadCustomerFolders = useCallback(async () => {
@@ -64,7 +98,14 @@ export default function GoogleDriveDocumentSelector({
       return;
     }
     
+    // Prevent concurrent calls for the same customer
+    if (loadingRef.current.has(customerName)) {
+      console.log('Already loading for customer:', customerName);
+      return;
+    }
+    
     console.log('Starting preload for customer:', customerName);
+    loadingRef.current.add(customerName);
     setIsPreloading(true);
     try {
       // Start with fast search for immediate results
@@ -141,71 +182,64 @@ export default function GoogleDriveDocumentSelector({
       // Don't show error to user for preloading - just fall back to browse mode
       setSearchMode('browse');
     } finally {
+      loadingRef.current.delete(customerName);
       setIsPreloading(false);
     }
+  }, [customerName, loadFolderContents]);
+
+  // Reset refs when customer changes
+  useEffect(() => {
+    hasLoadedRef.current.clear();
+    loadingRef.current.clear();
   }, [customerName]);
 
   // Preload customer folders when component mounts or when triggered externally
   useEffect(() => {
     if (customerName && !folderId) {
       console.log('useEffect triggered - customerName:', customerName, 'folderId:', folderId);
-      preloadCustomerFolders();
+      
+      // Clear any existing timeout
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      
+      // Debounce the preload call
+      debounceTimeoutRef.current = setTimeout(() => {
+        preloadCustomerFolders();
+      }, 300); // 300ms debounce
     }
-  }, [customerName, folderId, preloadCustomerFolders]);
-  
-  // Listen for external preload trigger (from ObjectivesTab)
-  useEffect(() => {
+    
+    // Listen for external preload trigger (from ObjectivesTab)
     const handlePreload = (event: CustomEvent) => {
       if (event.detail?.customerName === customerName && !folderId) {
-        preloadCustomerFolders();
+        // Clear any existing timeout
+        if (debounceTimeoutRef.current) {
+          clearTimeout(debounceTimeoutRef.current);
+        }
+        
+        // Debounce the preload call
+        debounceTimeoutRef.current = setTimeout(() => {
+          preloadCustomerFolders();
+        }, 300);
       }
     };
     
     window.addEventListener('preloadGoogleDrive', handlePreload as EventListener);
     return () => {
       window.removeEventListener('preloadGoogleDrive', handlePreload as EventListener);
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
     };
   }, [customerName, folderId, preloadCustomerFolders]);
   
-  // Debug state changes
-  useEffect(() => {
-    console.log('State changed - searchMode:', searchMode, 'folderContents length:', folderContents.length, 'searchResults length:', searchResults.length);
-  }, [searchMode, folderContents.length, searchResults.length]);
-
-  // Load folder contents
-  const loadFolderContents = async (folderId: string) => {
-    console.log('Loading folder contents for ID:', folderId);
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response = await fetch(`/api/google-drive/folders/${folderId}/contents`);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to load folder contents: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      const contents = data.contents?.map((item: GoogleDriveSearchResult) => ({
-        id: item.id,
-        name: item.name,
-        mimeType: item.mimeType,
-        size: item.size,
-        isFolder: item.mimeType === 'application/vnd.google-apps.folder'
-      })) || [];
-      
-      console.log('Folder contents loaded:', contents.length, 'items');
-      setFolderContents(contents);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load folder contents');
-      console.error('Error loading folder contents:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Debug state changes (commented out to reduce console noise)
+  // useEffect(() => {
+  //   console.log('State changed - searchMode:', searchMode, 'folderContents length:', folderContents.length, 'searchResults length:', searchResults.length);
+  // }, [searchMode, folderContents.length, searchResults.length]);
 
   // Load root folders
-  const loadRootFolders = async () => {
+  const loadRootFolders = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     
@@ -234,7 +268,7 @@ export default function GoogleDriveDocumentSelector({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Handle folder click
   const handleFolderClick = async (folderId: string) => {
@@ -739,4 +773,6 @@ export default function GoogleDriveDocumentSelector({
       )}
     </div>
   );
-}
+});
+
+export default GoogleDriveDocumentSelector;

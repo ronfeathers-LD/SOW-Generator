@@ -93,6 +93,8 @@ export async function POST(request: Request) {
         
         // Salesforce Account Information
         salesforce_account_id: data.selectedAccount?.id || null,
+        salesforce_account_owner_name: data.selectedAccount?.Owner?.Name || '',
+        salesforce_account_owner_email: data.selectedAccount?.Owner?.Email || '',
         
         // Author tracking
         author_id: user.id,

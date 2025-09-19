@@ -86,6 +86,8 @@ CREATE TABLE IF NOT EXISTS sows (
   
   -- Salesforce fields
   salesforce_account_id TEXT DEFAULT '',
+  salesforce_account_owner_name TEXT DEFAULT '',
+  salesforce_account_owner_email TEXT DEFAULT '',
   
   -- Author tracking
   author_id UUID REFERENCES users(id),

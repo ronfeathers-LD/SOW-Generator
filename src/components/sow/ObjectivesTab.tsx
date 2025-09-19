@@ -9,6 +9,14 @@ interface ObjectivesTabProps {
   formData: Partial<SOWData>;
   setFormData: (data: Partial<SOWData>) => void;
   selectedAccount?: SalesforceAccount | null;
+  selectedOpportunity?: {
+    id: string;
+    name: string;
+    amount?: number;
+    stageName?: string;
+    closeDate?: string;
+    description?: string;
+  } | null;
 }
 
 interface AvomaRecording {
@@ -20,13 +28,27 @@ interface AvomaRecording {
   status: 'pending' | 'completed' | 'failed';
 }
 
+interface AvomaSearchResult {
+  id: string;
+  title?: string;
+  subject?: string;
+  start_at?: string;
+  duration?: number;
+  organizer_email?: string;
+  attendees?: Array<{
+    name?: string;
+    email?: string;
+    role?: string;
+  }>;
+}
+
 export default function ObjectivesTab({
   formData,
   setFormData,
   selectedAccount,
+  selectedOpportunity,
 }: ObjectivesTabProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isFetchingTranscription, setIsFetchingTranscription] = useState(false);
 
   const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
   const [selectedDocuments, setSelectedDocuments] = useState<Array<{
@@ -45,8 +67,13 @@ export default function ObjectivesTab({
   // Google Drive preloading state
   const [isGoogleDrivePreloading, setIsGoogleDrivePreloading] = useState(false);
   
-  // Multiple Avoma recordings support
-  const [newAvomaUrl, setNewAvomaUrl] = useState('');
+  
+  // Avoma search state
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [isSearchingAvoma, setIsSearchingAvoma] = useState(false);
+  const [avomaSearchResults, setAvomaSearchResults] = useState<AvomaSearchResult[]>([]);
+  const [selectedAvomaMeetings, setSelectedAvomaMeetings] = useState<Set<string>>(new Set());
 
   // Get customer name from selected account or form data
   const customerName = selectedAccount?.Name || formData.template?.client_name || formData.header?.client_name || '';
@@ -119,38 +146,6 @@ export default function ObjectivesTab({
     setTranscriptionError(null);
   };
 
-  // Add new Avoma recording
-  const handleAddAvomaRecording = async () => {
-    if (!newAvomaUrl.trim()) return;
-    
-    const newRecording = {
-      id: Date.now().toString(), // Simple ID generation
-      url: newAvomaUrl.trim(),
-      status: 'pending' as const,
-      title: `Recording ${(formData.objectives?.avoma_recordings?.length || 0) + 1}`,
-      date: new Date().toISOString()
-    };
-    
-    const updatedRecordings = [
-      ...(formData.objectives?.avoma_recordings || []),
-      newRecording
-    ];
-    
-    // Update state first
-    setFormData({
-      ...formData,
-      objectives: {
-        ...formData.objectives!,
-        avoma_recordings: updatedRecordings
-      }
-    });
-    
-    setNewAvomaUrl('');
-    
-    // Automatically fetch transcription for the new recording
-    // Pass the updated recordings array to ensure we have the latest state
-    await handleFetchTranscriptionForRecording(newRecording, updatedRecordings);
-  };
 
   // Remove Avoma recording
   const handleRemoveAvomaRecording = (recordingId: string) => {
@@ -166,14 +161,141 @@ export default function ObjectivesTab({
     });
   };
 
-  // Fetch transcription for a specific recording
-  const handleFetchTranscriptionForRecording = async (recording: AvomaRecording, currentRecordings?: AvomaRecording[]) => {
-    if (!recording) return;
+  // Initialize date range to last 6 months
+  React.useEffect(() => {
+    const today = new Date();
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(today.getMonth() - 6);
     
-    setIsFetchingTranscription(true);
-    setTranscriptionError(null);
+    setFromDate(sixMonthsAgo.toISOString().split('T')[0]);
+    setToDate(today.toISOString().split('T')[0]);
+  }, []);
+
+
+  const handleSearchAvomaMeetings = async () => {
+    if (!fromDate || !toDate) return;
+    
+    setIsSearchingAvoma(true);
+    
+    // Debug: Log the values being used for the search
+    const salesforceAccountId = selectedAccount?.Id || selectedAccount?.id || formData.salesforce_account_id;
+    const salesforceOpportunityId = selectedOpportunity?.id || formData.opportunity_id || formData.template?.opportunity_id;
+    
     
     try {
+      const response = await fetch('/api/avoma/enhanced-search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customerName: customerName,
+          fromDate: fromDate,
+          toDate: toDate,
+          accountName: selectedAccount?.Name || selectedAccount?.name,
+          opportunityName: selectedOpportunity?.name,
+          salesforceAccountId: salesforceAccountId,
+          salesforceOpportunityId: salesforceOpportunityId,
+          useEnhancedSearch: true
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to search Avoma meetings');
+      }
+
+      const result = await response.json();
+      setAvomaSearchResults(result.meetings || []);
+    } catch (error) {
+      console.error('Error searching Avoma meetings:', error);
+      setAvomaSearchResults([]);
+    } finally {
+      setIsSearchingAvoma(false);
+    }
+  };
+
+  const handleAvomaMeetingSelection = (meetingId: string, isSelected: boolean) => {
+    const newSelection = new Set(selectedAvomaMeetings);
+    if (isSelected) {
+      newSelection.add(meetingId);
+    } else {
+      newSelection.delete(meetingId);
+    }
+    setSelectedAvomaMeetings(newSelection);
+  };
+
+  const handleAddSelectedAvomaMeetings = async () => {
+    if (selectedAvomaMeetings.size === 0) return;
+    
+    
+    try {
+      // Convert selected meetings to recordings format
+      const newRecordings = Array.from(selectedAvomaMeetings).map(meetingId => {
+        const meeting = avomaSearchResults.find(m => m.id === meetingId);
+        return {
+          id: meetingId,
+          url: `https://app.avoma.com/meetings/${meetingId}`,
+          status: 'pending' as const,
+          title: meeting?.title || meeting?.subject || 'Avoma Meeting',
+          date: meeting?.start_at || new Date().toISOString()
+        };
+      });
+
+      // Add to existing recordings
+      const existingRecordings = formData.objectives?.avoma_recordings || [];
+      const updatedRecordings = [
+        ...existingRecordings,
+        ...newRecordings
+      ];
+
+      setFormData({
+        ...formData,
+        objectives: {
+          ...formData.objectives!,
+          avoma_recordings: updatedRecordings
+        }
+      });
+
+      // Clear selection
+      setSelectedAvomaMeetings(new Set());
+      
+      // Auto-fetch transcriptions for new recordings sequentially
+      let currentRecordings = updatedRecordings;
+      for (let i = 0; i < newRecordings.length; i++) {
+        const recording = newRecordings[i];
+        currentRecordings = await handleFetchTranscriptionForRecording(recording, currentRecordings);
+      }
+    } catch (error) {
+      console.error('Error adding selected meetings:', error);
+    }
+  };
+
+  // Fetch transcription for a specific recording
+  const handleFetchTranscriptionForRecording = async (recording: AvomaRecording, currentRecordings?: AvomaRecording[]): Promise<AvomaRecording[]> => {
+    if (!recording) return currentRecordings || [];
+    
+    
+    // Set this specific recording to pending status
+    const recordingsToUpdate = currentRecordings || formData.objectives?.avoma_recordings || [];
+    const updatedRecordings = recordingsToUpdate.map(r => 
+      r.id === recording.id 
+        ? { ...r, status: 'pending' as const }
+        : r
+    );
+    
+    setFormData({
+      ...formData,
+      objectives: {
+        ...formData.objectives!,
+        avoma_recordings: updatedRecordings
+      }
+    });
+    
+    try {
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const response = await fetch('/api/avoma/transcription', {
         method: 'POST',
         headers: {
@@ -182,8 +304,10 @@ export default function ObjectivesTab({
         body: JSON.stringify({
           avomaUrl: recording.url.trim()
         }),
+        signal: controller.signal
       });
-
+      
+      clearTimeout(timeoutId);
       const result = await response.json();
 
       if (!response.ok) {
@@ -191,13 +315,13 @@ export default function ObjectivesTab({
       }
 
       // Update the specific recording with transcription
-      // Use currentRecordings if provided, otherwise fall back to formData
       const recordingsToUpdate = currentRecordings || formData.objectives?.avoma_recordings || [];
       const updatedRecordings = recordingsToUpdate.map(r => 
         r.id === recording.id 
           ? { ...r, transcription: result.transcription, status: 'completed' as const }
           : r
       );
+      
       
       setFormData({
         ...formData,
@@ -207,17 +331,24 @@ export default function ObjectivesTab({
         }
       });
 
+      return updatedRecordings;
+
     } catch (error) {
-      console.error('Error fetching transcription:', error);
+      // Check if it's a timeout error
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error(`Transcription fetch timed out for ${recording.title}`);
+      } else {
+        console.error(`Error fetching transcription for ${recording.title}:`, error);
+      }
       
       // Update recording status to failed
-      // Use currentRecordings if provided, otherwise fall back to formData
       const recordingsToUpdate = currentRecordings || formData.objectives?.avoma_recordings || [];
       const updatedRecordings = recordingsToUpdate.map(r => 
         r.id === recording.id 
-          ? { ...r, status: 'failed' as const }
+          ? { ...r, status: 'failed' as const, error: error instanceof Error ? error.message : String(error) }
           : r
       );
+      
       
       setFormData({
         ...formData,
@@ -228,8 +359,8 @@ export default function ObjectivesTab({
       });
       
       setTranscriptionError(error instanceof Error ? error.message : 'Failed to fetch transcription');
-    } finally {
-      setIsFetchingTranscription(false);
+      
+      return updatedRecordings;
     }
   };
 
@@ -677,19 +808,6 @@ export default function ObjectivesTab({
             <div className="flex space-x-2">
               <button
                 type="button"
-                onClick={() => {
-                  console.log('Current customer name:', customerName);
-                  console.log('Google Drive component state:', {
-                    customerName,
-                    hasCustomerName: !!customerName
-                  });
-                }}
-                className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
-              >
-                🐛 Debug Info
-              </button>
-              <button
-                type="button"
                 onClick={async () => {
                   try {
                     const response = await fetch('/api/google-drive/diagnostic');
@@ -813,6 +931,7 @@ export default function ObjectivesTab({
           </div>
         </div>
 
+
         {/* Multiple Avoma Recordings & Transcriptions */}
         <div className="mb-8">
           <h3 className="text-lg font-semibold mb-4 text-gray-900">Avoma Recordings & Transcriptions</h3>
@@ -822,27 +941,113 @@ export default function ObjectivesTab({
           </p>
           
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            {/* Add New Recording */}
+            {/* Search Avoma Meetings */}
             <div className="mb-6">
-              <h4 className="text-lg font-medium text-gray-900 mb-3">Add New Recording</h4>
-              <div className="flex space-x-3">
-                <input
-                  type="url"
-                  value={newAvomaUrl}
-                  onChange={(e) => setNewAvomaUrl(e.target.value)}
-                  placeholder="https://app.avoma.com/meetings/..."
-                  className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-                                  <button
-                    type="button"
-                    onClick={handleAddAvomaRecording}
-                    disabled={!newAvomaUrl.trim() || isFetchingTranscription}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isFetchingTranscription ? 'Adding & Fetching...' : 'Add Recording'}
-                  </button>
+              <h4 className="text-lg font-medium text-gray-900 mb-3">Search Avoma Meetings</h4>
+              <p className="text-sm text-gray-600 mb-4">
+                Automatically searches for meetings using the currently selected Salesforce Account and Opportunity from the Customer Information tab.
+              </p>
+              <div className="space-y-4">
+                {/* Date Range */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                    <input
+                      type="date"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                    <input
+                      type="date"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                
+                {/* Search Button */}
+                <button
+                  type="button"
+                  onClick={handleSearchAvomaMeetings}
+                  disabled={!fromDate || !toDate || isSearchingAvoma}
+                  className="w-full px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSearchingAvoma ? 'Searching...' : 'Search Meetings'}
+                </button>
               </div>
             </div>
+
+            {/* Search Results */}
+            {avomaSearchResults.length > 0 && (
+              <div className="mb-6">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-lg font-medium text-gray-900">Found Meetings</h4>
+                  <div className="text-sm text-gray-600">
+                    {selectedAvomaMeetings.size} of {avomaSearchResults.length} selected
+                  </div>
+                </div>
+                
+                <div className="space-y-2 max-h-64 overflow-y-auto border border-gray-200 rounded-md p-3">
+                  {avomaSearchResults.map((meeting) => (
+                    <div key={meeting.id} className="flex items-start space-x-3 p-2 border rounded hover:bg-gray-50">
+                      <input
+                        type="checkbox"
+                        id={`meeting-${meeting.id}`}
+                        checked={selectedAvomaMeetings.has(meeting.id)}
+                        onChange={(e) => handleAvomaMeetingSelection(meeting.id, e.target.checked)}
+                        className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <label htmlFor={`meeting-${meeting.id}`} className="block cursor-pointer">
+                          <div className="font-medium text-gray-900 truncate">
+                            {meeting.title || meeting.subject || 'Untitled Meeting'}
+                          </div>
+                          <div className="text-sm text-gray-600 mt-1">
+                            <div className="flex items-center space-x-4 flex-wrap">
+                              <span>
+                                📅 {meeting.start_at ? 
+                                  new Date(meeting.start_at).toLocaleDateString() : 
+                                  'N/A'}
+                              </span>
+                              <span>
+                                ⏱️ {meeting.duration ? 
+                                  Math.round(meeting.duration / 60) : 'N/A'} min
+                              </span>
+                              {meeting.organizer_email && (
+                                <span className="break-words">
+                                  👤 {meeting.organizer_email}
+                                </span>
+                              )}
+                            </div>
+                            {meeting.attendees && meeting.attendees.length > 0 && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                Attendees: {meeting.attendees.map(a => a.email || a.name).filter(Boolean).join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {selectedAvomaMeetings.size > 0 && (
+                  <div className="mt-3">
+                    <button
+                      onClick={handleAddSelectedAvomaMeetings}
+                      className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700"
+                    >
+                      Add {selectedAvomaMeetings.size} Selected Meeting{selectedAvomaMeetings.size > 1 ? 's' : ''}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Recordings List */}
             <div className="space-y-4">
@@ -908,10 +1113,9 @@ export default function ObjectivesTab({
                   {recording.status === 'failed' && (
                     <button
                       onClick={() => handleFetchTranscriptionForRecording(recording, formData.objectives?.avoma_recordings)}
-                      disabled={isFetchingTranscription}
-                      className="w-full px-3 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 disabled:opacity-50"
+                      className="w-full px-3 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
                     >
-                      {isFetchingTranscription ? 'Retrying...' : 'Retry Transcription'}
+                      Retry Transcription
                     </button>
                   )}
 
@@ -931,6 +1135,7 @@ export default function ObjectivesTab({
                   )}
                 </div>
               ))}
+
 
               {(!formData.objectives?.avoma_recordings || formData.objectives.avoma_recordings.length === 0) && 
                !formData.objectives?.avoma_transcription && (
@@ -1153,7 +1358,7 @@ INTEGRATIONS
       
       {/* Loading Modals */}
       <LoadingModal 
-        isOpen={isFetchingTranscription} 
+        isOpen={false} 
         operation="loading"
         message="Fetching transcription from Avoma..."
       />

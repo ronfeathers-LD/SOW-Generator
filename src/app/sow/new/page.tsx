@@ -12,6 +12,10 @@ interface Account {
   billingCountry?: string;
   industry?: string;
   numberOfEmployees?: number;
+  Owner?: {
+    Name: string;
+    Email: string;
+  };
 }
 
 interface Opportunity {
@@ -83,6 +87,7 @@ export default function NewSOWPage() {
             billingCountry: selectedAccount.billingCountry,
             industry: selectedAccount.industry,
             numberOfEmployees: selectedAccount.numberOfEmployees,
+            Owner: selectedAccount.Owner,
           },
         }),
       });
