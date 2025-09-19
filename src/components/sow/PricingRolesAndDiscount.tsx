@@ -55,7 +55,7 @@ interface PricingRolesAndDiscountProps {
   autoCalculateHours: () => Promise<void>;
   isAutoCalculating: boolean;
   onHoursCalculated?: () => void;
-  selectedAccount?: { Account_Segment__c?: string } | null;
+  selectedAccount?: { Employee_Band__c?: string } | null;
   pricingRolesConfig?: Array<{ role_name: string; default_rate: number; is_active: boolean }>;
 }
 
@@ -121,7 +121,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
   }, []);
 
   // Use shared utility to calculate all hours
-  const hoursResult = calculateAllHours(formData.template || {}, selectedAccount?.Account_Segment__c);
+  const hoursResult = calculateAllHours(formData.template || {}, selectedAccount?.Employee_Band__c);
   const { productHours, userGroupHours, accountSegmentHours, baseProjectHours, pmHours, totalUnits, shouldAddProjectManager } = hoursResult;
 
   // Debug logging removed to prevent console spam
@@ -379,7 +379,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
     
     if (roleToRemove?.role === 'Project Manager') {
       // For Project Manager, only allow PM Hours Removal for EC and MM accounts
-      if (selectedAccount?.Account_Segment__c === 'EC' || selectedAccount?.Account_Segment__c === 'MM') {
+      if (selectedAccount?.Employee_Band__c === 'EC' || selectedAccount?.Employee_Band__c === 'MM') {
         setShowPMHoursRemovalModal(true);
       } else {
         // For other account segments, just remove the role directly
@@ -511,7 +511,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
             {/* Account Segment Hours Breakdown */}
             {accountSegmentHours > 0 && (
               <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-900">Account Segment ({selectedAccount?.Account_Segment__c}):</span>
+                <span className="font-medium text-gray-900">Account Segment ({selectedAccount?.Employee_Band__c}):</span>
                 <span className="font-semibold text-gray-900">+{accountSegmentHours} hours</span>
               </div>
             )}
@@ -534,7 +534,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-gray-900">Project Manager (45%):</span>
-                    {(selectedAccount?.Account_Segment__c === 'EC' || selectedAccount?.Account_Segment__c === 'MM' || !selectedAccount?.Account_Segment__c) && (
+                    {(selectedAccount?.Employee_Band__c === 'EC' || selectedAccount?.Employee_Band__c === 'MM' || !selectedAccount?.Employee_Band__c) && (
                       pendingPMHoursRequest ? (
                         <button
                           onClick={() => setShowPMHoursApprovalOverlay(true)}

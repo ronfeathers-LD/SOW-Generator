@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       BillingCountry: account.BillingCountry,
       Industry: account.Industry,
       NumberOfEmployees: account.NumberOfEmployees,
-      Account_Segment__c: account.Account_Segment__c,
+      Employee_Band__c: account.Employee_Band__c,
       // Also include lowercase versions for compatibility
       id: account.Id,
       name: account.Name,
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       billingCountry: account.BillingCountry,
       industry: account.Industry,
       numberOfEmployees: account.NumberOfEmployees,
-      accountSegment: account.Account_Segment__c
+      accountSegment: account.Employee_Band__c
     }));
 
     // Search results processed

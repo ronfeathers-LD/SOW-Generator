@@ -76,7 +76,7 @@ export default function PricingCalculatorPage() {
       bookit_forms_units: sowData.template?.bookit_forms_units || '',
       bookit_links_units: sowData.template?.bookit_links_units || '',
       bookit_handoff_units: sowData.template?.bookit_handoff_units || '',
-      account_segment: sowData.selectedAccount?.Account_Segment__c,
+      account_segment: sowData.selectedAccount?.Employee_Band__c,
       pm_hours_removed: sowData.pm_hours_requirement_disabled || false,
       discount_type: sowData.pricing?.discount_type || 'none',
       discount_amount: sowData.pricing?.discount_amount || 0,

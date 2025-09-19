@@ -26,7 +26,7 @@ interface SOWSummary {
     other_products_units?: string;
   };
   selectedAccount?: {
-    Account_Segment__c?: string;
+    Employee_Band__c?: string;
   };
 }
 
@@ -147,7 +147,7 @@ export default function SOWDataLoader({ isOpen, onClose, onDataLoad }: SOWDataLo
         selectedAccount: selectedSOW.selectedAccount ? {
           Id: '',
           Name: selectedSOW.client_name || '',
-          Account_Segment__c: selectedSOW.selectedAccount.Account_Segment__c,
+          Employee_Band__c: selectedSOW.selectedAccount.Employee_Band__c,
         } : undefined,
         pm_hours_requirement_disabled: false, // Default to false for calculator
         header: {
@@ -281,7 +281,7 @@ export default function SOWDataLoader({ isOpen, onClose, onDataLoad }: SOWDataLo
                     <div>
                       <span className="font-medium text-gray-700">Account Segment:</span>
                       <p className="text-sm text-gray-900">
-                        {selectedSOW.selectedAccount?.Account_Segment__c || 'Not specified'}
+                        {selectedSOW.selectedAccount?.Employee_Band__c || 'Not specified'}
                       </p>
                     </div>
 

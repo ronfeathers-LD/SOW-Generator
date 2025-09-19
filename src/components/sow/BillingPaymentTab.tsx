@@ -24,7 +24,7 @@ interface DiscountConfig {
 interface BillingPaymentTabProps {
   formData: Partial<SOWData>;
   setFormData: (data: Partial<SOWData>) => void;
-  selectedAccount?: { Account_Segment__c?: string } | null;
+  selectedAccount?: { Employee_Band__c?: string } | null;
 }
 
 // Standard LeanData roles with default rates (2025 rates)
@@ -226,7 +226,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
     
     try {
       // Use shared utility to calculate all hours
-      const hoursResult = calculateAllHours(formData.template, selectedAccount?.Account_Segment__c);
+      const hoursResult = calculateAllHours(formData.template, selectedAccount?.Employee_Band__c);
       const { baseProjectHours, pmHours, shouldAddProjectManager: shouldAddPM } = hoursResult;
       
       // Calculate role hours distribution

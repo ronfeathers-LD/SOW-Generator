@@ -8,7 +8,7 @@ export default function DebugAccountSegmentPage() {
     account?: {
       id: string;
       name: string;
-      Account_Segment__c?: string;
+      Employee_Band__c?: string;
       NumberOfEmployees?: number;
     };
     error?: string;

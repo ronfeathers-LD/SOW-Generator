@@ -152,44 +152,40 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
         {/* LeanData Signature */}
         <div>
           <p className="my-2 text-sm">This SOW is accepted by LeanData, Inc.:</p>
-          {leanDataSignature ? (
-            <div className="grid grid-cols-2 gap-8 items-end">
-              {/* Signature Line */}
-              <div className="flex flex-col items-start">
-                <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
-                <div className="text-sm mt-2 text-left">
-                  {[
-                    <strong key="name" className="font-bold">
+          <div className="grid grid-cols-2 gap-8 items-end">
+            {/* Signature Line */}
+            <div className="flex flex-col items-start">
+              <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
+              <div className="text-sm mt-2 text-left">
+                {leanDataSignature && leanDataSignature.name !== 'None Selected' ? (
+                  <>
+                    <strong className="font-bold">
                       {leanDataSignature.name}
-                    </strong>,
-                    <br key="break" />,
-                    <span key="title">
+                    </strong>
+                    <br />
+                    <span>
                       {leanDataSignature.title}
                     </span>
-                  ].filter(Boolean)}
-                  <br />
-                  {leanDataSignature.email}
-                </div>
-              </div>
-              {/* Date Line */}
-              <div className="flex flex-col items-left">
-                <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                <div className="text-sm mt-2 text-left">DATE<br /><br /><br /></div>
+                    <br />
+                    {leanDataSignature.email}
+                  </>
+                ) : (
+                  <>
+                    <span className="text-red-600 font-bold">None Selected</span>
+                    <br />
+                    <span className="text-red-600">Title Not Entered</span>
+                    <br />
+                    <span className="text-red-600">Email Not Entered</span>
+                  </>
+                )}
               </div>
             </div>
-          ) : (
-            <div className="bg-red-50 border border-red-200 rounded-md p-4">
-              <div className="flex items-center">
-                <svg className="h-5 w-5 mr-2 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                <span className="text-sm text-red-800 font-medium">LeanData Signatory Required</span>
-              </div>
-              <p className="text-sm text-red-700 mt-1">
-                Please select a LeanData signatory in the Signers & Roles tab before viewing this SOW.
-              </p>
+            {/* Date Line */}
+            <div className="flex flex-col items-left">
+              <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
+              <div className="text-sm mt-2 text-left">DATE<br /><br /><br /></div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

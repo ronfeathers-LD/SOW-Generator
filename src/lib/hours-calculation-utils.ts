@@ -127,7 +127,7 @@ export function calculateTotalUnits(template: Partial<SOWTemplate>): number {
 /**
  * Calculate account segment hours
  * MM (MidMarket) accounts get 5 additional hours
- * Note: The actual field name in Salesforce is Segment__c, not Account_Segment__c
+ * Note: The actual field name in Salesforce is Employee_Band__c
  */
 export function calculateAccountSegmentHours(accountSegment?: string): number {
   if (accountSegment === 'MM' || accountSegment === 'MidMarket') {

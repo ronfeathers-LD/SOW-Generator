@@ -74,7 +74,9 @@ export function validateSOWForApproval(sowData: { [key: string]: unknown }): SOW
   if (!signerTitle || ((signerTitle as string) || '').trim() === '') {
     missingFields.push('Customer Signer Title');
   }
-  if (!sowData.leandata_name || ((sowData.leandata_name as string) || '').trim() === '') {
+  // Check LeanData signatory - look for leandata_name in template (which gets set when signatory is selected)
+  const leanDataName = (sowData.template as Record<string, unknown>)?.lean_data_name;
+  if (!leanDataName || ((leanDataName as string) || '').trim() === '' || (leanDataName as string).trim() === 'None Selected') {
     missingFields.push('LeanData Signatory');
   }
   if (!sowData.client_roles || !Array.isArray(sowData.client_roles) || (sowData.client_roles as unknown[]).length === 0) {

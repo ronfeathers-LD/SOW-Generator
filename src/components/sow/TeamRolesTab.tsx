@@ -885,7 +885,12 @@ export default function TeamRolesTab({
                    }
                  }}
                  disabled={isSavingLeanDataSignatory}
-                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                 className={`mt-1 block w-full rounded-md shadow-sm focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed ${
+                   !selectedLeanDataSignatory || 
+                   (formData.template?.lean_data_name && formData.template.lean_data_name.trim() === 'None Selected')
+                     ? 'border-red-300 focus:border-red-500' 
+                     : 'border-gray-300 focus:border-indigo-500'
+                 }`}
                >
                  <option value="">Select a signatory</option>
                  {leanDataSignatories.map((signatory) => (
@@ -903,6 +908,19 @@ export default function TeamRolesTab({
                  </div>
                )}
                             </div>
+               
+               {/* Validation Error Message */}
+               {(!selectedLeanDataSignatory || 
+                 (formData.template?.lean_data_name && formData.template.lean_data_name.trim() === 'None Selected')) && (
+                 <div className="mt-2 bg-red-50 border border-red-200 rounded-md p-2">
+                   <div className="flex items-center">
+                     <svg className="h-4 w-4 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                     </svg>
+                     <span className="text-sm text-red-800">LeanData Signatory is required</span>
+                   </div>
+                 </div>
+               )}
                
                {/* Success Message */}
                {leanDataSignatorySaveSuccess && (

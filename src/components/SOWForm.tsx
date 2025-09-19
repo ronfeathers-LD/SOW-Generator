@@ -363,7 +363,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             BillingCountry: accountData.billing_address?.country || '',
             Billing_Contact__c: '',
             Billing_Email__c: '',
-            Account_Segment__c: accountData.account_segment || ''
+            Employee_Band__c: accountData.account_segment || ''
           });
           
           // Debug logging removed
@@ -613,7 +613,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     const accountObj = account as { 
       Id: string; 
       Name: string; 
-      Account_Segment__c?: string;
+      Employee_Band__c?: string;
       BillingStreet?: string;
       BillingCity?: string;
       BillingState?: string;
@@ -634,10 +634,10 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       BillingCountry: accountObj.BillingCountry || '',
       Billing_Contact__c: accountObj.Billing_Contact__c || '',
       Billing_Email__c: accountObj.Billing_Email__c || '',
-      Account_Segment__c: accountObj.Account_Segment__c || ''
+      Employee_Band__c: accountObj.Employee_Band__c || ''
     });
     
-    console.log('✅ SOWForm: Updated selectedAccount with Account Segment:', accountObj.Account_Segment__c);
+    console.log('✅ SOWForm: Updated selectedAccount with Account Segment:', accountObj.Employee_Band__c);
     
     // Store available opportunities - convert from uppercase API response to lowercase for component use
     setAvailableOpportunities((opportunities as Array<{
@@ -1086,13 +1086,13 @@ export default function SOWForm({ initialData }: SOWFormProps) {
                 </h1>
                 {initialData && (
                   <div className="mt-1">
-                    {selectedAccount?.Account_Segment__c ? (
+                    {selectedAccount?.Employee_Band__c ? (
                  <span className="text-lg font-normal text-gray-600">
-                   (Using &quot;{selectedAccount.Account_Segment__c}&quot; project guidelines)
+                   (Using &quot;{selectedAccount.Employee_Band__c}&quot; project guidelines)
                  </span>
                     ) : selectedAccount ? (
                       <span className="text-lg font-normal text-yellow-600">
-                        (account segment: {selectedAccount.Account_Segment__c || 'undefined'})
+                        (account segment: {selectedAccount.Employee_Band__c || 'undefined'})
                       </span>
                     ) : (
                       <span className="text-lg font-normal text-red-600">

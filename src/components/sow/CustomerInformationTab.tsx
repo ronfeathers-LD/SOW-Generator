@@ -236,7 +236,7 @@ export default function CustomerInformationTab({
                         <svg className="h-3 w-3 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
                         </svg>
-                        <span>Account Segment: <span className="font-medium">{selectedAccount.Account_Segment__c || 'N/A'}</span></span>
+                        <span>Account Segment: <span className="font-medium">{selectedAccount.Employee_Band__c || 'N/A'}</span></span>
                       </div>
                       <a
                         href={getSalesforceLink(selectedAccount.Id || '', 'Account')}

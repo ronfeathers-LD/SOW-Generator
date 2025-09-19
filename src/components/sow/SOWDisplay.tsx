@@ -606,11 +606,20 @@ export default function SOWDisplay({
                 email: sow.customer_email_2 || '',
                 date: ''
               } : undefined}
-              leanDataSignature={sow.template?.lean_data_name && sow.template?.lean_data_title && sow.template?.lean_data_email ? {
+              leanDataSignature={sow.template?.lean_data_name && 
+                                 sow.template?.lean_data_title && 
+                                 sow.template?.lean_data_email &&
+                                 sow.template.lean_data_name.trim() !== 'None Selected' &&
+                                 sow.template.lean_data_title.trim() !== 'None Selected' &&
+                                 sow.template.lean_data_email.trim() !== 'None Selected' ? {
                 name: sow.template.lean_data_name,
                 title: sow.template.lean_data_title,
                 email: sow.template.lean_data_email
-              } : undefined}
+              } : {
+                name: 'None Selected',
+                title: 'None Selected',
+                email: 'None Selected'
+              }}
             />
           </div>
           {/* SOW Intro Section */}
@@ -1003,11 +1012,20 @@ export default function SOWDisplay({
                       email: sow.customer_email_2 || '',
                       date: ''
                     } : undefined}
-                    leanDataSignature={sow.template?.lean_data_name && sow.template?.lean_data_title && sow.template?.lean_data_email ? {
+                    leanDataSignature={sow.template?.lean_data_name && 
+                                       sow.template?.lean_data_title && 
+                                       sow.template?.lean_data_email &&
+                                       sow.template.lean_data_name.trim() !== 'None Selected' &&
+                                       sow.template.lean_data_title.trim() !== 'None Selected' &&
+                                       sow.template.lean_data_email.trim() !== 'None Selected' ? {
                       name: sow.template.lean_data_name,
                       title: sow.template.lean_data_title,
                       email: sow.template.lean_data_email
-                    } : undefined}
+                    } : {
+                      name: 'None Selected',
+                      title: 'None Selected',
+                      email: 'None Selected'
+                    }}
                   />
                 </div>
 

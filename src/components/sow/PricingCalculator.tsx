@@ -17,7 +17,7 @@ interface Product {
 
 interface PricingCalculatorProps {
   formData: SOWData; // Use proper SOWData type
-  selectedAccount?: { Account_Segment__c?: string } | null;
+  selectedAccount?: { Employee_Band__c?: string } | null;
   products?: Product[];
 }
 
@@ -38,7 +38,7 @@ export default function PricingCalculator({
   };
 
   // Calculate account segment hours
-  const accountSegmentHours = calculateAccountSegmentHours(selectedAccount?.Account_Segment__c);
+  const accountSegmentHours = calculateAccountSegmentHours(selectedAccount?.Employee_Band__c);
 
   // Helper function to get shared BookIt user count (maximum across all BookIt products)
   const getSharedBookItUserCount = (): string => {

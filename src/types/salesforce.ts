@@ -72,7 +72,7 @@ export interface SalesforceAccountResponse {
   BillingCountry?: string;
   Industry?: string;
   Phone?: string;
-  Account_Segment__c?: string;
+  Employee_Band__c?: string;
 }
 
 export interface SalesforceContactResponse {
@@ -110,7 +110,7 @@ export const createSalesforceAccountData = (account: SalesforceAccountResponse):
   },
   industry: account.Industry,
   phone: account.Phone,
-  account_segment: account.Account_Segment__c,
+  account_segment: account.Employee_Band__c,
   selected_at: new Date().toISOString(),
 });
 

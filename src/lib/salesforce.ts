@@ -47,7 +47,7 @@ export interface SalesforceAccount {
   Purchase_Order_Required__c?: boolean;
   Invoice_Delivery_Preference__c?: string;
   Payment_Method__c?: string;
-  Account_Segment__c?: string;
+  Employee_Band__c?: string;
 }
 
 export interface SalesforceContact {
@@ -292,11 +292,11 @@ class SalesforceClient {
             calculatedSegment = 'EC';
           }
           
-          record.Account_Segment__c = calculatedSegment;
+          record.Employee_Band__c = calculatedSegment;
           console.log(`✅ Search: Calculated Account Segment for ${accountName}: ${calculatedSegment} (${numberOfEmployees} employees)`);
         } else {
           console.log(`⚠️ Search: No employee count available for ${accountName}`);
-          record.Account_Segment__c = undefined;
+          record.Employee_Band__c = undefined;
         }
       });
       
@@ -312,10 +312,10 @@ class SalesforceClient {
    */
   async getAccount(accountId: string): Promise<SalesforceAccount> {
     try {
-      // Query account with Account_Segment__c field
+      // Query account with Employee_Band__c field
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
-               BillingPostalCode, BillingCountry, Account_Segment__c
+               BillingPostalCode, BillingCountry, Employee_Band__c
         FROM Account 
         WHERE Id = '${accountId}'
       `;
@@ -327,10 +327,10 @@ class SalesforceClient {
       
       const account = result.records[0] as SalesforceAccount;
       
-      // Use Account_Segment__c from Salesforce if available, otherwise calculate it
-      if (!account.Account_Segment__c) {
+      // Use Employee_Band__c from Salesforce if available, otherwise calculate it
+      if (!account.Employee_Band__c) {
         try {
-          // Get NumberOfEmployees to calculate segment if Account_Segment__c is not available
+          // Get NumberOfEmployees to calculate segment if Employee_Band__c is not available
           const employeeQuery = `SELECT NumberOfEmployees FROM Account WHERE Id = '${accountId}'`;
           const employeeResult = await this.conn.query(employeeQuery);
           
@@ -351,22 +351,22 @@ class SalesforceClient {
                 calculatedSegment = 'EC';
               }
               
-              account.Account_Segment__c = calculatedSegment;
+              account.Employee_Band__c = calculatedSegment;
               console.log(`✅ Calculated Account Segment for ${account.Name}: ${calculatedSegment} (${numberOfEmployees} employees)`);
             } else {
               console.log(`⚠️ No employee count available for ${account.Name}, setting Account Segment to undefined`);
-              account.Account_Segment__c = undefined;
+              account.Employee_Band__c = undefined;
             }
           } else {
             console.log(`⚠️ No account found for ID ${accountId}`);
-            account.Account_Segment__c = undefined;
+            account.Employee_Band__c = undefined;
           }
         } catch (segmentError) {
           console.error('Error calculating account segment:', segmentError);
-          console.log(`⚠️ Error calculating segment for ${account.Name}, keeping existing value: ${account.Account_Segment__c}`);
+          console.log(`⚠️ Error calculating segment for ${account.Name}, keeping existing value: ${account.Employee_Band__c}`);
         }
       } else {
-        console.log(`✅ Using Account_Segment__c from Salesforce for ${account.Name}: ${account.Account_Segment__c}`);
+        console.log(`✅ Using Employee_Band__c from Salesforce for ${account.Name}: ${account.Employee_Band__c}`);
       }
       
       return account;
