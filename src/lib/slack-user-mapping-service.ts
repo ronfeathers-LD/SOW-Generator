@@ -52,7 +52,6 @@ export class SlackUserMappingService {
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
         
         if (lastUpdate > thirtyDaysAgo) {
-          console.log(`User ${userEmail} has recent Slack mapping, skipping update`);
           return true;
         }
       }
@@ -76,7 +75,6 @@ export class SlackUserMappingService {
           return false;
         }
 
-        console.log(`Successfully mapped ${userEmail} to Slack user ${slackUser.slack_username}`);
         return true;
       }
 
@@ -145,7 +143,6 @@ export class SlackUserMappingService {
       }
 
       if (!usersWithoutMappings || usersWithoutMappings.length === 0) {
-        console.log('All users already have Slack mappings');
         return { updated: 0, failed: 0 };
       }
 
@@ -175,7 +172,6 @@ export class SlackUserMappingService {
         }
       }
 
-      console.log(`Bulk update complete: ${updated} updated, ${failed} failed`);
       return { updated, failed };
     } catch (error) {
       console.error('Bulk update failed:', error);

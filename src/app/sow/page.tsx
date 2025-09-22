@@ -50,14 +50,22 @@ function SOWListContent() {
     fetchSOWs();
   }, []);
 
-  // Filter SOWs based on status filter
+  // Filter and sort SOWs based on status filter
   useEffect(() => {
+    let filtered = sows;
+    
     if (statusFilter) {
-      const filtered = sows.filter(sow => sow.status === statusFilter);
-      setFilteredSows(filtered);
-    } else {
-      setFilteredSows(sows);
+      filtered = sows.filter(sow => sow.status === statusFilter);
     }
+    
+    // Sort by client name in ascending order
+    filtered = filtered.sort((a, b) => {
+      const clientNameA = a.client_name || '';
+      const clientNameB = b.client_name || '';
+      return clientNameA.localeCompare(clientNameB);
+    });
+    
+    setFilteredSows(filtered);
   }, [sows, statusFilter]);
 
   const handleHide = async (id: string, sowTitle: string, status: string) => {
@@ -219,11 +227,9 @@ function SOWListContent() {
           </Link>
         </div>
 
-        <div className="mt-8 flex flex-col">
-          <div className="overflow-x-auto border border-gray-200 rounded-lg">
-            <div className="inline-block min-w-full py-2 align-middle">
-              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                <table className="w-full table-fixed divide-y divide-gray-300">
+        <div className="mt-8 overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+          <div className="overflow-x-auto">
+            <table className="w-full table-fixed divide-y divide-gray-300">
                   <thead className="bg-gray-50">
                     <tr>
                       <th scope="col" className="w-1/6 py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900">
@@ -344,9 +350,7 @@ function SOWListContent() {
                       </tr>
                     )}
                   </tbody>
-                </table>
-              </div>
-            </div>
+            </table>
           </div>
         </div>
       </div>

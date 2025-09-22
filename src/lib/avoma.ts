@@ -470,18 +470,11 @@ class AvomaClient {
             }));
             
             // Filter to only include meetings with transcripts
-            const meetingsWithTranscripts = allMeetings.filter((meeting: any) => 
-              meeting.transcript_ready && meeting.transcription_uuid
-            );
-            
-            // Log attendees for each meeting
-            meetingsWithTranscripts.forEach((meeting: any) => {
-              console.log(`Meeting: ${meeting.title}`);
-              console.log(`  Organizer: ${meeting.organizer_email}`);
-              console.log(`  Attendees (${meeting.attendees?.length || 0}):`, 
-                meeting.attendees?.map((a: any) => `${a.name || 'Unknown'} (${a.email || 'No email'})`).join(', ') || 'None'
-              );
+            const meetingsWithTranscripts = allMeetings.filter((meeting: unknown) => {
+              const meetingData = meeting as Record<string, unknown>;
+              return meetingData.transcript_ready && meetingData.transcription_uuid;
             });
+            
             
             return meetingsWithTranscripts;
           }
@@ -522,14 +515,6 @@ class AvomaClient {
           });
 
 
-          // Log attendees for each meeting
-          relevantMeetings.forEach((meeting: any) => {
-            console.log(`Fallback Meeting: ${meeting.title}`);
-            console.log(`  Organizer: ${meeting.organizer_email}`);
-            console.log(`  Attendees (${meeting.attendees?.length || 0}):`, 
-              meeting.attendees?.map((a: any) => `${a.name || 'Unknown'} (${a.email || 'No email'})`).join(', ') || 'None'
-            );
-          });
 
           // Sort by relevance and recency
           return this.sortMeetingsByRelevance(relevantMeetings, accountName, opportunityName).slice(0, 25);
@@ -598,8 +583,11 @@ class AvomaClient {
     
     // Extract attendee emails
     const attendeeEmails = attendees
-      .map((attendee: any) => attendee.email?.toLowerCase())
-      .filter(Boolean);
+      .map((attendee: unknown) => {
+        const attendeeData = attendee as Record<string, unknown>;
+        return attendeeData.email?.toString().toLowerCase();
+      })
+      .filter((email): email is string => Boolean(email));
 
     // Check for account name matches
     const hasAccountName = subject.includes(accountName.toLowerCase()) || 

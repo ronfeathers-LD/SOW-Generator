@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { PMHoursRequirementDisableRequest } from '@/types/sow';
 import PMHoursRemovalModal from './PMHoursRemovalModal';
 import PMHoursRemovalApprovalOverlay from './PMHoursRemovalApprovalOverlay';
@@ -59,7 +59,7 @@ interface PricingRolesAndDiscountProps {
   pricingRolesConfig?: Array<{ role_name: string; default_rate: number; is_active: boolean }>;
 }
 
-const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
+const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.memo(({
   formData,
   pricingRoles,
   setPricingRoles,
@@ -120,8 +120,11 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
     fetchProducts();
   }, []);
 
-  // Use shared utility to calculate all hours
-  const hoursResult = calculateAllHours(formData.template || {}, selectedAccount?.Employee_Band__c);
+  // Use shared utility to calculate all hours - memoized to prevent recalculation
+  const hoursResult = useMemo(() => 
+    calculateAllHours(formData.template || {}, selectedAccount?.Employee_Band__c),
+    [formData.template, selectedAccount?.Employee_Band__c]
+  );
   const { productHours, userGroupHours, accountSegmentHours, baseProjectHours, pmHours, totalUnits, shouldAddProjectManager } = hoursResult;
 
   // Debug logging removed to prevent console spam
@@ -235,14 +238,17 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
       handleRecalculateHours();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.template, approvedPMHoursRequest, isAutoCalculating, getProducts, getTotalUnits, pricingRoles]);
+  }, [formData.template, approvedPMHoursRequest, isAutoCalculating]);
 
-  // Calculate role hours distribution
-  const roleDistribution = calculateRoleHoursDistribution(
-    baseProjectHours,
-    pmHours,
-    shouldAddProjectManager,
-    !!approvedPMHoursRequest
+  // Calculate role hours distribution - memoized to prevent recalculation
+  const roleDistribution = useMemo(() => 
+    calculateRoleHoursDistribution(
+      baseProjectHours,
+      pmHours,
+      shouldAddProjectManager,
+      !!approvedPMHoursRequest
+    ),
+    [baseProjectHours, pmHours, shouldAddProjectManager, approvedPMHoursRequest]
   );
 
   // Auto-sync role hours based on calculated distribution
@@ -279,7 +285,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
         setPricingRoles(updatedRoles);
       }
     }
-  }, [baseProjectHours, pmHours, shouldAddProjectManager, approvedPMHoursRequest, setPricingRoles, isManuallyEditing, roleDistribution]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [roleDistribution, pricingRoles, isManuallyEditing, setPricingRoles]);
 
   // Wrapper for autoCalculateHours that triggers PM status check
   const handleRecalculateHours = useCallback(async () => {
@@ -951,6 +957,8 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = ({
       )}
     </div>
   );
-};
+});
+
+PricingRolesAndDiscount.displayName = 'PricingRolesAndDiscount';
 
 export default PricingRolesAndDiscount;

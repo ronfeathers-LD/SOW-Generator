@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
 import TipTapEditor from '../TipTapEditor';
@@ -42,7 +42,7 @@ interface AvomaSearchResult {
   }>;
 }
 
-export default function ObjectivesTab({
+const ObjectivesTab = React.memo(function ObjectivesTab({
   formData,
   setFormData,
   selectedAccount,
@@ -75,8 +75,11 @@ export default function ObjectivesTab({
   const [avomaSearchResults, setAvomaSearchResults] = useState<AvomaSearchResult[]>([]);
   const [selectedAvomaMeetings, setSelectedAvomaMeetings] = useState<Set<string>>(new Set());
 
-  // Get customer name from selected account or form data
-  const customerName = selectedAccount?.Name || formData.template?.client_name || formData.header?.client_name || '';
+  // Get customer name from selected account or form data - memoized to prevent recalculation
+  const customerName = useMemo(() => 
+    selectedAccount?.Name || formData.template?.client_name || formData.header?.client_name || '',
+    [selectedAccount?.Name, formData.template?.client_name, formData.header?.client_name]
+  );
 
   // Clever messages for the analysis process
   const analysisMessages = [
@@ -92,22 +95,22 @@ export default function ObjectivesTab({
     "✨ Almost there, finalizing your analysis..."
   ];
 
-  // Function to start rotating messages
-  const startAnalysisMessages = () => {
+  // Function to start rotating messages - memoized to prevent recreation
+  const startAnalysisMessages = useCallback(() => {
     const timer = setInterval(() => {
       setCurrentAnalysisMessage(prev => (prev + 1) % analysisMessages.length);
     }, 3000); // Change message every 3 seconds
     setAnalysisMessageTimer(timer);
-  };
+  }, [analysisMessages.length]);
 
-  // Function to stop rotating messages
-  const stopAnalysisMessages = () => {
+  // Function to stop rotating messages - memoized to prevent recreation
+  const stopAnalysisMessages = useCallback(() => {
     if (analysisMessageTimer) {
       clearInterval(analysisMessageTimer);
       setAnalysisMessageTimer(null);
     }
     setCurrentAnalysisMessage(0);
-  };
+  }, [analysisMessageTimer]);
 
   // Cleanup effect for timers
   React.useEffect(() => {
@@ -805,29 +808,6 @@ export default function ObjectivesTab({
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Supporting Documents</h3>
-            <div className="flex space-x-2">
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    const response = await fetch('/api/google-drive/diagnostic');
-                    if (response.ok) {
-                      const diagnostic = await response.json();
-                      console.log('Google Drive Diagnostic:', diagnostic);
-                      alert(`Google Drive Status: ${diagnostic.status}\n\nCheck browser console for detailed diagnostic information.`);
-                    } else {
-                      alert('Failed to run diagnostic. Check browser console for details.');
-                    }
-                  } catch (error) {
-                    console.error('Diagnostic failed:', error);
-                    alert('Diagnostic failed. Check browser console for details.');
-                  }
-                }}
-                className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
-              >
-                🔍 Run Diagnostic
-              </button>
-            </div>
           </div>
           <p className="text-sm text-gray-600 mb-4">
             Select additional documents from Google Drive to include in AI analysis
@@ -838,15 +818,11 @@ export default function ObjectivesTab({
               {/* Left Column - Google Drive Document Selector */}
               <div>
                 <h4 className="text-lg font-medium text-gray-900 mb-3">Document Selection</h4>
-                {isGoogleDrivePreloading && (
-                  <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded-md mb-3 border border-blue-200">
-                    🔍 Searching for customer folders... Google Drive lookup can be slow.
-                  </div>
-                )}
                 <GoogleDriveDocumentSelector
                   onDocumentsSelected={handleDocumentsSelected}
                   selectedDocuments={selectedDocuments}
                   customerName={customerName}
+                  onLoadingChange={setIsGoogleDrivePreloading}
                 />
               </div>
               
@@ -1363,11 +1339,25 @@ INTEGRATIONS
         message="Fetching transcription from Avoma..."
       />
       
-      <LoadingModal 
+      <LoadingModal
         isOpen={isAnalyzing} 
         operation="processing"
         message={analysisMessages[currentAnalysisMessage]}
       />
+      
+      <LoadingModal
+        isOpen={isSearchingAvoma}
+        operation="processing"
+        message="🔍 Searching for meetings in Avoma..."
+      />
+      
+      <LoadingModal
+        isOpen={isGoogleDrivePreloading}
+        operation="loading"
+        message="🔍 Searching for customer folders..."
+      />
     </section>
   );
-} 
+});
+
+export default ObjectivesTab; 

@@ -2,7 +2,6 @@
 import GoogleProvider from 'next-auth/providers/google';
 import { createServiceRoleClient } from '@/lib/supabase-server';
 import type { NextAuthOptions } from 'next-auth';
-import { logger } from './utils/logger';
 
 // Only check for required environment variables in production runtime
 const validateEnvVars = () => {
@@ -55,7 +54,6 @@ export const authOptions: NextAuthOptions = {
         
         // Create or update user in the database
         if (user?.email) {
-          logger.log('Processing sign in for user:', user.email);
           
           let dbUser;
           
@@ -73,7 +71,6 @@ export const authOptions: NextAuthOptions = {
           }
 
           if (existingUser) {
-            logger.log('Updating existing user:', existingUser.email);
             // Update existing user
             const { data: updatedUser, error: updateError } = await supabaseServer
               .from('users')
@@ -88,7 +85,6 @@ export const authOptions: NextAuthOptions = {
               dbUser = updatedUser;
             }
           } else {
-            logger.log('Creating new user:', user.email);
             // Create new user
             const { data: newUser, error: insertError } = await supabaseServer
               .from('users')
@@ -110,7 +106,6 @@ export const authOptions: NextAuthOptions = {
           
           if (dbUser) {
             user.role = dbUser.role;
-            logger.log('User processed successfully:', dbUser.email, 'Role:', dbUser.role);
             
             // Automatically map user to Slack if bot token is configured
             try {
@@ -130,14 +125,7 @@ export const authOptions: NextAuthOptions = {
               
               if (botToken) {
                 SlackUserMappingService.initialize(botToken);
-                const mappingResult = await SlackUserMappingService.mapUserAtLogin(dbUser.email);
-                if (mappingResult) {
-                  logger.log('Successfully mapped user to Slack:', dbUser.email);
-                } else {
-                  logger.log('No Slack mapping found for user:', dbUser.email);
-                }
-              } else {
-                logger.log('Slack bot token not configured, skipping user mapping for:', dbUser.email);
+                await SlackUserMappingService.mapUserAtLogin(dbUser.email);
               }
             } catch (slackError) {
               // Don't fail authentication if Slack mapping fails
@@ -204,7 +192,6 @@ export const authOptions: NextAuthOptions = {
           
           if (!error && dbUser) {
             token.role = dbUser.role;
-            console.log('JWT callback: Fetched role from DB:', dbUser.role, 'for user:', token.email);
           }
         } catch (error) {
           console.error('Error fetching user role in JWT callback:', error);

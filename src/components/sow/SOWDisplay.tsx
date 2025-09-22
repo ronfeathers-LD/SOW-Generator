@@ -157,6 +157,15 @@ interface SOWDisplayProps {
 }
 
 // Import the SOW interface from the main view
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  is_active: boolean;
+  sort_order: number;
+}
+
 interface ClientRole {
   role: string;
   responsibilities: string;
@@ -357,6 +366,7 @@ export default function SOWDisplay({
   const [sow, setSOW] = useState<SOW | null>(null);
   const [salesforceData, setSalesforceData] = useState<SalesforceData | null>(null);
   const [versions, setVersions] = useState<SOWVersion[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingPDF, setDownloadingPDF] = useState(false);
@@ -530,6 +540,23 @@ export default function SOWDisplay({
     fetchSOW();
   }, [sowId, showVersionHistory]);
 
+  // Fetch products once
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch('/api/products');
+        if (response.ok) {
+          const data = await response.json();
+          setProducts(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
   const isEditable = useMemo(() => {
     if (!sow) return false;
     return sow.status === 'draft';
@@ -645,6 +672,7 @@ export default function SOWDisplay({
               deliverablesEdited={sow.deliverables_content_edited || false}
               keyObjectivesEdited={sow.key_objectives_content_edited || false}
               isEdited={sow.objectives_disclosure_content_edited || false}
+              products={products}
               projectDetails={{
                 products: sow.products || [],
                 number_of_units: sow.number_of_units || '',
@@ -728,15 +756,7 @@ export default function SOWDisplay({
           </div>
 
           {/* Pricing Section */}
-          {(() => {
-            console.log('🔍 About to check pricing section');
-            console.log('🔍 showPricing:', showPricing);
-            console.log('🔍 sow:', sow);
-            console.log('🔍 sow?.pricingRoles:', sow?.pricingRoles);
-            console.log('🔍 loading:', loading);
-            console.log('🔍 error:', error);
-            return showPricing;
-          })() && (
+          {showPricing && (
             <div id="pricing" className="mb-12 print:mb-8 page-break-inside-avoid print:page-break-inside-avoid">
               <h2 className="text-3xl font-bold mb-6">5. PRICING</h2>
               
@@ -821,13 +841,16 @@ export default function SOWDisplay({
 
               {/* Pricing Display Component */}
               <PricingDisplay
-                pricingRoles={Array.isArray(sow.pricingRoles) ? sow.pricingRoles.map((role: any) => ({
-                  role: role.role || '',
-                  ratePerHour: role.ratePerHour || role.rate_per_hour || 0,
-                  defaultRate: role.defaultRate || role.default_rate || 0,
-                  totalHours: role.totalHours || role.total_hours || 0,
-                  totalCost: (role.ratePerHour || role.rate_per_hour || 0) * (role.totalHours || role.total_hours || 0)
-                })) : []}
+                pricingRoles={Array.isArray(sow.pricingRoles) ? sow.pricingRoles.map((role: unknown) => {
+                  const roleData = role as Record<string, unknown>;
+                  return {
+                    role: String(roleData.role || ''),
+                    ratePerHour: Number(roleData.ratePerHour) || Number(roleData.rate_per_hour) || 0,
+                    defaultRate: Number(roleData.defaultRate) || Number(roleData.default_rate) || 0,
+                    totalHours: Number(roleData.totalHours) || Number(roleData.total_hours) || 0,
+                    totalCost: (Number(roleData.ratePerHour) || Number(roleData.rate_per_hour) || 0) * (Number(roleData.totalHours) || Number(roleData.total_hours) || 0)
+                  };
+                }) : []}
                 discountType={sow.pricing?.discount_type || 'none'}
                 discountAmount={sow.pricing?.discount_amount || 0}
                 discountPercentage={sow.pricing?.discount_percentage || 0}
@@ -901,10 +924,9 @@ export default function SOWDisplay({
         </div>
       </div>
     );
-  }
-
-  // Full view (main view)
-  return (
+  } else {
+    // Full view (main view)
+    return (
     <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 ${className}`}>
       {sow && (
         <>
@@ -1052,6 +1074,7 @@ export default function SOWDisplay({
                     deliverablesEdited={sow.deliverables_content_edited}
                     keyObjectivesEdited={sow.key_objectives_content_edited}
                     isEdited={sow.objectives_disclosure_content_edited}
+                    products={products}
                     projectDetails={{
                       products: sow.products || [],
                       number_of_units: sow.number_of_units || '',
@@ -1233,13 +1256,16 @@ export default function SOWDisplay({
 
                     {/* Pricing Display Component */}
               <PricingDisplay
-                pricingRoles={Array.isArray(sow.pricingRoles) ? (sow.pricingRoles as any[]).map((role: any) => ({
-                  role: role.role || '',
-                  ratePerHour: role.ratePerHour || role.rate_per_hour || 0,
-                  defaultRate: role.defaultRate || role.default_rate || 0,
-                  totalHours: role.totalHours || role.total_hours || 0,
-                  totalCost: (role.ratePerHour || role.rate_per_hour || 0) * (role.totalHours || role.total_hours || 0)
-                })) : []}
+                pricingRoles={Array.isArray(sow.pricingRoles) ? sow.pricingRoles.map((role: unknown) => {
+                  const roleData = role as Record<string, unknown>;
+                  return {
+                    role: String(roleData.role || ''),
+                    ratePerHour: Number(roleData.ratePerHour) || Number(roleData.rate_per_hour) || 0,
+                    defaultRate: Number(roleData.defaultRate) || Number(roleData.default_rate) || 0,
+                    totalHours: Number(roleData.totalHours) || Number(roleData.total_hours) || 0,
+                    totalCost: (Number(roleData.ratePerHour) || Number(roleData.rate_per_hour) || 0) * (Number(roleData.totalHours) || Number(roleData.total_hours) || 0)
+                  };
+                }) : []}
                       discountType={sow.pricing?.discount_type || 'none'}
                       discountAmount={sow.pricing?.discount_amount || 0}
                       discountPercentage={sow.pricing?.discount_percentage || 0}
@@ -1529,4 +1555,5 @@ export default function SOWDisplay({
       />
     </div>
   );
+  }
 }

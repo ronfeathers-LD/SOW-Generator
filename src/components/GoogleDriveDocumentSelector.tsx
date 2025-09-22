@@ -23,13 +23,15 @@ interface GoogleDriveDocumentSelectorProps {
   selectedDocuments: DriveDocument[];
   customerName?: string; // Customer name for pre-searching relevant folders
   folderId?: string; // Optional: specific folder to browse
+  onLoadingChange?: (isLoading: boolean) => void; // Callback to communicate loading state
 }
 
 const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
   onDocumentsSelected,
   selectedDocuments,
   customerName,
-  folderId
+  folderId,
+  onLoadingChange
 }: GoogleDriveDocumentSelectorProps) {
   // console.log('GoogleDriveDocumentSelector rendered with customerName:', customerName);
   const [folderContents, setFolderContents] = useState<DriveDocument[]>([]);
@@ -193,6 +195,21 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
     loadingRef.current.clear();
   }, [customerName]);
 
+  // Memoize the event handler to prevent recreation on every render
+  const handlePreload = useCallback((event: CustomEvent) => {
+    if (event.detail?.customerName === customerName && !folderId) {
+      // Clear any existing timeout
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      
+      // Debounce the preload call
+      debounceTimeoutRef.current = setTimeout(() => {
+        preloadCustomerFolders();
+      }, 300);
+    }
+  }, [customerName, folderId, preloadCustomerFolders]);
+
   // Preload customer folders when component mounts or when triggered externally
   useEffect(() => {
     if (customerName && !folderId) {
@@ -209,21 +226,6 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
       }, 300); // 300ms debounce
     }
     
-    // Listen for external preload trigger (from ObjectivesTab)
-    const handlePreload = (event: CustomEvent) => {
-      if (event.detail?.customerName === customerName && !folderId) {
-        // Clear any existing timeout
-        if (debounceTimeoutRef.current) {
-          clearTimeout(debounceTimeoutRef.current);
-        }
-        
-        // Debounce the preload call
-        debounceTimeoutRef.current = setTimeout(() => {
-          preloadCustomerFolders();
-        }, 300);
-      }
-    };
-    
     window.addEventListener('preloadGoogleDrive', handlePreload as EventListener);
     return () => {
       window.removeEventListener('preloadGoogleDrive', handlePreload as EventListener);
@@ -231,8 +233,13 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
         clearTimeout(debounceTimeoutRef.current);
       }
     };
-  }, [customerName, folderId, preloadCustomerFolders]);
+  }, [customerName, folderId, preloadCustomerFolders, handlePreload]);
   
+  // Communicate loading state to parent
+  useEffect(() => {
+    onLoadingChange?.(isPreloading);
+  }, [isPreloading, onLoadingChange]);
+
   // Debug state changes (commented out to reduce console noise)
   // useEffect(() => {
   //   console.log('State changed - searchMode:', searchMode, 'folderContents length:', folderContents.length, 'searchResults length:', searchResults.length);

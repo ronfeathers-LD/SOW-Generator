@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getContentTemplate } from '@/lib/sow-content';
 import { processContent } from '@/lib/text-to-html';
 
@@ -17,6 +17,9 @@ export const useSOWContent = ({
 }: UseSOWContentOptions) => {
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
+
+  // Memoize the dependencies to prevent unnecessary re-runs
+  const memoizedDependencies = useMemo(() => dependencies, [dependencies]);
 
   useEffect(() => {
     async function loadContent() {
@@ -44,7 +47,7 @@ export const useSOWContent = ({
     }
 
     loadContent();
-  }, [sectionName, customContent, processor, dependencies]);
+  }, [sectionName, customContent, processor, memoizedDependencies]);
 
   return { content, loading };
 };

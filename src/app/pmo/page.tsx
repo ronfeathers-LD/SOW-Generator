@@ -14,14 +14,6 @@ export default async function PMOPage() {
   const isPMO = session.user.role === 'pmo';
   const isAdmin = session.user.role === 'admin';
   
-  // Debug logging
-  console.log('PMO Page Access Check:', {
-    userEmail: session.user.email,
-    userRole: session.user.role,
-    isPMO,
-    isAdmin,
-    hasAccess: isPMO || isAdmin
-  });
   
   if (!isPMO && !isAdmin) {
     console.log('Access denied - redirecting to dashboard');

@@ -10,23 +10,16 @@ export async function GET(request: NextRequest) {
     let session;
     try {
       session = await getServerSession(authOptions);
-      console.log('📋 Session check:', { 
-        hasSession: !!session, 
-        userEmail: session?.user?.email,
-        userRole: session?.user?.role 
-      });
     } catch (sessionError) {
       console.error('💥 Session error:', sessionError);
       return NextResponse.json({ error: 'Session error' }, { status: 500 });
     }
     
     if (!session?.user) {
-      console.log('❌ No session found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if (session.user.role !== 'admin') {
-      console.log('❌ User is not admin:', session.user.role);
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
@@ -35,12 +28,10 @@ export async function GET(request: NextRequest) {
 
 
     if (!username) {
-      console.log('❌ No username provided');
       return NextResponse.json({ error: 'Username parameter is required' }, { status: 400 });
     }
 
     // For now, return a simple test response to verify the endpoint works
-    console.log('✅ Endpoint working, returning test response');
     return NextResponse.json({
       success: true,
       message: `Test lookup for username: ${username}`,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { SOWData } from '@/types/sow';
 import { getContentTemplate } from '@/lib/sow-content';
 import { createAllContentHandlers } from '@/lib/utils/contentHandlers';
@@ -13,7 +13,7 @@ interface ContentEditingTabProps {
   onUnsavedChanges?: (hasUnsavedChanges: boolean) => void;
 }
 
-export default function ContentEditingTab({ formData, setFormData, onUnsavedChanges }: ContentEditingTabProps) {
+const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setFormData, onUnsavedChanges }: ContentEditingTabProps) {
 
   // Original templates from database (never change)
   const [originalIntroTemplate, setOriginalIntroTemplate] = useState<string>('');
@@ -142,10 +142,9 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
     }
   }, [unsavedChanges, onUnsavedChanges]);
 
-  // Initialize form fields with default templates if no custom content exists
-  useEffect(() => {
+  // Memoize the initialization logic to prevent unnecessary recalculations
+  const initializationUpdates = useMemo(() => {
     if (!loading && !initializing && formData.id) {
-      // Only initialize if we have templates and no existing custom content
       const updates: Partial<SOWData> = {};
       
       if (!formData.custom_intro_content && originalIntroTemplate) {
@@ -176,13 +175,18 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
         updates.custom_roles_content = originalRolesTemplate;
       }
       
-      // Apply updates if any
-      if (Object.keys(updates).length > 0) {
-        console.log('Initializing form fields with default templates:', updates);
-        setFormData({ ...formData, ...updates });
-      }
+      return updates;
     }
-  }, [loading, initializing, formData, originalIntroTemplate, originalScopeTemplate, originalOutOfScopeTemplate, originalObjectivesDisclosureTemplate, originalAssumptionsTemplate, originalProjectPhasesTemplate, originalRolesTemplate, setFormData]);
+    return {};
+  }, [loading, initializing, formData.id, formData.custom_intro_content, formData.custom_scope_content, formData.custom_out_of_scope_content, formData.custom_objectives_disclosure_content, formData.custom_assumptions_content, formData.custom_project_phases_content, formData.custom_roles_content, originalIntroTemplate, originalScopeTemplate, originalOutOfScopeTemplate, originalObjectivesDisclosureTemplate, originalAssumptionsTemplate, originalProjectPhasesTemplate, originalRolesTemplate]);
+
+  // Initialize form fields with default templates if no custom content exists
+  useEffect(() => {
+    if (Object.keys(initializationUpdates).length > 0) {
+      console.log('Initializing form fields with default templates:', initializationUpdates);
+      setFormData({ ...formData, ...initializationUpdates });
+    }
+  }, [initializationUpdates, setFormData, formData]);
 
   // Create all content handlers using the factory
   const templates = {
@@ -828,5 +832,7 @@ export default function ContentEditingTab({ formData, setFormData, onUnsavedChan
       />
     </div>
   );
-}
+});
+
+export default ContentEditingTab;
            

@@ -16,6 +16,7 @@ interface SOWObjectivesPageProps {
   deliverablesEdited?: boolean;
   keyObjectivesEdited?: boolean;
   isEdited?: boolean;
+  products?: Product[];
   projectDetails?: {
     products?: string[];
     number_of_units?: string;
@@ -38,11 +39,11 @@ export default function SOWObjectivesPage({
   customContent,
   customKeyObjectivesContent,
   projectDetails,
+  products = [],
   isEdited
 }: SOWObjectivesPageProps) {
   const [objectivesDisclosureContent, setObjectivesDisclosureContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
-  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     async function loadObjectivesDisclosureContent() {
@@ -86,21 +87,6 @@ export default function SOWObjectivesPage({
     loadObjectivesDisclosureContent();
   }, [customContent]);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await fetch('/api/products');
-        if (response.ok) {
-          const data = await response.json();
-          setProducts(data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching products:', error);
-      }
-    };
-
-    fetchProducts();
-  }, []);
 
   const resolveProductName = (productIdentifier: string): string => {
     // Check if it's a UUID (product ID) or a name

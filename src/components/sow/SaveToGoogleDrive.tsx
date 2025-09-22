@@ -260,11 +260,6 @@ export default function SaveToGoogleDrive({ sowId, customerName, sowTitle }: Sav
                   {searching ? '🔍 Searching...' : '🔍 Search for Customer Folder'}
                 </button>
                 
-                {searching && (
-                  <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
-                    🔍 Searching for customer folders... Google Drive lookup can be slow.
-                  </div>
-                )}
               </div>
 
               {folders.length > 0 && (

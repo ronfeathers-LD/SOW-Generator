@@ -32,9 +32,11 @@ export default function TeamRolesTab({
 
   const [availableContacts, setAvailableContacts] = useState<SalesforceContact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
-  const [showSignerContactSelection, setShowSignerContactSelection] = useState<boolean>(false);
-  const [showSecondSignerContactSelection, setShowSecondSignerContactSelection] = useState<boolean>(false);
-  const [showRoleContactSelection, setShowRoleContactSelection] = useState<number | null>(null);
+  const [showContactSelectionModal, setShowContactSelectionModal] = useState<{
+    isOpen: boolean;
+    type: 'signer' | 'secondSigner' | 'role';
+    roleIndex?: number;
+  }>({ isOpen: false, type: 'signer' });
   const [showSecondSignerSection, setShowSecondSignerSection] = useState<boolean>(false);
   
   // Loading states for contact operations
@@ -70,7 +72,9 @@ export default function TeamRolesTab({
                            formData.salesforce_contact_id;
       
       const shouldShowSelection = !hasContactInfo;
-      setShowSignerContactSelection(shouldShowSelection);
+      if (shouldShowSelection) {
+        setShowContactSelectionModal({ isOpen: true, type: 'signer' });
+      }
     }
   }, [selectedAccount?.Id, selectedContact, formData.template?.customer_signature_name, formData.salesforce_contact_id]);
 
@@ -164,7 +168,7 @@ export default function TeamRolesTab({
         console.warn('No formData.id available, skipping save');
       }
 
-      setShowSignerContactSelection(false);
+      setShowContactSelectionModal({ isOpen: false, type: 'signer' });
     } catch (error) {
       console.error('Error saving Customer Signer:', error);
     } finally {
@@ -217,7 +221,7 @@ export default function TeamRolesTab({
         console.warn('No formData.id available, skipping save');
       }
 
-      setShowSecondSignerContactSelection(false);
+      setShowContactSelectionModal({ isOpen: false, type: 'signer' });
     } catch (error) {
       console.error('Error saving Second Customer Signer:', error);
     } finally {
@@ -241,7 +245,7 @@ export default function TeamRolesTab({
       ...formData,
       roles: { ...formData.roles!, client_roles: newRoles }
     });
-    setShowRoleContactSelection(null);
+    setShowContactSelectionModal({ isOpen: false, type: 'signer' });
     
     // Update parent component's selected contact state
     if (onContactChange) {
@@ -586,7 +590,7 @@ export default function TeamRolesTab({
                   <div className="mt-4 flex space-x-2">
                     <button
                       type="button"
-                      onClick={() => setShowSignerContactSelection(true)}
+                      onClick={() => setShowContactSelectionModal({ isOpen: true, type: 'signer' })}
                       className="flex-1 px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
                     >
                       {formData.template?.customer_signature_name ? 'Change Signer' : 'Select Signer'}
@@ -603,17 +607,21 @@ export default function TeamRolesTab({
                   </div>
                 </div>
 
-                {/* Contact Selection Modal */}
-                {showSignerContactSelection && selectedAccount && (
+                {/* Unified Contact Selection Modal */}
+                {showContactSelectionModal.isOpen && selectedAccount && (
                   <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
                     <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
                       <div className="mt-3">
                         {/* Modal Header */}
                         <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-semibold text-gray-900">Select Customer Signer</h3>
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {showContactSelectionModal.type === 'signer' && 'Select Customer Signer'}
+                            {showContactSelectionModal.type === 'secondSigner' && 'Select Second Customer Signer'}
+                            {showContactSelectionModal.type === 'role' && 'Select Contact for Role'}
+                          </h3>
                           <button
                             type="button"
-                            onClick={() => setShowSignerContactSelection(false)}
+                            onClick={() => setShowContactSelectionModal({ isOpen: false, type: 'signer' })}
                             className="text-gray-400 hover:text-gray-600"
                           >
                             <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -650,7 +658,16 @@ export default function TeamRolesTab({
                                   <div
                                     key={contact.Id}
                                     className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
-                                    onClick={() => handleContactSelected(contact)}
+                                    onClick={() => {
+                                      if (showContactSelectionModal.type === 'signer') {
+                                        handleContactSelected(contact);
+                                      } else if (showContactSelectionModal.type === 'secondSigner') {
+                                        handleSecondSignerContactSelected(contact);
+                                      } else if (showContactSelectionModal.type === 'role' && showContactSelectionModal.roleIndex !== undefined) {
+                                        handleContactSelectedForRole(contact, showContactSelectionModal.roleIndex);
+                                      }
+                                      setShowContactSelectionModal({ isOpen: false, type: 'signer' });
+                                    }}
                                   >
                                     <div className="font-medium text-gray-900">{contact.FirstName} {contact.LastName}</div>
                                     <div className="text-sm text-gray-600 mt-1">
@@ -676,7 +693,7 @@ export default function TeamRolesTab({
                         <div className="flex justify-end mt-6">
                           <button
                             type="button"
-                            onClick={() => setShowSignerContactSelection(false)}
+                            onClick={() => setShowContactSelectionModal({ isOpen: false, type: 'signer' })}
                             className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                           >
                             Cancel
@@ -751,7 +768,7 @@ export default function TeamRolesTab({
                   <div className="mt-4 flex space-x-2">
                     <button
                       type="button"
-                      onClick={() => setShowSecondSignerContactSelection(true)}
+                      onClick={() => setShowContactSelectionModal({ isOpen: true, type: 'secondSigner' })}
                       className="flex-1 px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
                     >
                       {formData.template?.customer_signature_name_2 ? 'Change Signer' : 'Select Signer'}
@@ -768,89 +785,6 @@ export default function TeamRolesTab({
                   </div>
                 </div>
 
-                {/* Second Signer Contact Selection Modal */}
-                {showSecondSignerContactSelection && selectedAccount && (
-                  <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                    <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-                      <div className="mt-3">
-                        {/* Modal Header */}
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-semibold text-gray-900">Select Second Customer Signer</h3>
-                          <button
-                            type="button"
-                            onClick={() => setShowSecondSignerContactSelection(false)}
-                            className="text-gray-400 hover:text-gray-600"
-                          >
-                            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-
-                        {/* Modal Content */}
-                        <div className="space-y-4">
-                          {isLoadingContacts ? (
-                            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                              <p className="text-sm text-yellow-800">Loading contacts...</p>
-                            </div>
-                          ) : availableContacts.length > 0 ? (
-                            <>
-                              <div className="flex justify-between items-center mb-4">
-                                <p className="text-sm text-gray-600">
-                                  Found {availableContacts.length} contact{availableContacts.length !== 1 ? 's' : ''} for {selectedAccount.Name || selectedAccount.name}
-                                </p>
-                                <button
-                                  onClick={refreshContacts}
-                                  disabled={isLoadingContacts}
-                                  className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                                >
-                                  <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                  </svg>
-                                  Refresh
-                                </button>
-                              </div>
-                              <div className="space-y-2 max-h-96 overflow-y-auto">
-                                {availableContacts.map((contact) => (
-                                  <div
-                                    key={contact.Id}
-                                    className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
-                                    onClick={() => handleSecondSignerContactSelected(contact)}
-                                  >
-                                    <div className="font-medium text-gray-900">{contact.FirstName} {contact.LastName}</div>
-                                    <div className="text-sm text-gray-600 mt-1">
-                                      <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                                        {contact.Title}
-                                      </span>
-                                      <span>{contact.Email}</span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </>
-                          ) : (
-                            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                              <p className="text-sm text-yellow-800">
-                                No contacts found for {selectedAccount.Name || selectedAccount.name}. Please ensure contacts exist in Salesforce.
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Modal Footer */}
-                        <div className="flex justify-end mt-6">
-                          <button
-                            type="button"
-                            onClick={() => setShowSecondSignerContactSelection(false)}
-                            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
             
@@ -1048,7 +982,7 @@ export default function TeamRolesTab({
                         <div className="flex space-x-2">
                           <button
                             type="button"
-                            onClick={() => setShowRoleContactSelection(index)}
+                            onClick={() => setShowContactSelectionModal({ isOpen: true, type: 'role', roleIndex: index })}
                             className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
                           >
                             Change Contact
@@ -1066,58 +1000,6 @@ export default function TeamRolesTab({
                       </div>
                     </div>
 
-                    {/* Contact Selection */}
-                    {showRoleContactSelection === index && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h5 className="text-sm font-semibold mb-3 text-blue-800">Select Contact</h5>
-                        
-                        <div className="space-y-2">
-                          {isLoadingContacts ? (
-                            <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-md">
-                              <p className="text-xs text-yellow-800">Loading contacts...</p>
-                            </div>
-                          ) : availableContacts.length > 0 ? (
-                            <>
-                              <div className="flex justify-between items-center mb-2">
-                                <p className="text-xs text-gray-600">
-                                  {availableContacts.length} contact{availableContacts.length !== 1 ? 's' : ''} available
-                                </p>
-                                <button
-                                  onClick={refreshContacts}
-                                  disabled={isLoadingContacts}
-                                  className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Refresh
-                                </button>
-                              </div>
-                              <div className="space-y-1 max-h-40 overflow-y-auto">
-                                {availableContacts.map((contact) => (
-                                  <div
-                                    key={contact.Id}
-                                    className="p-2 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
-                                    onClick={() => handleContactSelectedForRole(contact, index)}
-                                  >
-                                    <div className="font-medium text-sm text-gray-900">{contact.FirstName} {contact.LastName}</div>
-                                    <div className="text-xs text-gray-600 mt-1">
-                                      <span className="inline-block px-1 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium mr-1">
-                                        {contact.Title}
-                                      </span>
-                                      <span>{contact.Email}</span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </>
-                          ) : (
-                            <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-md">
-                              <p className="text-xs text-yellow-800">
-                                No contacts found. Please ensure contacts exist in Salesforce.
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
@@ -1319,11 +1201,6 @@ export default function TeamRolesTab({
         message="Clearing contact information..."
       />
       
-      <LoadingModal 
-        isOpen={isLoadingContacts} 
-        operation="loading"
-        message="Fetching contacts from Salesforce..."
-      />
       
 
 

@@ -17,14 +17,6 @@ export default async function PMOLayout({
   const isPMO = session.user.role === 'pmo';
   const isAdmin = session.user.role === 'admin';
   
-  // Debug logging
-  console.log('PMO Layout Access Check:', {
-    userEmail: session.user.email,
-    userRole: session.user.role,
-    isPMO,
-    isAdmin,
-    hasAccess: isPMO || isAdmin
-  });
   
   if (!isPMO && !isAdmin) {
     console.log('Access denied - redirecting to dashboard');
