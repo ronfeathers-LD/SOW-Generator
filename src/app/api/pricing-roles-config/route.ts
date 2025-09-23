@@ -17,17 +17,20 @@ export async function GET() {
     // Try to fetch from database first
     const { data: roles, error } = await supabase
       .from('pricing_roles_config')
-      .select('role_name, default_rate, is_active')
+      .select('role_name, default_rate, is_active, description, sort_order')
       .eq('is_active', true)
+      .order('sort_order', { ascending: true })
       .order('role_name', { ascending: true });
 
     if (error) {
       console.warn('Error fetching pricing roles from database, using fallback:', error);
       // Fall back to hardcoded rates if database is not available
-      const fallbackRoles = Object.entries(FALLBACK_RATES).map(([role, rate]) => ({
+      const fallbackRoles = Object.entries(FALLBACK_RATES).map(([role, rate], index) => ({
         role_name: role,
         default_rate: rate,
-        is_active: true
+        is_active: true,
+        description: '',
+        sort_order: index + 1
       }));
       return NextResponse.json({ roles: fallbackRoles });
     }
@@ -38,10 +41,12 @@ export async function GET() {
     console.error('Error fetching pricing roles config:', error);
     
     // Fall back to hardcoded rates if there's any error
-    const fallbackRoles = Object.entries(FALLBACK_RATES).map(([role, rate]) => ({
+    const fallbackRoles = Object.entries(FALLBACK_RATES).map(([role, rate], index) => ({
       role_name: role,
       default_rate: rate,
-      is_active: true
+      is_active: true,
+      description: '',
+      sort_order: index + 1
     }));
     
     return NextResponse.json({ roles: fallbackRoles });

@@ -54,8 +54,10 @@ export async function PUT(
           updateData.other_products_units = data.other_products_units;
         }
         
-        // Handle Orchestration Units (number_of_units)
-        if (data.template?.number_of_units !== undefined) updateData.orchestration_units = data.template.number_of_units;
+        // Handle Orchestration Units
+        if (data.template?.orchestration_units !== undefined) {
+          updateData.orchestration_units = data.template.orchestration_units;
+        }
 
         // Handle products - use JSONB field
         if (data.template?.products !== undefined) {
@@ -260,7 +262,6 @@ export async function PUT(
         if (data.custom_objectives_disclosure_content !== undefined) updateData.custom_objectives_disclosure_content = data.custom_objectives_disclosure_content;
         if (data.custom_assumptions_content !== undefined) updateData.custom_assumptions_content = data.custom_assumptions_content;
         if (data.custom_project_phases_content !== undefined) updateData.custom_project_phases_content = data.custom_project_phases_content;
-        if (data.custom_roles_content !== undefined) updateData.custom_roles_content = data.custom_roles_content;
         if (data.custom_deliverables_content !== undefined) updateData.custom_deliverables_content = data.custom_deliverables_content;
         if (data.custom_objective_overview_content !== undefined) updateData.custom_objective_overview_content = data.custom_objective_overview_content;
         if (data.intro_content_edited !== undefined) updateData.intro_content_edited = data.intro_content_edited;
@@ -269,7 +270,6 @@ export async function PUT(
         if (data.objectives_disclosure_content_edited !== undefined) updateData.objectives_disclosure_content_edited = data.objectives_disclosure_content_edited;
         if (data.assumptions_content_edited !== undefined) updateData.assumptions_content_edited = data.assumptions_content_edited;
         if (data.project_phases_content_edited !== undefined) updateData.project_phases_content_edited = data.project_phases_content_edited;
-        if (data.roles_content_edited !== undefined) updateData.roles_content_edited = data.roles_content_edited;
         if (data.deliverables_content_edited !== undefined) updateData.deliverables_content_edited = data.deliverables_content_edited;
         if (data.objective_overview_content_edited !== undefined) updateData.objective_overview_content_edited = data.objective_overview_content_edited;
         if (data.custom_key_objectives_content !== undefined) updateData.custom_key_objectives_content = data.custom_key_objectives_content;

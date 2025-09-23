@@ -2,6 +2,7 @@
 
 interface PricingRole {
   role: string;
+  description?: string;
   ratePerHour: number;
   defaultRate?: number;
   totalHours: number;
@@ -46,37 +47,27 @@ export default function PricingDisplay({
           <h3 className="text-lg font-semibold text-gray-900">Pricing Roles</h3>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg overflow-hidden">
-            <thead className="bg-blue-100">
+        <div className="overflow-x-auto formatSOWTable">
+          <table>
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  {hasAnyDiscount ? 'Standard Rate/Hr' : 'Rate/Hr'}
-                </th>
+                <th>Role</th>
+                <th>{hasAnyDiscount ? 'Standard Rate/Hr' : 'Rate/Hr'}</th>
                 {hasAnyDiscount && (
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Discounted Rate/Hr
-                  </th>
+                  <th>Discounted Rate/Hr</th>
                 )}
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Total Hours
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Total Cost
-                </th>
+                <th>Total Hours</th>
+                <th>Total Cost</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody>
               {filteredPricingRoles && filteredPricingRoles.length > 0 ? (
                 filteredPricingRoles.map((role, idx) => {
                   const hasDiscount = role.defaultRate && role.defaultRate !== role.ratePerHour;
                   return (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">{role.role}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                    <tr key={idx}>
+                      <td>{role.role}</td>
+                      <td>
                         {hasDiscount ? (
                           <span className="line-through text-gray-500">${role.defaultRate?.toFixed(2) || '0.00'}</span>
                         ) : (
@@ -84,7 +75,7 @@ export default function PricingDisplay({
                         )}
                       </td>
                       {hasAnyDiscount && (
-                        <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                        <td>
                           {hasDiscount ? (
                             <span className="text-green-600 font-semibold">${role.ratePerHour?.toFixed(2) || '0.00'}</span>
                           ) : (
@@ -92,8 +83,8 @@ export default function PricingDisplay({
                           )}
                         </td>
                       )}
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-700">{role.totalHours}</td>
-                      <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">
+                      <td>{role.totalHours}</td>
+                      <td>
                         ${role.totalCost?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                       </td>
                     </tr>
@@ -101,8 +92,25 @@ export default function PricingDisplay({
                 })
               ) : (
                 <tr>
-                  <td colSpan={hasAnyDiscount ? 5 : 4} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={hasAnyDiscount ? 5 : 4} className="text-center text-gray-500">
                     No pricing roles defined
+                  </td>
+                </tr>
+              )}
+              
+              {/* Total Hours Row */}
+              {filteredPricingRoles && filteredPricingRoles.length > 0 && (
+                <tr className="bg-gray-50 border-t-2 border-gray-300">
+                  <td>Total Hours</td>
+                  <td>—</td>
+                  {hasAnyDiscount && (
+                    <td>—</td>
+                  )}
+                  <td>
+                    {filteredPricingRoles.reduce((sum, role) => sum + (role.totalHours || 0), 0)}
+                  </td>
+                  <td>
+                    ${filteredPricingRoles.reduce((sum, role) => sum + (role.totalCost || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                 </tr>
               )}

@@ -8,6 +8,7 @@ export default function AdminNav() {
   const { data: session } = useSession();
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isApiConfigOpen, setIsApiConfigOpen] = useState(false);
+  const [isProductAdminOpen, setIsProductAdminOpen] = useState(false);
 
   // Only show admin nav if user is admin
   if (!session || session.user?.role !== 'admin') {
@@ -87,6 +88,45 @@ export default function AdminNav() {
             )}
           </div>
 
+          {/* Product Admin Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsProductAdminOpen(!isProductAdminOpen)}
+              className="text-sm hover:text-indigo-200 transition-colors flex items-center"
+            >
+              Product Admin
+              <svg 
+                className={`ml-1 h-4 w-4 transition-transform ${isProductAdminOpen ? 'rotate-180' : ''}`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {isProductAdminOpen && (
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
+                <div className="py-1">
+                  <Link 
+                    href="/admin/products"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsProductAdminOpen(false)}
+                  >
+                    Products
+                  </Link>
+                  <Link 
+                    href="/admin/product-categories"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsProductAdminOpen(false)}
+                  >
+                    Categories
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Configuration Dropdown */}
           <div className="relative">
             <button
@@ -135,13 +175,6 @@ export default function AdminNav() {
                   >
                     LeanData Signatories
                   </Link>
-                  <Link 
-                    href="/admin/products"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setIsConfigOpen(false)}
-                  >
-                    Products
-                  </Link>
                 </div>
               </div>
             )}
@@ -180,6 +213,12 @@ export default function AdminNav() {
         <div 
           className="fixed inset-0 z-40" 
           onClick={() => setIsApiConfigOpen(false)}
+        />
+      )}
+      {isProductAdminOpen && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setIsProductAdminOpen(false)}
         />
       )}
     </div>

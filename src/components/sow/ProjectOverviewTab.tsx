@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SOWData } from '@/types/sow';
-import { isRoutingProductById, isLeadToAccountProductById, isFormsProductById, isLinksProductById, isHandoffProductById, isOtherProduct } from '@/lib/constants/products';
+import { isRoutingProductById, isLeadToAccountProductById, isFormsProductById, isLinksProductById, isHandoffProductById, isOtherProduct, productRequiresUnits } from '@/lib/constants/products';
 import { 
   findProductByIdOrName, 
   isProductSelectedByIdOrName, 
-  isAnyRoutingProductSelected, 
   isAnyBookItProductSelected, 
   isFormsProductSelected, 
   isHandoffProductSelected 
@@ -120,44 +119,44 @@ export default function ProjectOverviewTab({
     // Clear validation error and field value when product is deselected
     if (isCurrentlySelected) {
       const product = findProductByIdOrName(products, identifier);
-      const fieldName = product ? getUnitFieldName(product.id) : null;
-      if (fieldName) {
-        setValidationErrors(prev => {
-          const newErrors = { ...prev };
-          delete newErrors[fieldName];
-          return newErrors;
-        });
-        
-        // Clear the field value when product is deselected
-        if (fieldName === 'orchestration_units') {
-          updatedTemplate.orchestration_units = '';
-        } else if (fieldName === 'bookit_forms_units') {
-          updatedTemplate.bookit_forms_units = '';
-        } else if (fieldName === 'bookit_links_units') {
-          updatedTemplate.bookit_links_units = '';
-        } else if (fieldName === 'bookit_handoff_units') {
-          updatedTemplate.bookit_handoff_units = '';
-        } else if (fieldName === 'other_products_units') {
-          updatedTemplate.other_products_units = '';
-        }
-      }
       
-      // Special handling for routing products - clear number_of_units if no routing products remain
+      // Special handling for routing products - only clear orchestration_units if no routing products remain
       if (product && (isRoutingProductById(product.id) || isLeadToAccountProductById(product.id))) {
-        
         const remainingProducts = newProducts.filter(p => {
           const remainingProduct = findProductByIdOrName(products, p);
           return remainingProduct && (isRoutingProductById(remainingProduct.id) || isLeadToAccountProductById(remainingProduct.id));
         });
         
         if (remainingProducts.length === 0) {
+          // Clear orchestration units field and validation error when no routing products remain
           setValidationErrors(prev => {
             const newErrors = { ...prev };
-            delete newErrors.number_of_units;
+            delete newErrors.orchestration_units;
             return newErrors;
           });
           
-          updatedTemplate.number_of_units = '';
+          updatedTemplate.orchestration_units = '';
+        }
+      } else {
+        // For non-routing products, clear the specific field immediately
+        const fieldName = product ? getUnitFieldName(product.id) : null;
+        if (fieldName && fieldName !== 'orchestration_units') {
+          setValidationErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors[fieldName];
+            return newErrors;
+          });
+          
+          // Clear the field value when product is deselected
+          if (fieldName === 'bookit_forms_units') {
+            updatedTemplate.bookit_forms_units = '';
+          } else if (fieldName === 'bookit_links_units') {
+            updatedTemplate.bookit_links_units = '';
+          } else if (fieldName === 'bookit_handoff_units') {
+            updatedTemplate.bookit_handoff_units = '';
+          } else if (fieldName === 'other_products_units') {
+            updatedTemplate.other_products_units = '';
+          }
         }
       }
     }
@@ -187,23 +186,23 @@ export default function ProjectOverviewTab({
   // Group products by category from database
   const groupProducts = (products: Product[]) => {
     const groups = {
-      routing: {
-        title: 'Routing & Orchestration',
+      FlowBuilder: {
+        title: 'FlowBuilder & Orchestration',
         icon: '⚡',
         color: 'blue',
-        products: products.filter(p => p.category === 'routing')
+        products: products.filter(p => p.category === 'FlowBuilder')
       },
-      bookit: {
+      BookIt: {
         title: 'BookIt Family',
         icon: '📋',
         color: 'green',
-        products: products.filter(p => p.category === 'bookit')
+        products: products.filter(p => p.category === 'BookIt')
       },
-      other: {
+      Other: {
         title: 'Other Products',
         icon: '🔧',
         color: 'gray',
-        products: products.filter(p => p.category === 'other')
+        products: products.filter(p => p.category === 'Other')
       }
     };
 
@@ -231,9 +230,12 @@ export default function ProjectOverviewTab({
     return null;
   };
 
-  // Helper function to check if any routing product is selected
-  const isAnyRoutingProductSelectedCallback = useCallback((): boolean => {
-    return isAnyRoutingProductSelected(products, selectedProducts);
+  // Helper function to check if any product requiring units is selected
+  const isAnyProductRequiringUnitsSelectedCallback = useCallback((): boolean => {
+    return selectedProducts.some(identifier => {
+      const product = findProductByIdOrName(products, identifier);
+      return product && (productRequiresUnits(product) || isRoutingProductById(product.id) || isLeadToAccountProductById(product.id));
+    });
   }, [selectedProducts, products]);
 
   // Validation function
@@ -243,24 +245,31 @@ export default function ProjectOverviewTab({
     // Helper function to check if a unit field is required
     const isUnitFieldRequired = (fieldName: string): boolean => {
       if (fieldName === 'number_of_units') {
-        return isAnyRoutingProductSelectedCallback();
+        return isAnyProductRequiringUnitsSelectedCallback();
       }
       
       return selectedProducts.some(identifier => {
         const product = findProductByIdOrName(products, identifier);
         if (!product) return false;
         
+        // Smart validation: check if product requires units and matches the field type
         switch (fieldName) {
           case 'orchestration_units':
+            // Orchestration units: required if ANY product that uses orchestration units is selected
+            // This includes all routing products (FlowBuilders + Lead to Account) regardless of category name
             return isRoutingProductById(product.id) || isLeadToAccountProductById(product.id);
           case 'bookit_forms_units':
-            return isFormsProductById(product.id);
+            // BookIt Forms: specific product that requires units
+            return productRequiresUnits(product) && isFormsProductById(product.id);
           case 'bookit_links_units':
-            return isLinksProductById(product.id);
+            // BookIt Links: specific product that requires units
+            return productRequiresUnits(product) && isLinksProductById(product.id);
           case 'bookit_handoff_units':
-            return isHandoffProductById(product.id);
+            // BookIt Handoff: specific product that requires units
+            return productRequiresUnits(product) && isHandoffProductById(product.id);
           case 'other_products_units':
-            return product.category === 'other';
+            // Other products: shared units across all other products that require units
+            return productRequiresUnits(product) && isOtherProduct(product);
           default:
             return false;
         }
@@ -268,7 +277,7 @@ export default function ProjectOverviewTab({
     };
     
     // Check each unit field
-    const unitFields = ['orchestration_units', 'bookit_forms_units', 'bookit_links_units', 'bookit_handoff_units', 'other_products_units', 'number_of_units'];
+    const unitFields = ['orchestration_units', 'bookit_forms_units', 'bookit_links_units', 'bookit_handoff_units', 'other_products_units'];
     
     unitFields.forEach(fieldName => {
       if (isUnitFieldRequired(fieldName)) {
@@ -277,35 +286,34 @@ export default function ProjectOverviewTab({
           // Get product names for error messages based on field type
           let productDisplayName = '';
           
-          if (fieldName === 'number_of_units' || fieldName === 'orchestration_units') {
-            // Find routing products that are selected to show specific names
-            const routingProducts = selectedProducts
+          if (fieldName === 'orchestration_units') {
+            // Use a generic message for orchestration units
+            productDisplayName = 'Orchestration Units';
+          } else if (fieldName === 'bookit_forms_units') {
+            const formsProduct = selectedProducts
               .map(identifier => findProductByIdOrName(products, identifier))
-              .filter(product => product && (isRoutingProductById(product.id) || isLeadToAccountProductById(product.id)))
+              .find(product => product && isFormsProductById(product.id));
+            productDisplayName = formsProduct?.name || 'BookIt for Forms';
+          } else if (fieldName === 'bookit_links_units') {
+            const linksProduct = selectedProducts
+              .map(identifier => findProductByIdOrName(products, identifier))
+              .find(product => product && isLinksProductById(product.id));
+            productDisplayName = linksProduct?.name || 'BookIt Links';
+          } else if (fieldName === 'bookit_handoff_units') {
+            const handoffProducts = selectedProducts
+              .map(identifier => findProductByIdOrName(products, identifier))
+              .filter(product => product && isHandoffProductById(product.id))
               .map(product => product!.name);
             
-            if (routingProducts.length > 0) {
-              productDisplayName = routingProducts.join(', ');
-            } else {
-              productDisplayName = 'Routing products';
-            }
-          } else if (fieldName === 'bookit_forms_units') {
-            const formsProduct = products.find(p => isFormsProductById(p.id));
-            productDisplayName = formsProduct?.name || 'Forms product';
-          } else if (fieldName === 'bookit_links_units') {
-            const linksProduct = products.find(p => isLinksProductById(p.id));
-            productDisplayName = linksProduct?.name || 'Links product';
-          } else if (fieldName === 'bookit_handoff_units') {
-            const handoffProducts = products.filter(p => isHandoffProductById(p.id));
             if (handoffProducts.length > 0) {
-              productDisplayName = handoffProducts.map(p => p.name).join(', ');
+              productDisplayName = handoffProducts.join(', ');
             } else {
               productDisplayName = 'BookIt Handoff products';
             }
           } else if (fieldName === 'other_products_units') {
             const otherProducts = selectedProducts
               .map(identifier => findProductByIdOrName(products, identifier))
-              .filter(product => product && product.category === 'other')
+              .filter(product => product && productRequiresUnits(product) && isOtherProduct(product))
               .map(product => product!.name);
             
             if (otherProducts.length > 0) {
@@ -315,7 +323,11 @@ export default function ProjectOverviewTab({
             }
           }
           
-          errors[fieldName] = `${productDisplayName} Units is required when ${productDisplayName} is selected`;
+          if (fieldName === 'orchestration_units') {
+            errors[fieldName] = `${productDisplayName} is required when FlowBuilder products are selected`;
+          } else {
+            errors[fieldName] = `${productDisplayName} Units is required when ${productDisplayName} is selected`;
+          }
         }
       }
     });
@@ -324,7 +336,7 @@ export default function ProjectOverviewTab({
     const isValid = Object.keys(errors).length === 0;
     
     return isValid;
-  }, [formData, selectedProducts, isAnyRoutingProductSelectedCallback, products]);
+  }, [formData, selectedProducts, isAnyProductRequiringUnitsSelectedCallback, products]);
 
   // Run validation whenever form data or selected products change
   useEffect(() => {
@@ -333,6 +345,17 @@ export default function ProjectOverviewTab({
       validateUnitFields();
     }
   }, [validateUnitFields, formData.template]);
+
+  // Clear validation errors when orchestration_units has a value
+  useEffect(() => {
+    if (formData.template?.orchestration_units && validationErrors.orchestration_units) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.orchestration_units;
+        return newErrors;
+      });
+    }
+  }, [formData.template?.orchestration_units, validationErrors.orchestration_units]);
 
   // Handle unit field change with validation
   const handleUnitFieldChange = (fieldName: string, value: string) => {
@@ -582,7 +605,7 @@ export default function ProjectOverviewTab({
                         </div>
                         
                         {/* Unit Fields for this Group */}
-                        {groupKey === 'routing' && isAnyRoutingProductSelectedCallback() && (
+                        {groupKey === 'FlowBuilder' && isAnyProductRequiringUnitsSelectedCallback() && (
                           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {/* Legacy Number of Units (for Orchestration) */}
@@ -598,24 +621,24 @@ export default function ProjectOverviewTab({
                                 </label>
                                 <input
                                   type="text"
-                                  value={formData.template?.number_of_units || ''}
-                                  onChange={(e) => handleUnitFieldChange('number_of_units', e.target.value)}
+                                  value={formData.template?.orchestration_units || ''}
+                                  onChange={(e) => handleUnitFieldChange('orchestration_units', e.target.value)}
                                   className={`block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
-                                    validationErrors.number_of_units 
+                                    validationErrors.orchestration_units 
                                       ? 'border-red-300' 
                                       : 'border-gray-300'
                                   }`}
                                   placeholder="Enter number of units"
                                 />
-                                {validationErrors.number_of_units && (
-                                  <p className="mt-1 text-sm text-red-600">{validationErrors.number_of_units}</p>
+                                {validationErrors.orchestration_units && (
+                                  <p className="mt-1 text-sm text-red-600">{validationErrors.orchestration_units}</p>
                                 )}
                               </div>
                             </div>
                           </div>
                         )}
                         
-                        {groupKey === 'bookit' && isAnyBookItProductSelectedCallback() && (
+                        {groupKey === 'BookIt' && isAnyBookItProductSelectedCallback() && (
                           <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {isFormsProductSelectedCallback() && (
@@ -762,17 +785,6 @@ export default function ProjectOverviewTab({
         )}
       </div>
 
-      {/* Validation Summary */}
-      {Object.keys(validationErrors).length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <h4 className="text-sm font-medium text-red-800 mb-2">Required Fields Missing:</h4>
-          <ul className="text-sm text-red-700 space-y-1">
-            {Object.values(validationErrors).map((error, index) => (
-              <li key={`validation-error-${index}-${error.slice(0, 20)}`}>• {error}</li>
-            ))}
-          </ul>
-        </div>
-      )}
 
     </section>
   );

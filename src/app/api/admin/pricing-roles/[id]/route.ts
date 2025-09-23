@@ -16,7 +16,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { role_name, default_rate, is_active } = body;
+    const { role_name, default_rate, is_active, description = '', sort_order = 0 } = body;
 
     // Validate required fields
     if (!role_name || default_rate === undefined || default_rate === null) {
@@ -32,7 +32,9 @@ export async function PUT(
     const updateData: Record<string, unknown> = {
       role_name: role_name.trim(),
       default_rate,
-      is_active
+      is_active,
+      description: description.trim(),
+      sort_order: typeof sort_order === 'number' ? sort_order : 0
     };
 
     // Only add updated_by if the column exists (after migration)

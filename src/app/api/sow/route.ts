@@ -50,7 +50,6 @@ export async function POST(request: Request) {
     const defaultObjectivesDisclosureContent = templateMap.get('objectives-disclosure') || '';
     const defaultAssumptionsContent = templateMap.get('assumptions') || '';
     const defaultProjectPhasesContent = templateMap.get('project-phases') || '';
-    const defaultRolesContent = templateMap.get('roles') || '';
     const { data: sow, error } = await supabaseApi
       .from('sows')
       .insert({
@@ -129,7 +128,6 @@ export async function POST(request: Request) {
         custom_objectives_disclosure_content: data.custom_objectives_disclosure_content || defaultObjectivesDisclosureContent,
         custom_assumptions_content: data.custom_assumptions_content || defaultAssumptionsContent,
         custom_project_phases_content: data.custom_project_phases_content || defaultProjectPhasesContent,
-        custom_roles_content: data.custom_roles_content || defaultRolesContent,
         custom_deliverables_content: data.custom_deliverables_content || '',
         custom_objective_overview_content: data.custom_objective_overview_content || '',
         custom_key_objectives_content: data.custom_key_objectives_content || '',
@@ -138,7 +136,6 @@ export async function POST(request: Request) {
         objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false,
         assumptions_content_edited: data.assumptions_content_edited || false,
         project_phases_content_edited: data.project_phases_content_edited || false,
-        roles_content_edited: data.roles_content_edited || false,
         deliverables_content_edited: data.deliverables_content_edited || false,
         objective_overview_content_edited: data.objective_overview_content_edited || false,
         key_objectives_content_edited: data.key_objectives_content_edited || false,
@@ -175,23 +172,69 @@ export async function POST(request: Request) {
     // SOW created successfully
     console.log('✅ SOW created successfully:', sow.id);
 
+    // Store Salesforce data if account information is provided
+    if (data.selectedAccount?.id) {
+      try {
+        const { createSalesforceAccountData, createSalesforceOpportunityData } = await import('@/types/salesforce');
+        
+        const accountData = createSalesforceAccountData({
+          Id: data.selectedAccount.id,
+          Name: data.selectedAccount.name,
+          BillingCity: data.selectedAccount.billingCity,
+          BillingState: data.selectedAccount.billingState,
+          BillingCountry: data.selectedAccount.billingCountry,
+          Industry: data.selectedAccount.industry,
+          Employee_Band__c: data.selectedAccount.Employee_Band__c || data.selectedAccount.accountSegment,
+          Owner: data.selectedAccount.Owner
+        });
+
+        await supabaseApi
+          .from('sow_salesforce_data')
+          .insert({
+            sow_id: sow.id,
+            account_data: accountData,
+            opportunity_data: data.template?.opportunity_id ? createSalesforceOpportunityData({
+              Id: data.template.opportunity_id,
+              Name: data.template.opportunity_name || '',
+              Amount: data.template.opportunity_amount,
+              StageName: data.template.opportunity_stage || '',
+              CloseDate: data.template.opportunity_close_date || '',
+              Description: ''
+            }) : null,
+            last_synced_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+        console.log('✅ Salesforce data stored for SOW:', sow.id);
+      } catch (salesforceError) {
+        console.error('Error storing Salesforce data:', salesforceError);
+        // Don't fail the main operation if Salesforce data storage fails
+      }
+    }
+
     // Send Slack notification for new SOW creation
     try {
-      // Get Slack service
-      const slackService = await getSlackService();
-      if (!slackService) {
-        console.warn('Slack service not configured - cannot send notifications');
+      // Skip notifications for Hula Truck
+      const clientName = sow.client_name || 'Unknown Client';
+      if (clientName.toLowerCase() === 'hula truck') {
+        console.log('🚫 Skipping Slack notification for Hula Truck SOW creation');
       } else {
-        const clientName = sow.client_name || 'Unknown Client';
-        const sowUrl = getSOWUrl(sow.id);
+        // Get Slack service
+        const slackService = await getSlackService();
+        if (!slackService) {
+          console.warn('Slack service not configured - cannot send notifications');
+        } else {
+          const sowUrl = getSOWUrl(sow.id);
 
-        await slackService.sendMessage(
-          `:new: *New SOW Created*\n\n` +
-          `*Client:* ${clientName}\n` +
-          `*Created by:* ${session.user.email}\n\n` +
-          `:link: <${sowUrl}|View SOW>\n\n` +
-          `This SOW is now in draft status and ready for completion.`
-        );
+          await slackService.sendMessage(
+            `:new: *New SOW Created*\n\n` +
+            `*Client:* ${clientName}\n` +
+            `*Created by:* ${session.user.email}\n\n` +
+            `:link: <${sowUrl}|View SOW>\n\n` +
+            `This SOW is now in draft status and ready for completion.`
+          );
+        }
       }
     } catch (slackError) {
       console.error('Slack notification failed for SOW creation:', slackError);

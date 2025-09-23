@@ -8,6 +8,7 @@ import { getPricingRolesConfig, getDefaultRateForRole, PricingRoleConfig } from 
 interface PricingRole {
   id: string;
   role: string;
+  description?: string;
   ratePerHour: number;
   defaultRate: number;
   totalHours: number;
@@ -66,6 +67,9 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
   });
   
   const [isAutoCalculating, setIsAutoCalculating] = useState(false);
+  
+  // Validation state for pricing mismatch
+  const [hasPricingMismatch, setHasPricingMismatch] = useState(false);
 
   // Load pricing roles configuration
   useEffect(() => {
@@ -127,15 +131,15 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
 
       // Load saved pricing roles
       // Check if roles is an object with a roles array property, or if it's directly an array
-      let rolesArray: Array<{ role: string; ratePerHour?: number; defaultRate?: number; totalHours?: number }> = [];
+      let rolesArray: Array<{ role: string; ratePerHour?: number; defaultRate?: number; totalHours?: number; description?: string }> = [];
       
       if (formData.pricing.roles && typeof formData.pricing.roles === 'object' && !Array.isArray(formData.pricing.roles)) {
         // If roles is an object, look for the roles array property
-        const rolesObj = formData.pricing.roles as { roles?: Array<{ role: string; ratePerHour?: number; defaultRate?: number; totalHours?: number }> };
+        const rolesObj = formData.pricing.roles as { roles?: Array<{ role: string; ratePerHour?: number; defaultRate?: number; totalHours?: number; description?: string }> };
         rolesArray = rolesObj.roles || [];
       } else if (Array.isArray(formData.pricing.roles)) {
         // If roles is directly an array, use it
-        rolesArray = formData.pricing.roles as Array<{ role: string; ratePerHour?: number; defaultRate?: number; totalHours?: number }>;
+        rolesArray = formData.pricing.roles as Array<{ role: string; ratePerHour?: number; defaultRate?: number; totalHours?: number; description?: string }>;
       }
       
       if (rolesArray && rolesArray.length > 0) {
@@ -146,6 +150,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
           defaultRate: role.defaultRate || getDefaultRateForRole(role.role, pricingRolesConfig) || 250,
           totalHours: role.totalHours || 0,
           totalCost: (role.ratePerHour || 0) * (role.totalHours || 0),
+          description: role.description || '',
         }));
         
         // Simply use the saved roles directly - no need for complex merging
@@ -180,6 +185,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
                   ratePerHour: role.ratePerHour,
                   defaultRate: role.defaultRate,
                   totalHours: role.totalHours,
+                  description: role.description,
                 })),
                 discount_type: discountConfig.type,
                 discount_amount: discountConfig.type === 'fixed' ? (discountConfig.amount || null) : null,
@@ -215,6 +221,41 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       return () => clearTimeout(timeoutId);
     }
   }, [pricingRoles, formData.id, discountConfig]);
+
+  // Check for pricing mismatch between current form data and saved pricing
+  useEffect(() => {
+    const checkPricingMismatch = () => {
+      if (!formData.template?.products || formData.template.products.length === 0) {
+        setHasPricingMismatch(false);
+        return;
+      }
+
+      // Calculate what the hours should be based on current form data
+      const hoursResult = calculateAllHours(formData.template, selectedAccount?.Employee_Band__c);
+      const { baseProjectHours, pmHours, shouldAddProjectManager } = hoursResult;
+      
+      const roleDistribution = calculateRoleHoursDistribution(
+        baseProjectHours,
+        pmHours,
+        shouldAddProjectManager,
+        formData.pm_hours_requirement_disabled
+      );
+
+      // Check if current pricing roles match the calculated hours
+      const hasMismatch = pricingRoles.some(role => {
+        if (role.role === 'Onboarding Specialist') {
+          return role.totalHours !== roleDistribution.onboardingSpecialistHours;
+        } else if (role.role === 'Project Manager') {
+          return role.totalHours !== roleDistribution.projectManagerHours;
+        }
+        return false;
+      });
+
+      setHasPricingMismatch(hasMismatch);
+    };
+
+    checkPricingMismatch();
+  }, [formData.template, pricingRoles, selectedAccount?.Employee_Band__c, formData.pm_hours_requirement_disabled]);
 
   // Auto-calculate hours based on selected products and units
   const autoCalculateHours = async () => {
@@ -349,6 +390,9 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       };
       setFormData(updatedFormData);
       
+      // Clear the pricing mismatch flag since we've updated the pricing
+      setHasPricingMismatch(false);
+      
     } catch (error) {
       console.error('❌ Error during auto-calculate:', error);
     } finally {
@@ -359,6 +403,30 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
   return (
     <section className="space-y-6">
       <h2 className="text-2xl font-bold">Pricing</h2>
+      
+      {/* Pricing Mismatch Warning */}
+      {hasPricingMismatch && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-amber-800">
+                Pricing Hours Need to be Updated
+              </h3>
+              <div className="mt-2 text-sm text-amber-700">
+                <p>
+                  The calculated hours don&apos;t match the current pricing data. Please click &quot;Auto-Calculate Hours&quot; 
+                  to update the pricing based on your current product selection and unit counts, then save your changes.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Single Column Layout */}
       <div className="space-y-6">

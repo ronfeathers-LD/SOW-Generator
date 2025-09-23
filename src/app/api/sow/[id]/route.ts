@@ -112,7 +112,7 @@ export async function GET(
         timeline_weeks: sow.timeline_weeks || '999',
         units_consumption: sow.units_consumption || 'All units immediately',
         // BookIt Family Units
-        number_of_units: sow.orchestration_units || '',
+        orchestration_units: sow.orchestration_units || '',
         bookit_forms_units: sow.bookit_forms_units || '',
         bookit_links_units: sow.bookit_links_units || '',
         bookit_handoff_units: sow.bookit_handoff_units || '',
@@ -159,7 +159,6 @@ export async function GET(
       custom_objectives_disclosure_content: sow.custom_objectives_disclosure_content || null,
       custom_assumptions_content: sow.custom_assumptions_content || null,
       custom_project_phases_content: sow.custom_project_phases_content || null,
-      custom_roles_content: sow.custom_roles_content || null,
       custom_deliverables_content: sow.custom_deliverables_content || null,
       custom_objective_overview_content: sow.custom_objective_overview_content || null,
       custom_key_objectives_content: sow.custom_key_objectives_content || null,
@@ -168,7 +167,6 @@ export async function GET(
       objectives_disclosure_content_edited: sow.objectives_disclosure_content_edited || false,
       assumptions_content_edited: sow.assumptions_content_edited || false,
       project_phases_content_edited: sow.project_phases_content_edited || false,
-      roles_content_edited: sow.roles_content_edited || false,
       deliverables_content_edited: sow.deliverables_content_edited || false,
       objective_overview_content_edited: sow.objective_overview_content_edited || false,
       key_objectives_content_edited: sow.key_objectives_content_edited || false,
@@ -248,9 +246,25 @@ export async function PUT(
     const { id } = await params;
     const data = await request.json();
     
-    // Only allow status updates for now
+    // Allow status updates and Account Segment updates
     if (data.status && !['draft', 'in_review', 'approved', 'rejected'].includes(data.status)) {
       return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
+    }
+
+    // Prepare update data - only allow specific fields to be updated
+    const allowedFields = ['status', 'salesforce_account_id', 'salesforce_account_owner_name', 'salesforce_account_owner_email'];
+    const updateData: Record<string, unknown> = {};
+    
+    // Only include fields that are allowed and provided
+    allowedFields.forEach(field => {
+      if (data[field] !== undefined) {
+        updateData[field] = data[field];
+      }
+    });
+    
+    // If no valid fields to update, return error
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
     }
 
     // Anyone can submit for review (draft → in_review)
@@ -278,30 +292,30 @@ export async function PUT(
 
     // If rejecting, reset to draft status
     if (data.status === 'rejected') {
-      data.status = 'draft';
+      updateData.status = 'draft';
       // Ensure rejected_at is set if not already provided
       if (!data.rejected_at) {
-        data.rejected_at = new Date().toISOString();
+        updateData.rejected_at = new Date().toISOString();
       }
     }
 
     // Add approval tracking
     if (data.status === 'approved') {
-      data.approved_by = user.id;
-      data.approved_at = new Date().toISOString();
+      updateData.approved_by = user.id;
+      updateData.approved_at = new Date().toISOString();
     } else if (data.status === 'draft' && data.rejected_at) {
       // This was a rejection, track who rejected it
-      data.rejected_by = user.id;
+      updateData.rejected_by = user.id;
     } else if (data.status === 'in_review') {
       // Track who submitted the SOW for review
-      data.submitted_by = user.id;
-      data.submitted_at = new Date().toISOString();
+      updateData.submitted_by = user.id;
+      updateData.submitted_at = new Date().toISOString();
     }
 
     // Update the SOW
     const { data: updatedSOW, error: updateError } = await supabase
       .from('sows')
-      .update(data)
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
@@ -348,36 +362,46 @@ export async function PUT(
             const sowTitle = sowDetails.sow_title || 'Untitled SOW';
             const sowUrl = getSOWUrl(id);
 
-            await slackService.sendMessage(
-              `:memo: *New SOW Submitted for Review*\n\n` +
-              `*Client:* ${clientName}\n` +
-              `*Submitted by:* ${submitterName}\n\n` +
-              `:link: <${sowUrl}|Review SOW>\n\n` +
-              `Please review and approve/reject this SOW when ready.`
-            );
+            // Skip notifications for Hula Truck
+            if (clientName.toLowerCase() === 'hula truck') {
+              console.log('🚫 Skipping Slack notification for Hula Truck SOW submission');
+            } else {
+              await slackService.sendMessage(
+                `:memo: *New SOW Submitted for Review*\n\n` +
+                `*Client:* ${clientName}\n` +
+                `*Submitted by:* ${submitterName}\n\n` +
+                `:link: <${sowUrl}|Review SOW>\n\n` +
+                `Please review and approve/reject this SOW when ready.`
+              );
+            }
 
             // Send email notification to account owner or commercial approvals team
             try {
               const emailService = await getEmailService();
               if (emailService) {
-                // Get account owner email from SOW data
-                const { data: sowWithOwner } = await supabase
-                  .from('sows')
-                  .select('salesforce_account_owner_email')
-                  .eq('id', id)
-                  .single();
+                // Skip email notifications for Hula Truck
+                if (clientName.toLowerCase() === 'hula truck') {
+                  console.log('🚫 Skipping email notification for Hula Truck SOW submission');
+                } else {
+                  // Get account owner email from SOW data
+                  const { data: sowWithOwner } = await supabase
+                    .from('sows')
+                    .select('salesforce_account_owner_email')
+                    .eq('id', id)
+                    .single();
 
-                // Use account owner email if available, otherwise fall back to commercial approvals
-                const approverEmail = sowWithOwner?.salesforce_account_owner_email || 'sowapprovalscommercial@leandata.com';
-                
-                await emailService.sendSOWApprovalNotification(
-                  id,
-                  sowTitle,
-                  clientName,
-                  approverEmail,
-                  submitterName
-                );
-                console.log(`✅ Email notification sent to ${approverEmail}`);
+                  // Use account owner email if available, otherwise fall back to commercial approvals
+                  const approverEmail = sowWithOwner?.salesforce_account_owner_email || 'sowapprovalscommercial@leandata.com';
+                  
+                  await emailService.sendSOWApprovalNotification(
+                    id,
+                    sowTitle,
+                    clientName,
+                    approverEmail,
+                    submitterName
+                  );
+                  console.log(`✅ Email notification sent to ${approverEmail}`);
+                }
               }
             } catch (emailError) {
               console.error('Email notification failed for SOW submission:', emailError);

@@ -104,12 +104,6 @@ export const CONTENT_SECTIONS: ContentHandlerConfig[] = [
     contentKey: 'custom_project_phases_content',
     editedKey: 'project_phases_content_edited'
   },
-  {
-    sectionName: 'roles',
-    templateKey: 'originalRolesTemplate',
-    contentKey: 'custom_roles_content',
-    editedKey: 'roles_content_edited'
-  }
 ];
 
 // Helper to create all handlers at once

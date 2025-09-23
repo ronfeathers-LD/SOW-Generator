@@ -74,7 +74,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             units_consumption: initialData.template?.units_consumption || 'All units immediately',
             
             // BookIt Family Units
-            orchestration_units: initialData.template?.number_of_units || '',
+            orchestration_units: initialData.template?.orchestration_units || initialData.template?.number_of_units || '',
             bookit_forms_units: initialData.template?.bookit_forms_units || '',
             bookit_links_units: initialData.template?.bookit_links_units || '',
             bookit_handoff_units: initialData.template?.bookit_handoff_units || '',
@@ -721,6 +721,19 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             }) : undefined
           }),
         });
+
+        // Update the SOW table with Salesforce account information
+        await fetch(`/api/sow/${initialData.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            salesforce_account_id: accountObj.Id,
+            salesforce_account_owner_name: accountObj.Owner?.Name || '',
+            salesforce_account_owner_email: accountObj.Owner?.Email || ''
+          }),
+        });
       } catch (error) {
         console.error('Error saving Salesforce data:', error);
       }
@@ -841,7 +854,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
               timeline_weeks: formData.template?.timeline_weeks,
               units_consumption: formData.template?.units_consumption,
               // BookIt Family Units
-              number_of_units: formData.template?.number_of_units,
+              orchestration_units: formData.template?.orchestration_units,
               bookit_forms_units: formData.template?.bookit_forms_units,
               bookit_links_units: formData.template?.bookit_links_units,
               bookit_handoff_units: formData.template?.bookit_handoff_units,
@@ -971,7 +984,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             custom_objectives_disclosure_content: formData.custom_objectives_disclosure_content,
             custom_assumptions_content: formData.custom_assumptions_content,
             custom_project_phases_content: formData.custom_project_phases_content,
-            custom_roles_content: formData.custom_roles_content,
             custom_deliverables_content: formData.custom_deliverables_content,
             custom_objective_overview_content: formData.custom_objective_overview_content,
             intro_content_edited: formData.intro_content_edited,
@@ -979,7 +991,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             objectives_disclosure_content_edited: formData.objectives_disclosure_content_edited,
             assumptions_content_edited: formData.assumptions_content_edited,
             project_phases_content_edited: formData.project_phases_content_edited,
-            roles_content_edited: formData.roles_content_edited,
             deliverables_content_edited: formData.deliverables_content_edited,
             objective_overview_content_edited: formData.objective_overview_content_edited,
             custom_key_objectives_content: formData.custom_key_objectives_content,

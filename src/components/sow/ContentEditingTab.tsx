@@ -22,7 +22,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
   const [originalObjectivesDisclosureTemplate, setOriginalObjectivesDisclosureTemplate] = useState<string>('');
   const [originalAssumptionsTemplate, setOriginalAssumptionsTemplate] = useState<string>('');
   const [originalProjectPhasesTemplate, setOriginalProjectPhasesTemplate] = useState<string>('');
-  const [originalRolesTemplate, setOriginalRolesTemplate] = useState<string>('');
   
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(true);
@@ -69,10 +68,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
           setOriginalProjectPhasesTemplate(projectPhases.default_content);
         }
 
-        const roles = await getContentTemplate('roles');
-        if (roles) {
-          setOriginalRolesTemplate(roles.default_content);
-        }
       } catch (error) {
         console.error('Error loading templates:', error);
       } finally {
@@ -171,14 +166,11 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
         updates.custom_project_phases_content = originalProjectPhasesTemplate;
       }
       
-      if (!formData.custom_roles_content && originalRolesTemplate) {
-        updates.custom_roles_content = originalRolesTemplate;
-      }
       
       return updates;
     }
     return {};
-  }, [loading, initializing, formData.id, formData.custom_intro_content, formData.custom_scope_content, formData.custom_out_of_scope_content, formData.custom_objectives_disclosure_content, formData.custom_assumptions_content, formData.custom_project_phases_content, formData.custom_roles_content, originalIntroTemplate, originalScopeTemplate, originalOutOfScopeTemplate, originalObjectivesDisclosureTemplate, originalAssumptionsTemplate, originalProjectPhasesTemplate, originalRolesTemplate]);
+  }, [loading, initializing, formData.id, formData.custom_intro_content, formData.custom_scope_content, formData.custom_out_of_scope_content, formData.custom_objectives_disclosure_content, formData.custom_assumptions_content, formData.custom_project_phases_content, originalIntroTemplate, originalScopeTemplate, originalOutOfScopeTemplate, originalObjectivesDisclosureTemplate, originalAssumptionsTemplate, originalProjectPhasesTemplate]);
 
   // Initialize form fields with default templates if no custom content exists
   useEffect(() => {
@@ -196,7 +188,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
     originalObjectivesDisclosureTemplate,
     originalAssumptionsTemplate,
     originalProjectPhasesTemplate,
-    originalRolesTemplate
   };
 
   const context = {
@@ -218,7 +209,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
     handleObjectivesDisclosureContentChange,
     handleAssumptionsContentChange,
     handleProjectPhasesContentChange,
-    handleRolesContentChange,
     handleOutOfScopeContentChange
   } = handlers;
 
@@ -228,7 +218,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
     resetObjectivesDisclosureContent,
     resetAssumptionsContent,
     resetProjectPhasesContent,
-    resetRolesContent,
     resetOutOfScopeContent
   } = resetHandlers;
 
@@ -248,14 +237,12 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
           custom_objectives_disclosure_content: formData.custom_objectives_disclosure_content,
           custom_assumptions_content: formData.custom_assumptions_content,
           custom_project_phases_content: formData.custom_project_phases_content,
-          custom_roles_content: formData.custom_roles_content,
           custom_out_of_scope_content: formData.custom_out_of_scope_content,
           intro_content_edited: formData.intro_content_edited,
           scope_content_edited: formData.scope_content_edited,
           objectives_disclosure_content_edited: formData.objectives_disclosure_content_edited,
           assumptions_content_edited: formData.assumptions_content_edited,
           project_phases_content_edited: formData.project_phases_content_edited,
-          roles_content_edited: formData.roles_content_edited,
           out_of_scope_content_edited: formData.out_of_scope_content_edited,
         }
       };
@@ -309,7 +296,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
     { id: 'scope', name: 'Scope', icon: '🎯' },
     { id: 'out-of-scope', name: 'Out of Scope', icon: '🚫' },
     { id: 'project-phases', name: 'Project Phases', icon: '📅' },
-    { id: 'roles', name: 'Roles & Responsibilities', icon: '👥' },
     { id: 'assumptions', name: 'Assumptions', icon: '⚠️' },
   ];
 
@@ -694,67 +680,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
           </div>
         );
 
-      case 'roles':
-        return (
-          <div className="bg-white shadow rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Roles and Responsibilities</h3>
-              <div className="flex items-center space-x-2">
-                {formData.roles_content_edited && (
-                  <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                    Customized
-                  </span>
-                )}
-                {unsavedChanges.roles && (
-                  <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
-                    Unsaved Changes
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => saveSection('roles')}
-                  disabled={saving === 'roles'}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {saving === 'roles' ? 'Saving...' : 'Save'}
-                </button>
-                {saveStatus.roles === 'success' && (
-                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
-                )}
-                {saveStatus.roles === 'error' && (
-                  <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Error</span>
-                )}
-                <button
-                  type="button"
-                  onClick={resetRolesContent}
-                  className="text-sm text-gray-500 hover:text-gray-700"
-                >
-                  Reset to Default
-                </button>
-              </div>
-            </div>
-            
-            <div className="mb-4">
-              <TipTapEditor
-                value={formData.custom_roles_content || ''}
-                onChange={handleRolesContentChange}
-                placeholder="Enter the roles and responsibilities content for this SOW..."
-                initializing={initializing}
-              />
-              <p className="mt-2 text-sm text-gray-500">
-                This content outlines the roles and responsibilities for both Customer and LeanData teams.
-              </p>
-            </div>
-
-            {formData.roles_content_edited && (
-              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                <p className="text-sm text-yellow-800">
-                  <strong>Note:</strong> This content has been customized from the default template and will be flagged during approval.
-                </p>
-              </div>
-            )}
-          </div>
-        );
 
       default:
         return <div>Section not found</div>;

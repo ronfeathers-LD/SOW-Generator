@@ -121,6 +121,7 @@ export async function launchPuppeteerBrowser(): Promise<Browser> {
 interface PricingRole {
   role?: string;
   name?: string;
+  description?: string;
   ratePerHour?: number;
   defaultRate?: number;
   totalHours?: number;
@@ -180,7 +181,6 @@ interface SOWData {
   custom_objectives_disclosure_content?: string;
   custom_assumptions_content?: string;
   custom_project_phases_content?: string;
-  custom_roles_content?: string;
   custom_deliverables_content?: string;
   custom_objective_overview_content?: string;
   custom_key_objectives_content?: string;
@@ -407,7 +407,6 @@ export class PDFGenerator {
     const outOfScopeContent = processContentWithPlaceholders(sowData.custom_out_of_scope_content || '');
     const assumptionsContent = processContentWithPlaceholders(sowData.custom_assumptions_content || 'Project assumptions and prerequisites will be documented during the project planning phase.');
     const projectPhasesContent = processContentWithPlaceholders(sowData.custom_project_phases_content || 'Project phases, activities, and artifacts will be detailed in the project plan developed during kickoff.');
-    const rolesContent = processContentWithPlaceholders(sowData.custom_roles_content || 'Roles and responsibilities will be defined during the project planning phase based on the specific requirements of this engagement.');
     const deliverablesContent = processContentWithPlaceholders(sowData.custom_deliverables_content || 'Project deliverables will be detailed during the project planning phase based on the specific requirements and scope.');
     const keyObjectivesContent = processContentWithPlaceholders(sowData.custom_key_objectives_content || '');
     const objectivesDisclosureContent = processContentWithPlaceholders(sowData.custom_objectives_disclosure_content || '');
@@ -440,6 +439,65 @@ export class PDFGenerator {
             .content-page {
               padding: 20px 40px;
               box-sizing: border-box;
+            }
+            
+            /* Image sizing for content-managed sections */
+            img {
+              max-width: 100% !important;
+              height: auto !important;
+              display: block !important;
+              margin: 16px auto !important;
+              border-radius: 8px !important;
+              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+            }
+            
+            /* Style content-managed tables */
+            .content table {
+              width: 100% !important;
+              border: 1px solid #d1d5db !important;
+              border-collapse: separate !important;
+              border-spacing: 0 !important;
+              border-radius: 8px !important;
+              overflow: hidden !important;
+              margin: 16px 0 !important;
+            }
+            
+            .content table thead {
+              background-color: #dbeafe !important;
+            }
+            
+            .content table:not(:has(thead)) tbody tr:first-child {
+              background-color: #dbeafe !important;
+            }
+            
+            .content table th,
+            .content table:not(:has(thead)) tbody tr:first-child td {
+              background-color: #dbeafe !important;
+              border: none !important;
+              padding: 12px 24px !important;
+              text-align: left !important;
+              font-weight: 700 !important;
+              color: #374151 !important;
+              text-transform: uppercase !important;
+              font-size: 12px !important;
+              letter-spacing: 0.05em !important;
+              border-bottom: 1px solid #e5e7eb !important;
+            }
+            
+            .content table tbody {
+              background-color: #ffffff !important;
+            }
+            
+            .content table td {
+              border: none !important;
+              padding: 16px 24px !important;
+              color: #374151 !important;
+              vertical-align: top !important;
+              border-bottom: 1px solid #e5e7eb !important;
+            }
+            
+            .content table tr:last-child td {
+              border-bottom: none !important;
             }
             
 
@@ -862,32 +920,50 @@ export class PDFGenerator {
           <div class="content-page">
             <h2 class="section-title">4. ROLES AND RESPONSIBILITIES</h2>
             
-            <!-- LeanData Roles -->
+            <!-- Project Team Roles -->
+            ${pricingRoles && pricingRoles.length > 0 ? `
             <div class="content">
-              <h3>LeanData Roles</h3>
-              ${rolesContent}
+              <h3>Project Team Roles</h3>
+              <table style="width: 100%; border-collapse: collapse; margin-top: 16px; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden;">
+                <thead>
+                  <tr style="background-color: #dbeafe;">
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Role</th>
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${pricingRoles.map((role: PricingRole) => `
+                    <tr>
+                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; font-weight: 600; color: #111827;">${role.role || role.name || 'N/A'}</td>
+                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151;">${role.description || 'No description provided'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
             </div>
+            ` : ''}
             
             <!-- Client Roles Table -->
             ${clientRoles && clientRoles.length > 0 ? `
             <div class="content">
               <h3>Client Roles</h3>
-              <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+              <table style="width: 100%; border-collapse: collapse; margin-top: 16px; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden;">
                 <thead>
-                  <tr style="background-color: #f3f4f6;">
-                    <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Role (Title)</th>
-                    <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Name</th>
-                    <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Email</th>
-                    <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Responsibilities</th>
+                  <tr style="background-color: #dbeafe;">
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Role (Title)</th>
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Contact</th>
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Responsibilities</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${clientRoles.map((role: { role?: string; contact_title?: string; name?: string; email?: string; responsibilities?: string }) => `
                     <tr>
-                      <td style="border: 1px solid #d1d5db; padding: 12px;">${role.role || role.contact_title || 'N/A'}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 12px;">${role.name || 'N/A'}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 12px;">${role.email || 'N/A'}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 12px;">${role.responsibilities || 'N/A'}</td>
+                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; font-weight: 600; color: #111827;">${role.role || role.contact_title || 'N/A'}</td>
+                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151;">
+                        <div style="font-weight: 500;">${role.name || 'N/A'}</div>
+                        ${role.email ? `<div style="font-size: 12px; color: #6b7280; margin-top: 2px;">${role.email}</div>` : ''}
+                      </td>
+                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151;">${role.responsibilities || 'N/A'}</td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -935,20 +1011,20 @@ export class PDFGenerator {
                 ];
                 
                 return `
-                  <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+                  <table style="width: 100%; border-collapse: collapse; margin-top: 16px; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden;">
                     <thead>
-                      <tr style="background-color: #f3f4f6;">
-                        <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Phase</th>
-                        <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Description</th>
-                        <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Duration</th>
+                      <tr style="background-color: #dbeafe;">
+                        <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Phase</th>
+                        <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Description</th>
+                        <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Duration</th>
                       </tr>
                     </thead>
                     <tbody>
                       ${phases.map((phase, index) => `
                         <tr>
-                          <td style="border: 1px solid #d1d5db; padding: 12px;">${index + 1}. ${phase.name}</td>
-                          <td style="border: 1px solid #d1d5db; padding: 12px;">${phase.description}</td>
-                          <td style="border: 1px solid #d1d5db; padding: 12px;">${formatDuration(phase.duration)}</td>
+                          <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; vertical-align: top;">${index + 1}. ${phase.name}</td>
+                          <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; vertical-align: top;">${phase.description}</td>
+                          <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; vertical-align: top;">${formatDuration(phase.duration)}</td>
                         </tr>
                       `).join('')}
                     </tbody>
@@ -979,14 +1055,14 @@ export class PDFGenerator {
             ${pricingRoles && pricingRoles.length > 0 ? `
             <div class="content">
               <h3>Pricing Roles</h3>
-              <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+              <table style="width: 100%; border-collapse: collapse; margin-top: 16px; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden;">
                 <thead>
-                  <tr style="background-color: #f3f4f6;">
-                    <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Role</th>
-                    <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">${pricingRoles.some(role => (role.defaultRate || 0) > 0 && (role.defaultRate || 0) !== (role.ratePerHour || 0)) ? 'Standard Rate/Hr' : 'Rate/Hr'}</th>
-                    ${pricingRoles.some(role => (role.defaultRate || 0) > 0 && (role.defaultRate || 0) !== (role.ratePerHour || 0)) ? '<th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Discounted Rate/Hr</th>' : ''}
-                    <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Total Hours</th>
-                    <th style="border: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: 600;">Total Cost</th>
+                  <tr style="background-color: #dbeafe;">
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Role</th>
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">${pricingRoles.some(role => (role.defaultRate || 0) > 0 && (role.defaultRate || 0) !== (role.ratePerHour || 0)) ? 'Standard Rate/Hr' : 'Rate/Hr'}</th>
+                    ${pricingRoles.some(role => (role.defaultRate || 0) > 0 && (role.defaultRate || 0) !== (role.ratePerHour || 0)) ? '<th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Discounted Rate/Hr</th>' : ''}
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Total Hours</th>
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Total Cost</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -998,25 +1074,41 @@ export class PDFGenerator {
                     
                     return `
                     <tr>
-                      <td style="border: 1px solid #d1d5db; padding: 12px; font-weight: 600;">${role.role || role.name || 'N/A'}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 12px;">
+                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; font-weight: 600; vertical-align: top;">${role.role || role.name || 'N/A'}</td>
+                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; vertical-align: top;">
                         ${hasDiscount ? 
                           `<span style="text-decoration: line-through; color: #6b7280;">$${defaultRate.toFixed(2)}</span>` : 
                           `$${currentRate.toFixed(2)}`
                         }
                       </td>
                       ${hasAnyDiscount ? `
-                      <td style="border: 1px solid #d1d5db; padding: 12px;">
+                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; vertical-align: top;">
                         ${hasDiscount ? 
                           `<span style="color: #059669; font-weight: 600;">$${currentRate.toFixed(2)}</span>` : 
                           `<span style="color: #9ca3af;">—</span>`
                         }
                       </td>` : ''}
-                      <td style="border: 1px solid #d1d5db; padding: 12px;">${role.totalHours || 0}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 12px; font-weight: 600;">$${((role.ratePerHour || 0) * (role.totalHours || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; vertical-align: top;">${role.totalHours || 0}</td>
+                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; font-weight: 600; vertical-align: top;">$${((role.ratePerHour || 0) * (role.totalHours || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                   `;
                   }).join('')}
+                  
+                  <!-- Total Hours Row -->
+                  ${pricingRoles.length > 0 ? `
+                  <tr style="background-color: #f9fafb; border-top: 2px solid #d1d5db;">
+                    <td style="border-bottom: none; padding: 16px; font-weight: 700; color: #374151; vertical-align: top;">Total Hours</td>
+                    <td style="border-bottom: none; padding: 16px; color: #374151; vertical-align: top;">—</td>
+                    ${pricingRoles.some(r => (r.defaultRate || 0) > 0 && (r.defaultRate || 0) !== (r.ratePerHour || 0)) ? `
+                    <td style="border-bottom: none; padding: 16px; color: #374151; vertical-align: top;">—</td>` : ''}
+                    <td style="border-bottom: none; padding: 16px; font-weight: 700; color: #374151; vertical-align: top;">
+                      ${pricingRoles.reduce((sum, role) => sum + (role.totalHours || 0), 0)}
+                    </td>
+                    <td style="border-bottom: none; padding: 16px; font-weight: 700; color: #374151; vertical-align: top;">
+                      $${pricingRoles.reduce((sum, role) => sum + ((role.ratePerHour || 0) * (role.totalHours || 0)), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                  ` : ''}
                 </tbody>
               </table>
               

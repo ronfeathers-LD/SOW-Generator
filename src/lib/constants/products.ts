@@ -58,6 +58,7 @@ export interface Product {
   category: string;
   is_active: boolean;
   sort_order: number;
+  requires_units?: boolean;
 }
 
 // Category-based helper functions (dynamic - uses actual product data)
@@ -71,6 +72,11 @@ export const isBookItProduct = (product: Product): boolean => {
 
 export const isOtherProduct = (product: Product): boolean => {
   return product.category === PRODUCT_CATEGORIES.OTHER;
+};
+
+// Smart validation helper - checks if a product requires units
+export const productRequiresUnits = (product: Product): boolean => {
+  return product.requires_units === true;
 };
 
 // Specific product helper functions (for business logic that's product-specific)
@@ -108,6 +114,19 @@ export const isBookItProductById = (productId: string): boolean => {
 
 export const isLeadToAccountProductById = (productId: string): boolean => {
   return productId === '4a3f2862-dbf2-4558-8b66-67701cbbee14'; // Lead to Account Matching
+};
+
+// FlowBuilder products are routing products that don't require units
+export const isFlowBuilderProductById = (productId: string): boolean => {
+  const flowBuilderIds = [
+    'b1f01145-94a9-4000-9f89-59555afedf03', // Lead FlowBuilder
+    'f59381c7-40b4-4def-b83f-053a2b6e48bd', // Contact FlowBuilder
+    'a9f4cc66-5649-4ae4-a7b5-cbfe89b2ef60', // Account FlowBuilder
+    'c980026d-08e0-49da-be39-fe37c40f47c7', // Opportunity FlowBuilder
+    '5d83b73b-363b-4983-be2d-31d53058633e', // Case FlowBuilder
+    '88415274-4cb2-409c-8c01-1c37f3a122bc', // Any Object (custom) FlowBuilder
+  ];
+  return flowBuilderIds.includes(productId);
 };
 
 export const isFormsProductById = (productId: string): boolean => {

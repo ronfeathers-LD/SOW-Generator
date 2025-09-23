@@ -206,7 +206,6 @@ export interface SOWData {
   custom_team_content?: string;
   custom_billing_content?: string;
   custom_terms_content?: string;
-  custom_roles_content?: string;
   
   // Content editing flags
   intro_content_edited?: boolean;
@@ -222,7 +221,6 @@ export interface SOWData {
   team_content_edited?: boolean;
   billing_content_edited?: boolean;
   terms_content_edited?: boolean;
-  roles_content_edited?: boolean;
 }
 
 // PM Hours Requirement Disable System Types

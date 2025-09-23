@@ -10,6 +10,8 @@ interface Account {
   billingCountry?: string;
   industry?: string;
   numberOfEmployees?: number;
+  Employee_Band__c?: string;
+  accountSegment?: string;
   Owner?: {
     Name: string;
     Email: string;

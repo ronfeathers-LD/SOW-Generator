@@ -9,6 +9,8 @@ interface PricingRoleConfig {
   role_name: string;
   default_rate: number;
   is_active: boolean;
+  description?: string;
+  sort_order?: number;
   created_at: string;
   updated_at: string;
   created_by?: string;
@@ -26,7 +28,9 @@ export default function PricingRolesAdminPage() {
   const [formData, setFormData] = useState({
     role_name: '',
     default_rate: 0,
-    is_active: true
+    is_active: true,
+    description: '',
+    sort_order: 0
   });
 
   useEffect(() => {
@@ -73,7 +77,7 @@ export default function PricingRolesAdminPage() {
       if (response.ok) {
         setIsModalOpen(false);
         setEditingRole(null);
-        setFormData({ role_name: '', default_rate: 0, is_active: true });
+        setFormData({ role_name: '', default_rate: 0, is_active: true, description: '', sort_order: 0 });
         fetchRoles();
       } else {
         const errorData = await response.text();
@@ -89,7 +93,9 @@ export default function PricingRolesAdminPage() {
     setFormData({
       role_name: role.role_name,
       default_rate: role.default_rate,
-      is_active: role.is_active
+      is_active: role.is_active,
+      description: role.description || '',
+      sort_order: role.sort_order || 0
     });
     setIsModalOpen(true);
   };
@@ -116,7 +122,7 @@ export default function PricingRolesAdminPage() {
 
   const handleAddNew = () => {
     setEditingRole(null);
-    setFormData({ role_name: '', default_rate: 0, is_active: true });
+    setFormData({ role_name: '', default_rate: 0, is_active: true, description: '', sort_order: 0 });
     setIsModalOpen(true);
   };
 
@@ -195,7 +201,9 @@ export default function PricingRolesAdminPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sort Order</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Default Rate</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
@@ -206,7 +214,15 @@ export default function PricingRolesAdminPage() {
                   {roles.map((role) => (
                     <tr key={role.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{role.sort_order || 0}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{role.role_name}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 max-w-xs truncate" title={role.description || ''}>
+                          {role.description || 'No description'}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">${role.default_rate.toFixed(2)}/hour</div>
@@ -260,6 +276,8 @@ export default function PricingRolesAdminPage() {
               <div className="mt-2 text-sm text-blue-700">
                 <ul className="list-disc pl-5 space-y-1">
                   <li><strong>Role Name:</strong> The name of the role (e.g., &quot;Onboarding Specialist&quot;, &quot;Developer&quot;)</li>
+                  <li><strong>Description:</strong> Brief description of what this role does (optional)</li>
+                  <li><strong>Sort Order:</strong> Controls the order roles appear in lists (lower numbers first)</li>
                   <li><strong>Default Rate:</strong> The default hourly rate for this role in USD</li>
                   <li><strong>Active Status:</strong> Only active roles appear in the dropdown when creating SOWs</li>
                   <li><strong>Usage:</strong> These roles are used in the SOW pricing section and can be overridden per SOW</li>
@@ -293,6 +311,36 @@ export default function PricingRolesAdminPage() {
                     placeholder="e.g., Senior Developer"
                     required
                   />
+                </div>
+                
+                <div>
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                    Description
+                  </label>
+                  <textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Brief description of what this role does..."
+                    rows={3}
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="sort_order" className="block text-sm font-medium text-gray-700">
+                    Sort Order
+                  </label>
+                  <input
+                    type="number"
+                    id="sort_order"
+                    value={formData.sort_order}
+                    onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) || 0 })}
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="0"
+                    min="0"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Lower numbers appear first in lists</p>
                 </div>
                 
                 <div>

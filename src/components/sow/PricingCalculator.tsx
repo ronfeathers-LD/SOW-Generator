@@ -73,6 +73,36 @@ export default function PricingCalculator({
                       const productObj = products.find(p => p.id === product || p.name === product);
                       return productObj ? !isLinksProductById(productObj.id) : true;
                     }) // Exclude BookIt Links from pricing calculation
+                    .sort((productA: string, productB: string) => {
+                      // Sort by category first, then by sort_order within category
+                      const productObjA = products.find(p => p.id === productA || p.name === productA);
+                      const productObjB = products.find(p => p.id === productB || p.name === productB);
+                      
+                      if (!productObjA || !productObjB) return 0;
+                      
+                      // Define category order (FlowBuilder first, then BookIt, then Other)
+                      const getCategoryOrder = (category: string): number => {
+                        switch (category) {
+                          case 'FlowBuilder': return 1;
+                          case 'BookIt': return 2;
+                          case 'Other': return 3;
+                          default: return 4;
+                        }
+                      };
+                      
+                      const categoryOrderA = getCategoryOrder(productObjA.category);
+                      const categoryOrderB = getCategoryOrder(productObjB.category);
+                      
+                      // If categories are different, sort by category
+                      if (categoryOrderA !== categoryOrderB) {
+                        return categoryOrderA - categoryOrderB;
+                      }
+                      
+                      // If same category, sort by sort_order
+                      const sortOrderA = productObjA.sort_order || 999;
+                      const sortOrderB = productObjB.sort_order || 999;
+                      return sortOrderA - sortOrderB;
+                    })
                     .map((product: string, index: number) => {
                     let unitValue = '';
                     let isNoCost = false;

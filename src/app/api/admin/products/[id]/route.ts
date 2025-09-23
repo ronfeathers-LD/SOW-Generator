@@ -21,7 +21,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, description, is_active, sort_order } = body;
+    const { name, description, is_active, sort_order, category, requires_units } = body;
 
     if (!name) {
       return NextResponse.json(
@@ -36,7 +36,9 @@ export async function PUT(
         name,
         description: description || '',
         is_active: is_active !== undefined ? is_active : true,
-        sort_order: sort_order || 0
+        sort_order: sort_order || 0,
+        category: category || 'other',
+        requires_units: requires_units || false
       })
       .eq('id', id)
       .select()

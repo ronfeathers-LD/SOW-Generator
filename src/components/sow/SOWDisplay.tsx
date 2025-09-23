@@ -10,7 +10,6 @@ import SOWScopePage from '@/components/sow/SOWScopePage';
 import SOWOutOfScopePage from '@/components/sow/SOWOutOfScopePage';
 import SOWAssumptionsPage from '@/components/sow/SOWAssumptionsPage';
 import SOWProjectPhasesPage from '@/components/sow/SOWProjectPhasesPage';
-import SOWRolesPage from '@/components/sow/SOWRolesPage';
 import PricingDisplay from '@/components/sow/PricingDisplay';
 import SimpleApproval from '@/components/sow/SimpleApproval';
 import SOWComments from '@/components/sow/SOWComments';
@@ -482,7 +481,7 @@ export default function SOWDisplay({
           salesforce_tenants: data.template?.salesforce_tenants || data.salesforce_tenants || '',
           timeline_weeks: data.template?.timeline_weeks || data.timeline_weeks || '',
           units_consumption: data.template?.units_consumption || data.units_consumption || '',
-          orchestration_units: data.template?.number_of_units || data.orchestration_units || '',
+          orchestration_units: data.template?.orchestration_units || data.orchestration_units || data.template?.number_of_units || '',
           bookit_forms_units: data.template?.bookit_forms_units || data.bookit_forms_units || '',
           bookit_links_units: data.template?.bookit_links_units || data.bookit_links_units || '',
           bookit_handoff_units: data.template?.bookit_handoff_units || data.bookit_handoff_units || '',
@@ -720,32 +719,67 @@ export default function SOWDisplay({
           {/* Roles Section */}
           <div id="roles" className="formatSOWTable mb-12 print:mb-8 page-break-inside-avoid print:page-break-inside-avoid">
             <h2 className="text-3xl font-bold mb-6">4. ROLES AND RESPONSIBILITIES</h2>
-            <SOWRolesPage 
-              customContent={sow.custom_roles_content}
-              isEdited={sow.roles_content_edited || false}
-            />
+            
+            {/* Project Team Roles */}
+            {Array.isArray(sow.pricingRoles) && sow.pricingRoles.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Project Team Roles</h3>
+                <div className="overflow-x-auto formatSOWTable">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Role</th>
+                        <th>Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sow.pricingRoles.map((role: unknown, idx) => {
+                        const roleData = role as Record<string, unknown>;
+                        return (
+                          <tr key={idx}>
+                            <td>{String(roleData.role || 'N/A')}</td>
+                            <td>
+                              <div className="whitespace-pre-line">{String(roleData.description || 'No description provided')}</div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
             
             {/* Display Client Roles if they exist */}
             {sow.clientRoles && Array.isArray(sow.clientRoles) && sow.clientRoles.length > 0 && (
               <div className="mt-8">
                 <h3 className="text-lg font-semibold mb-4">Client Roles</h3>
                 <div className="overflow-x-auto formatSOWTable">
-                  <table className="min-w-full">
+                  <table>
                     <thead>
                       <tr>
-                        <th className="px-6 py-3 text-left">Role</th>
-                        <th className="px-6 py-3 text-left">Name</th>
-                        <th className="px-6 py-3 text-left">Email</th>
-                        <th className="px-6 py-3 text-left">Responsibilities</th>
+                        <th>Role (Title)</th>
+                        <th>Contact</th>
+                        <th>Responsibilities</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody>
                       {sow.clientRoles.map((role: { role?: string; contact_title?: string; name?: string; email?: string; responsibilities?: string }, idx: number) => (
-                        <tr key={idx} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{role.role || role.contact_title || 'N/A'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{role.name || 'N/A'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{role.email || 'N/A'}</td>
-                          <td className="px-6 py-4 text-sm text-gray-900">{role.responsibilities || 'N/A'}</td>
+                        <tr key={idx}>
+                          <td>{role.role || role.contact_title || 'N/A'}</td>
+                          <td>
+                            <div>
+                              <div className="font-medium">{role.name || 'N/A'}</div>
+                              {role.email && (
+                                <div className="text-sm text-gray-500">{role.email}</div>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="whitespace-pre-wrap max-w-md">
+                              {role.responsibilities || ''}
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -764,60 +798,53 @@ export default function SOWDisplay({
               {sow.timeline_weeks && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Project Timeline</h3>
-                  <div className="bg-white shadow rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 px-6 py-4 border-b border-gray-200" style={{ backgroundColor: '#F9FAFB' }}>
-                      <div className="grid grid-cols-3 gap-4 text-sm font-medium text-gray-700">
-                        <div>Phase</div>
-                        <div>Description</div>
-                        <div className="text-right">Duration</div>
-                      </div>
-                    </div>
-                    
-                    <div className="divide-y divide-gray-200">
-                      {(() => {
-                        const totalWeeks = parseFloat(sow.timeline_weeks) || 0;
-                        
-                        const formatDuration = (weeks: number) => {
-                          if (weeks < 1) {
-                            const days = Math.ceil(weeks * 7);
-                            return `${days} ${days === 1 ? 'day' : 'days'}`;
-                          } else {
-                            const roundedWeeks = Math.round(weeks * 10) / 10;
-                            return `${roundedWeeks} ${roundedWeeks === 1 ? 'week' : 'weeks'}`;
-                          }
-                        };
-                        
-                        const phaseDurations = {
-                          engage: 0.125, discovery: 0.25, build: 0.25, 
-                          test: 0.125, deploy: 0.125, hypercare: 0.125
-                        };
-                        
-                        const phases = [
-                          { name: 'ENGAGE', description: 'Project kickoff and planning', duration: totalWeeks * phaseDurations.engage },
-                          { name: 'DISCOVERY', description: 'Requirements gathering and analysis', duration: totalWeeks * phaseDurations.discovery },
-                          { name: 'BUILD', description: 'Solution development and configuration', duration: totalWeeks * phaseDurations.build },
-                          { name: 'TEST', description: 'Quality assurance and validation', duration: totalWeeks * phaseDurations.test },
-                          { name: 'DEPLOY', description: 'Production deployment and go-live', duration: totalWeeks * phaseDurations.deploy },
-                          { name: 'HYPERCARE', description: 'Post-deployment support and transition', duration: totalWeeks * phaseDurations.hypercare }
-                        ];
-                        
-                        return phases.map((phase, index) => (
-                          <div key={phase.name} className="px-6 py-4">
-                            <div className="grid grid-cols-3 gap-4 items-center">
-                              <div className="font-medium text-gray-900">
-                                {index + 1}. {phase.name}
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                {phase.description}
-                              </div>
-                              <div className="text-right font-medium text-gray-900">
-                                {formatDuration(phase.duration)}
-                              </div>
-                            </div>
-                          </div>
-                        ));
-                      })()}
-                    </div>
+                  <div className="formatSOWTable">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Phase</th>
+                          <th>Description</th>
+                          <th>Duration</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const totalWeeks = parseFloat(sow.timeline_weeks) || 0;
+                          
+                          const formatDuration = (weeks: number) => {
+                            if (weeks < 1) {
+                              const days = Math.ceil(weeks * 7);
+                              return `${days} ${days === 1 ? 'day' : 'days'}`;
+                            } else {
+                              const roundedWeeks = Math.round(weeks * 10) / 10;
+                              return `${roundedWeeks} ${roundedWeeks === 1 ? 'week' : 'weeks'}`;
+                            }
+                          };
+                          
+                          const phaseDurations = {
+                            engage: 0.125, discovery: 0.25, build: 0.25, 
+                            test: 0.125, deploy: 0.125, hypercare: 0.125
+                          };
+                          
+                          const phases = [
+                            { name: 'ENGAGE', description: 'Project kickoff and planning', duration: totalWeeks * phaseDurations.engage },
+                            { name: 'DISCOVERY', description: 'Requirements gathering and analysis', duration: totalWeeks * phaseDurations.discovery },
+                            { name: 'BUILD', description: 'Solution development and configuration', duration: totalWeeks * phaseDurations.build },
+                            { name: 'TEST', description: 'Quality assurance and validation', duration: totalWeeks * phaseDurations.test },
+                            { name: 'DEPLOY', description: 'Production deployment and go-live', duration: totalWeeks * phaseDurations.deploy },
+                            { name: 'HYPERCARE', description: 'Post-deployment support and transition', duration: totalWeeks * phaseDurations.hypercare }
+                          ];
+                          
+                          return phases.map((phase, index) => (
+                            <tr key={phase.name}>
+                              <td>{index + 1}. {phase.name}</td>
+                              <td>{phase.description}</td>
+                              <td>{formatDuration(phase.duration)}</td>
+                            </tr>
+                          ));
+                        })()}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
@@ -845,6 +872,7 @@ export default function SOWDisplay({
                   const roleData = role as Record<string, unknown>;
                   return {
                     role: String(roleData.role || ''),
+                    description: String(roleData.description || ''),
                     ratePerHour: Number(roleData.ratePerHour) || Number(roleData.rate_per_hour) || 0,
                     defaultRate: Number(roleData.defaultRate) || Number(roleData.default_rate) || 0,
                     totalHours: Number(roleData.totalHours) || Number(roleData.total_hours) || 0,
@@ -1123,48 +1151,70 @@ export default function SOWDisplay({
                 <div id="content-roles" className="max-w-7xl mx-auto bg-white p-8 mb-12">
                   <h2 className="text-3xl font-bold mb-6">4. ROLES AND RESPONSIBILITIES</h2>
                   
-                  {/* LeanData Roles */}
-                  <div className="mb-8">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-4">LeanData Roles</h3>
-                    <div className="formatSOWTable">
-                      <SOWRolesPage 
-                        customContent={sow.custom_roles_content}
-                        isEdited={sow.roles_content_edited}
-                      />
+                  {/* Project Team Roles */}
+                  {Array.isArray(sow.pricingRoles) && sow.pricingRoles.length > 0 && (
+                    <div className="mb-8">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4">Project Team Roles</h3>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg overflow-hidden">
+                          <thead className="bg-blue-100">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Role</th>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Description</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {sow.pricingRoles.map((role: unknown, idx) => {
+                              const roleData = role as Record<string, unknown>;
+                              return (
+                                <tr key={idx} className="hover:bg-gray-50">
+                                  <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900 align-top">{String(roleData.role || 'N/A')}</td>
+                                  <td className="px-6 py-4 text-gray-700 align-top">
+                                    <div className="whitespace-pre-line">{String(roleData.description || 'No description provided')}</div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
+                  )}
                   
                   {/* Client Roles Table */}
                   {Array.isArray(sow.clientRoles) && sow.clientRoles.length > 0 && (
                     <div>
                       <h3 className="text-xl font-semibold text-gray-900 mb-4">Client Roles</h3>
                       <div className="overflow-x-auto">
-                        <div className="formatSOWTable">
-                          <table className="min-w-full divide-y border">
-                            <thead className="bg-gray-50">
-                              <tr>
-                                <th className="uppercase tracking-wider">Role (Title)</th>
-                                <th className="uppercase tracking-wider">Name</th>
-                                <th className="uppercase tracking-wider">Email</th>
-                                <th className="uppercase tracking-wider">Responsibilities</th>
+                        <table className="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg overflow-hidden">
+                          <thead className="bg-blue-100">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Role (Title)</th>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Contact</th>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Responsibilities</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {sow.clientRoles.map((role, idx) => (
+                              <tr key={idx} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">{role.role || role.contact_title || 'N/A'}</td>
+                                <td className="px-6 py-4 text-gray-700">
+                                  <div>
+                                    <div className="font-medium">{role.name || 'N/A'}</div>
+                                    {role.email && (
+                                      <div className="text-sm text-gray-500">{role.email}</div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 text-gray-700">
+                                  <div className="whitespace-pre-wrap max-w-md">
+                                    {role.responsibilities || ''}
+                                  </div>
+                                </td>
                               </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                              {sow.clientRoles.map((role, idx) => (
-                                <tr key={idx}>
-                                  <td className="px-6 py-4 whitespace-nowrap text-gray-700">{role.role || role.contact_title || 'N/A'}</td>
-                                  <td>{role.name || 'N/A'}</td>
-                                  <td>{role.email || 'N/A'}</td>
-                                  <td>
-                                    <div className="whitespace-pre-wrap max-w-md">
-                                      {role.responsibilities || ''}
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   )}
@@ -1179,60 +1229,53 @@ export default function SOWDisplay({
                     {sow.timeline_weeks && (
                       <div className="mb-6">
                         <h3 className="text-lg font-semibold text-gray-900 mb-3">Project Timeline</h3>
-                        <div className="bg-white shadow rounded-lg overflow-hidden">
-                          <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-                            <div className="grid grid-cols-3 gap-4 text-sm font-medium text-gray-700">
-                              <div>Phase</div>
-                              <div>Description</div>
-                              <div className="text-right">Duration</div>
-                            </div>
-                          </div>
-                          
-                          <div className="divide-y divide-gray-200">
-                            {(() => {
-                              const totalWeeks = parseFloat(sow.timeline_weeks) || 0;
-                              
-                              const formatDuration = (weeks: number) => {
-                                if (weeks < 1) {
-                                  const days = Math.ceil(weeks * 7);
-                                  return `${days} ${days === 1 ? 'day' : 'days'}`;
-                                } else {
-                                  const roundedWeeks = Math.round(weeks * 10) / 10;
-                                  return `${roundedWeeks} ${roundedWeeks === 1 ? 'week' : 'weeks'}`;
-                                }
-                              };
-                              
-                              const phaseDurations = {
-                                engage: 0.125, discovery: 0.25, build: 0.25, 
-                                test: 0.125, deploy: 0.125, hypercare: 0.125
-                              };
-                              
-                              const phases = [
-                                { name: 'ENGAGE', description: 'Project kickoff and planning', duration: totalWeeks * phaseDurations.engage },
-                                { name: 'DISCOVERY', description: 'Requirements gathering and analysis', duration: totalWeeks * phaseDurations.discovery },
-                                { name: 'BUILD', description: 'Solution development and configuration', duration: totalWeeks * phaseDurations.build },
-                                { name: 'TEST', description: 'Quality assurance and validation', duration: totalWeeks * phaseDurations.test },
-                                { name: 'DEPLOY', description: 'Production deployment and go-live', duration: totalWeeks * phaseDurations.deploy },
-                                { name: 'HYPERCARE', description: 'Post-deployment support and transition', duration: totalWeeks * phaseDurations.hypercare }
-                              ];
-                              
-                              return phases.map((phase, index) => (
-                                <div key={phase.name} className="px-6 py-4">
-                                  <div className="grid grid-cols-3 gap-4 items-center">
-                                    <div className="font-medium text-gray-900">
-                                      {index + 1}. {phase.name}
-                                    </div>
-                                    <div className="text-sm text-gray-600">
-                                      {phase.description}
-                                    </div>
-                                    <div className="text-right font-medium text-gray-900">
-                                      {formatDuration(phase.duration)}
-                                    </div>
-                                  </div>
-                                </div>
-                              ));
-                            })()}
-                          </div>
+                        <div className="formatSOWTable">
+                          <table>
+                            <thead>
+                              <tr>
+                                <th>Phase</th>
+                                <th>Description</th>
+                                <th>Duration</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(() => {
+                                const totalWeeks = parseFloat(sow.timeline_weeks) || 0;
+                                
+                                const formatDuration = (weeks: number) => {
+                                  if (weeks < 1) {
+                                    const days = Math.ceil(weeks * 7);
+                                    return `${days} ${days === 1 ? 'day' : 'days'}`;
+                                  } else {
+                                    const roundedWeeks = Math.round(weeks * 10) / 10;
+                                    return `${roundedWeeks} ${roundedWeeks === 1 ? 'week' : 'weeks'}`;
+                                  }
+                                };
+                                
+                                const phaseDurations = {
+                                  engage: 0.125, discovery: 0.25, build: 0.25, 
+                                  test: 0.125, deploy: 0.125, hypercare: 0.125
+                                };
+                                
+                                const phases = [
+                                  { name: 'ENGAGE', description: 'Project kickoff and planning', duration: totalWeeks * phaseDurations.engage },
+                                  { name: 'DISCOVERY', description: 'Requirements gathering and analysis', duration: totalWeeks * phaseDurations.discovery },
+                                  { name: 'BUILD', description: 'Solution development and configuration', duration: totalWeeks * phaseDurations.build },
+                                  { name: 'TEST', description: 'Quality assurance and validation', duration: totalWeeks * phaseDurations.test },
+                                  { name: 'DEPLOY', description: 'Production deployment and go-live', duration: totalWeeks * phaseDurations.deploy },
+                                  { name: 'HYPERCARE', description: 'Post-deployment support and transition', duration: totalWeeks * phaseDurations.hypercare }
+                                ];
+                                
+                                return phases.map((phase, index) => (
+                                  <tr key={phase.name}>
+                                    <td>{index + 1}. {phase.name}</td>
+                                    <td>{phase.description}</td>
+                                    <td>{formatDuration(phase.duration)}</td>
+                                  </tr>
+                                ));
+                              })()}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     )}
@@ -1260,6 +1303,7 @@ export default function SOWDisplay({
                   const roleData = role as Record<string, unknown>;
                   return {
                     role: String(roleData.role || ''),
+                    description: String(roleData.description || ''),
                     ratePerHour: Number(roleData.ratePerHour) || Number(roleData.rate_per_hour) || 0,
                     defaultRate: Number(roleData.defaultRate) || Number(roleData.default_rate) || 0,
                     totalHours: Number(roleData.totalHours) || Number(roleData.total_hours) || 0,

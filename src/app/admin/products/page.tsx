@@ -10,6 +10,8 @@ interface Product {
   description: string;
   is_active: boolean;
   sort_order: number;
+  category: string;
+  requires_units: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -22,11 +24,14 @@ export default function ProductsAdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [categories, setCategories] = useState<Array<{id: string, name: string}>>([]);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     is_active: true,
-    sort_order: 0
+    sort_order: 0,
+    category: 'other',
+    requires_units: false
   });
 
   useEffect(() => {
@@ -35,6 +40,7 @@ export default function ProductsAdminPage() {
       return;
     }
     fetchProducts();
+    fetchCategories();
   }, [session, router]);
 
   const fetchProducts = async () => {
@@ -50,6 +56,18 @@ export default function ProductsAdminPage() {
       setError('Error fetching products');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/admin/product-categories');
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data);
+      }
+    } catch {
+      // Categories are optional, don't show error
     }
   };
 
@@ -73,7 +91,7 @@ export default function ProductsAdminPage() {
       if (response.ok) {
         setIsModalOpen(false);
         setEditingProduct(null);
-        setFormData({ name: '', description: '', is_active: true, sort_order: 0 });
+        setFormData({ name: '', description: '', is_active: true, sort_order: 0, category: 'Other', requires_units: false });
         fetchProducts();
       } else {
         setError('Failed to save product');
@@ -89,7 +107,9 @@ export default function ProductsAdminPage() {
       name: product.name,
       description: product.description,
       is_active: product.is_active,
-      sort_order: product.sort_order
+      sort_order: product.sort_order,
+      category: product.category || 'other',
+      requires_units: product.requires_units || false
     });
     setIsModalOpen(true);
   };
@@ -116,7 +136,14 @@ export default function ProductsAdminPage() {
 
   const openNewProductModal = () => {
     setEditingProduct(null);
-    setFormData({ name: '', description: '', is_active: true, sort_order: 0 });
+    setFormData({ 
+      name: '', 
+      description: '', 
+      is_active: true, 
+      sort_order: 0,
+      category: 'other',
+      requires_units: false
+    });
     setIsModalOpen(true);
   };
 
@@ -171,6 +198,12 @@ export default function ProductsAdminPage() {
                   Description
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Category
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Requires Units
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Sort Order
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -189,6 +222,18 @@ export default function ProductsAdminPage() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-700">
                     {product.description}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                    {product.category || 'other'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      product.requires_units 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {product.requires_units ? 'Yes' : 'No'}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     {product.sort_order}
@@ -256,6 +301,22 @@ export default function ProductsAdminPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
+                      Category
+                    </label>
+                    <select
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    >
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.name}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
                       Sort Order
                     </label>
                     <input
@@ -274,6 +335,17 @@ export default function ProductsAdminPage() {
                     />
                     <label className="ml-2 block text-sm text-gray-900">
                       Active
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.requires_units}
+                      onChange={(e) => setFormData({ ...formData, requires_units: e.target.checked })}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label className="ml-2 block text-sm text-gray-900">
+                      Requires Units
                     </label>
                   </div>
                   <div className="flex justify-end space-x-3">

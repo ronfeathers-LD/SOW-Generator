@@ -18,7 +18,6 @@ export default function SOWContentTemplatesPage() {
     { id: 'scope', name: 'Scope', description: 'Project scope and deliverables' },
     { id: 'out-of-scope', name: 'Out of Scope', description: 'What is not included in the project' },
     { id: 'project-phases', name: 'Project Phases', description: 'Detailed project phases and activities' },
-    { id: 'roles', name: 'Roles and Responsibilities', description: 'Team roles and responsibilities' },
     { id: 'assumptions', name: 'Assumptions', description: 'Project assumptions and constraints' }
   ], []);
 

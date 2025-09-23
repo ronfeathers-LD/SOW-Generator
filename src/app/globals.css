@@ -118,25 +118,98 @@ p {
   pointer-events: none;
 } 
 
-.formatSOWTable table{
-  border:1px solid #000;
-  border-collapse: collapse;
+/* Project Phases Table Styling - Higher Specificity */
+.formatSOWTable table,
+#sow-content-project-phases table,
+.formatSOWTable #sow-content-project-phases table,
+.formatSOWTable .sow-content table {
+  min-width: 100% !important;
+  border: 1px solid #d1d5db !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  width: 100% !important;
 }
 
-.formatSOWTable table td{
-  border:1px solid #000;
-  padding: 10px;
+.formatSOWTable table thead,
+#sow-content-project-phases table thead,
+.formatSOWTable #sow-content-project-phases table thead,
+.formatSOWTable .sow-content table thead {
+  background-color: #dbeafe !important;
 }
 
-.formatSOWTable table th{
-  background-color: #6fa8dc ;
-  border:1px solid #000;
-  font-weight: bold;
-  padding: 10px;
+/* Handle tables without thead - style first row in tbody as header */
+.formatSOWTable table:not(:has(thead)) tbody tr:first-child,
+#sow-content-project-phases table:not(:has(thead)) tbody tr:first-child,
+.formatSOWTable #sow-content-project-phases table:not(:has(thead)) tbody tr:first-child,
+.formatSOWTable .sow-content table:not(:has(thead)) tbody tr:first-child {
+  background-color: #dbeafe !important;
 }
 
-.formatSOWTable table td{
-  padding: 10px;
+.formatSOWTable table th,
+#sow-content-project-phases table th,
+.formatSOWTable #sow-content-project-phases table th,
+.formatSOWTable .sow-content table th {
+  background-color: #dbeafe !important;
+  border: none !important;
+  padding: 12px 24px !important;
+  text-align: left !important;
+  font-weight: 700 !important;
+  color: #374151 !important;
+  text-transform: uppercase !important;
+  font-size: 12px !important;
+  letter-spacing: 0.05em !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+/* Style first row cells in tbody as headers (only for tables without thead) */
+.formatSOWTable table:not(:has(thead)) tbody tr:first-child td,
+#sow-content-project-phases table:not(:has(thead)) tbody tr:first-child td,
+.formatSOWTable #sow-content-project-phases table:not(:has(thead)) tbody tr:first-child td,
+.formatSOWTable .sow-content table:not(:has(thead)) tbody tr:first-child td {
+  background-color: #dbeafe !important;
+  border: none !important;
+  padding: 12px 24px !important;
+  text-align: left !important;
+  font-weight: 700 !important;
+  color: #374151 !important;
+  text-transform: uppercase !important;
+  font-size: 12px !important;
+  letter-spacing: 0.05em !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.formatSOWTable table tbody,
+#sow-content-project-phases table tbody,
+.formatSOWTable #sow-content-project-phases table tbody,
+.formatSOWTable .sow-content table tbody {
+  background-color: #ffffff !important;
+}
+
+.formatSOWTable table td,
+#sow-content-project-phases table td,
+.formatSOWTable #sow-content-project-phases table td,
+.formatSOWTable .sow-content table td {
+  border: none !important;
+  padding: 16px 24px !important;
+  color: #374151 !important;
+  vertical-align: top !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.formatSOWTable table tr:hover,
+#sow-content-project-phases table tr:hover,
+.formatSOWTable #sow-content-project-phases table tr:hover,
+.formatSOWTable .sow-content table tr:hover {
+  background-color: #f9fafb !important;
+}
+
+.formatSOWTable table tr:last-child td,
+#sow-content-project-phases table tr:last-child td,
+.formatSOWTable #sow-content-project-phases table tr:last-child td,
+.formatSOWTable .sow-content table tr:last-child td {
+  border-bottom: none !important;
 }
 
 /* Breadcrumb Navigation - Remove List Markers */
@@ -157,6 +230,18 @@ nav[aria-label="Breadcrumb"] li {
 nav[aria-label="Breadcrumb"] ol li::before,
 nav[aria-label="Breadcrumb"] ol li::after {
   content: none !important;
+}
+
+/* Content-managed section image sizing */
+.sow-content img,
+#sow-content-project-phases img,
+.formatSOWTable img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block !important;
+  margin: 16px auto !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
 }
 
 /* TipTap Table Resize Handles - Global Styles */
@@ -569,5 +654,17 @@ body[style*="--print-sow-active: true"] .min-h-screen.bg-gray-50 {
 @media print {
   .min-h-screen.bg-gray-50 {
     background-color: white !important;
+  }
+  
+  /* Preserve blue headers in print mode */
+  .formatSOWTable table thead,
+  .formatSOWTable table:not(:has(thead)) tbody tr:first-child,
+  .formatSOWTable table thead th,
+  .formatSOWTable table:not(:has(thead)) tbody tr:first-child td {
+    background-color: #dbeafe !important;
+    color: #374151 !important;
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }

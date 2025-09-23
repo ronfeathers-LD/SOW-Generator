@@ -937,6 +937,12 @@ export class PMHoursRemovalService {
     requester: { name: string; email: string }
   ): Promise<void> {
     try {
+      // Skip notifications for Hula Truck
+      if (sow.client_name.toLowerCase() === 'hula truck') {
+        console.log('🚫 Skipping PM hours removal notification for Hula Truck SOW');
+        return;
+      }
+
       const slackService = await getSlackService();
       if (!slackService) {
         console.log('Slack service not configured - skipping Slack notification');

@@ -12,6 +12,8 @@ interface Account {
   billingCountry?: string;
   industry?: string;
   numberOfEmployees?: number;
+  Employee_Band__c?: string;
+  accountSegment?: string;
   Owner?: {
     Name: string;
     Email: string;
@@ -87,6 +89,8 @@ export default function NewSOWPage() {
             billingCountry: selectedAccount.billingCountry,
             industry: selectedAccount.industry,
             numberOfEmployees: selectedAccount.numberOfEmployees,
+            Employee_Band__c: selectedAccount.Employee_Band__c,
+            accountSegment: selectedAccount.accountSegment,
             Owner: selectedAccount.Owner,
           },
         }),

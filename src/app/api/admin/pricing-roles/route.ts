@@ -27,6 +27,7 @@ export async function GET() {
     const { data: roles, error } = await supabase
       .from('pricing_roles_config')
       .select('*')
+      .order('sort_order', { ascending: true })
       .order('role_name', { ascending: true });
 
     if (error) {
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { role_name, default_rate, is_active = true } = body;
+    const { role_name, default_rate, is_active = true, description = '', sort_order = 0 } = body;
 
     // Validate required fields
     if (!role_name || default_rate === undefined || default_rate === null) {
@@ -66,7 +67,9 @@ export async function POST(request: Request) {
     const insertData: Record<string, unknown> = {
       role_name: role_name.trim(),
       default_rate,
-      is_active
+      is_active,
+      description: description.trim(),
+      sort_order: typeof sort_order === 'number' ? sort_order : 0
     };
 
     // Only add audit fields if the columns exist (after migration)

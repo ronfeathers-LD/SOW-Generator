@@ -32,6 +32,11 @@ export class SlackMentionService {
     clientName: string,
     commentAuthor: string
   ): Promise<boolean> {
+    // Skip notifications for Hula Truck
+    if (clientName.toLowerCase() === 'hula truck') {
+      console.log('🚫 Skipping mention notifications for Hula Truck SOW');
+      return true;
+    }
     try {
       // Check if comment has mentions
       const mentionedUsers = parseCommentMentions(commentText);

@@ -17,6 +17,7 @@ interface Product {
 interface PricingRole {
   id: string;
   role: string;
+  description?: string;
   ratePerHour: number;
   defaultRate: number;
   totalHours: number;
@@ -56,7 +57,7 @@ interface PricingRolesAndDiscountProps {
   isAutoCalculating: boolean;
   onHoursCalculated?: () => void;
   selectedAccount?: { Employee_Band__c?: string } | null;
-  pricingRolesConfig?: Array<{ role_name: string; default_rate: number; is_active: boolean }>;
+  pricingRolesConfig?: Array<{ role_name: string; default_rate: number; is_active: boolean; description?: string; sort_order?: number }>;
 }
 
 const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.memo(({
@@ -371,6 +372,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     const newRole: PricingRole = {
       id: Math.random().toString(36).substr(2, 9),
       role: '',
+      description: '',
       ratePerHour: defaultRate,
       defaultRate: defaultRate,
       totalHours: 0,
@@ -654,28 +656,29 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
         <div className="mb-6">
           <h4 className="font-medium text-gray-900 mb-4">Role Costs:</h4>
           
-          <div>
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="formatSOWTable">
+            <table>
+              <thead>
                 <tr>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">ROLE</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">DEFAULT RATE ($)</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">DISCOUNTED RATE ($)</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">TOTAL HOURS</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">TOTAL COST ($)</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">ACTIONS</th>
+                  <th>ROLE</th>
+                  <th>DEFAULT RATE ($)</th>
+                  <th>DISCOUNTED RATE ($)</th>
+                  <th>TOTAL HOURS</th>
+                  <th>TOTAL COST ($)</th>
+                  <th>ACTIONS</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody>
                 {pricingRoles.map(role => {
                   const isPMRemoved = role.role === 'Project Manager' && approvedPMHoursRequest;
                   const isPMPending = role.role === 'Project Manager' && pendingPMHoursRequest;
                   return (
-                    <tr key={role.id} className={
-                      isPMRemoved ? 'bg-gray-50' : 
-                      isPMPending ? 'bg-blue-50 border-l-4 border-blue-400' : ''
-                    }>
-                      <td className="px-3 py-4 whitespace-nowrap w-64">
+                    <React.Fragment key={role.id}>
+                      <tr className={
+                        isPMRemoved ? 'bg-gray-50' : 
+                        isPMPending ? 'bg-blue-50 border-l-4 border-blue-400' : ''
+                      }>
+                        <td>
                         <div className="flex items-center space-x-2">
                           <div className="relative w-full role-dropdown-container">
                             <div className="relative">
@@ -686,11 +689,15 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                                   const newRoleName = e.target.value;
                                   updateRole(role.id, 'role', newRoleName);
                                   
-                                  // Auto-update default rate when role name changes
-                                  const defaultRate = getDefaultRateForRole(newRoleName, _pricingRolesConfig);
-                                  if (defaultRate !== role.defaultRate) {
-                                    updateRole(role.id, 'defaultRate', defaultRate);
-                                    updateRole(role.id, 'ratePerHour', defaultRate);
+                                  // Auto-update default rate and description when role name changes
+                                  const matchingConfig = _pricingRolesConfig.find(config => config.role_name === newRoleName);
+                                  if (matchingConfig) {
+                                    updateRole(role.id, 'description', matchingConfig.description || '');
+                                    const defaultRate = getDefaultRateForRole(newRoleName, _pricingRolesConfig);
+                                    if (defaultRate !== role.defaultRate) {
+                                      updateRole(role.id, 'defaultRate', defaultRate);
+                                      updateRole(role.id, 'ratePerHour', defaultRate);
+                                    }
                                   }
                                 }}
                                 onFocus={() => setOpenDropdowns(prev => new Set(prev).add(role.id))}
@@ -729,12 +736,22 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                                       key={config.role_name}
                                       type="button"
                                       onClick={() => {
-                                        updateRole(role.id, 'role', config.role_name);
-                                        const defaultRate = getDefaultRateForRole(config.role_name, _pricingRolesConfig);
-                                        if (defaultRate !== role.defaultRate) {
-                                          updateRole(role.id, 'defaultRate', defaultRate);
-                                          updateRole(role.id, 'ratePerHour', defaultRate);
-                                        }
+                                        // Batch all updates into a single state update to avoid race conditions
+                                        const updatedRoles = pricingRoles.map((r: PricingRole) => {
+                                          if (r.id === role.id) {
+                                            const defaultRate = getDefaultRateForRole(config.role_name, _pricingRolesConfig);
+                                            return {
+                                              ...r,
+                                              role: config.role_name,
+                                              description: config.description || '',
+                                              defaultRate: defaultRate,
+                                              ratePerHour: defaultRate
+                                            };
+                                          }
+                                          return r;
+                                        });
+                                        setPricingRoles(updatedRoles);
+                                        
                                         setOpenDropdowns(prev => {
                                           const newSet = new Set(prev);
                                           newSet.delete(role.id);
@@ -745,7 +762,10 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                                       disabled={!!isPMRemoved || !!isPMPending}
                                       style={{ display: 'block', minHeight: '40px' }}
                                     >
-                                      {config.role_name}
+                                      <div className="font-medium">{config.role_name}</div>
+                                      {config.description && (
+                                        <div className="text-xs text-gray-500 mt-1">{config.description}</div>
+                                      )}
                                     </button>
                                   );
                                 })}
@@ -762,10 +782,10 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                           )}
                         </div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 w-32">
+                      <td className="text-sm text-gray-500">
                         ${role.defaultRate}
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap w-32">
+                      <td>
                         <div className="flex items-center space-x-2">
                           <input
                             type="number"
@@ -789,7 +809,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                           )}
                         </div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap w-24">
+                      <td>
                         <input
                           type="number"
                           value={role.totalHours}
@@ -800,10 +820,10 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                           disabled={!!isPMRemoved || !!isPMPending}
                         />
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 w-32">
+                      <td className="text-sm text-gray-900">
                         ${role.totalCost.toLocaleString()}
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm font-medium w-20">
+                      <td className="text-sm font-medium">
                         {isPMRemoved ? (
                           <span className="text-gray-400 text-xs">Removed by approval</span>
                         ) : isPMPending ? (
@@ -825,6 +845,24 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                         )}
                       </td>
                     </tr>
+                    <tr className={isPMRemoved ? 'bg-gray-50' : isPMPending ? 'bg-blue-50' : ''}>
+                      <td className="text-sm font-medium text-gray-700">
+                        Role Description:
+                      </td>
+                      <td colSpan={5}>
+                        <textarea
+                          value={role.description || ''}
+                          onChange={(e) => updateRole(role.id, 'description', e.target.value)}
+                          className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 resize-none ${
+                            isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
+                          }`}
+                          disabled={!!isPMRemoved || !!isPMPending}
+                          placeholder="Role description..."
+                          rows={2}
+                        />
+                      </td>
+                    </tr>
+                    </React.Fragment>
                   );
                 })}
               </tbody>
@@ -892,7 +930,38 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <h4 className="font-medium text-gray-900 mb-3">Selected Products & Units:</h4>
                   <div className="space-y-2">
-                    {formData.template?.products?.map((product: string) => {
+                    {formData.template?.products
+                      ?.sort((productA: string, productB: string) => {
+                        // Sort by category first, then by sort_order within category
+                        const productObjA = products.find(p => p.id === productA || p.name === productA);
+                        const productObjB = products.find(p => p.id === productB || p.name === productB);
+                        
+                        if (!productObjA || !productObjB) return 0;
+                        
+                        // Define category order (FlowBuilder first, then BookIt, then Other)
+                        const getCategoryOrder = (category: string): number => {
+                          switch (category) {
+                            case 'FlowBuilder': return 1;
+                            case 'BookIt': return 2;
+                            case 'Other': return 3;
+                            default: return 4;
+                          }
+                        };
+                        
+                        const categoryOrderA = getCategoryOrder(productObjA.category);
+                        const categoryOrderB = getCategoryOrder(productObjB.category);
+                        
+                        // If categories are different, sort by category
+                        if (categoryOrderA !== categoryOrderB) {
+                          return categoryOrderA - categoryOrderB;
+                        }
+                        
+                        // If same category, sort by sort_order
+                        const sortOrderA = productObjA.sort_order || 999;
+                        const sortOrderB = productObjB.sort_order || 999;
+                        return sortOrderA - sortOrderB;
+                      })
+                      ?.map((product: string) => {
                       const productUnits = getProductUnits(product);
                       const individualProductHours = calculateProductHoursForProduct(product, formData.template?.products || []);
                       

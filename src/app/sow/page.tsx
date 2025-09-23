@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { getStatusColor } from '@/lib/utils/statusUtils';
@@ -19,12 +19,63 @@ interface SOW {
 function SOWListContent() {
   const [sows, setSows] = useState<SOW[]>([]);
   const [filteredSows, setFilteredSows] = useState<SOW[]>([]);
-    const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof SOW;
+    direction: 'asc' | 'desc';
+  } | null>(null);
  
   const searchParams = useSearchParams();
   const statusFilter = searchParams.get('status');
+
+  // Sorting function
+  const handleSort = (key: keyof SOW) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Sort SOWs based on current sort configuration
+  const sortSOWs = useCallback((sowsToSort: SOW[]) => {
+    if (!sortConfig) return sowsToSort;
+
+    return [...sowsToSort].sort((a, b) => {
+      const aValue: string | number | Date = a[sortConfig.key] as string | number | Date;
+      const bValue: string | number | Date = b[sortConfig.key] as string | number | Date;
+
+      // Handle null/undefined values
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return sortConfig.direction === 'asc' ? 1 : -1;
+      if (bValue == null) return sortConfig.direction === 'asc' ? -1 : 1;
+
+      // Handle dates
+      if (aValue instanceof Date && bValue instanceof Date) {
+        return sortConfig.direction === 'asc' 
+          ? aValue.getTime() - bValue.getTime()
+          : bValue.getTime() - aValue.getTime();
+      }
+
+      // Handle strings
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortConfig.direction === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      // Handle numbers
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortConfig.direction === 'asc' 
+          ? aValue - bValue
+          : bValue - aValue;
+      }
+
+      return 0;
+    });
+  }, [sortConfig]);
 
   useEffect(() => {
     const fetchSOWs = async () => {
@@ -50,7 +101,7 @@ function SOWListContent() {
     fetchSOWs();
   }, []);
 
-  // Filter and sort SOWs based on status filter
+  // Filter and sort SOWs based on status filter and sort config
   useEffect(() => {
     let filtered = sows;
     
@@ -58,15 +109,11 @@ function SOWListContent() {
       filtered = sows.filter(sow => sow.status === statusFilter);
     }
     
-    // Sort by client name in ascending order
-    filtered = filtered.sort((a, b) => {
-      const clientNameA = a.client_name || '';
-      const clientNameB = b.client_name || '';
-      return clientNameA.localeCompare(clientNameB);
-    });
+    // Apply sorting
+    filtered = sortSOWs(filtered);
     
     setFilteredSows(filtered);
-  }, [sows, statusFilter]);
+  }, [sows, statusFilter, sortConfig, sortSOWs]);
 
   const handleHide = async (id: string, sowTitle: string, status: string) => {
     // Enhanced confirmation dialog
@@ -228,24 +275,99 @@ function SOWListContent() {
         </div>
 
         <div className="mt-8 overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+          {/* Sort Status Indicator */}
+          {sortConfig && (
+            <div className="bg-blue-50 border-b border-blue-200 px-6 py-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-blue-800">
+                  Sorted by: <span className="font-medium">{sortConfig.key.replace('_', ' ')}</span> ({sortConfig.direction === 'asc' ? 'A-Z' : 'Z-A'})
+                </span>
+                <button
+                  onClick={() => setSortConfig(null)}
+                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span>Clear Sort</span>
+                </button>
+              </div>
+            </div>
+          )}
+          
           <div className="overflow-x-auto">
             <table className="w-full table-fixed divide-y divide-gray-300">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th scope="col" className="w-1/6 py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900">
-                        Client Name
+                      <th 
+                        scope="col" 
+                        className="w-1/6 py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort('client_name')}
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Client Name</span>
+                          {sortConfig?.key === 'client_name' && (
+                            <span className="text-blue-600">
+                              {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                            </span>
+                          )}
+                        </div>
                       </th>
-                      <th scope="col" className="w-2/6 px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Project Name
+                      <th 
+                        scope="col" 
+                        className="w-2/6 px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort('sow_title')}
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Project Name</span>
+                          {sortConfig?.key === 'sow_title' && (
+                            <span className="text-blue-600">
+                              {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                            </span>
+                          )}
+                        </div>
                       </th>
-                      <th scope="col" className="w-1/12 px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Status
+                      <th 
+                        scope="col" 
+                        className="w-1/12 px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort('status')}
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Status</span>
+                          {sortConfig?.key === 'status' && (
+                            <span className="text-blue-600">
+                              {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                            </span>
+                          )}
+                        </div>
                       </th>
-                      <th scope="col" className="w-1/6 px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Created
+                      <th 
+                        scope="col" 
+                        className="w-1/6 px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort('created_at')}
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Created</span>
+                          {sortConfig?.key === 'created_at' && (
+                            <span className="text-blue-600">
+                              {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                            </span>
+                          )}
+                        </div>
                       </th>
-                      <th scope="col" className="w-1/12 px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Author
+                      <th 
+                        scope="col" 
+                        className="w-1/12 px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort('author')}
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Author</span>
+                          {sortConfig?.key === 'author' && (
+                            <span className="text-blue-600">
+                              {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                            </span>
+                          )}
+                        </div>
                       </th>
                       <th scope="col" className="w-1/6 relative py-3.5 pl-3 pr-4">
                         <span className="sr-only">Actions</span>
