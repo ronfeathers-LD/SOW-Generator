@@ -47,6 +47,7 @@ export const PRODUCT_IDS_BY_CATEGORY = {
   ],
   other: [
     'c417d9e5-4792-40c2-b461-b8fec985948a', // NotifyPlus
+    '511f28fa-6cc4-41f9-9234-dc45056aa2d2', // MultiGraph
   ]
 } as const;
 
@@ -145,4 +146,13 @@ export const isLinksProductById = (productId: string): boolean => {
 export const isNoCostProductById = (productId: string): boolean => {
   return productId === 'dbe57330-23a9-42bc-bef2-5bbfbcef4e09' || // BookIt Links
          productId === '6698b269-10b0-485b-be59-ad9c3cc33368'; // BookIt Handoff (without Smartrep)
+};
+
+// MultiGraph product identification
+export const isMultiGraphProduct = (product: Product): boolean => {
+  return product.id === '511f28fa-6cc4-41f9-9234-dc45056aa2d2';
+};
+
+export const isMultiGraphProductById = (productId: string): boolean => {
+  return productId === '511f28fa-6cc4-41f9-9234-dc45056aa2d2';
 };

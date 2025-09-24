@@ -855,7 +855,21 @@ export class PDFGenerator {
                   </ul>
                 </li>
                 ` : ''}
-                <li>Regions/Business Units: ${sowData.regions || 'N/A'}</li>
+                ${(() => {
+                  const hasMultiGraph = sortedProducts.some(product => 
+                    product === 'MultiGraph' || 
+                    product.toLowerCase() === 'multigraph'
+                  );
+                  
+                  if (hasMultiGraph) {
+                    if (sowData.regions && sowData.regions.trim() !== '') {
+                      return `<li>Number of Regions: ${sowData.regions}</li>`;
+                    } else {
+                      return `<li style="color: #dc2626; font-weight: bold;">⚠️ ERROR: Number of Regions is required for MultiGraph but is missing</li>`;
+                    }
+                  }
+                  return '';
+                })()}
                 <li>Salesforce Tenants: ${sowData.salesforce_tenants || 'N/A'}</li>
                 <li>Timeline: ${sowData.timeline_weeks ? `${sowData.timeline_weeks} weeks` : 'N/A'}</li>
                 <li>Start and End date: The start date of this SOW is one week after subscription start date and ends based on the number of weeks</li>

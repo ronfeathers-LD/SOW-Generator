@@ -27,9 +27,19 @@ export function validateSOWForApproval(sowData: { [key: string]: unknown }): SOW
 
 
   // Overview Tab validation
-  const regionsNum = parseInt(String(sowData.regions || ''));
-  if (!sowData.regions || isNaN(regionsNum) || regionsNum <= 0 || regionsNum >= 99) {
-    errors.push('Regions must be greater than 0 and less than 99');
+  // Check if MultiGraph is selected to determine if regions validation is required
+  const selectedProducts = sowData.products as string[] || [];
+  const hasMultiGraph = selectedProducts.some(productId => 
+    productId === '511f28fa-6cc4-41f9-9234-dc45056aa2d2' || 
+    productId.toLowerCase() === 'multigraph'
+  );
+  
+  if (hasMultiGraph) {
+    // Regions validation is required for MultiGraph
+    const regionsNum = parseInt(String(sowData.regions || ''));
+    if (!sowData.regions || isNaN(regionsNum) || regionsNum <= 0 || regionsNum >= 99) {
+      errors.push('Number of regions is required for MultiGraph and must be greater than 0 and less than 99');
+    }
   }
   const tenantsNum = parseInt(String(sowData.salesforce_tenants || ''));
   if (!sowData.salesforce_tenants || isNaN(tenantsNum) || tenantsNum <= 0 || tenantsNum >= 99) {

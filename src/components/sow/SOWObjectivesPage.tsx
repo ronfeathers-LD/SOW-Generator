@@ -158,9 +158,30 @@ export default function SOWObjectivesPage({
                 </ul>
               </li>
             )}
-            <li>
-              Regions/Business Units: {projectDetails.regions || 'N/A'}
-            </li>
+            {/* Regions field - only show if MultiGraph is selected and has a value */}
+            {(() => {
+              const hasMultiGraph = projectDetails.products?.some(product => 
+                product === '511f28fa-6cc4-41f9-9234-dc45056aa2d2' || 
+                product.toLowerCase() === 'multigraph'
+              );
+              
+              if (hasMultiGraph) {
+                if (projectDetails.regions && projectDetails.regions.trim() !== '') {
+                  return (
+                    <li>
+                      Number of Regions: {projectDetails.regions}
+                    </li>
+                  );
+                } else {
+                  return (
+                    <li className="text-red-600 font-semibold">
+                      ⚠️ ERROR: Number of Regions is required for MultiGraph but is missing
+                    </li>
+                  );
+                }
+              }
+              return null;
+            })()}
             <li>
               Salesforce Tenants: {projectDetails.salesforce_tenants || 'N/A'}
             </li>

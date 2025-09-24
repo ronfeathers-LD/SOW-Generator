@@ -270,6 +270,10 @@ export default function ProjectOverviewTab({
           case 'other_products_units':
             // Other products: shared units across all other products that require units
             return productRequiresUnits(product) && isOtherProduct(product);
+          case 'regions':
+            // Regions: required if MultiGraph is selected
+            return product.id === '511f28fa-6cc4-41f9-9234-dc45056aa2d2' || 
+                   product.name.toLowerCase() === 'multigraph';
           default:
             return false;
         }
@@ -277,7 +281,7 @@ export default function ProjectOverviewTab({
     };
     
     // Check each unit field
-    const unitFields = ['orchestration_units', 'bookit_forms_units', 'bookit_links_units', 'bookit_handoff_units', 'other_products_units'];
+    const unitFields = ['orchestration_units', 'bookit_forms_units', 'bookit_links_units', 'bookit_handoff_units', 'other_products_units', 'regions'];
     
     unitFields.forEach(fieldName => {
       if (isUnitFieldRequired(fieldName)) {
@@ -321,10 +325,14 @@ export default function ProjectOverviewTab({
             } else {
               productDisplayName = 'Other products';
             }
+          } else if (fieldName === 'regions') {
+            productDisplayName = 'Number of regions';
           }
           
           if (fieldName === 'orchestration_units') {
             errors[fieldName] = `${productDisplayName} is required when FlowBuilder products are selected`;
+          } else if (fieldName === 'regions') {
+            errors[fieldName] = `${productDisplayName} is required for MultiGraph`;
           } else {
             errors[fieldName] = `${productDisplayName} Units is required when ${productDisplayName} is selected`;
           }
@@ -345,6 +353,16 @@ export default function ProjectOverviewTab({
       validateUnitFields();
     }
   }, [validateUnitFields, formData.template]);
+
+  // Check if MultiGraph is selected - moved to top level to avoid hooks order issues
+  const isMultiGraphSelected = useMemo(() => {
+    return selectedProducts.some(identifier => {
+      if (identifier === '511f28fa-6cc4-41f9-9234-dc45056aa2d2') return true;
+      if (identifier.toLowerCase() === 'multigraph') return true;
+      const product = findProductByIdOrName(products, identifier);
+      return product ? product.id === '511f28fa-6cc4-41f9-9234-dc45056aa2d2' : false;
+    });
+  }, [selectedProducts, products]);
 
   // Clear validation errors when orchestration_units has a value
   useEffect(() => {
@@ -410,27 +428,6 @@ export default function ProjectOverviewTab({
       <div className="bg-white shadow rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-4">Project Configuration</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <span className="inline-flex items-center">
-                <svg className="w-4 h-4 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Regions/Business Units
-              </span>
-            </label>
-            <input
-              type="text"
-              value={formData.template?.regions || ''}
-              onChange={(e) => setFormData({
-                ...formData,
-                template: { ...formData.template!, regions: e.target.value || '' }
-              })}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="Enter regions/business units"
-            />
-          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <span className="inline-flex items-center">
@@ -634,6 +631,39 @@ export default function ProjectOverviewTab({
                                   <p className="mt-1 text-sm text-red-600">{validationErrors.orchestration_units}</p>
                                 )}
                               </div>
+                              
+                              {/* MultiGraph Regions Field */}
+                              {isMultiGraphSelected && (
+                                <div>
+                                  <label className="block text-sm font-medium text-blue-700 mb-2">
+                                    <span className="inline-flex items-center">
+                                      <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      </svg>
+                                      Number of Regions (MultiGraph)
+                                      <span className="text-red-500 ml-1">*</span>
+                                    </span>
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={formData.template?.regions || ''}
+                                    onChange={(e) => setFormData({
+                                      ...formData,
+                                      template: { ...formData.template!, regions: e.target.value || '' }
+                                    })}
+                                    className={`block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                                      validationErrors.regions 
+                                        ? 'border-red-300' 
+                                        : 'border-gray-300'
+                                    }`}
+                                    placeholder="Enter number of regions"
+                                  />
+                                  {validationErrors.regions && (
+                                    <p className="mt-1 text-sm text-red-600">{validationErrors.regions}</p>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
@@ -783,6 +813,7 @@ export default function ProjectOverviewTab({
             </div>
           </div>
         )}
+
       </div>
 
 
