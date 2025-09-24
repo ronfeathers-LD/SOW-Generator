@@ -64,7 +64,6 @@ export async function GET() {
       user.id !== (user.profile.email?.split('@')[0] || '') // Not using email prefix as ID
     ).length;
 
-    console.log(`Returning ${slackUsers.length} total users (${usersWithSlackMappings} with Slack mappings)`);
 
     return NextResponse.json({ 
       users: slackUsers,

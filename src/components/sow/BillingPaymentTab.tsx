@@ -103,6 +103,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
           ratePerHour: role.ratePerHour,
           defaultRate: role.defaultRate,
           totalHours: role.totalHours,
+          description: role.description,
         })),
         discount_type: discountConfig.type,
         discount_amount: discountConfig.type === 'fixed' ? (discountConfig.amount || null) : null,
@@ -143,15 +144,22 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       }
       
       if (rolesArray && rolesArray.length > 0) {
-        const savedRoles = rolesArray.map((role) => ({
-          id: Math.random().toString(36).substr(2, 9), // Generate new ID for each role
-          role: role.role,
-          ratePerHour: role.ratePerHour || 0,
-          defaultRate: role.defaultRate || getDefaultRateForRole(role.role, pricingRolesConfig) || 250,
-          totalHours: role.totalHours || 0,
-          totalCost: (role.ratePerHour || 0) * (role.totalHours || 0),
-          description: role.description || '',
-        }));
+        const savedRoles = rolesArray.map((role) => {
+          // Account Executive should have null rates since it won't appear in final SOW pricing
+          const isAccountExecutive = role.role === 'Account Executive';
+          const defaultRate = isAccountExecutive ? 0 : (role.defaultRate || getDefaultRateForRole(role.role, pricingRolesConfig) || 250);
+          const ratePerHour = isAccountExecutive ? 0 : (role.ratePerHour || 0);
+          
+          return {
+            id: Math.random().toString(36).substr(2, 9), // Generate new ID for each role
+            role: role.role,
+            ratePerHour: ratePerHour,
+            defaultRate: defaultRate,
+            totalHours: role.totalHours || 0,
+            totalCost: ratePerHour * (role.totalHours || 0),
+            description: role.description || '',
+          };
+        });
         
         // Simply use the saved roles directly - no need for complex merging
         // Don't filter out Project Manager role here - let the UI components handle display logic

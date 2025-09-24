@@ -30,10 +30,18 @@ export default function PricingDisplay({
   lastCalculated,
   pmHoursRemoved = false
 }: PricingDisplayProps) {
-  // Filter out Project Manager role if PM hours are removed
-  const filteredPricingRoles = pmHoursRemoved 
-    ? pricingRoles.filter(role => role.role !== 'Project Manager')
-    : pricingRoles;
+  // Filter out Project Manager role if PM hours are removed, and always filter out Account Executive
+  const filteredPricingRoles = pricingRoles.filter(role => {
+    // Always exclude Account Executive from pricing roles table
+    if (role.role === 'Account Executive') {
+      return false;
+    }
+    // Exclude Project Manager if PM hours are removed
+    if (pmHoursRemoved && role.role === 'Project Manager') {
+      return false;
+    }
+    return true;
+  });
 
   // Check if any role has a discount (different defaultRate and ratePerHour)
   const hasAnyDiscount = filteredPricingRoles.some(role => 

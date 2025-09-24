@@ -220,7 +220,7 @@ export default function PricingRolesAdminPage() {
                         <div className="text-sm font-medium text-gray-900">{role.role_name}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-xs truncate" title={role.description || ''}>
+                        <div className="text-sm text-gray-900">
                           {role.description || 'No description'}
                         </div>
                       </td>

@@ -385,6 +385,9 @@ export class PDFGenerator {
       pricingRoles = pricingRoles.filter(role => role.role !== 'Project Manager');
     }
     
+    // Always filter out Account Executive from pricing roles table
+    pricingRoles = pricingRoles.filter(role => role.role !== 'Account Executive');
+    
 
     const billingInfo = this.parseJSONField(sowData.billing_info, {} as BillingInfo);
     

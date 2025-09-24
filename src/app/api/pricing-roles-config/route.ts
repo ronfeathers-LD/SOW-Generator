@@ -7,8 +7,22 @@ const FALLBACK_RATES = {
   'Project Manager': 250,
   'Technical Lead': 300,
   'Developer': 200,
-  'QA Engineer': 180
+  'QA Engineer': 180,
+  'Account Executive': 0
 };
+
+// Helper function to get fallback descriptions
+function getFallbackDescription(roleName: string): string {
+  const descriptions: Record<string, string> = {
+    'Onboarding Specialist': 'Manages customer onboarding process and initial setup',
+    'Project Manager': 'Oversees project execution, timeline, and team coordination',
+    'Technical Lead': 'Provides technical leadership and architectural guidance',
+    'Developer': 'Develops and implements technical solutions',
+    'QA Engineer': 'Ensures quality through testing and validation',
+    'Account Executive': 'Point of contact for account-level needs and services expansion. Liaison to facilitate meetings and project manage services/artifacts'
+  };
+  return descriptions[roleName] || '';
+}
 
 export async function GET() {
   try {
@@ -29,7 +43,7 @@ export async function GET() {
         role_name: role,
         default_rate: rate,
         is_active: true,
-        description: '',
+        description: getFallbackDescription(role),
         sort_order: index + 1
       }));
       return NextResponse.json({ roles: fallbackRoles });
@@ -45,7 +59,7 @@ export async function GET() {
       role_name: role,
       default_rate: rate,
       is_active: true,
-      description: '',
+      description: getFallbackDescription(role),
       sort_order: index + 1
     }));
     

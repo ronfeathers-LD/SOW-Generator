@@ -694,9 +694,12 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                                   if (matchingConfig) {
                                     updateRole(role.id, 'description', matchingConfig.description || '');
                                     const defaultRate = getDefaultRateForRole(newRoleName, _pricingRolesConfig);
-                                    if (defaultRate !== role.defaultRate) {
-                                      updateRole(role.id, 'defaultRate', defaultRate);
-                                      updateRole(role.id, 'ratePerHour', defaultRate);
+                                    // Account Executive should have null rates since it won't appear in final SOW pricing
+                                    const isAccountExecutive = newRoleName === 'Account Executive';
+                                    const finalRate = isAccountExecutive ? 0 : defaultRate;
+                                    if (finalRate !== role.defaultRate) {
+                                      updateRole(role.id, 'defaultRate', finalRate);
+                                      updateRole(role.id, 'ratePerHour', finalRate);
                                     }
                                   }
                                 }}
@@ -740,12 +743,14 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                                         const updatedRoles = pricingRoles.map((r: PricingRole) => {
                                           if (r.id === role.id) {
                                             const defaultRate = getDefaultRateForRole(config.role_name, _pricingRolesConfig);
+                                            // Account Executive should have null rates since it won't appear in final SOW pricing
+                                            const isAccountExecutive = config.role_name === 'Account Executive';
                                             return {
                                               ...r,
                                               role: config.role_name,
                                               description: config.description || '',
-                                              defaultRate: defaultRate,
-                                              ratePerHour: defaultRate
+                                              defaultRate: isAccountExecutive ? 0 : defaultRate,
+                                              ratePerHour: isAccountExecutive ? 0 : defaultRate
                                             };
                                           }
                                           return r;
@@ -778,6 +783,14 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                               Pending
+                            </div>
+                          )}
+                          {role.role === 'Account Executive' && (
+                            <div className="flex items-center text-orange-600 text-xs">
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Not shown in final SOW pricing
                             </div>
                           )}
                         </div>
