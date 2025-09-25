@@ -1115,13 +1115,40 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
 
               {(!formData.objectives?.avoma_recordings || formData.objectives.avoma_recordings.length === 0) && 
                !formData.objectives?.avoma_transcription && (
-                <div className="p-4 bg-gray-50 border border-gray-200 rounded-md">
-                  <div className="text-center text-gray-500">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <div className="p-6 bg-blue-50 border border-blue-200 rounded-md">
+                  <div className="text-center">
+                    <svg className="mx-auto h-12 w-12 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <p className="mt-2 text-sm">No recordings yet</p>
-                    <p className="text-xs">Add an Avoma URL above to get started</p>
+                    <h3 className="mt-4 text-lg font-medium text-blue-900">How to Add Avoma Recordings</h3>
+                    <div className="mt-4 text-left text-sm text-blue-800 space-y-3">
+                      <div className="flex items-start space-x-3">
+                        <span className="flex-shrink-0 w-6 h-6 bg-blue-200 text-blue-800 rounded-full flex items-center justify-center text-xs font-medium">1</span>
+                        <div>
+                          <p className="font-medium">Set Date Range</p>
+                          <p className="text-blue-700">Choose the date range for meetings you want to search for using the "From Date" and "To Date" fields above.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <span className="flex-shrink-0 w-6 h-6 bg-blue-200 text-blue-800 rounded-full flex items-center justify-center text-xs font-medium">2</span>
+                        <div>
+                          <p className="font-medium">Search Meetings</p>
+                          <p className="text-blue-700">Click "Search Meetings" to automatically find Avoma meetings for the selected Salesforce Account and Opportunity.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <span className="flex-shrink-0 w-6 h-6 bg-blue-200 text-blue-800 rounded-full flex items-center justify-center text-xs font-medium">3</span>
+                        <div>
+                          <p className="font-medium">Select & Add</p>
+                          <p className="text-blue-700">Check the meetings you want to include, then click "Add Selected Meetings" to automatically fetch transcriptions.</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 p-3 bg-blue-100 rounded-md">
+                      <p className="text-xs text-blue-800">
+                        <strong>Note:</strong> Make sure you've selected a Salesforce Account and Opportunity in the Customer Information tab for the search to work properly.
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
