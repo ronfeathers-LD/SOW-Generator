@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { createServiceRoleClient } from '@/lib/supabase-server';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 interface UserInfo {
   name: string;
@@ -37,7 +37,19 @@ export async function GET(
 
     const { id } = await params;
     console.log('Revision API: Fetching revisions for SOW:', id);
-    const supabase = createServiceRoleClient();
+    const supabase = await createServerSupabaseClient();
+    
+    // Verify user exists in database
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, role')
+      .eq('email', session.user.email)
+      .single();
+
+    if (!user) {
+      console.error('Revision API: User not found in database');
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
 
     // Get the SOW to find its parent_id or use the current ID
     const { data: sow, error: sowError } = await supabase
