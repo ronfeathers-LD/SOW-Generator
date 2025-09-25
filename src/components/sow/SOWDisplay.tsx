@@ -15,6 +15,8 @@ import SimpleApproval from '@/components/sow/SimpleApproval';
 import SOWComments from '@/components/sow/SOWComments';
 import SaveToGoogleDrive from '@/components/sow/SaveToGoogleDrive';
 import LoadingModal from '@/components/ui/LoadingModal';
+import CreateRevisionButton from '@/components/sow/CreateRevisionButton';
+import SOWRevisionHistory from '@/components/sow/SOWRevisionHistory';
 import { useSession } from 'next-auth/react';
 import { parseObjectives } from '@/lib/utils/parse-objectives';
 
@@ -1545,21 +1547,44 @@ export default function SOWDisplay({
                       </div>
                     )}
                     
-                    {sow.status === 'draft' && sow.rejected_at && (
-                      <div className="space-y-2">
-                        <p className="text-red-600 mb-2">
-                          This SOW was rejected and returned to draft.
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Rejected on: {new Date(sow.rejected_at).toLocaleDateString()}
-                        </p>
-                        {sow.approval_comments && (
-                          <div className="bg-red-50 border border-red-200 rounded p-3">
-                            <p className="text-sm text-red-800">
-                              <strong>Rejection Comments:</strong> {sow.approval_comments}
-                            </p>
+                    {sow.status === 'rejected' && (
+                      <div className="space-y-6">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                          <div className="flex items-center mb-2">
+                            <svg className="h-5 w-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            <h3 className="text-lg font-medium text-red-800">SOW Rejected</h3>
                           </div>
-                        )}
+                          <p className="text-red-700 mb-3">
+                            This SOW has been rejected and requires revisions before it can be resubmitted.
+                          </p>
+                          <div className="space-y-2">
+                            <p className="text-sm text-red-600">
+                              <strong>Rejected on:</strong> {new Date(sow.rejected_at).toLocaleDateString()}
+                            </p>
+                            {sow.approval_comments && (
+                              <div className="bg-red-100 border border-red-300 rounded p-3">
+                                <p className="text-sm text-red-800">
+                                  <strong>Rejection Comments:</strong> {sow.approval_comments}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Create New Revision Button */}
+                        <CreateRevisionButton
+                          sowId={sow.id}
+                          sowTitle={sow.sowTitle || 'Untitled SOW'}
+                          clientName={sow.clientName || 'Unknown Client'}
+                        />
+
+                        {/* Revision History */}
+                        <SOWRevisionHistory 
+                          sowId={sow.id} 
+                          currentVersion={sow.version || 1}
+                        />
                       </div>
                     )}
 

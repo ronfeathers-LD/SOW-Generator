@@ -382,7 +382,20 @@ function SOWListContent() {
                             {sow.client_name || 'N/A'}
                           </td>
                           <td className="px-3 py-4 text-sm text-gray-500 break-words">
-                            {sow.sow_title || 'N/A'}
+                            <div className="space-y-1">
+                              <div>{sow.sow_title || 'N/A'}</div>
+                              {(sow.version && sow.version > 1) && (
+                                <div className="text-xs text-blue-600 font-medium">
+                                  v{sow.version}
+                                  {sow.is_latest ? ' (Latest)' : ' (Previous)'}
+                                </div>
+                              )}
+                              {sow.parent_id && (
+                                <div className="text-xs text-gray-400">
+                                  Revision of original SOW
+                                </div>
+                              )}
+                            </div>
                           </td>
                           <td className="px-3 py-4 text-sm text-gray-500">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(sow.status)}`}>

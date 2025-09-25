@@ -290,9 +290,9 @@ export async function PUT(
       }
     }
 
-    // If rejecting, reset to draft status
+    // If rejecting, keep status as rejected and set rejection tracking
     if (data.status === 'rejected') {
-      updateData.status = 'draft';
+      updateData.status = 'rejected';
       // Ensure rejected_at is set if not already provided
       if (!data.rejected_at) {
         updateData.rejected_at = new Date().toISOString();
@@ -303,7 +303,7 @@ export async function PUT(
     if (data.status === 'approved') {
       updateData.approved_by = user.id;
       updateData.approved_at = new Date().toISOString();
-    } else if (data.status === 'draft' && data.rejected_at) {
+    } else if (data.status === 'rejected') {
       // This was a rejection, track who rejected it
       updateData.rejected_by = user.id;
     } else if (data.status === 'in_review') {
@@ -497,13 +497,13 @@ export async function PUT(
             const slackService = await getSlackService();
             if (slackService) {
               await slackService.sendMessage(
-                `:x: *SOW Rejected and Returned to Draft*\n\n` +
+                `:x: *SOW Rejected*\n\n` +
                 `*Client:* ${clientName}\n` +
                 `*Submitted by:* ${authorName}\n` +
                 `*Rejected by:* ${session.user.email}\n` +
                 `*Comments:* ${comments}\n\n` +
                 `:link: <${sowUrl}|View SOW>\n\n` +
-                `The SOW has been returned to draft status for updates.`
+                `The SOW author can create a new revision to address the feedback and resubmit for approval.`
               );
             }
           } catch (slackError) {
