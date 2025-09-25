@@ -461,50 +461,79 @@ export async function PUT(
       }
     }
 
-    // Send Slack notification when SOW is rejected
+    // Send notifications when SOW is rejected
     if (data.rejected_at) {
       try {
-        const slackService = await getSlackService();
-        if (slackService) {
-          // Get SOW details for the notification
-          const { data: sowDetails } = await supabase
-            .from('sows')
-            .select('client_name, author_id')
-            .eq('id', id)
-            .single();
+        // Get SOW details for the notification
+        const { data: sowDetails } = await supabase
+          .from('sows')
+          .select('sow_title, client_name, author_id')
+          .eq('id', id)
+          .single();
 
-          if (sowDetails) {
-            // Get author name if available
-            let authorName = 'Unknown User';
-            if (sowDetails.author_id) {
-              const { data: author } = await supabase
-                .from('users')
-                .select('name, email')
-                .eq('id', sowDetails.author_id)
-                .single();
-              if (author) {
-                authorName = author.name || author.email || 'Unknown User';
-              }
+        if (sowDetails) {
+          // Get author information
+          let authorName = 'Unknown User';
+          let authorEmail = '';
+          if (sowDetails.author_id) {
+            const { data: author } = await supabase
+              .from('users')
+              .select('name, email')
+              .eq('id', sowDetails.author_id)
+              .single();
+            if (author) {
+              authorName = author.name || author.email || 'Unknown User';
+              authorEmail = author.email || '';
             }
+          }
 
-            const clientName = sowDetails.client_name || 'Unknown Client';
-            const sowUrl = getSOWUrl(id);
-            const comments = data.approval_comments || 'No comments provided';
+          const clientName = sowDetails.client_name || 'Unknown Client';
+          const sowTitle = sowDetails.sow_title || 'Untitled SOW';
+          const sowUrl = getSOWUrl(id);
+          const comments = data.approval_comments || 'No comments provided';
 
-            await slackService.sendMessage(
-              `:x: *SOW Rejected and Returned to Draft*\n\n` +
-              `*Client:* ${clientName}\n` +
-              `*Submitted by:* ${authorName}\n` +
-              `*Rejected by:* ${session.user.email}\n` +
-              `*Comments:* ${comments}\n\n` +
-              `:link: <${sowUrl}|View SOW>\n\n` +
-              `The SOW has been returned to draft status for updates.`
-            );
+          // Send Slack notification
+          try {
+            const slackService = await getSlackService();
+            if (slackService) {
+              await slackService.sendMessage(
+                `:x: *SOW Rejected and Returned to Draft*\n\n` +
+                `*Client:* ${clientName}\n` +
+                `*Submitted by:* ${authorName}\n` +
+                `*Rejected by:* ${session.user.email}\n` +
+                `*Comments:* ${comments}\n\n` +
+                `:link: <${sowUrl}|View SOW>\n\n` +
+                `The SOW has been returned to draft status for updates.`
+              );
+            }
+          } catch (slackError) {
+            console.error('Slack notification failed for SOW rejection:', slackError);
+          }
+
+          // Send email notification to SOW author
+          if (authorEmail) {
+            try {
+              const emailService = await getEmailService();
+              if (emailService) {
+                await emailService.sendSOWStatusNotification(
+                  id,
+                  sowTitle,
+                  clientName,
+                  authorEmail,
+                  'rejected',
+                  session.user.email || 'Unknown Approver',
+                  comments
+                );
+                console.log('SOW rejection email sent to author:', authorEmail);
+              }
+            } catch (emailError) {
+              console.error('Email notification failed for SOW rejection:', emailError);
+            }
           }
         }
-      } catch (slackError) {
-        console.error('Slack notification failed for SOW rejection:', slackError);
-        // Don't fail the main operation if Slack notification fails
+      } catch (error) {
+        console.error('Error sending SOW rejection notifications:', error);
+        // Don't fail the main operation if notifications fail
       }
     }
 
