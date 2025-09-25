@@ -1060,7 +1060,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     { key: 'Project Overview', label: 'Project Overview' },
     { key: 'Customer Information', label: 'Customer Information' },
     { key: 'Objectives', label: 'Objectives' },
-    { key: 'Signers & Roles', label: 'Client Signer and Roles' },
+      { key: 'Signers & Roles', label: 'Signers & POCs' },
     { key: 'Billing Information', label: 'Billing Information' },
     { key: 'Pricing', label: 'Pricing and LeanData Roles' },
     { key: 'Content Editing', label: 'Content Editing' },

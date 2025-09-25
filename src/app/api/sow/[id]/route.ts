@@ -209,6 +209,9 @@ export async function GET(
       },
     };
 
+    console.log('SOW GET: rejected_at field:', sow.rejected_at);
+    console.log('SOW GET: status field:', sow.status);
+    
     return NextResponse.json(transformedSow);
   } catch (error) {
     console.error('Error fetching SOW:', error);
@@ -296,6 +299,7 @@ export async function PUT(
       // Ensure rejected_at is set if not already provided
       if (!data.rejected_at) {
         updateData.rejected_at = new Date().toISOString();
+        console.log('SOW Rejection: Set rejected_at to:', updateData.rejected_at);
       }
     }
 

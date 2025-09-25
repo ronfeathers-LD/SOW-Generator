@@ -730,8 +730,8 @@ export default function SOWDisplay({
                   <table>
                     <thead>
                       <tr>
-                        <th>Role</th>
-                        <th>Description</th>
+                        <th>LeanData Role</th>
+                        <th>Responsibilities</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -760,7 +760,7 @@ export default function SOWDisplay({
                   <table>
                     <thead>
                       <tr>
-                        <th>Role (Title)</th>
+                        <th>{sow.clientName || 'Client'} Role</th>
                         <th>Contact</th>
                         <th>Responsibilities</th>
                       </tr>
@@ -1161,8 +1161,8 @@ export default function SOWDisplay({
                         <table className="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg overflow-hidden">
                           <thead className="bg-blue-100">
                             <tr>
-                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Role</th>
-                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Description</th>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">LeanData Role</th>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Responsibilities</th>
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
@@ -1191,7 +1191,7 @@ export default function SOWDisplay({
                         <table className="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg overflow-hidden">
                           <thead className="bg-blue-100">
                             <tr>
-                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Role (Title)</th>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">{sow.clientName || 'Client'} Role</th>
                               <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Contact</th>
                               <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Responsibilities</th>
                             </tr>

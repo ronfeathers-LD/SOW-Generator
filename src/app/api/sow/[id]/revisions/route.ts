@@ -31,10 +31,12 @@ export async function GET(
   try {
     const session = await getServerSession();
     if (!session?.user?.id) {
+      console.error('Revision API: No session or user ID');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
+    console.log('Revision API: Fetching revisions for SOW:', id);
     const supabase = createServiceRoleClient();
 
     // Get the SOW to find its parent_id or use the current ID
@@ -45,11 +47,13 @@ export async function GET(
       .single();
 
     if (sowError || !sow) {
+      console.error('Revision API: SOW not found:', sowError);
       return NextResponse.json({ error: 'SOW not found' }, { status: 404 });
     }
 
     // Find the root SOW ID (either parent_id or current id)
     const rootSowId = sow.parent_id || id;
+    console.log('Revision API: Root SOW ID:', rootSowId);
 
     // Get all revisions for this SOW (including the root)
     const { data: revisions, error: revisionsError } = await supabase
@@ -74,11 +78,13 @@ export async function GET(
       .order('version', { ascending: true }) as { data: SOWRevision[] | null; error: Error | null };
 
     if (revisionsError) {
-      console.error('Error fetching revisions:', revisionsError);
+      console.error('Revision API: Error fetching revisions:', revisionsError);
       return NextResponse.json({ 
         error: 'Failed to fetch revisions' 
       }, { status: 500 });
     }
+
+    console.log('Revision API: Found revisions:', revisions?.length || 0);
 
     // Format the revisions data
     const formattedRevisions = revisions?.map(revision => ({

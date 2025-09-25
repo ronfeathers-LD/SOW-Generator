@@ -944,8 +944,8 @@ export class PDFGenerator {
               <table style="width: 100%; border-collapse: collapse; margin-top: 16px; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden;">
                 <thead>
                   <tr style="background-color: #dbeafe;">
-                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Role</th>
-                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Description</th>
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">LeanData Role</th>
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Responsibilities</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -967,7 +967,7 @@ export class PDFGenerator {
               <table style="width: 100%; border-collapse: collapse; margin-top: 16px; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden;">
                 <thead>
                   <tr style="background-color: #dbeafe;">
-                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Role (Title)</th>
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">${clientName} Role</th>
                     <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Contact</th>
                     <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Responsibilities</th>
                   </tr>
