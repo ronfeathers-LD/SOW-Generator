@@ -2,6 +2,28 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { createServiceRoleClient } from '@/lib/supabase-server';
 
+interface UserInfo {
+  name: string;
+  email: string;
+}
+
+interface SOWRevision {
+  id: string;
+  version: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  rejected_at: string | null;
+  approved_at: string | null;
+  approval_comments: string | null;
+  author_id: string | null;
+  rejected_by: string | null;
+  approved_by: string | null;
+  users: UserInfo | null;
+  rejector: UserInfo | null;
+  approver: UserInfo | null;
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -49,7 +71,7 @@ export async function GET(
         approver:users!approved_by(name, email)
       `)
       .or(`id.eq.${rootSowId},parent_id.eq.${rootSowId}`)
-      .order('version', { ascending: true });
+      .order('version', { ascending: true }) as { data: SOWRevision[] | null; error: Error | null };
 
     if (revisionsError) {
       console.error('Error fetching revisions:', revisionsError);

@@ -14,6 +14,9 @@ interface SOW {
   created_at: string | Date;
   updated_at: string | Date;
   author?: string; // Add author field
+  version?: number;
+  is_latest?: boolean;
+  parent_id?: string;
 }
 
 function SOWListContent() {

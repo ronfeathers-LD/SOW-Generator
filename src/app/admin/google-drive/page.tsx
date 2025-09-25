@@ -171,6 +171,36 @@ export default function GoogleDriveConfigPage() {
     }
   };
 
+  const refreshToken = async () => {
+    try {
+      setSaving(true);
+      setMessage(null);
+      
+      const response = await fetch('/api/admin/google-drive/refresh-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Google Drive token refreshed successfully!' });
+        await loadConfig(); // Reload config to show updated token info
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to refresh token');
+      }
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      setMessage({ 
+        type: 'error', 
+        text: error instanceof Error ? error.message : 'Failed to refresh token' 
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
@@ -326,6 +356,15 @@ export default function GoogleDriveConfigPage() {
 
                 {config && (
                   <>
+                    <button
+                      type="button"
+                      onClick={refreshToken}
+                      disabled={saving}
+                      className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Refresh Token
+                    </button>
+
                     <button
                       type="button"
                       onClick={testConnection}

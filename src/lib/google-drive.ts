@@ -278,6 +278,12 @@ Only include fields that are relevant to the query. If no specific folder name i
       return results;
     } catch (error) {
       console.error('Error searching Google Drive:', error);
+      
+      // Check if this is an invalid_grant error (token expired)
+      if (error instanceof Error && error.message.includes('invalid_grant')) {
+        await this.notifyAdminsOfTokenExpiry();
+      }
+      
       throw new Error(`Failed to search Google Drive: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -747,6 +753,34 @@ Please provide:
   updateConfig(newConfig: Partial<GoogleDriveConfig>) {
     this.config = { ...this.config, ...newConfig };
     this.initializeDrive();
+  }
+
+  /**
+   * Notify admins that Google Drive token needs to be refreshed
+   */
+  private async notifyAdminsOfTokenExpiry(): Promise<void> {
+    try {
+      const { getSlackService } = await import('./slack');
+      const slackService = await getSlackService();
+      
+      if (!slackService) {
+        console.warn('Slack service not configured - cannot notify admins of Google Drive token expiry');
+        return;
+      }
+
+      const adminUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/google-drive`;
+      
+      const message = `:warning: *Google Drive Token Expired*\n\n` +
+        `The Google Drive integration token has expired and needs to be refreshed.\n\n` +
+        `*Action Required:* Please refresh the Google Drive token in the admin panel.\n\n` +
+        `:link: <${adminUrl}|Refresh Token>\n\n` +
+        `This will restore Google Drive functionality for SOW document management.`;
+
+      await slackService.sendMessage(message);
+      console.log('Admin notification sent for Google Drive token expiry');
+    } catch (error) {
+      console.error('Error sending admin notification for Google Drive token expiry:', error);
+    }
   }
 }
 

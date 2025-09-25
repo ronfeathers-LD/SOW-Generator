@@ -45,7 +45,7 @@ export default function SOWRevisionHistory({ sowId, currentVersion }: SOWRevisio
         } else {
           setError('Failed to load revision history');
         }
-      } catch (err) {
+      } catch {
         setError('Error loading revision history');
       } finally {
         setLoading(false);
@@ -110,7 +110,7 @@ export default function SOWRevisionHistory({ sowId, currentVersion }: SOWRevisio
       <h3 className="text-lg font-medium text-gray-900 mb-4">Revision History</h3>
       
       <div className="space-y-4">
-        {revisions.map((revision, index) => (
+        {revisions.map((revision) => (
           <div 
             key={revision.id} 
             className={`border rounded-lg p-4 ${

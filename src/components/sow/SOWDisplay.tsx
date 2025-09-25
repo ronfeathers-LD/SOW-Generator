@@ -1561,7 +1561,7 @@ export default function SOWDisplay({
                           </p>
                           <div className="space-y-2">
                             <p className="text-sm text-red-600">
-                              <strong>Rejected on:</strong> {new Date(sow.rejected_at).toLocaleDateString()}
+                              <strong>Rejected on:</strong> {sow.rejected_at ? new Date(sow.rejected_at).toLocaleDateString() : 'Unknown'}
                             </p>
                             {sow.approval_comments && (
                               <div className="bg-red-100 border border-red-300 rounded p-3">
