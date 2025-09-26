@@ -1026,7 +1026,7 @@ export default function TeamRolesTab({
                           debouncedSaveResponsibilities(index, e.target.value);
                         }}
                         rows={4}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        className="mt-1 block w-full px-4 py-3 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         placeholder="Describe the responsibilities for this role..."
                       />
                       {/* Quick fill options */}

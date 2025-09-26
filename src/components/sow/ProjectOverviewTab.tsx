@@ -415,7 +415,7 @@ export default function ProjectOverviewTab({
                   ...formData,
               template: { ...formData.template!, sow_title: e.target.value }
             })}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             placeholder={getDefaultTitle()}
           />
           <p className="mt-2 text-sm text-gray-500">
@@ -444,7 +444,7 @@ export default function ProjectOverviewTab({
                 ...formData,
                 template: { ...formData.template!, salesforce_tenants: e.target.value || '' }
               })}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               placeholder="Enter number of Salesforce tenants"
             />
           </div>
@@ -467,7 +467,7 @@ export default function ProjectOverviewTab({
                   template: { ...formData.template!, timeline_weeks: weeks }
                 });
               }}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               placeholder="Enter timeline in weeks"
             />
           </div>
@@ -486,7 +486,7 @@ export default function ProjectOverviewTab({
                 ...formData,
                 template: { ...formData.template!, units_consumption: e.target.value }
               })}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
               <option value="">Select consumption pattern</option>
               <option value="All units immediately">All units immediately</option>
@@ -799,7 +799,7 @@ export default function ProjectOverviewTab({
                   type="text"
                   value={formData.template?.other_products_units || ''}
                   onChange={(e) => handleUnitFieldChange('other_products_units', e.target.value)}
-                  className={`block w-full rounded-md shadow-sm focus:ring-gray-500 focus:border-gray-500 ${
+                  className={`block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-gray-500 focus:border-gray-500 ${
                     validationErrors.other_products_units 
                       ? 'border-red-300' 
                       : 'border-gray-300'

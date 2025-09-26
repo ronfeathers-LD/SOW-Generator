@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 
 interface DashboardClientProps {
@@ -30,7 +29,6 @@ interface DashboardClientProps {
 }
 
 export default function DashboardClient({ stats, recentSOWs, pendingApprovals }: DashboardClientProps) {
-  const [activeTab] = useState<'overview'>('overview');
 
   // Helper functions for status display
   const getStatusColor = (status: string) => {
@@ -66,7 +64,7 @@ export default function DashboardClient({ stats, recentSOWs, pendingApprovals }:
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white p-6" style={{border: '1px solid #8F8F8F', borderRadius: '8px'}}>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
@@ -78,7 +76,21 @@ export default function DashboardClient({ stats, recentSOWs, pendingApprovals }:
           </div>
           <Link
             href="/sow/new"
-            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md"
+            className="inline-flex items-center px-6 py-3 transition-colors"
+            style={{
+              backgroundColor: '#2a2a2a',
+              color: 'white',
+              border: '1px solid #26D07C',
+              borderRadius: '8px'
+            }}
+            onMouseEnter={(e) => {
+              (e.target as HTMLElement).style.backgroundColor = '#01eb1d';
+              (e.target as HTMLElement).style.color = '#2a2a2a';
+            }}
+            onMouseLeave={(e) => {
+              (e.target as HTMLElement).style.backgroundColor = '#2a2a2a';
+              (e.target as HTMLElement).style.color = 'white';
+            }}
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -88,21 +100,6 @@ export default function DashboardClient({ stats, recentSOWs, pendingApprovals }:
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8 px-6">
-            <button
-              className="py-4 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-600"
-            >
-              Dashboard Overview
-            </button>
-          </nav>
-        </div>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === 'overview' && (
         <div className="space-y-6">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -234,7 +231,7 @@ export default function DashboardClient({ stats, recentSOWs, pendingApprovals }:
             </div>
             <div className="p-6">
               {recentSOWs.length > 0 ? (
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {recentSOWs.slice(0, 3).map((sow) => {
                     // Format the created date
                     const createdDate = sow.created_at ? new Date(sow.created_at).toLocaleDateString('en-US', {
@@ -299,7 +296,6 @@ export default function DashboardClient({ stats, recentSOWs, pendingApprovals }:
             </div>
           </div>
         </div>
-      )}
     </div>
   );
 }

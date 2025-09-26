@@ -69,56 +69,97 @@ export default function PricingDisplay({
               </tr>
             </thead>
             <tbody>
+              {/* Always show aggregated pricing in a single row */}
               {filteredPricingRoles && filteredPricingRoles.length > 0 ? (
-                filteredPricingRoles.map((role, idx) => {
-                  const hasDiscount = role.defaultRate && role.defaultRate !== role.ratePerHour;
-                  return (
-                    <tr key={idx}>
-                      <td>{role.role}</td>
-                      <td>
-                        {hasDiscount ? (
-                          <span className="line-through text-gray-500">${role.defaultRate?.toFixed(2) || '0.00'}</span>
-                        ) : (
-                          `$${role.ratePerHour?.toFixed(2) || '0.00'}`
-                        )}
-                      </td>
-                      {hasAnyDiscount && (
-                        <td>
-                          {hasDiscount ? (
-                            <span className="text-green-600 font-semibold">${role.ratePerHour?.toFixed(2) || '0.00'}</span>
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </td>
-                      )}
-                      <td>{role.totalHours}</td>
-                      <td>
-                        ${role.totalCost?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
-                      </td>
-                    </tr>
-                  );
-                })
+                <tr>
+                  <td className="text-center align-middle" style={{verticalAlign: 'middle', height: '80px', display: 'table-cell', whiteSpace: 'nowrap'}}>
+                    <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%'}}>
+                      {filteredPricingRoles.map((role, idx) => (
+                        <div key={idx} style={{whiteSpace: 'nowrap'}}>{role.role}</div>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="text-center align-middle" style={{verticalAlign: 'middle', height: '80px', display: 'table-cell'}}>
+                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%'}}>
+                      {(() => {
+                        // Group roles by their rates to avoid duplication
+                        const rateGroups = filteredPricingRoles.reduce((groups, role) => {
+                          const hasDiscount = Boolean(role.defaultRate && role.defaultRate !== role.ratePerHour);
+                          const rateKey = hasDiscount ? `${role.defaultRate}-${role.ratePerHour}` : `${role.ratePerHour}`;
+                          
+                          if (!groups[rateKey]) {
+                            groups[rateKey] = {
+                              roles: [],
+                              hasDiscount,
+                              defaultRate: role.defaultRate,
+                              ratePerHour: role.ratePerHour
+                            };
+                          }
+                          groups[rateKey].roles.push(role.role);
+                          return groups;
+                        }, {} as Record<string, { roles: string[], hasDiscount: boolean, defaultRate?: number, ratePerHour: number }>);
+
+                        return Object.values(rateGroups).map((group, groupIdx) => (
+                          <div key={groupIdx}>
+                            {group.hasDiscount ? (
+                              <span className="line-through text-gray-500">${group.defaultRate?.toFixed(2) || '0.00'}</span>
+                            ) : (
+                              `$${group.ratePerHour?.toFixed(2) || '0.00'}`
+                            )}
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </td>
+                  {hasAnyDiscount && (
+                    <td className="text-center align-middle" style={{verticalAlign: 'middle', height: '80px', display: 'table-cell'}}>
+                      <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%'}}>
+                        {(() => {
+                          // Group roles by their discounted rates to avoid duplication
+                          const discountedRateGroups = filteredPricingRoles.reduce((groups, role) => {
+                            const hasDiscount = Boolean(role.defaultRate && role.defaultRate !== role.ratePerHour);
+                            const rateKey = hasDiscount ? `${role.defaultRate}-${role.ratePerHour}` : `${role.ratePerHour}`;
+                            
+                            if (!groups[rateKey]) {
+                              groups[rateKey] = {
+                                roles: [],
+                                hasDiscount,
+                                defaultRate: role.defaultRate,
+                                ratePerHour: role.ratePerHour
+                              };
+                            }
+                            groups[rateKey].roles.push(role.role);
+                            return groups;
+                          }, {} as Record<string, { roles: string[], hasDiscount: boolean, defaultRate?: number, ratePerHour: number }>);
+
+                          return Object.values(discountedRateGroups).map((group, groupIdx) => (
+                            <div key={groupIdx}>
+                              {group.hasDiscount ? (
+                                <span className="text-green-600 font-semibold">${group.ratePerHour?.toFixed(2) || '0.00'}</span>
+                              ) : (
+                                <span className="text-gray-400">—</span>
+                              )}
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </td>
+                  )}
+                  <td className="text-center align-middle" style={{verticalAlign: 'middle', height: '80px', display: 'table-cell'}}>
+                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%'}}>
+                      {filteredPricingRoles.reduce((sum, role) => sum + (role.totalHours || 0), 0)}
+                    </div>
+                  </td>
+                  <td className="text-center align-middle" style={{verticalAlign: 'middle', height: '80px', display: 'table-cell'}}>
+                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%'}}>
+                      ${filteredPricingRoles.reduce((sum, role) => sum + (role.totalCost || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </td>
+                </tr>
               ) : (
                 <tr>
                   <td colSpan={hasAnyDiscount ? 5 : 4} className="text-center text-gray-500">
                     No pricing roles defined
-                  </td>
-                </tr>
-              )}
-              
-              {/* Total Hours Row */}
-              {filteredPricingRoles && filteredPricingRoles.length > 0 && (
-                <tr className="bg-gray-50 border-t-2 border-gray-300">
-                  <td>Total Hours</td>
-                  <td>—</td>
-                  {hasAnyDiscount && (
-                    <td>—</td>
-                  )}
-                  <td>
-                    {filteredPricingRoles.reduce((sum, role) => sum + (role.totalHours || 0), 0)}
-                  </td>
-                  <td>
-                    ${filteredPricingRoles.reduce((sum, role) => sum + (role.totalCost || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                 </tr>
               )}

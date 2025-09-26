@@ -504,7 +504,7 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
                     value={manualSearchTerm}
                     onChange={(e) => setManualSearchTerm(e.target.value)}
                     placeholder="e.g., company abbreviation, project name, or different spelling"
-                    className="w-full px-3 py-2 border border-yellow-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                    className="w-full px-4 py-3 border border-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                   />
                 </div>
                 <div className="flex space-x-2">

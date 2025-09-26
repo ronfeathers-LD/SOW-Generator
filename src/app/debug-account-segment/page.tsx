@@ -55,7 +55,7 @@ export default function DebugAccountSegmentPage() {
                 value={accountId}
                 onChange={(e) => setAccountId(e.target.value)}
                 placeholder="Enter Salesforce Account ID (e.g., 001XX000004DHPY)"
-                className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             

@@ -256,7 +256,7 @@ export default function ProductCategoriesAdminPage() {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="mt-1 block w-full px-4 py-3 border border-gray-300"
                     required
                   />
                 </div>
@@ -268,7 +268,7 @@ export default function ProductCategoriesAdminPage() {
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="mt-1 block w-full px-4 py-3 border border-gray-300"
                     rows={3}
                   />
                 </div>
@@ -281,7 +281,7 @@ export default function ProductCategoriesAdminPage() {
                     type="number"
                     value={formData.sort_order}
                     onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) || 0 })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="mt-1 block w-full px-4 py-3 border border-gray-300"
                   />
                 </div>
                 

@@ -932,7 +932,7 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
                       type="date"
                       value={fromDate}
                       onChange={(e) => setFromDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
@@ -941,7 +941,7 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
                       type="date"
                       value={toDate}
                       onChange={(e) => setToDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
@@ -1040,7 +1040,7 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
                     value={formData.objectives.avoma_transcription}
                     onChange={(e) => handleTranscriptionChange(e.target.value)}
                     rows={4}
-                    className="w-full rounded-md border-yellow-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 font-mono text-sm"
+                    className="w-full px-4 py-3 border-yellow-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 font-mono text-sm"
                     placeholder="Legacy transcription..."
                   />
                   <div className="text-xs text-yellow-600 mt-1">
@@ -1100,7 +1100,7 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
                       <textarea
                         value={recording.transcription}
                         rows={4}
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 font-mono text-sm"
+                        className="w-full px-4 py-3 border border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 font-mono text-sm"
                         placeholder="Transcription..."
                         readOnly
                       />

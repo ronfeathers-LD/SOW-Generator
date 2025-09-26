@@ -358,7 +358,7 @@ export default function AvomaIntegration({
                 type="text"
                 value={salesforceAccountId || ''}
                 disabled
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600"
+                className="w-full px-4 py-3 border border-gray-300 bg-gray-100 text-gray-600"
                 placeholder="Account ID from Salesforce"
               />
             </div>
@@ -371,7 +371,7 @@ export default function AvomaIntegration({
                 type="text"
                 value={salesforceOpportunityId || ''}
                 disabled
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600"
+                className="w-full px-4 py-3 border border-gray-300 bg-gray-100 text-gray-600"
                 placeholder="Opportunity ID from Salesforce"
               />
             </div>
@@ -386,7 +386,7 @@ export default function AvomaIntegration({
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             
@@ -398,7 +398,7 @@ export default function AvomaIntegration({
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>

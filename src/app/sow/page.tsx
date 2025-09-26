@@ -358,7 +358,20 @@ function SOWListContent() {
           <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
             <Link
               href="/sow/new"
-              className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto"
+              className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 sm:w-auto transition-colors"
+              style={{
+                backgroundColor: '#2a2a2a',
+                color: 'white',
+                border: '1px solid #26D07C'
+              }}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = '#01eb1d';
+                (e.target as HTMLElement).style.color = '#2a2a2a';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = '#2a2a2a';
+                (e.target as HTMLElement).style.color = 'white';
+              }}
             >
               Create New SOW
             </Link>

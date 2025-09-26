@@ -257,7 +257,7 @@ export default function GoogleDriveConfigPage() {
                   id="client_id"
                   required
                   defaultValue={config?.client_id || ''}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-4 py-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter Google OAuth2 Client ID"
                 />
               </div>

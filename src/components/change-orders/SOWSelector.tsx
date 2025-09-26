@@ -122,7 +122,7 @@ export default function SOWSelector({ onSOWSelect, onCancel }: SOWSelectorProps)
           placeholder="Search SOWs by title or client name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 

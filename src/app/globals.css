@@ -3,6 +3,34 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Secondary CTA Button Styles */
+.btn-secondary-cta {
+  background-color: #26D07C;
+  color: #2a2a2a;
+  border: 1px solid #26D07C;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-secondary-cta:hover {
+  background-color: #01eb1d;
+  color: #2a2a2a;
+  border-color: #01eb1d;
+}
+
+/* Global Shadow and Border Overrides */
+.shadow-lg,
+.shadow-md,
+.shadow-sm,
+.shadow {
+  box-shadow: none !important;
+}
+
+.rounded-lg:not([style*="border-color"]):not([style*="borderColor"]),
+.rounded-md:not([style*="border-color"]):not([style*="borderColor"]) {
+  border: 1px solid #8F8F8F !important;
+  border-radius: 8px !important;
+}
+
 /* Custom CSS variables */
 :root {
   --foreground-rgb: 0, 0, 0;
@@ -136,7 +164,7 @@ p {
 #sow-content-project-phases table thead,
 .formatSOWTable #sow-content-project-phases table thead,
 .formatSOWTable .sow-content table thead {
-  background-color: #dbeafe !important;
+  background-color: #26D07C !important;
 }
 
 /* Handle tables without thead - style first row in tbody as header */
@@ -144,19 +172,19 @@ p {
 #sow-content-project-phases table:not(:has(thead)) tbody tr:first-child,
 .formatSOWTable #sow-content-project-phases table:not(:has(thead)) tbody tr:first-child,
 .formatSOWTable .sow-content table:not(:has(thead)) tbody tr:first-child {
-  background-color: #dbeafe !important;
+  background-color: #26D07C !important;
 }
 
 .formatSOWTable table th,
 #sow-content-project-phases table th,
 .formatSOWTable #sow-content-project-phases table th,
 .formatSOWTable .sow-content table th {
-  background-color: #dbeafe !important;
+  background-color: #26D07C !important;
   border: none !important;
   padding: 12px 24px !important;
   text-align: left !important;
   font-weight: 700 !important;
-  color: #374151 !important;
+  color: #ffffff !important;
   text-transform: uppercase !important;
   font-size: 12px !important;
   letter-spacing: 0.05em !important;
@@ -168,12 +196,12 @@ p {
 #sow-content-project-phases table:not(:has(thead)) tbody tr:first-child td,
 .formatSOWTable #sow-content-project-phases table:not(:has(thead)) tbody tr:first-child td,
 .formatSOWTable .sow-content table:not(:has(thead)) tbody tr:first-child td {
-  background-color: #dbeafe !important;
+  background-color: #26D07C !important;
   border: none !important;
   padding: 12px 24px !important;
   text-align: left !important;
   font-weight: 700 !important;
-  color: #374151 !important;
+  color: #ffffff !important;
   text-transform: uppercase !important;
   font-size: 12px !important;
   letter-spacing: 0.05em !important;
@@ -656,13 +684,13 @@ body[style*="--print-sow-active: true"] .min-h-screen.bg-gray-50 {
     background-color: white !important;
   }
   
-  /* Preserve blue headers in print mode */
+  /* Preserve green headers in print mode */
   .formatSOWTable table thead,
   .formatSOWTable table:not(:has(thead)) tbody tr:first-child,
   .formatSOWTable table thead th,
   .formatSOWTable table:not(:has(thead)) tbody tr:first-child td {
-    background-color: #dbeafe !important;
-    color: #374151 !important;
+    background-color: #26D07C !important;
+    color: #ffffff !important;
     -webkit-print-color-adjust: exact !important;
     color-adjust: exact !important;
     print-color-adjust: exact !important;

@@ -98,8 +98,25 @@ function ValidationSubmitButton({ sow }: { sow: SOW }) {
         className={`px-4 py-2 rounded transition-colors ${
           validation?.isValid === false
             ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-            : 'bg-blue-600 text-white hover:bg-blue-700'
+            : ''
         } disabled:opacity-50`}
+        style={validation?.isValid !== false ? {
+          backgroundColor: '#2a2a2a',
+          color: 'white',
+          border: '1px solid #26D07C'
+        } : {}}
+        onMouseEnter={(e) => {
+          if (validation?.isValid !== false) {
+            (e.target as HTMLElement).style.backgroundColor = '#01eb1d';
+            (e.target as HTMLElement).style.color = '#2a2a2a';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (validation?.isValid !== false) {
+            (e.target as HTMLElement).style.backgroundColor = '#2a2a2a';
+            (e.target as HTMLElement).style.color = 'white';
+          }
+        }}
         title={
           validation?.isValid === false
             ? `Cannot submit: ${validation.missingFields.length} missing fields, ${validation.errors.length} validation errors`
@@ -851,7 +868,7 @@ export default function SOWDisplay({
                 </div>
               )}
               
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg border-l-4 border-green-500">
                 <p className="text-gray-700">
                   The tasks above will be completed on a <strong>time and material basis</strong>, using the LeanData standard workday of 8 hours for a duration of <strong>{sow.timeline_weeks ? (() => {
                     const totalWeeks = parseFloat(sow.timeline_weeks) || 0;
@@ -1159,10 +1176,10 @@ export default function SOWDisplay({
                       <h3 className="text-xl font-semibold text-gray-900 mb-4">Project Team Roles</h3>
                       <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg overflow-hidden">
-                          <thead className="bg-blue-100">
+                          <thead style={{backgroundColor: '#26D07C'}}>
                             <tr>
-                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">LeanData Role</th>
-                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Responsibilities</th>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">LeanData Role</th>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Responsibilities</th>
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
@@ -1189,11 +1206,11 @@ export default function SOWDisplay({
                       <h3 className="text-xl font-semibold text-gray-900 mb-4">Client Roles</h3>
                       <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg overflow-hidden">
-                          <thead className="bg-blue-100">
+                          <thead style={{backgroundColor: '#26D07C'}}>
                             <tr>
-                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">{sow.clientName || 'Client'} Role</th>
-                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Contact</th>
-                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Responsibilities</th>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">{sow.clientName || 'Client'} Role</th>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Contact</th>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Responsibilities</th>
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
@@ -1282,7 +1299,7 @@ export default function SOWDisplay({
                       </div>
                     )}
                     
-                    <div className="mb-6 p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+                    <div className="mb-6 p-4 bg-gray-50 rounded-lg border-l-4 border-green-500">
                       <p className="text-gray-700">
                         The tasks above will be completed on a <strong>time and material basis</strong>, using the LeanData standard workday of 8 hours for a duration of <strong>{sow.timeline_weeks ? (() => {
                           const totalWeeks = parseFloat(sow.timeline_weeks) || 0;
@@ -1458,17 +1475,17 @@ export default function SOWDisplay({
                           />
                         ) : (
                           <div className="space-y-3">
-                            <div className="bg-blue-50 border border-blue-200 rounded p-3">
-                              <p className="text-sm text-blue-800">
+                            <div className="bg-green-50 border border-green-200 rounded p-3">
+                              <p className="text-sm text-green-800">
                                 <strong>Waiting for approval:</strong> This SOW has been submitted for review and is waiting for a Manager or Admin to approve it.
                               </p>
                               {sow.submitted_by_name && (
-                                <p className="text-sm text-blue-700 mt-2">
+                                <p className="text-sm text-green-700 mt-2">
                                   <strong>Submitted by:</strong> {sow.submitted_by_name}
                                 </p>
                               )}
                               {sow.submitted_at && (
-                                <p className="text-sm text-blue-700">
+                                <p className="text-sm text-green-700">
                                   <strong>Submitted on:</strong> {new Date(sow.submitted_at).toLocaleDateString()}
                                 </p>
                               )}

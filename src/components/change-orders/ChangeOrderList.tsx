@@ -124,7 +124,19 @@ export default function ChangeOrderList({
           <p className="text-gray-600 mb-4">{error}</p>
           <button
             onClick={fetchChangeOrders}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
+            style={{
+              backgroundColor: '#2a2a2a',
+              border: '1px solid #26D07C'
+            }}
+            onMouseEnter={(e) => {
+              (e.target as HTMLElement).style.backgroundColor = '#01eb1d';
+              (e.target as HTMLElement).style.color = '#2a2a2a';
+            }}
+            onMouseLeave={(e) => {
+              (e.target as HTMLElement).style.backgroundColor = '#2a2a2a';
+              (e.target as HTMLElement).style.color = 'white';
+            }}
           >
             Try Again
           </button>
@@ -147,7 +159,20 @@ export default function ChangeOrderList({
         {onCreateNew && (
           <button
             onClick={onCreateNew}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 text-sm font-medium border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
+            style={{
+              backgroundColor: '#2a2a2a',
+              color: 'white',
+              border: '1px solid #26D07C'
+            }}
+            onMouseEnter={(e) => {
+              (e.target as HTMLElement).style.backgroundColor = '#01eb1d';
+              (e.target as HTMLElement).style.color = '#2a2a2a';
+            }}
+            onMouseLeave={(e) => {
+              (e.target as HTMLElement).style.backgroundColor = '#2a2a2a';
+              (e.target as HTMLElement).style.color = 'white';
+            }}
           >
             Create New Change Order
           </button>

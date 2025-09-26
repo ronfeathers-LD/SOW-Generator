@@ -219,7 +219,7 @@ export default function SOWDataLoader({ isOpen, onClose, onDataLoad }: SOWDataLo
               placeholder="Search SOWs by title or client name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 

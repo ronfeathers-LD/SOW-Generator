@@ -347,7 +347,7 @@ export default function ChangeOrderForm({
             id="change_requestor"
             value={formData.change_requestor}
             onChange={(e) => handleInputChange('change_requestor', e.target.value)}
-            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`w-full px-4 py-3 border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               errors.change_requestor ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Who is requesting this change?"
@@ -571,7 +571,7 @@ export default function ChangeOrderForm({
             id="associated_po"
             value={formData.associated_po}
             onChange={(e) => handleInputChange('associated_po', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Purchase order number (optional)"
           />
         </div>
@@ -590,7 +590,7 @@ export default function ChangeOrderForm({
                   id="new_start_date"
                   value={formData.new_start_date ? formData.new_start_date.toISOString().split('T')[0] : ''}
                   onChange={(e) => handleInputChange('new_start_date', e.target.value ? new Date(e.target.value) : undefined)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -602,7 +602,7 @@ export default function ChangeOrderForm({
                   id="new_end_date"
                   value={formData.new_end_date ? formData.new_end_date.toISOString().split('T')[0] : ''}
                   onChange={(e) => handleInputChange('new_end_date', e.target.value ? new Date(e.target.value) : undefined)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -619,7 +619,7 @@ export default function ChangeOrderForm({
             value={formData.reason_for_change}
             onChange={(e) => handleInputChange('reason_for_change', e.target.value)}
             rows={4}
-            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`w-full px-4 py-3 border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               errors.reason_for_change ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Explain why this change is needed..."
@@ -639,7 +639,7 @@ export default function ChangeOrderForm({
             value={formData.change_description}
             onChange={(e) => handleInputChange('change_description', e.target.value)}
             rows={6}
-            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`w-full px-4 py-3 border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               errors.change_description ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Describe the specific changes being made..."
@@ -662,7 +662,19 @@ export default function ChangeOrderForm({
           <button
             type="submit"
             disabled={isLoading}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              backgroundColor: '#2a2a2a',
+              border: '1px solid #26D07C'
+            }}
+            onMouseEnter={(e) => {
+              (e.target as HTMLElement).style.backgroundColor = '#01eb1d';
+              (e.target as HTMLElement).style.color = '#2a2a2a';
+            }}
+            onMouseLeave={(e) => {
+              (e.target as HTMLElement).style.backgroundColor = '#2a2a2a';
+              (e.target as HTMLElement).style.color = 'white';
+            }}
           >
             {isLoading 
               ? (initialData?.sow_id && initialData?.change_requestor ? 'Updating...' : 'Creating...') 

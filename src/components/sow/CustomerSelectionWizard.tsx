@@ -252,7 +252,7 @@ export default function CustomerSelectionWizard({ onComplete }: CustomerSelectio
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                         placeholder="Enter customer name to search..."
-                        className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        className="flex-1 px-4 py-3 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                       />
                       <button
                         onClick={handleSearch}

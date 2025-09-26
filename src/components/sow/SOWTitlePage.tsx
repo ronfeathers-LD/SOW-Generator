@@ -38,7 +38,7 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
       <div className="w-full flex justify-center mb-6">
         <div className="relative w-80 h-24">
           <Image
-            src="/images/leandata-logo.png"
+            src="https://tlxeqgk0yr1ztnva.public.blob.vercel-storage.com/rte-images/1758909456734-katoxspoked.png"
             alt="LeanData logo"
             fill
             sizes="(max-width: 768px) 100vw, 320px"

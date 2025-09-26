@@ -438,12 +438,12 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   return (
     <div className="space-y-6">
       {/* Calculate Hours Button */}
-      <div className="bg-blue-50 p-4 rounded-lg">
+      <div className="bg-green-50 p-4 rounded-lg">
         <button
           type="button"
           onClick={handleRecalculateHours}
           disabled={getProducts().length === 0 || isAutoCalculating}
-          className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-4 py-2 btn-secondary-cta rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isAutoCalculating ? (
             <>
@@ -682,7 +682,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                 <select
                   value={discountConfig?.type || 'none'}
                   onChange={(e) => setDiscountConfig({ ...discountConfig, type: e.target.value as 'none' | 'fixed' | 'percentage' })}
-                  className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500"
                 >
                   <option value="none">No Discount</option>
                   <option value="fixed">Fixed Amount</option>
@@ -699,7 +699,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                     type="number"
                     value={discountConfig?.amount || ''}
                     onChange={(e) => setDiscountConfig({ ...discountConfig, amount: parseFloat(e.target.value) || 0 })}
-                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500"
                     placeholder={discountConfig.type === 'fixed' ? '0.00' : '0'}
                     step={discountConfig.type === 'fixed' ? '0.01' : '0.1'}
                   />
@@ -761,7 +761,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                                   }
                                 }}
                                 onFocus={() => setOpenDropdowns(prev => new Set(prev).add(role.id))}
-                                className={`block w-full pr-10 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                                className={`block w-full px-4 py-3 pr-10 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
                                   isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
                                 }`}
                                 disabled={!!isPMRemoved || !!isPMPending}
@@ -861,7 +861,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                             type="number"
                             value={role.ratePerHour}
                             onChange={(e) => updateRole(role.id, 'ratePerHour', parseFloat(e.target.value) || 0)}
-                            className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                            className={`block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
                               isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
                             }`}
                             disabled={!!isPMRemoved || !!isPMPending}
@@ -884,7 +884,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                           type="number"
                           value={role.totalHours}
                           onChange={(e) => updateRole(role.id, 'totalHours', parseFloat(e.target.value) || 0)}
-                          className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                          className={`block w-full border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
                             isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
                           }`}
                           disabled={!!isPMRemoved || !!isPMPending}
@@ -923,7 +923,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                         <textarea
                           value={role.description || ''}
                           onChange={(e) => updateRole(role.id, 'description', e.target.value)}
-                          className={`block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 resize-none ${
+                          className={`block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 resize-none ${
                             isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
                           }`}
                           disabled={!!isPMRemoved || !!isPMPending}

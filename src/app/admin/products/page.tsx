@@ -284,7 +284,7 @@ export default function ProductsAdminPage() {
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                      className="mt-1 block w-full px-4 py-3 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                       required
                     />
                   </div>
@@ -296,7 +296,7 @@ export default function ProductsAdminPage() {
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       rows={3}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                      className="mt-1 block w-full px-4 py-3 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     />
                   </div>
                   <div>
@@ -306,7 +306,7 @@ export default function ProductsAdminPage() {
                     <select
                       value={formData.category}
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                      className="mt-1 block w-full px-4 py-3 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     >
                       {categories.map((category) => (
                         <option key={category.id} value={category.name}>
@@ -323,7 +323,7 @@ export default function ProductsAdminPage() {
                       type="number"
                       value={formData.sort_order}
                       onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) })}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                      className="mt-1 block w-full px-4 py-3 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     />
                   </div>
                   <div className="flex items-center">

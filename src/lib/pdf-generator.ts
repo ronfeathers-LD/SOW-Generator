@@ -4,8 +4,6 @@ import chromium from '@sparticuz/chromium';
 import { parseObjectives } from './utils/parse-objectives';
 import { sortProducts, resolveProductNames } from './utils/productSorting';
 import { processContent } from './text-to-html';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
 
 // Interface for change order data used in PDF generation
 interface ChangeOrderPDFData {
@@ -37,28 +35,10 @@ interface ChangeOrderPDFData {
 }
 
 /**
- * Convert LeanData logo to base64 for PDF embedding
+ * Get LeanData logo URL for PDF embedding
  */
-function getLeanDataLogoBase64(): string {
-  try {
-    const logoPath = join(process.cwd(), 'public', 'images', 'leandata-logo.png');
-    // Looking for logo at: ${logoPath}
-    
-    // Check if file exists before trying to read it
-    if (!existsSync(logoPath)) {
-      console.warn('⚠️ Logo file not found at:', logoPath);
-      return '';
-    }
-    
-    const logoBuffer = readFileSync(logoPath);
-    const base64Logo = logoBuffer.toString('base64');
-    // Logo loaded successfully, size: ${logoBuffer.length} bytes
-    return `data:image/png;base64,${base64Logo}`;
-  } catch (error) {
-    console.warn('⚠️ Could not load LeanData logo, using fallback:', error);
-    // Fallback to a simple styled div if logo can't be loaded
-    return '';
-  }
+function getLeanDataLogoUrl(): string {
+  return 'https://tlxeqgk0yr1ztnva.public.blob.vercel-storage.com/rte-images/1758909456734-katoxspoked.png';
 }
 
 /**
@@ -391,7 +371,7 @@ export class PDFGenerator {
     const title = sowData.sow_title || 'Untitled SOW';
     const clientName = sowData.client_name || 'Unknown Client';
     const companyLogo = sowData.company_logo || '';
-    const leanDataLogoBase64 = getLeanDataLogoBase64();
+    const leanDataLogoUrl = getLeanDataLogoUrl();
     
 
     
@@ -460,8 +440,10 @@ export class PDFGenerator {
           <meta charset="utf-8">
           <title>${title}</title>
           <style>
+            @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+            
             body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
               line-height: 1.6;
               color: #333;
               margin: 0;
@@ -483,6 +465,13 @@ export class PDFGenerator {
               box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
             }
             
+            /* Logo specific styling - no shadow */
+            .logo img {
+              box-shadow: none !important;
+              border-radius: 0 !important;
+              margin: 0 !important;
+            }
+            
             /* Style content-managed tables */
             .content table {
               width: 100% !important;
@@ -495,21 +484,21 @@ export class PDFGenerator {
             }
             
             .content table thead {
-              background-color: #dbeafe !important;
+              background-color: #26D07C !important;
             }
             
             .content table:not(:has(thead)) tbody tr:first-child {
-              background-color: #dbeafe !important;
+              background-color: #26D07C !important;
             }
             
             .content table th,
             .content table:not(:has(thead)) tbody tr:first-child td {
-              background-color: #dbeafe !important;
+              background-color: #26D07C !important;
               border: none !important;
               padding: 12px 24px !important;
               text-align: left !important;
               font-weight: 700 !important;
-              color: #374151 !important;
+              color: #ffffff !important;
               text-transform: uppercase !important;
               font-size: 12px !important;
               letter-spacing: 0.05em !important;
@@ -545,8 +534,8 @@ export class PDFGenerator {
             }
             
             .logo {
-              width: 120px;
-              height: 60px;
+              width: 200px;
+              height: 100px;
               margin: 0 auto 24px;
             }
             
@@ -738,10 +727,7 @@ export class PDFGenerator {
             <div class="title-page">
               <!-- LeanData Logo -->
               <div class="logo" style="margin-bottom: 24px;">
-                ${leanDataLogoBase64 ? 
-                  `<img src="${leanDataLogoBase64}" alt="LeanData Logo" style="width: 120px; height: 60px; object-fit: contain;">` :
-                  `<div style="width: 120px; height: 60px; background: #1F2937; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; border-radius: 8px;">LEANDATA</div>`
-                }
+                <img src="${leanDataLogoUrl}" alt="LeanData Logo" style="width: 200px; height: 100px; object-fit: contain; box-shadow: none;">
               </div>
               
               <!-- LeanData Delivery Methodology -->
@@ -972,9 +958,9 @@ export class PDFGenerator {
               <h3>Project Team Roles</h3>
               <table style="width: 100%; border-collapse: collapse; margin-top: 16px; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden;">
                 <thead>
-                  <tr style="background-color: #dbeafe;">
-                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">LeanData Role</th>
-                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Responsibilities</th>
+                  <tr style="background-color: #26D07C; color: #ffffff;">
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">LeanData Role</th>
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">Responsibilities</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -995,10 +981,10 @@ export class PDFGenerator {
               <h3>Client Roles</h3>
               <table style="width: 100%; border-collapse: collapse; margin-top: 16px; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden;">
                 <thead>
-                  <tr style="background-color: #dbeafe;">
-                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">${clientName} Role</th>
-                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Contact</th>
-                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Responsibilities</th>
+                  <tr style="background-color: #26D07C; color: #ffffff;">
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">${clientName} Role</th>
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">Contact</th>
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">Responsibilities</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1059,10 +1045,10 @@ export class PDFGenerator {
                 return `
                   <table style="width: 100%; border-collapse: collapse; margin-top: 16px; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden;">
                     <thead>
-                      <tr style="background-color: #dbeafe;">
-                        <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Phase</th>
-                        <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Description</th>
-                        <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Duration</th>
+                      <tr style="background-color: #26D07C; color: #ffffff;">
+                        <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">Phase</th>
+                        <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">Description</th>
+                        <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">Duration</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1103,58 +1089,89 @@ export class PDFGenerator {
               <h3>Pricing Roles</h3>
               <table style="width: 100%; border-collapse: collapse; margin-top: 16px; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden;">
                 <thead>
-                  <tr style="background-color: #dbeafe;">
-                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Role</th>
-                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">${pricingRoles.some(role => (role.defaultRate || 0) > 0 && (role.defaultRate || 0) !== (role.ratePerHour || 0)) ? 'Standard Rate/Hr' : 'Rate/Hr'}</th>
-                    ${pricingRoles.some(role => (role.defaultRate || 0) > 0 && (role.defaultRate || 0) !== (role.ratePerHour || 0)) ? '<th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Discounted Rate/Hr</th>' : ''}
-                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Total Hours</th>
-                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #374151; text-transform: uppercase; font-size: 12px;">Total Cost</th>
+                  <tr style="background-color: #26D07C; color: #ffffff;">
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">Role</th>
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">${pricingRoles.some(role => (role.defaultRate || 0) > 0 && (role.defaultRate || 0) !== (role.ratePerHour || 0)) ? 'Standard Rate/Hr' : 'Rate/Hr'}</th>
+                    ${pricingRoles.some(role => (role.defaultRate || 0) > 0 && (role.defaultRate || 0) !== (role.ratePerHour || 0)) ? '<th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">Discounted Rate/Hr</th>' : ''}
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">Total Hours</th>
+                    <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">Total Cost</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${pricingRoles.map((role: PricingRole) => {
-                    const currentRate = role.ratePerHour || 0;
-                    const defaultRate = role.defaultRate || 0;
-                    const hasDiscount = defaultRate > 0 && defaultRate !== currentRate;
-                    const hasAnyDiscount = pricingRoles.some(r => (r.defaultRate || 0) > 0 && (r.defaultRate || 0) !== (r.ratePerHour || 0));
+                  ${(() => {
+                    // Filter out Account Executive and Project Manager if PM hours are removed
+                    const filteredPricingRoles = pricingRoles.filter(role => {
+                      if (role.role === 'Account Executive') return false;
+                      if (sowData.pm_hours_requirement_disabled && role.role === 'Project Manager') return false;
+                      return true;
+                    });
+
+                    if (filteredPricingRoles.length === 0) return '';
+
+                    const hasAnyDiscount = filteredPricingRoles.some(r => (r.defaultRate || 0) > 0 && (r.defaultRate || 0) !== (r.ratePerHour || 0));
                     
+                    // Group roles by their rates to avoid duplication
+                    const rateGroups = filteredPricingRoles.reduce((groups: Record<string, { roles: string[], hasDiscount: boolean, defaultRate: number, ratePerHour: number }>, role) => {
+                      const hasDiscount = (role.defaultRate || 0) > 0 && (role.defaultRate || 0) !== (role.ratePerHour || 0);
+                      const rateKey = hasDiscount ? `${role.defaultRate}-${role.ratePerHour}` : `${role.ratePerHour}`;
+                      
+                      if (!groups[rateKey]) {
+                        groups[rateKey] = {
+                          roles: [],
+                          hasDiscount,
+                          defaultRate: role.defaultRate || 0,
+                          ratePerHour: role.ratePerHour || 0
+                        };
+                      }
+                      groups[rateKey].roles.push(role.role || role.name || 'N/A');
+                      return groups;
+                    }, {});
+
                     return `
                     <tr>
-                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; font-weight: 600; vertical-align: top;">${role.role || role.name || 'N/A'}</td>
-                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; vertical-align: top;">
-                        ${hasDiscount ? 
-                          `<span style="text-decoration: line-through; color: #6b7280;">$${defaultRate.toFixed(2)}</span>` : 
-                          `$${currentRate.toFixed(2)}`
-                        }
+                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; font-weight: 600; vertical-align: middle; text-align: center; height: 80px; white-space: nowrap;">
+                        <div style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
+                          ${filteredPricingRoles.map(role => `<div style="white-space: nowrap;">${role.role || role.name || 'N/A'}</div>`).join('')}
+                        </div>
+                      </td>
+                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; vertical-align: middle; text-align: center; height: 80px;">
+                        <div style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
+                          ${Object.values(rateGroups).map(group => `
+                            <div>
+                              ${group.hasDiscount ? 
+                                `<span style="text-decoration: line-through; color: #6b7280;">$${group.defaultRate.toFixed(2)}</span>` : 
+                                `$${group.ratePerHour.toFixed(2)}`
+                              }
+                            </div>
+                          `).join('')}
+                        </div>
                       </td>
                       ${hasAnyDiscount ? `
-                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; vertical-align: top;">
-                        ${hasDiscount ? 
-                          `<span style="color: #059669; font-weight: 600;">$${currentRate.toFixed(2)}</span>` : 
-                          `<span style="color: #9ca3af;">—</span>`
-                        }
+                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; vertical-align: middle; text-align: center; height: 80px;">
+                        <div style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
+                          ${Object.values(rateGroups).map(group => `
+                            <div>
+                              ${group.hasDiscount ? 
+                                `<span style="color: #059669; font-weight: 600;">$${group.ratePerHour.toFixed(2)}</span>` : 
+                                `<span style="color: #9ca3af;">—</span>`
+                              }
+                            </div>
+                          `).join('')}
+                        </div>
                       </td>` : ''}
-                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; vertical-align: top;">${role.totalHours || 0}</td>
-                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; font-weight: 600; vertical-align: top;">$${((role.ratePerHour || 0) * (role.totalHours || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; vertical-align: middle; text-align: center; height: 80px;">
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100%;">
+                          ${filteredPricingRoles.reduce((sum, role) => sum + (role.totalHours || 0), 0)}
+                        </div>
+                      </td>
+                      <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; font-weight: 600; vertical-align: middle; text-align: center; height: 80px;">
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100%;">
+                          $${filteredPricingRoles.reduce((sum, role) => sum + ((role.ratePerHour || 0) * (role.totalHours || 0)), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                      </td>
                     </tr>
-                  `;
-                  }).join('')}
-                  
-                  <!-- Total Hours Row -->
-                  ${pricingRoles.length > 0 ? `
-                  <tr style="background-color: #f9fafb; border-top: 2px solid #d1d5db;">
-                    <td style="border-bottom: none; padding: 16px; font-weight: 700; color: #374151; vertical-align: top;">Total Hours</td>
-                    <td style="border-bottom: none; padding: 16px; color: #374151; vertical-align: top;">—</td>
-                    ${pricingRoles.some(r => (r.defaultRate || 0) > 0 && (r.defaultRate || 0) !== (r.ratePerHour || 0)) ? `
-                    <td style="border-bottom: none; padding: 16px; color: #374151; vertical-align: top;">—</td>` : ''}
-                    <td style="border-bottom: none; padding: 16px; font-weight: 700; color: #374151; vertical-align: top;">
-                      ${pricingRoles.reduce((sum, role) => sum + (role.totalHours || 0), 0)}
-                    </td>
-                    <td style="border-bottom: none; padding: 16px; font-weight: 700; color: #374151; vertical-align: top;">
-                      $${pricingRoles.reduce((sum, role) => sum + ((role.ratePerHour || 0) * (role.totalHours || 0)), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                  </tr>
-                  ` : ''}
+                    `;
+                  })()}
                 </tbody>
               </table>
               

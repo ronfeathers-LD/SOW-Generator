@@ -159,7 +159,7 @@ export default function PricingCalculatorForm({ products, data, onChange }: Pric
         <select
           value={localData.account_segment || ''}
           onChange={(e) => handleAccountSegmentChange(e.target.value)}
-          className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+          className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="">Select Account Segment</option>
           <option value="MM">MidMarket (MM)</option>
@@ -198,7 +198,7 @@ export default function PricingCalculatorForm({ products, data, onChange }: Pric
             <select
               value={localData.discount_type || 'none'}
               onChange={(e) => handleDiscountTypeChange(e.target.value as 'none' | 'fixed' | 'percentage')}
-              className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="none">No Discount</option>
               <option value="fixed">Fixed Amount</option>
@@ -215,7 +215,7 @@ export default function PricingCalculatorForm({ products, data, onChange }: Pric
                 type="number"
                 value={localData.discount_amount || ''}
                 onChange={(e) => handleDiscountAmountChange(parseFloat(e.target.value) || 0)}
-                className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 placeholder={localData.discount_type === 'fixed' ? '0.00' : '0'}
                 step={localData.discount_type === 'fixed' ? '0.01' : '0.1'}
               />
@@ -259,7 +259,7 @@ export default function PricingCalculatorForm({ products, data, onChange }: Pric
                           min="0"
                           value={localData[getUnitFieldName(product.id) as keyof CalculatorData] as string}
                           onChange={(e) => handleUnitChange(getUnitFieldName(product.id) as keyof CalculatorData, e.target.value)}
-                          className="w-20 px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          className="w-20 px-2 py-1 text-sm border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
                           placeholder="0"
                         />
                       </div>
@@ -285,7 +285,7 @@ export default function PricingCalculatorForm({ products, data, onChange }: Pric
               min="0"
               value={localData.orchestration_units}
               onChange={(e) => handleUnitChange('orchestration_units', e.target.value)}
-              className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
               placeholder="0"
             />
             <p className="mt-1 text-sm text-gray-500">

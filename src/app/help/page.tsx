@@ -31,17 +31,17 @@ export default function HelpPage() {
           </p>
 
           {/* Table of Contents */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-            <h2 className="text-xl font-semibold text-blue-900 mb-4">Quick Navigation</h2>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
+            <h2 className="text-xl font-semibold text-green-900 mb-4">Quick Navigation</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <a href="#getting-started" className="text-blue-700 hover:text-blue-900">Getting Started</a>
-              <a href="#salesforce-integration" className="text-blue-700 hover:text-blue-900">Salesforce Integration</a>
-              <a href="#sow-creation" className="text-blue-700 hover:text-blue-900">SOW Creation Process</a>
-              <a href="#product-selection" className="text-blue-700 hover:text-blue-900">Product Selection</a>
-              <a href="#pricing-calculation" className="text-blue-700 hover:text-blue-900">Pricing Calculator</a>
-              <a href="#avoma-integration" className="text-blue-700 hover:text-blue-900">Avoma Integration</a>
-              <a href="#google-drive" className="text-blue-700 hover:text-blue-900">Google Drive Integration</a>
-              <a href="#review-approval" className="text-blue-700 hover:text-blue-900">Review & Approval</a>
+              <a href="#getting-started" className="text-green-700 hover:text-green-900">Getting Started</a>
+              <a href="#salesforce-integration" className="text-green-700 hover:text-green-900">Salesforce Integration</a>
+              <a href="#sow-creation" className="text-green-700 hover:text-green-900">SOW Creation Process</a>
+              <a href="#product-selection" className="text-green-700 hover:text-green-900">Product Selection</a>
+              <a href="#pricing-calculation" className="text-green-700 hover:text-green-900">Pricing Calculator</a>
+              <a href="#avoma-integration" className="text-green-700 hover:text-green-900">Avoma Integration</a>
+              <a href="#google-drive" className="text-green-700 hover:text-green-900">Google Drive Integration</a>
+              <a href="#review-approval" className="text-green-700 hover:text-green-900">Review & Approval</a>
             </div>
           </div>
 
@@ -121,12 +121,12 @@ export default function HelpPage() {
               </ul>
 
               <h3 className="text-lg font-semibold text-gray-800 mb-2">Step 3: AI-Powered Scope Definition</h3>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <h4 className="font-semibold text-blue-800 mb-2">✨ The Magic of AI Analysis</h4>
-                <p className="text-blue-700 text-sm mb-3">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <h4 className="font-semibold text-green-800 mb-2">✨ The Magic of AI Analysis</h4>
+                <p className="text-green-700 text-sm mb-3">
                   Our AI analyzes your Avoma call transcriptions and scoping documents to automatically generate:
                 </p>
-                <ul className="list-disc list-inside space-y-1 text-blue-700 text-sm">
+                <ul className="list-disc list-inside space-y-1 text-green-700 text-sm">
                   <li><strong>Project Objectives:</strong> Extracted from customer pain points and goals discussed</li>
                   <li><strong>Solution Deliverables:</strong> Organized by LeanData product with specific implementation details</li>
                   <li><strong>Overcoming Actions:</strong> Concrete steps to address customer challenges</li>
@@ -334,7 +334,7 @@ export default function HelpPage() {
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h3 className="font-semibold text-gray-800 mb-2">Getting Help</h3>
                   <p className="text-sm text-gray-700">
-                    If you have issues using this app, whether it is Technical Issues, Process Questions, Salesforce Issues, or Avoma Problems, please contact <a href="mailto:ron.feathers@leandata.com?subject=SOW Generator Question" className="text-blue-600 hover:text-blue-800 underline">Ron Feathers</a>.
+                    If you have issues using this app, whether it is Technical Issues, Process Questions, Salesforce Issues, or Avoma Problems, please contact <a href="mailto:ron.feathers@leandata.com?subject=SOW Generator Question" className="text-green-600 hover:text-green-800 underline">Ron Feathers</a>.
                   </p>
                 </div>
               </div>
@@ -346,7 +346,20 @@ export default function HelpPage() {
             <div className="text-center">
               <Link 
                 href="/dashboard" 
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="inline-flex items-center px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
+                style={{
+                  backgroundColor: '#2a2a2a',
+                  color: 'white',
+                  border: '1px solid #26D07C'
+                }}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLElement).style.backgroundColor = '#01eb1d';
+                  (e.target as HTMLElement).style.color = '#2a2a2a';
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLElement).style.backgroundColor = '#2a2a2a';
+                  (e.target as HTMLElement).style.color = 'white';
+                }}
               >
                 ← Back to Dashboard
               </Link>
