@@ -240,7 +240,7 @@ export default function CustomerInformationTab({
               {/* Account Check */}
               <div 
                 className={`flex items-start p-4 rounded-md border cursor-pointer transition-colors ${
-                  currentStep === 'account' ? 'border-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+                  currentStep === 'account' ? 'border-green-500 bg-green-50' : 'hover:bg-gray-50'
                 }`}
                 onClick={() => handleStepButtonClick('account')}
               >
@@ -328,7 +328,7 @@ export default function CustomerInformationTab({
               {/* Opportunity Check */}
               <div 
                 className={`flex items-start p-4 rounded-md border transition-colors ${
-                  currentStep === 'opportunity' ? 'border-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+                  currentStep === 'opportunity' ? 'border-green-500 bg-green-50' : 'hover:bg-gray-50'
                 } ${!selectedAccount ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 onClick={() => selectedAccount && handleStepButtonClick('opportunity')}
               >
@@ -423,7 +423,7 @@ export default function CustomerInformationTab({
               {/* Company Logo Upload */}
               <div 
                 className={`flex items-start p-4 rounded-md border cursor-pointer transition-colors ${
-                  currentStep === 'logo' ? 'border-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+                  currentStep === 'logo' ? 'border-green-500 bg-green-50' : 'hover:bg-gray-50'
                 }`}
                 onClick={() => handleStepButtonClick('logo')}
               >
@@ -462,7 +462,7 @@ export default function CustomerInformationTab({
           {/* Right Side - Selection Details */}
           <div className="lg:col-span-2">
             {currentStep === 'account' && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
                 <h4 className="text-lg font-semibold mb-4 text-blue-800">Step 1: Select Account</h4>
                 <SalesforceIntegration 
                   onCustomerSelected={handleAccountSelected}
@@ -472,7 +472,7 @@ export default function CustomerInformationTab({
             )}
 
              {currentStep === 'opportunity' && selectedAccount && (
-               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+               <div className="bg-green-50 border border-green-200 rounded-lg p-6">
                  <h4 className="text-lg font-semibold mb-4 text-blue-800">Step 2: Select Opportunity</h4>
                  
                  {availableOpportunities.length > 0 ? (
@@ -538,7 +538,7 @@ export default function CustomerInformationTab({
              )}
 
              {currentStep === 'logo' && (
-               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+               <div className="bg-green-50 border border-green-200 rounded-lg p-6">
                  <h4 className="text-lg font-semibold mb-4 text-blue-800">Step 3: Upload Company Logo</h4>
                  
                  <div className="space-y-4">
@@ -548,7 +548,7 @@ export default function CustomerInformationTab({
                        type="file"
                        accept="image/*"
                        onChange={onLogoChange}
-                       className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                       className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
                      />
                      <p className="text-xs text-gray-500 mt-1">
                        Supported formats: JPG, PNG, GIF. Maximum size: 5MB.

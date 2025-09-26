@@ -813,7 +813,7 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
             Select additional documents from Google Drive to include in AI analysis
           </p>
           
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Left Column - Google Drive Document Selector */}
               <div>
@@ -916,7 +916,7 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
             <span className="font-medium text-blue-600">Transcriptions will be fetched automatically when you add a recording.</span>
           </p>
           
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
             {/* Search Avoma Meetings */}
             <div className="mb-6">
               <h4 className="text-lg font-medium text-gray-900 mb-3">Search Avoma Meetings</h4>
@@ -1131,7 +1131,7 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
 
               {(!formData.objectives?.avoma_recordings || formData.objectives.avoma_recordings.length === 0) && 
                !formData.objectives?.avoma_transcription && (
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
           <div className="text-center">
             <svg className="mx-auto h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

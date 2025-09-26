@@ -469,7 +469,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
       {(pendingPMHoursRequest || approvedPMHoursRequest) && (
         <div className={`p-3 rounded-lg border ${
           pendingPMHoursRequest 
-            ? 'bg-blue-50 border-blue-200' 
+            ? 'bg-green-50 border-green-200' 
             : 'bg-green-50 border-green-200'
         }`}>
           <div className="flex items-center text-sm">
@@ -733,7 +733,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                     <React.Fragment key={role.id}>
                       <tr className={
                         isPMRemoved ? 'bg-gray-50' : 
-                        isPMPending ? 'bg-blue-50 border-l-4 border-blue-400' : ''
+                        isPMPending ? 'bg-green-50 border-l-4 border-green-400' : ''
                       }>
                         <td>
                         <div className="flex items-center space-x-2">
@@ -915,7 +915,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                         )}
                       </td>
                     </tr>
-                    <tr className={isPMRemoved ? 'bg-gray-50' : isPMPending ? 'bg-blue-50' : ''}>
+                    <tr className={isPMRemoved ? 'bg-gray-50' : isPMPending ? 'bg-green-50' : ''}>
                       <td className="text-sm font-medium text-gray-700">
                         Role Description:
                       </td>
@@ -997,7 +997,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
               </div>
               
               <div className="space-y-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="bg-green-50 p-4 rounded-lg">
                   <h4 className="font-medium text-gray-900 mb-3">Selected Products & Units:</h4>
                   <div className="space-y-2">
                     {formData.template?.products
@@ -1115,7 +1115,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
 
             <div className="space-y-4">
               {/* Account Segment Info */}
-              <div className="bg-blue-50 p-3 rounded-md">
+              <div className="bg-green-50 p-3 rounded-md">
                 <p className="text-sm text-blue-600 font-medium">Enterprise Account ({selectedAccount?.Employee_Band__c})</p>
                 <p className="text-xs text-blue-600 mt-1">
                   Since this is an Enterprise account, the PMO Request flow is not triggered.

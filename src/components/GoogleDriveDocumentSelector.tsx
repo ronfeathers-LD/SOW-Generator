@@ -567,7 +567,7 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
                   <div
                     key={item.id}
                     className={`p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
-                      isSelected ? 'bg-blue-50 border-blue-200' : ''
+                      isSelected ? 'bg-green-50 border-green-200' : ''
                     }`}
                     onClick={() => isFolder ? handleFolderClick(item.id) : handleDocumentSelect(item)}
                   >
@@ -627,7 +627,7 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
                   <div
                     key={item.id}
                     className={`p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
-                      isSelected ? 'bg-blue-50 border-blue-200' : ''
+                      isSelected ? 'bg-green-50 border-green-200' : ''
                     }`}
                     onClick={() => isFolder ? handleFolderClick(item.id) : handleDocumentSelect(item)}
                   >
@@ -770,7 +770,7 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
           </div>
 
           {showPreview && (
-            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
               <div className="text-sm text-blue-800">
                 <strong>Total Content:</strong> {getTotalCharacters().toLocaleString()} characters will be analyzed
               </div>
