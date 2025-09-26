@@ -7,7 +7,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-gradient-to-r from-green-400 via-[#2db670] to-green-600 text-white shadow-lg mt-auto">
+    <footer className="text-white mt-auto" style={{backgroundColor: '#2a2a2a'}}>
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
@@ -19,11 +19,11 @@ export default function Footer() {
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-semibold">SOW Generator</h3>
-                <p className="text-sm text-green-100">Professional Statement of Work Creation</p>
+                <h3 className="text-lg font-semibold" style={{color: '#26D07C'}}>SOW Generator</h3>
+                <p className="text-sm text-white">Professional Statement of Work Creation</p>
               </div>
             </div>
-            <p className="text-green-100 text-sm leading-relaxed">
+            <p className="text-white text-sm leading-relaxed">
               Streamline your Statement of Work creation process with our intelligent, 
               Salesforce-integrated platform. Built for sales teams and project managers.
             </p>
@@ -31,20 +31,20 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-white font-semibold mb-4">Quick Links</h4>
+            <h4 className="font-semibold mb-4" style={{color: '#26D07C'}}>Quick Links</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/dashboard" className="text-green-100 hover:text-white transition-colors text-sm">
+                <Link href="/dashboard" className="text-white hover:text-gray-300 transition-colors text-sm">
                   Dashboard
                 </Link>
               </li>
               <li>
-                <Link href="/sow" className="text-green-100 hover:text-white transition-colors text-sm">
+                <Link href="/sow" className="text-white hover:text-gray-300 transition-colors text-sm">
                   View SOWs
                 </Link>
               </li>
               <li>
-                <Link href="/sow/new" className="text-green-100 hover:text-white transition-colors text-sm">
+                <Link href="/sow/new" className="text-white hover:text-gray-300 transition-colors text-sm">
                   Create New SOW
                 </Link>
               </li>
@@ -53,12 +53,12 @@ export default function Footer() {
 
           {/* Support */}
           <div>
-            <h4 className="text-white font-semibold mb-4">Support</h4>
+            <h4 className="font-semibold mb-4" style={{color: '#26D07C'}}>Support</h4>
             <ul className="space-y-2">
               <li>
                 <a 
                   href="mailto:ron.feathers@leandata.com?subject=SOW%20Generator%20Support" 
-                  className="text-green-100 hover:text-white transition-colors text-sm"
+                  className="text-white hover:text-gray-300 transition-colors text-sm"
                 >
                   Contact Support
                 </a>
@@ -66,13 +66,13 @@ export default function Footer() {
               <li>
                 <a 
                   href="mailto:ron.feathers@leandata.com?subject=SOW%20Generator%20Bug" 
-                  className="text-green-100 hover:text-white transition-colors text-sm"
+                  className="text-white hover:text-gray-300 transition-colors text-sm"
                 >
                   Report Bug
                 </a>
               </li>
               <li>
-                <span className="text-green-100 text-sm">
+                <span className="text-white text-sm">
                   Version: Beta
                 </span>
               </li>
@@ -81,13 +81,13 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-white/20 pt-6 mt-8">
+        <div className="border-t border-gray-600 pt-6 mt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="text-green-100 text-sm">
+            <div className="text-white text-sm">
               © {currentYear} LeanData. All rights reserved.
             </div>
             <div className="flex items-center space-x-4 mt-4 md:mt-0">
-              <span className="text-green-100 text-xs">
+              <span className="text-white text-xs">
                 Built with Next.js & Supabase
               </span>
             </div>
