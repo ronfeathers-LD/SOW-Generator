@@ -7,6 +7,35 @@ import { processContent } from './text-to-html';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
+// Interface for change order data used in PDF generation
+interface ChangeOrderPDFData {
+  change_order_number: string;
+  change_number: number;
+  change_requestor: string;
+  change_categories: string[];
+  reason_for_change: string;
+  change_description: string;
+  project_name: string;
+  client_signer_name: string;
+  client_signer_title: string;
+  client_signer_email: string;
+  leandata_signer_name: string;
+  leandata_signer_title: string;
+  leandata_signer_email: string;
+  order_form_date: string | Date | null;
+  associated_po: string;
+  pricing_roles?: Array<{
+    role: string;
+    ratePerHour: number;
+    totalHours: number;
+    totalCost: number;
+  }>;
+  total_change_amount?: number;
+  sow?: {
+    client_name?: string;
+  };
+}
+
 /**
  * Convert LeanData logo to base64 for PDF embedding
  */
@@ -1255,6 +1284,421 @@ export class PDFGenerator {
   // Helper method to parse objectives that might be stored as HTML
   private parseObjectivesInternal(field: unknown): string[] {
     return parseObjectives(field);
+  }
+
+  async generateChangeOrderPDF(changeOrderData: ChangeOrderPDFData): Promise<Uint8Array> {
+    // Starting PDF generation for change order: ${changeOrderData.change_order_number}
+    
+    try {
+      await this.initialize();
+      
+      if (!this.browser) {
+        throw new Error('Browser not initialized');
+      }
+
+      // Browser initialized successfully
+      const page = await this.browser.newPage();
+      // New page created
+      
+      try {
+        // Generate HTML content for the change order
+        // Generating HTML content...
+        const htmlContent = this.generateChangeOrderHTML(changeOrderData);
+        // HTML content generated, length: ${htmlContent.length}
+        
+        // Set content and wait for any dynamic content to load
+        // Setting page content...
+        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+        // Page content set successfully
+        
+        // Set viewport for consistent rendering
+        await page.setViewport({ width: 1200, height: 1600 });
+        // Viewport set
+        
+        // Generate PDF
+        // Generating PDF...
+        const pdfBuffer = await page.pdf({
+          format: 'A4',
+          printBackground: true,
+          margin: {
+            top: '0.5in',
+            right: '0.5in',
+            bottom: '0.5in',
+            left: '0.5in'
+          }
+        });
+        
+        // PDF generated successfully, size: ${pdfBuffer.length} bytes
+        return new Uint8Array(pdfBuffer);
+        
+      } catch (error) {
+        console.error('❌ Error during PDF generation process:', error);
+        throw error;
+      } finally {
+        await page.close();
+        // Page closed
+      }
+      
+    } catch (error) {
+      console.error('❌ Error in generateChangeOrderPDF:', error);
+      throw error;
+    }
+  }
+
+  private generateChangeOrderHTML(changeOrderData: ChangeOrderPDFData): string {
+    const {
+      change_order_number,
+      change_number,
+      change_requestor,
+      change_categories,
+      reason_for_change,
+      change_description,
+      project_name,
+      client_signer_name,
+      client_signer_title,
+      client_signer_email,
+      leandata_signer_name,
+      leandata_signer_title,
+      leandata_signer_email,
+      order_form_date,
+      associated_po,
+      pricing_roles,
+      total_change_amount,
+      sow
+    } = changeOrderData;
+
+    // Format dates
+    const formatDate = (date: unknown): string => {
+      if (!date) return 'N/A';
+      if (typeof date === 'string') {
+        return new Date(date).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      }
+      if (date instanceof Date) {
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      }
+      return 'N/A';
+    };
+
+    // Format order form date
+    const formattedOrderFormDate = formatDate(order_form_date);
+
+    // Get client name from SOW
+    const clientName = sow?.client_name || 'Customer';
+
+    // Generate change categories display with checkboxes
+    const allCategories = ['Schedule', 'Cost', 'Scope', 'Testing (Quality)', 'Resources', 'Artifacts'];
+    const categoriesDisplay = allCategories.map((cat: string) => {
+      const isChecked = change_categories?.includes(cat) || false;
+      return `<div class="category-card ${isChecked ? 'checked' : ''}">
+        <span class="category-checkbox ${isChecked ? 'checked' : ''}">
+          ${isChecked ? '<span class="category-checkmark">✓</span>' : ''}
+        </span>
+        ${cat}
+      </div>`;
+    }).join('');
+
+    return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Change Order: ${change_order_number}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.3;
+            margin: 0;
+            padding: 30px;
+            color: #000;
+            font-size: 11pt;
+        }
+        .title {
+            font-size: 16pt;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .intro-text {
+            margin-bottom: 20px;
+            text-align: left;
+            font-size: 11pt;
+            line-height: 1.4;
+        }
+        .details-section {
+            margin-bottom: 25px;
+        }
+        .details-section h3 {
+            font-size: 11pt;
+            font-weight: normal;
+            margin-bottom: 10px;
+            text-decoration: none;
+        }
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .details-table td {
+            padding: 4px 0;
+            border: none;
+            vertical-align: top;
+            text-align: left;
+        }
+        .details-table td:first-child {
+            font-weight: bold;
+            width: 180px;
+        }
+        .details-table td:last-child {
+            padding-left: 10px;
+        }
+        .change-categories {
+            margin-bottom: 25px;
+        }
+        .change-categories h3 {
+            font-size: 11pt;
+            font-weight: normal;
+            margin-bottom: 8px;
+            text-decoration: none;
+        }
+        .category-item {
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+        .category-card {
+            display: inline-block;
+            margin: 4px 8px 4px 0;
+            padding: 8px 12px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            background-color: #ffffff;
+            font-size: 10pt;
+            font-weight: 500;
+            color: #374151;
+        }
+        .category-card.checked {
+            background-color: #2563eb;
+            border-color: #2563eb;
+            color: #ffffff;
+        }
+        .category-checkbox {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #9ca3af;
+            border-radius: 4px;
+            margin-right: 8px;
+            vertical-align: middle;
+            background-color: #ffffff;
+        }
+        .category-card.checked .category-checkbox {
+            background-color: #ffffff;
+            border-color: #ffffff;
+        }
+        .category-checkmark {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin: 2px;
+            color: #2563eb;
+        }
+        .reason-section, .description-section {
+            margin-bottom: 25px;
+        }
+        .reason-section h3, .description-section h3 {
+            font-size: 11pt;
+            font-weight: normal;
+            margin-bottom: 8px;
+            text-decoration: none;
+        }
+        .reason-text, .description-text {
+            margin-bottom: 15px;
+            padding: 8px;
+            border: 1px solid #000;
+            min-height: 50px;
+            background-color: #fff;
+            font-size: 11pt;
+        }
+        .boilerplate-text {
+            margin-top: 15px;
+            padding: 12px;
+            background-color: #f8f8f8;
+            border: 1px solid #ccc;
+            font-size: 10pt;
+            line-height: 1.3;
+        }
+        .signature-section {
+            margin-top: 40px;
+            page-break-inside: avoid;
+        }
+        .signature-block {
+            display: inline-block;
+            width: 48%;
+            vertical-align: top;
+            margin-right: 4%;
+        }
+        .signature-block h3 {
+            font-size: 11pt;
+            font-weight: normal;
+            margin-bottom: 15px;
+            text-decoration: none;
+        }
+        .signature-field {
+            margin-bottom: 12px;
+        }
+        .signature-field label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 3px;
+            font-size: 10pt;
+        }
+        .signature-line {
+            border-bottom: 1px solid #000;
+            height: 20px;
+            margin-bottom: 6px;
+            width: 100%;
+        }
+        .signature-value {
+            font-size: 10pt;
+            margin-bottom: 3px;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+    </style>
+</head>
+<body>
+    <div class="title">Change Order : ${change_order_number}</div>
+
+    <div class="intro-text">
+        <p>This Change Order ("CO"), is effective as of signature of the document ("CO Effective Date") and is being entered into in accordance with and pursuant to the Order Form by and between <strong>${clientName}</strong>, ("Customer") and <strong>LeanData, Inc.</strong>, ("LeanData"), dated <strong>${formattedOrderFormDate}</strong>, ("Order Form"). The following Change Order defines the additional or change in services.</p>
+    </div>
+
+    <div class="details-section">
+        <div>The following provides the details of the changes as part of the CO :</div>
+        <table class="details-table">
+            <tr>
+                <td><strong>Project</strong></td>
+                <td>${project_name}</td>
+            </tr>
+            <tr>
+                <td><strong>Change Requestor</strong></td>
+                <td>${change_requestor}</td>
+            </tr>
+            <tr>
+                <td><strong>Change Number</strong></td>
+                <td>${change_number}</td>
+            </tr>
+            <tr>
+                <td><strong>Associated PO</strong></td>
+                <td>${associated_po || 'N/A'}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="change-categories">
+        <h3>Change Category (Select all that apply):</h3>
+        <div class="category-item">${categoriesDisplay}</div>
+    </div>
+
+    <div class="reason-section">
+        <h3>Reason for Change:</h3>
+        <div class="reason-text">${reason_for_change}</div>
+    </div>
+
+    <div class="description-section">
+        <h3>Change Description:</h3>
+        <div class="description-text">
+            ${change_description}
+        </div>
+        ${pricing_roles && pricing_roles.length > 0 ? `
+        <div class="pricing-section" style="margin-top: 20px;">
+            <h3 style="font-size: 12pt; font-weight: bold; margin-bottom: 15px; text-decoration: underline;">Pricing Changes:</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+                <thead>
+                    <tr style="background-color: #f5f5f5;">
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left; font-weight: bold;">Role</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold;">Rate/Hr</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold;">Hours</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold;">Total Cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${pricing_roles.map((role) => `
+                    <tr>
+                        <td style="border: 1px solid #000; padding: 8px;">${role.role}</td>
+                        <td style="border: 1px solid #000; padding: 8px; text-align: center;">$${role.ratePerHour.toFixed(2)}</td>
+                        <td style="border: 1px solid #000; padding: 8px; text-align: center;">${role.totalHours}</td>
+                        <td style="border: 1px solid #000; padding: 8px; text-align: center;">$${role.totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                    `).join('')}
+                </tbody>
+                <tfoot>
+                    <tr style="background-color: #f0f0f0;">
+                        <td colspan="3" style="border: 1px solid #000; padding: 8px; font-weight: bold; text-align: right;">Total Change Order Amount:</td>
+                        <td style="border: 1px solid #000; padding: 8px; font-weight: bold; text-align: center;">$${(total_change_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        ` : ''}
+        <div class="boilerplate-text">
+            <p>As noted in the Order Form, the allocated effort and hours are valid for a period of 60 days. If the project is not completed by its due date, or if there is change in estimated effort/hours, LeanData will provide the Customer with cost estimates for additional Professional Services Engagement.</p>
+        </div>
+    </div>
+
+    <div class="signature-section">
+        <div class="signature-block">
+            <h3>Approved by ${clientName}:</h3>
+            <div class="signature-field">
+                <label>Name:</label>
+                <div class="signature-value">${client_signer_name}, ${client_signer_title}</div>
+            </div>
+            <div class="signature-field">
+                <label>Signature:</label>
+                <div class="signature-line"></div>
+            </div>
+            <div class="signature-field">
+                <label>Date:</label>
+                <div class="signature-line"></div>
+            </div>
+            <div class="signature-field">
+                <label>Email:</label>
+                <div class="signature-value">${client_signer_email}</div>
+            </div>
+        </div>
+
+        <div class="signature-block">
+            <h3>Approved by LeanData, Inc.:</h3>
+            <div class="signature-field">
+                <label>Name:</label>
+                <div class="signature-value">${leandata_signer_name}, ${leandata_signer_title}</div>
+            </div>
+            <div class="signature-field">
+                <label>Signature:</label>
+                <div class="signature-line"></div>
+            </div>
+            <div class="signature-field">
+                <label>Date:</label>
+                <div class="signature-line"></div>
+            </div>
+            <div class="signature-field">
+                <label>Email:</label>
+                <div class="signature-value">${leandata_signer_email}</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+    `;
   }
 
   async close() {

@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { getSlackService } from '@/lib/slack';
 import { getEmailService } from '@/lib/email';
 import { getSOWUrl } from '@/lib/utils/app-url';
+import { authOptions } from '@/lib/auth';
 
 export async function GET(
   request: Request,
@@ -153,6 +154,8 @@ export async function GET(
       salesforce_account_owner_email: sow.salesforce_account_owner_email || null,
       // Include LeanData signatory ID
       leandata_signatory_id: sow.leandata_signatory_id || null,
+      // Include account segment
+      account_segment: sow.account_segment || null,
       // Include custom content fields
       custom_intro_content: sow.custom_intro_content || null,
       custom_scope_content: sow.custom_scope_content || null,
@@ -212,6 +215,65 @@ export async function GET(
     console.log('SOW GET: rejected_at field:', sow.rejected_at);
     console.log('SOW GET: status field:', sow.status);
     
+    // 🔍 LOG: SOW data being returned
+    console.log('🔍 SOW GET - Raw SOW Data:', {
+      sowId: sow.id,
+      sowTitle: sow.sow_title,
+      clientName: sow.client_name,
+      account_segment: sow.account_segment,
+      salesforce_account_id: sow.salesforce_account_id,
+      salesforce_account_owner_name: sow.salesforce_account_owner_name,
+      salesforce_account_owner_email: sow.salesforce_account_owner_email
+    });
+
+    // 🔧 FIX: If account_segment is missing but we have salesforce_account_id, fetch it
+    if (!sow.account_segment && sow.salesforce_account_id) {
+      try {
+        console.log('🔧 FIX: Fetching missing account segment from Salesforce...');
+        const salesforceClient = await import('@/lib/salesforce').then(m => m.default);
+        
+        // Get Salesforce config
+        const { data: config } = await supabase
+          .from('salesforce_configs')
+          .select('*')
+          .eq('is_active', true)
+          .single();
+
+        if (config) {
+          await salesforceClient.authenticate(config.username, config.password, config.security_token || undefined, config.login_url);
+          const account = await salesforceClient.getAccount(sow.salesforce_account_id);
+          
+          if (account.Employee_Band__c) {
+            console.log(`🔧 FIX: Found account segment: ${account.Employee_Band__c}, updating SOW...`);
+            
+            // Update the SOW with the account segment
+            await supabase
+              .from('sows')
+              .update({ account_segment: account.Employee_Band__c })
+              .eq('id', sow.id);
+            
+            // Update the local sow object
+            sow.account_segment = account.Employee_Band__c;
+            // Also update the transformedSow object
+            transformedSow.account_segment = account.Employee_Band__c;
+            console.log(`🔧 FIX: SOW updated with account segment: ${account.Employee_Band__c}`);
+          }
+        }
+      } catch (error) {
+        console.error('🔧 FIX: Error fetching account segment:', error);
+      }
+    }
+    
+    console.log('🔍 SOW GET - Transformed SOW Data:', {
+      sowId: transformedSow.id,
+      sowTitle: transformedSow.template?.sow_title,
+      clientName: transformedSow.template?.client_name,
+      account_segment: transformedSow.account_segment,
+      salesforce_account_id: transformedSow.salesforce_account_id,
+      salesforce_account_owner_name: transformedSow.salesforce_account_owner_name,
+      salesforce_account_owner_email: transformedSow.salesforce_account_owner_email
+    });
+    
     return NextResponse.json(transformedSow);
   } catch (error) {
     console.error('Error fetching SOW:', error);
@@ -228,7 +290,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -255,7 +317,7 @@ export async function PUT(
     }
 
     // Prepare update data - only allow specific fields to be updated
-    const allowedFields = ['status', 'salesforce_account_id', 'salesforce_account_owner_name', 'salesforce_account_owner_email'];
+    const allowedFields = ['status', 'salesforce_account_id', 'salesforce_account_owner_name', 'salesforce_account_owner_email', 'account_segment'];
     const updateData: Record<string, unknown> = {};
     
     // Only include fields that are allowed and provided
@@ -556,7 +618,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -594,19 +656,36 @@ export async function DELETE(
       }, { status: 403 });
     }
 
-    // Check for versions
-    const { data: versions } = await supabase
-      .from('sows')
-      .select('id')
-      .eq('parent_id', id);
+    // Determine if this is hiding a single revision or the entire SOW family
+    const isRevision = existingSOW.parent_id !== null;
+    
+    let totalSOWs = 1;
+    let hideQuery;
 
-    const hasVersions = versions && versions.length > 0;
+    if (isRevision) {
+      // Hiding a single revision - only hide this specific SOW
+      hideQuery = supabase
+        .from('sows')
+        .update({ is_hidden: true })
+        .eq('id', id);
+    } else {
+      // Hiding the original SOW - hide the entire family (original + all revisions)
+      const { data: allRelatedSOWs } = await supabase
+        .from('sows')
+        .select('id')
+        .or(`id.eq.${id},parent_id.eq.${id}`)
+        .eq('is_hidden', false);
+      
+      totalSOWs = allRelatedSOWs ? allRelatedSOWs.length : 1;
+      
+      hideQuery = supabase
+        .from('sows')
+        .update({ is_hidden: true })
+        .or(`id.eq.${id},parent_id.eq.${id}`);
+    }
 
-    // Soft delete: Hide the SOW and all its versions by setting is_hidden = true
-    const { error: hideError } = await supabase
-      .from('sows')
-      .update({ is_hidden: true })
-      .or(`id.eq.${id},parent_id.eq.${id}`);
+    // Execute the hide operation
+    const { error: hideError } = await hideQuery;
 
     if (hideError) {
       console.error('Error hiding SOW:', hideError);
@@ -616,9 +695,9 @@ export async function DELETE(
       );
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'SOW hidden successfully',
-      hiddenVersions: hasVersions ? versions?.length + 1 : 1
+      hiddenVersions: totalSOWs
     });
   } catch (error) {
     console.error('Error hiding SOW:', error);

@@ -85,6 +85,16 @@ export default function Navigation() {
                 SOWs
               </Link>
               <Link 
+                href="/change-orders" 
+                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  pathname.startsWith('/change-orders') 
+                    ? 'border-white text-white' 
+                    : 'border-transparent text-green-100 hover:border-green-200 hover:text-white'
+                }`}
+              >
+                Change Orders
+              </Link>
+              <Link 
                 href="/pricing-calculator" 
                 className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
                   pathname.startsWith('/pricing-calculator') 

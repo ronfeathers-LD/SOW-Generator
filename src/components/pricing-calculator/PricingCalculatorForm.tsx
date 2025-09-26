@@ -302,12 +302,13 @@ export default function PricingCalculatorForm({ products, data, onChange }: Pric
           <p><strong>Selected Products:</strong> {localData.products.length}</p>
           <p><strong>Account Segment:</strong> {localData.account_segment || 'Not specified'}</p>
           <p><strong>Total Units:</strong> {
-            (parseInt(localData.number_of_units) || 0) + 
-            (parseInt(localData.orchestration_units) || 0) + 
             Math.max(
-              parseInt(localData.bookit_forms_units) || 0,
-              parseInt(localData.bookit_links_units) || 0,
-              parseInt(localData.bookit_handoff_units) || 0
+              (parseInt(localData.number_of_units) || 0) + (parseInt(localData.orchestration_units) || 0),
+              Math.max(
+                parseInt(localData.bookit_forms_units) || 0,
+                parseInt(localData.bookit_links_units) || 0,
+                parseInt(localData.bookit_handoff_units) || 0
+              )
             )
           }</p>
         </div>

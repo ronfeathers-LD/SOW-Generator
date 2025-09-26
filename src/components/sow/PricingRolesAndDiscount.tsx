@@ -100,6 +100,8 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   const [showPricingCalculator, setShowPricingCalculator] = useState(false);
   const [showPMHoursRemovalModal, setShowPMHoursRemovalModal] = useState(false);
   const [showPMHoursApprovalOverlay, setShowPMHoursApprovalOverlay] = useState(false);
+  const [showEnterprisePMRemovalModal, setShowEnterprisePMRemovalModal] = useState(false);
+  const [pmRoleToRemove, setPmRoleToRemove] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [isManuallyEditing, setIsManuallyEditing] = useState(false);
   const hasAutoCalculated = useRef(false);
@@ -335,6 +337,21 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     checkPMHoursStatus();
   };
 
+  // Handle Enterprise PM removal confirmation
+  const handleEnterprisePMRemovalConfirm = () => {
+    if (pmRoleToRemove) {
+      setPricingRoles(pricingRoles.filter(role => role.id !== pmRoleToRemove));
+      setPmRoleToRemove(null);
+    }
+    setShowEnterprisePMRemovalModal(false);
+  };
+
+  // Handle Enterprise PM removal cancellation
+  const handleEnterprisePMRemovalCancel = () => {
+    setPmRoleToRemove(null);
+    setShowEnterprisePMRemovalModal(false);
+  };
+
   // Update role
   const updateRole = (id: string, field: keyof PricingRole, value: string | number) => {
     // Set manual editing flag when user changes hours or rates
@@ -386,11 +403,16 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     const roleToRemove = pricingRoles.find(role => role.id === id);
     
     if (roleToRemove?.role === 'Project Manager') {
-      // For Project Manager, only allow PM Hours Removal for EC and MM accounts
+      // For Project Manager, handle different account segments differently
       if (selectedAccount?.Employee_Band__c === 'EC' || selectedAccount?.Employee_Band__c === 'MM') {
+        // EC and MM accounts: trigger PM Hours Removal flow (approval required)
         setShowPMHoursRemovalModal(true);
+      } else if (selectedAccount?.Employee_Band__c === 'EE' || selectedAccount?.Employee_Band__c === 'LE') {
+        // EE and LE accounts: show confirmation modal and remove directly
+        setPmRoleToRemove(id);
+        setShowEnterprisePMRemovalModal(true);
       } else {
-        // For other account segments, just remove the role directly
+        // Other account segments: remove directly
         setPricingRoles(pricingRoles.filter(role => role.id !== id));
       }
     } else {
@@ -550,6 +572,13 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                         >
                           (Request Pending)
                         </button>
+                      ) : approvedPMHoursRequest ? (
+                        <button
+                          onClick={() => setShowPMHoursApprovalOverlay(true)}
+                          className="text-xs text-green-600 hover:text-green-800 underline"
+                        >
+                          (Removed - Click to Review)
+                        </button>
                       ) : (
                         <button
                           onClick={() => setShowPMHoursRemovalModal(true)}
@@ -565,12 +594,40 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
               </>
             )}
 
+            {/* Show PM hours removal controls even when PM hours are removed */}
             {!roleDistribution.projectManagerHours && shouldAddProjectManager && (
               <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-900">Onboarding Specialist:</span>
-                <span className="font-semibold text-gray-900">{roleDistribution.onboardingSpecialistHours} hours</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-900">Project Manager (45%):</span>
+                  {(selectedAccount?.Employee_Band__c === 'EC' || selectedAccount?.Employee_Band__c === 'MM' || !selectedAccount?.Employee_Band__c) && (
+                    pendingPMHoursRequest ? (
+                      <button
+                        onClick={() => setShowPMHoursApprovalOverlay(true)}
+                        className="text-xs text-blue-600 hover:text-blue-800 underline"
+                      >
+                        (Request Pending)
+                      </button>
+                    ) : approvedPMHoursRequest ? (
+                      <button
+                        onClick={() => setShowPMHoursApprovalOverlay(true)}
+                        className="text-xs text-green-600 hover:text-green-800 underline"
+                      >
+                        (Removed - Click to Review)
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setShowPMHoursRemovalModal(true)}
+                        className="text-xs text-blue-600 hover:text-blue-800 underline"
+                      >
+                        (Request Removal)
+                      </button>
+                    )
+                  )}
+                </div>
+                <span className="font-semibold text-gray-900">0 hours</span>
               </div>
             )}
+
 
             <div className="flex justify-between items-center border-t pt-3">
               <span className="font-semibold text-lg text-gray-900">Total Hours:</span>
@@ -1036,6 +1093,72 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
           requestId={pendingPMHoursRequest.id}
           onStatusChange={handlePMHoursRemovalRequestSubmitted}
         />
+      )}
+
+      {/* Enterprise PM Removal Confirmation Modal */}
+      {showEnterprisePMRemovalModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">
+                Remove Project Manager Hours
+              </h2>
+              <button
+                onClick={handleEnterprisePMRemovalCancel}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Account Segment Info */}
+              <div className="bg-blue-50 p-3 rounded-md">
+                <p className="text-sm text-blue-600 font-medium">Enterprise Account ({selectedAccount?.Employee_Band__c})</p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Since this is an Enterprise account, the PMO Request flow is not triggered.
+                </p>
+              </div>
+
+              {/* Current PM Hours Display */}
+              <div className="bg-red-50 p-3 rounded-md">
+                <p className="text-sm text-red-600">Current PM Hours</p>
+                <p className="text-lg font-semibold text-red-900">{roleDistribution.projectManagerHours} hours</p>
+                <p className="text-xs text-red-600">
+                  Financial Impact: ${(roleDistribution.projectManagerHours * 250).toLocaleString()}
+                </p>
+              </div>
+
+              {/* Warning Message */}
+              <div className="bg-yellow-50 p-3 rounded-md">
+                <p className="text-sm text-yellow-800 font-medium">⚠️ Important Notice</p>
+                <p className="text-xs text-yellow-700 mt-1">
+                  PM hours will be removed from this SOW. You can add them back later by recalculating hours or manually adding the Project Manager role.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={handleEnterprisePMRemovalCancel}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEnterprisePMRemovalConfirm}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  Remove PM Hours
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

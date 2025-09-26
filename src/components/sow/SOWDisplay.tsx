@@ -1530,6 +1530,20 @@ export default function SOWDisplay({
                             </svg>
                             Create New Revision
                           </button>
+                          
+                          {/* Create Change Order Button */}
+                          <button
+                            onClick={() => {
+                              // Navigate to change orders page with this SOW pre-selected
+                              window.location.href = `/change-orders?sowId=${sow.id}`;
+                            }}
+                            className="w-full bg-orange-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 mb-3"
+                          >
+                            <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Create Change Order
+                          </button>
                         </div>
 
                         {/* Save to Google Drive Button */}

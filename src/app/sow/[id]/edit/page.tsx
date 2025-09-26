@@ -20,6 +20,17 @@ export default function EditSOWPage() {
         if (response.ok) {
           const data = await response.json();
           
+          // 🔍 LOG: Raw API response data
+          console.log('🔍 EDIT PAGE - Raw API Response:', {
+            sowId: data.id,
+            sowTitle: data.template?.sow_title,
+            clientName: data.template?.client_name,
+            account_segment: data.account_segment,
+            salesforce_account_id: data.salesforce_account_id,
+            salesforce_account_owner_name: data.salesforce_account_owner_name,
+            salesforce_account_owner_email: data.salesforce_account_owner_email
+          });
+          
           // Check if SOW is editable
           const status = data.status;
           
@@ -43,6 +54,8 @@ export default function EditSOWPage() {
             salesforce_account_owner_email: data.salesforce_account_owner_email,
             // Include salesforce_contact_id
             salesforce_contact_id: data.salesforce_contact_id,
+            // Include account segment
+            account_segment: data.account_segment,
             // Use the template data from the API response, merging with top-level fields
             template: {
               ...data.template,
@@ -119,6 +132,7 @@ export default function EditSOWPage() {
               BillingCountry: '',
               Billing_Contact__c: '',
               Billing_Email__c: '',
+              Employee_Band__c: data.account_segment || '', // Include account segment
             } as SalesforceAccount : undefined,
             // Include custom content fields
             custom_intro_content: data.custom_intro_content || null,
@@ -138,6 +152,22 @@ export default function EditSOWPage() {
             objective_overview_content_edited: data.objective_overview_content_edited || false,
             key_objectives_content_edited: data.key_objectives_content_edited || false,
           };
+
+          // 🔍 LOG: Transformed data being set
+          console.log('🔍 EDIT PAGE - Transformed Data:', {
+            sowId: transformedData.id,
+            sowTitle: transformedData.template?.sow_title,
+            clientName: transformedData.template?.client_name,
+            account_segment: transformedData.account_segment,
+            salesforce_account_id: transformedData.salesforce_account_id,
+            salesforce_account_owner_name: transformedData.salesforce_account_owner_name,
+            salesforce_account_owner_email: transformedData.salesforce_account_owner_email,
+            selectedAccount: transformedData.selectedAccount ? {
+              Id: transformedData.selectedAccount.Id,
+              Name: transformedData.selectedAccount.Name,
+              Employee_Band__c: transformedData.selectedAccount.Employee_Band__c
+            } : null
+          });
 
           setSOW(transformedData);
         } else {

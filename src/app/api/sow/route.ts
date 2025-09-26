@@ -4,11 +4,12 @@ import { ChangelogService } from '@/lib/changelog-service';
 import { supabaseApi } from '@/lib/supabase-api';
 import { getSlackService } from '@/lib/slack';
 import { getSOWUrl } from '@/lib/utils/app-url';
+import { authOptions } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
     // Check authentication
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -94,6 +95,7 @@ export async function POST(request: Request) {
         salesforce_account_id: data.selectedAccount?.id || null,
         salesforce_account_owner_name: data.selectedAccount?.Owner?.Name || '',
         salesforce_account_owner_email: data.selectedAccount?.Owner?.Email || '',
+        account_segment: data.selectedAccount?.Employee_Band__c || data.selectedAccount?.accountSegment || null,
         
         // Author tracking
         author_id: user.id,
@@ -258,7 +260,7 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     // Check authentication
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

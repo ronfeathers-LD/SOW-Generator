@@ -388,20 +388,31 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
       // Set selected account if available from initialData or if customer name exists
       if (initialData.selectedAccount) {
-        console.log('🔍 SOWForm: Using selectedAccount from initialData');
+        console.log('🔍 SOWForm: Using selectedAccount from initialData:', {
+          Id: initialData.selectedAccount.Id,
+          Name: initialData.selectedAccount.Name,
+          Employee_Band__c: initialData.selectedAccount.Employee_Band__c
+        });
         setSelectedAccount(initialData.selectedAccount);
       } else if (initialData.template?.client_name || initialData.header?.client_name) {
         const accountId = initialData.salesforce_account_id || '';
         const reconstructedAccount = {
           Id: accountId, // Use the Salesforce account ID if available
           Name: initialData.template?.client_name || initialData.header?.client_name || '',
+          // Include account segment from stored data
+          Employee_Band__c: initialData.account_segment || '',
           // Include account owner information if available
           Owner: (initialData.salesforce_account_owner_name || initialData.salesforce_account_owner_email) ? {
             Name: initialData.salesforce_account_owner_name || '',
             Email: initialData.salesforce_account_owner_email || ''
           } : undefined
         };
-        console.log('🔍 SOWForm: Reconstructing selectedAccount:', reconstructedAccount);
+        console.log('🔍 SOWForm: Reconstructing selectedAccount:', {
+          Id: reconstructedAccount.Id,
+          Name: reconstructedAccount.Name,
+          Employee_Band__c: reconstructedAccount.Employee_Band__c,
+          account_segment_from_initialData: initialData.account_segment
+        });
         setSelectedAccount(reconstructedAccount);
       }
       

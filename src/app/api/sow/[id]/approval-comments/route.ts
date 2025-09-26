@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { AuditService } from '@/lib/audit-service';
 import { SlackMentionService } from '@/lib/slack-mention-service';
+import { authOptions } from '@/lib/auth';
 
 // GET - Fetch approval comments for a SOW
 export async function GET(
@@ -12,7 +13,7 @@ export async function GET(
   try {
     const supabase = await createServerSupabaseClient();
     
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
@@ -88,7 +89,7 @@ export async function POST(
   try {
     const supabase = await createServerSupabaseClient();
     
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return new NextResponse('Unauthorized', { status: 401 });
     }

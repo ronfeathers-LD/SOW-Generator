@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
@@ -61,6 +61,18 @@ export default function CustomerInformationTab({
   getSalesforceLink,
   onLogoChange,
 }: CustomerInformationTabProps) {
+  
+  // 🔍 LOG: Account segment display
+  useEffect(() => {
+    console.log('🔍 CUSTOMER INFO TAB - Account Segment Display:', {
+      selectedAccount: selectedAccount ? {
+        Id: selectedAccount.Id,
+        Name: selectedAccount.Name,
+        Employee_Band__c: selectedAccount.Employee_Band__c
+      } : null,
+      displayValue: selectedAccount?.Employee_Band__c || 'N/A'
+    });
+  }, [selectedAccount]);
   const [currentStep, setCurrentStep] = useState<SelectionStep>('account');
   const [, setIsLoadingOpportunities] = useState(false);
 

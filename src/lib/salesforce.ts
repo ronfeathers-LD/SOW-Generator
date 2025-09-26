@@ -268,7 +268,7 @@ class SalesforceClient {
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
                BillingPostalCode, BillingCountry, Industry, NumberOfEmployees,
-               Owner.Name, Owner.Email
+               Employee_Band__c, Owner.Name, Owner.Email
         FROM Account 
         WHERE Name LIKE '%${escapedSearchTerm}%' 
            OR BillingCity LIKE '%${escapedSearchTerm}%'
@@ -280,28 +280,35 @@ class SalesforceClient {
       
       const result = await this.conn.query(query);
       
-      // Calculate account segment for each account based on NumberOfEmployees
+      // Use the actual Employee_Band__c field from Salesforce, fallback to calculation if not available
       result.records.forEach((record: Record<string, unknown>) => {
         const numberOfEmployees = record.NumberOfEmployees as number;
         const accountName = record.Name as string;
+        const salesforceSegment = record.Employee_Band__c as string;
         
-        if (numberOfEmployees !== null && numberOfEmployees !== undefined && typeof numberOfEmployees === 'number') {
-          let calculatedSegment = '';
-          if (numberOfEmployees > 4500) {
-            calculatedSegment = 'LE';
-          } else if (numberOfEmployees >= 1001) {
-            calculatedSegment = 'EE';
-          } else if (numberOfEmployees >= 251) {
-            calculatedSegment = 'MM';
-          } else {
-            calculatedSegment = 'EC';
-          }
-          
-          record.Employee_Band__c = calculatedSegment;
-          console.log(`✅ Search: Calculated Account Segment for ${accountName}: ${calculatedSegment} (${numberOfEmployees} employees)`);
+        // If Salesforce has the Employee_Band__c field, use it
+        if (salesforceSegment) {
+          console.log(`✅ Search: Using Salesforce Account Segment for ${accountName}: ${salesforceSegment}`);
         } else {
-          console.log(`⚠️ Search: No employee count available for ${accountName}`);
-          record.Employee_Band__c = undefined;
+          // Fallback to calculation based on NumberOfEmployees if Salesforce field is empty
+          if (numberOfEmployees !== null && numberOfEmployees !== undefined && typeof numberOfEmployees === 'number') {
+            let calculatedSegment = '';
+            if (numberOfEmployees > 4500) {
+              calculatedSegment = 'LE';
+            } else if (numberOfEmployees >= 1001) {
+              calculatedSegment = 'EE';
+            } else if (numberOfEmployees >= 251) {
+              calculatedSegment = 'MM';
+            } else {
+              calculatedSegment = 'EC';
+            }
+            
+            record.Employee_Band__c = calculatedSegment;
+            console.log(`⚠️ Search: Salesforce Employee_Band__c empty for ${accountName}, calculated: ${calculatedSegment} (${numberOfEmployees} employees)`);
+          } else {
+            console.log(`⚠️ Search: No employee count or Salesforce segment available for ${accountName}`);
+            record.Employee_Band__c = undefined;
+          }
         }
       });
       

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense, useCallback } from 'react';
+import React, { useEffect, useState, Suspense, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { getStatusColor } from '@/lib/utils/statusUtils';
@@ -17,6 +17,7 @@ interface SOW {
   version?: number;
   is_latest?: boolean;
   parent_id?: string;
+  revisions?: SOW[]; // Add revisions for hierarchical display
 }
 
 function SOWListContent() {
@@ -104,6 +105,36 @@ function SOWListContent() {
     fetchSOWs();
   }, []);
 
+  // Group SOWs hierarchically (parent SOWs with their revisions)
+  const groupSOWsHierarchically = useCallback((sowsToGroup: SOW[]) => {
+    // First, identify root SOWs (those without parent_id)
+    const rootSOWs = sowsToGroup.filter(sow => !sow.parent_id);
+    
+    // Group revisions by their parent_id
+    const revisionsByParent = sowsToGroup.reduce((acc, sow) => {
+      if (sow.parent_id) {
+        if (!acc[sow.parent_id]) {
+          acc[sow.parent_id] = [];
+        }
+        acc[sow.parent_id].push(sow);
+      }
+      return acc;
+    }, {} as Record<string, SOW[]>);
+    
+    // Create hierarchical structure
+    const hierarchicalSOWs: (SOW & { revisions?: SOW[] })[] = [];
+    
+    rootSOWs.forEach(rootSOW => {
+      const revisions = revisionsByParent[rootSOW.id] || [];
+      hierarchicalSOWs.push({
+        ...rootSOW,
+        revisions: revisions.sort((a, b) => (a.version || 1) - (b.version || 1))
+      });
+    });
+    
+    return hierarchicalSOWs;
+  }, []);
+
   // Filter and sort SOWs based on status filter and sort config
   useEffect(() => {
     let filtered = sows;
@@ -115,8 +146,119 @@ function SOWListContent() {
     // Apply sorting
     filtered = sortSOWs(filtered);
     
-    setFilteredSows(filtered);
-  }, [sows, statusFilter, sortConfig, sortSOWs]);
+    // Group hierarchically
+    const hierarchicalSOWs = groupSOWsHierarchically(filtered);
+    
+    setFilteredSows(hierarchicalSOWs);
+  }, [sows, statusFilter, sortConfig, sortSOWs, groupSOWsHierarchically]);
+
+  // Helper function to render a single SOW row
+  const renderSOWRow = (sow: SOW, isRevision: boolean = false) => (
+    <tr key={sow.id} className={isRevision ? 'bg-gray-50' : ''}>
+      <td className={`py-4 pr-3 text-sm font-medium text-gray-900 ${isRevision ? 'pl-8' : 'pl-4'}`}>
+        <div className="flex items-center space-x-2">
+          {isRevision && (
+            <span className="text-gray-400 text-xs">└─</span>
+          )}
+          <span>{sow.client_name || 'N/A'}</span>
+        </div>
+      </td>
+      <td className="px-3 py-4 text-sm text-gray-500 break-words">
+        <div className="space-y-1">
+          <div>{sow.sow_title || 'N/A'}</div>
+          {(sow.version && sow.version > 1) && (
+            <div className="text-xs text-blue-600 font-medium">
+              v{sow.version}
+              {sow.is_latest ? ' (Latest)' : ' (Previous)'}
+            </div>
+          )}
+          {isRevision && (
+            <div className="text-xs text-gray-400">
+              Revision of original SOW
+            </div>
+          )}
+        </div>
+      </td>
+      <td className="px-3 py-4 text-sm text-gray-500">
+        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(sow.status)}`}>
+          {getStatusLabel(sow.status)}
+        </span>
+      </td>
+      <td className="px-3 py-4 text-sm text-gray-500">
+        {(() => {
+          try {
+            if (sow.created_at) {
+              const date = new Date(sow.created_at);
+              return (
+                <div>
+                  <div>{date.toLocaleDateString()}</div>
+                  <div>{date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                </div>
+              );
+            }
+            return 'N/A';
+          } catch (error) {
+            console.error('Error parsing created_at:', error, sow.created_at);
+            return 'N/A';
+          }
+        })()}
+      </td>
+      <td className="px-3 py-4 text-sm text-gray-500">
+        {sow.author || 'N/A'}
+      </td>
+      <td className="relative py-4 pl-3 pr-4 text-right text-sm font-medium">
+        <div className="flex justify-end space-x-3">
+          {sow.status === 'draft' && (
+            <Link
+              href={`/sow/${sow.id}/edit`}
+              className="text-green-600 hover:text-green-900 p-1"
+              title="Edit SOW"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </Link>
+          )}
+          <Link
+            href={`/sow/${sow.id}`}
+            className="text-indigo-600 hover:text-indigo-900 p-1"
+            title="View SOW"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          </Link>
+          {sow.status !== 'approved' && (
+            <button
+              onClick={() => handleHide(sow.id, sow.sow_title, sow.status)}
+              disabled={deletingId === sow.id}
+              className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed p-1"
+              title={sow.status === 'approved' ? 'Approved SOWs cannot be hidden' : 'Hide SOW'}
+            >
+              {deletingId === sow.id ? (
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              )}
+            </button>
+          )}
+          {sow.status === 'approved' && (
+            <span className="text-gray-400 cursor-not-allowed p-1" title="Approved SOWs cannot be hidden">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </span>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
 
   const handleHide = async (id: string, sowTitle: string, status: string) => {
     // Enhanced confirmation dialog
@@ -380,105 +522,14 @@ function SOWListContent() {
                   <tbody className="divide-y divide-gray-200 bg-white">
                     {filteredSows && filteredSows.length > 0 ? (
                       filteredSows.map((sow) => (
-                        <tr key={sow.id}>
-                          <td className="py-4 pl-4 pr-3 text-sm font-medium text-gray-900">
-                            {sow.client_name || 'N/A'}
-                          </td>
-                          <td className="px-3 py-4 text-sm text-gray-500 break-words">
-                            <div className="space-y-1">
-                              <div>{sow.sow_title || 'N/A'}</div>
-                              {(sow.version && sow.version > 1) && (
-                                <div className="text-xs text-blue-600 font-medium">
-                                  v{sow.version}
-                                  {sow.is_latest ? ' (Latest)' : ' (Previous)'}
-                                </div>
-                              )}
-                              {sow.parent_id && (
-                                <div className="text-xs text-gray-400">
-                                  Revision of original SOW
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-3 py-4 text-sm text-gray-500">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(sow.status)}`}>
-                              {getStatusLabel(sow.status)}
-                            </span>
-                          </td>
-                          <td className="px-3 py-4 text-sm text-gray-500">
-                            {(() => {
-                              try {
-                                if (sow.created_at) {
-                                  const date = new Date(sow.created_at);
-                                  return (
-                                    <div>
-                                      <div>{date.toLocaleDateString()}</div>
-                                      <div>{date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                                    </div>
-                                  );
-                                }
-                                return 'N/A';
-                              } catch (error) {
-                                console.error('Error parsing created_at:', error, sow.created_at);
-                                return 'N/A';
-                              }
-                            })()}
-                          </td>
-                          <td className="px-3 py-4 text-sm text-gray-500">
-                            {sow.author || 'N/A'}
-                          </td>
-                          <td className="relative py-4 pl-3 pr-4 text-right text-sm font-medium">
-                            <div className="flex justify-end space-x-3">
-                              {sow.status === 'draft' && (
-                                <Link
-                                  href={`/sow/${sow.id}/edit`}
-                                  className="text-green-600 hover:text-green-900 p-1"
-                                  title="Edit SOW"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
-                                </Link>
-                              )}
-                              <Link
-                                href={`/sow/${sow.id}`}
-                                className="text-indigo-600 hover:text-indigo-900 p-1"
-                                title="View SOW"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                              </Link>
-                              {sow.status !== 'approved' && (
-                                <button
-                                  onClick={() => handleHide(sow.id, sow.sow_title, sow.status)}
-                                  disabled={deletingId === sow.id}
-                                  className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed p-1"
-                                  title={sow.status === 'approved' ? 'Approved SOWs cannot be hidden' : 'Hide SOW'}
-                                >
-                                  {deletingId === sow.id ? (
-                                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                      <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                  ) : (
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                  )}
-                                </button>
-                              )}
-                              {sow.status === 'approved' && (
-                                <span className="text-gray-400 cursor-not-allowed p-1" title="Approved SOWs cannot be hidden">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
+                        <React.Fragment key={sow.id}>
+                          {/* Parent SOW */}
+                          {renderSOWRow(sow, false)}
+                          {/* Revisions */}
+                          {sow.revisions && sow.revisions.map((revision) => 
+                            renderSOWRow(revision, true)
+                          )}
+                        </React.Fragment>
                       ))
                     ) : (
                       <tr>

@@ -192,6 +192,9 @@ export interface SOWData {
   // LeanData Signatory
   leandata_signatory_id?: string;
   
+  // Account Information
+  account_segment?: string;
+  
   // Custom content fields
   custom_intro_content?: string;
   custom_scope_content?: string;
@@ -279,4 +282,128 @@ export interface PMHoursRequirementDisableDashboardItem {
   pmo_reviewer_name?: string;
   pmo_reviewer_email?: string;
   hours_since_request: number;
+}
+
+// Change Order Types
+export type ChangeOrderStatus = 'draft' | 'pending_approval' | 'approved' | 'rejected';
+
+export type ChangeCategory = 
+  | 'Schedule' 
+  | 'Cost' 
+  | 'Scope' 
+  | 'Testing (Quality)' 
+  | 'Resources' 
+  | 'Artifacts';
+
+export interface ChangeOrderData {
+  id?: string;
+  created_at?: Date;
+  updated_at?: Date;
+  
+  // Reference to original SOW
+  sow_id: string;
+  
+  // Change Order Details
+  change_order_number: string; // CO#01, CO#02, etc.
+  change_number: number;      // Sequential number (1, 2, 3...)
+  change_requestor: string;     // Who requested the change
+  
+  // Change Categories
+  change_categories: ChangeCategory[];
+  
+  // User Input Fields
+  reason_for_change: string;
+  change_description: string;
+  
+  // Project Details (copied from SOW)
+  project_name: string;
+  original_start_date?: Date;
+  original_end_date?: Date;
+  new_start_date?: Date;
+  new_end_date?: Date;
+  
+  // Signer Information (copied from SOW)
+  client_signer_name: string;
+  client_signer_title: string;
+  client_signer_email: string;
+  leandata_signer_name: string;
+  leandata_signer_title: string;
+  leandata_signer_email: string;
+  
+  // Order Form Details
+  order_form_date: Date;
+  
+  // Additional fields from template
+  associated_po?: string;
+  
+  // Pricing data (if Cost or Scope is selected)
+  pricing_roles?: Array<{
+    role: string;
+    ratePerHour: number;
+    totalHours: number;
+    totalCost: number;
+  }>;
+  total_change_amount?: number;
+  
+  // Status and Tracking
+  status: ChangeOrderStatus;
+  author_id?: string;
+  
+  // Soft delete
+  is_hidden?: boolean;
+}
+
+export interface ChangeOrderFormData {
+  // SOW Selection
+  sow_id: string;
+  
+  // Change Order Details
+  change_requestor: string;
+  change_categories: ChangeCategory[];
+  
+  // User Input Fields
+  reason_for_change: string;
+  change_description: string;
+  
+  // New Dates (if applicable)
+  new_start_date?: Date;
+  new_end_date?: Date;
+  
+  // Additional fields
+  associated_po?: string;
+  
+  // Pricing data (if Cost or Scope is selected)
+  pricing_roles?: Array<{
+    role: string;
+    ratePerHour: number;
+    totalHours: number;
+    totalCost: number;
+  }>;
+}
+
+export interface ChangeOrderWithSOW extends ChangeOrderData {
+  sow?: {
+    id: string;
+    sow_title: string;
+    client_name: string;
+    start_date?: Date;
+    template?: SOWTemplate;
+  };
+}
+
+export interface ChangeOrderCreationRequest {
+  sow_id: string;
+  change_requestor: string;
+  change_categories: ChangeCategory[];
+  reason_for_change: string;
+  change_description: string;
+  new_start_date?: Date;
+  new_end_date?: Date;
+  associated_po?: string;
+  pricing_roles?: Array<{
+    role: string;
+    ratePerHour: number;
+    totalHours: number;
+    totalCost: number;
+  }>;
 } 

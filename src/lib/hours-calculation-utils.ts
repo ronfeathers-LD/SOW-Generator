@@ -88,9 +88,11 @@ export function calculateUserGroupHours(template: Partial<SOWTemplate>): number 
   const bookitHandoffUnits = safeParseUnits(template?.bookit_handoff_units);
   const maxBookitUnits = Math.max(bookitFormsUnits, bookitLinksUnits, bookitHandoffUnits);
   
-  const totalUnits = safeParseUnits(template?.number_of_units) + 
-                    safeParseUnits(template?.orchestration_units) + 
-                    maxBookitUnits;
+  const orchestrationUnits = safeParseUnits(template?.number_of_units) + 
+                            safeParseUnits(template?.orchestration_units);
+  
+  // Take the maximum of orchestration and BookIt users (not the sum)
+  const totalUnits = Math.max(orchestrationUnits, maxBookitUnits);
   
   if (totalUnits >= 50) {
     return Math.floor(totalUnits / 50) * 5;
@@ -119,7 +121,8 @@ export function calculateTotalUnits(template: Partial<SOWTemplate>): number {
   const bookitHandoffUnits = safeParseUnits(template?.bookit_handoff_units);
   const maxBookitUnits = Math.max(bookitFormsUnits, bookitLinksUnits, bookitHandoffUnits);
   
-  const total = orchestrationUnits + maxBookitUnits;
+  // Take the maximum of orchestration and BookIt users (not the sum)
+  const total = Math.max(orchestrationUnits, maxBookitUnits);
   
   return total;
 }
