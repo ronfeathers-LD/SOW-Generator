@@ -951,7 +951,23 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
                   type="button"
                   onClick={handleSearchAvomaMeetings}
                   disabled={!fromDate || !toDate || isSearchingAvoma}
-                  className="w-full px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2 text-white text-sm rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: '#2a2a2a',
+                    border: '1px solid #26D07C'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!e.currentTarget.disabled) {
+                      (e.target as HTMLButtonElement).style.backgroundColor = '#01eb1d';
+                      (e.target as HTMLButtonElement).style.color = '#2a2a2a';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!e.currentTarget.disabled) {
+                      (e.target as HTMLButtonElement).style.backgroundColor = '#2a2a2a';
+                      (e.target as HTMLButtonElement).style.color = 'white';
+                    }
+                  }}
                 >
                   {isSearchingAvoma ? 'Searching...' : 'Search Meetings'}
                 </button>

@@ -420,7 +420,23 @@ export default function AvomaIntegration({
         <button
           onClick={handleSearch}
           disabled={isSearching || (!customer_name.trim() && !accountName) || !fromDate || !toDate}
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="w-full text-white py-2 px-4 rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed"
+          style={{
+            backgroundColor: '#2a2a2a',
+            border: '1px solid #26D07C'
+          }}
+          onMouseEnter={(e) => {
+            if (!e.currentTarget.disabled) {
+              (e.target as HTMLButtonElement).style.backgroundColor = '#01eb1d';
+              (e.target as HTMLButtonElement).style.color = '#2a2a2a';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!e.currentTarget.disabled) {
+              (e.target as HTMLButtonElement).style.backgroundColor = '#2a2a2a';
+              (e.target as HTMLButtonElement).style.color = 'white';
+            }
+          }}
         >
           {isSearching ? 'Searching Avoma...' : 'Find Avoma Calls'}
         </button>
