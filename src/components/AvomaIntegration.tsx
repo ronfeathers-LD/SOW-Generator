@@ -530,7 +530,7 @@ export default function AvomaIntegration({
 
 
             {searchResults.searchContext && (
-              <div className="p-4 bg-green-50 rounded-md">
+              <div className="p-4 bg-white rounded-md">
                 <h4 className="font-medium text-blue-900 mb-2">Search Context</h4>
                 <div className="text-sm text-blue-800 space-y-1">
                   <p><strong>Account:</strong> {searchResults.searchContext.accountName}</p>
@@ -559,7 +559,7 @@ export default function AvomaIntegration({
                 <h4 className="font-medium text-gray-900">Generated Content</h4>
                 
                 {searchResults.summary && (
-                  <div className="p-3 bg-green-50 rounded-md">
+                  <div className="p-3 bg-white rounded-md">
                     <p className="text-blue-800 text-sm">
                       <strong>Summary:</strong> {searchResults.summary}
                     </p>

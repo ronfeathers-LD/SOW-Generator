@@ -813,7 +813,7 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
             Select additional documents from Google Drive to include in AI analysis
           </p>
           
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Left Column - Google Drive Document Selector */}
               <div>
@@ -916,7 +916,7 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
             <span className="font-medium text-blue-600">Transcriptions will be fetched automatically when you add a recording.</span>
           </p>
           
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
             {/* Search Avoma Meetings */}
             <div className="mb-6">
               <h4 className="text-lg font-medium text-gray-900 mb-3">Search Avoma Meetings</h4>

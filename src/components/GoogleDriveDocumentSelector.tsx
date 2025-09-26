@@ -770,7 +770,7 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
           </div>
 
           {showPreview && (
-            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
+            <div className="mt-3 p-3 bg-white border border-gray-200 rounded-md">
               <div className="text-sm text-blue-800">
                 <strong>Total Content:</strong> {getTotalCharacters().toLocaleString()} characters will be analyzed
               </div>
