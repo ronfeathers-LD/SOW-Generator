@@ -198,17 +198,13 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
         return false;
       }
 
-      // TEMPORARILY DISABLE AUTO-CALCULATE TO PREVENT OVERRIDING USER RATES
-      // Only allow manual calculation via "Reset Role Hours" button
-      return false;
-
       // Check if we have products selected
       const products = getProducts();
       if (!products || products.length === 0) {
         return false;
       }
 
-      // Check if pricing roles are empty or don't have calculated hours
+      // For new SOWs (no pricing roles), always auto-calculate
       if (pricingRoles.length === 0) {
         return true;
       }
