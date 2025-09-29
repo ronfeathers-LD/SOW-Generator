@@ -419,7 +419,8 @@ class AvomaClient {
     salesforceAccountId?: string,
     salesforceOpportunityId?: string,
     fromDate?: string,
-    toDate?: string
+    toDate?: string,
+    partnerAccountId?: string
   ): Promise<AvomaCall[]> {
     try {
       // Use provided date range or default to last 12 months
@@ -432,12 +433,20 @@ class AvomaClient {
       const searchToDate = toDate ? `${toDate}T23:59:59` : defaultToDate.toISOString();
       
       // Use meetings API with CRM filtering
-      if (salesforceAccountId) {
+      if (salesforceAccountId || partnerAccountId) {
         const meetingParams = new URLSearchParams({
           from_date: searchFromDate,
-          to_date: searchToDate,
-          crm_account_ids: salesforceAccountId
+          to_date: searchToDate
         });
+
+        // Add account IDs - include both customer and partner accounts
+        const accountIds = [];
+        if (salesforceAccountId) accountIds.push(salesforceAccountId);
+        if (partnerAccountId) accountIds.push(partnerAccountId);
+        
+        if (accountIds.length > 0) {
+          meetingParams.append('crm_account_ids', accountIds.join(','));
+        }
 
         // Add opportunity ID if available
         if (salesforceOpportunityId) {
@@ -712,7 +721,8 @@ class AvomaClient {
     salesforceAccountId?: string,
     salesforceOpportunityId?: string,
     fromDate?: string,
-    toDate?: string
+    toDate?: string,
+    partnerAccountId?: string
   ): Promise<AvomaCall[]> {
     try {
       // Strategy 1: Full context search with optimized API parameters
@@ -724,7 +734,8 @@ class AvomaClient {
         salesforceAccountId,
         salesforceOpportunityId,
         fromDate,
-        toDate
+        toDate,
+        partnerAccountId
       );
 
       // Strategy 2: If no results, try broader account-only search
@@ -737,7 +748,8 @@ class AvomaClient {
           salesforceAccountId,
           undefined, // No opportunity ID filter
           fromDate,
-          toDate
+          toDate,
+          partnerAccountId
         );
       }
 
@@ -753,7 +765,8 @@ class AvomaClient {
             undefined, // No account ID for partial matching
             undefined, // No opportunity ID for partial matching
             fromDate,
-            toDate
+            toDate,
+            partnerAccountId
           );
           if (meetings.length > 0) break;
         }

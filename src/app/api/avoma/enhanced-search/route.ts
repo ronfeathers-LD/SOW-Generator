@@ -71,7 +71,8 @@ export async function POST(request: NextRequest) {
       salesforceOpportunityId,
       fromDate,
       toDate,
-      projectContext // eslint-disable-line @typescript-eslint/no-unused-vars
+      projectContext, // eslint-disable-line @typescript-eslint/no-unused-vars
+      partnerAccountId
     } = await request.json();
 
     if (!sowId && !accountName) {
@@ -169,6 +170,9 @@ export async function POST(request: NextRequest) {
     const finalSalesforceAccountId = salesforceAccountId || salesforceData?.account_data?.id;
     const finalSalesforceOpportunityId = salesforceOpportunityId || salesforceData?.opportunity_data?.id;
     
+    // Partner account information
+    const finalPartnerAccountId = partnerAccountId || salesforceData?.opportunity_data?.partnerAccountId;
+    
 
     // Perform enhanced search
     let meetings: AvomaCall[] = [];
@@ -182,7 +186,8 @@ export async function POST(request: NextRequest) {
         finalSalesforceAccountId,
         finalSalesforceOpportunityId,
         fromDate,
-        toDate
+        toDate,
+        finalPartnerAccountId
       );
     } else {
       meetings = await avomaClient.findMeetingsWithSalesforceContext(
@@ -193,7 +198,8 @@ export async function POST(request: NextRequest) {
         finalSalesforceAccountId,
         finalSalesforceOpportunityId,
         fromDate,
-        toDate
+        toDate,
+        finalPartnerAccountId
       );
     }
 
@@ -210,7 +216,8 @@ export async function POST(request: NextRequest) {
           usedSOWData: !!sowData,
           salesforceAccountId: finalSalesforceAccountId,
           salesforceOpportunityId: finalSalesforceOpportunityId,
-          searchMethod: useSmartSearch ? 'smartSearch' : 'contextSearch'
+          searchMethod: useSmartSearch ? 'smartSearch' : 'contextSearch',
+          partnerAccountId: finalPartnerAccountId
         }
       });
     }
@@ -235,7 +242,8 @@ export async function POST(request: NextRequest) {
         salesforceOpportunityId: finalSalesforceOpportunityId,
         searchMethod: useSmartSearch ? 'smartSearch' : 'contextSearch',
         totalMeetingsFound: meetings.length,
-        meetingsWithTranscripts: meetings.length // All meetings have transcripts
+        meetingsWithTranscripts: meetings.length, // All meetings have transcripts
+        partnerAccountId: finalPartnerAccountId
       }
     });
 

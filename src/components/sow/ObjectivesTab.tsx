@@ -1,9 +1,10 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
 import TipTapEditor from '../TipTapEditor';
 import LoadingModal from '../ui/LoadingModal';
 import GoogleDriveDocumentSelector from '../GoogleDriveDocumentSelector';
+import PartnerInfo from './PartnerInfo';
 
 interface ObjectivesTabProps {
   formData: Partial<SOWData>;
@@ -74,6 +75,37 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
   const [isSearchingAvoma, setIsSearchingAvoma] = useState(false);
   const [avomaSearchResults, setAvomaSearchResults] = useState<AvomaSearchResult[]>([]);
   const [selectedAvomaMeetings, setSelectedAvomaMeetings] = useState<Set<string>>(new Set());
+
+  // Partner info state
+  const [partnerInfo, setPartnerInfo] = useState<{
+    success: boolean;
+    opportunity: {
+      id: string;
+      name: string;
+      isPartnerSourced: boolean;
+      partnerAccountId?: string;
+      partnerAccountName?: string;
+      implementationPartner?: string;
+      channelPartnerContractAmount?: number;
+      dateOfPartnerEngagement?: string;
+    };
+    partnerAccount?: {
+      id: string;
+      name: string;
+      type?: string;
+      industry?: string;
+      website?: string;
+      phone?: string;
+      owner?: string;
+      partnerStatus?: string;
+      partnerType?: string;
+      partnerTier?: string;
+      primaryPartnerContact?: string;
+    } | null;
+  } | null>(null);
+  const [isLoadingPartnerInfo, setIsLoadingPartnerInfo] = useState(false);
+  const [salesforceInstanceUrl, setSalesforceInstanceUrl] = useState<string>('');
+  const [lastFetchedOpportunityId, setLastFetchedOpportunityId] = useState<string | null>(null);
 
   // Get customer name from selected account or form data - memoized to prevent recalculation
   const customerName = useMemo(() => 
@@ -174,6 +206,68 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
     setToDate(today.toISOString().split('T')[0]);
   }, []);
 
+  // Fetch Salesforce instance URL
+  useEffect(() => {
+    const fetchSalesforceInstanceUrl = async () => {
+      try {
+        const response = await fetch('/api/salesforce/instance-url');
+        if (response.ok) {
+          const data = await response.json();
+          setSalesforceInstanceUrl(data.instanceUrl || '');
+        }
+      } catch (error) {
+        console.error('Error fetching Salesforce instance URL:', error);
+      }
+    };
+
+    fetchSalesforceInstanceUrl();
+  }, []);
+
+  // Fetch partner information when opportunity changes
+  useEffect(() => {
+    const fetchPartnerInfo = async () => {
+      if (!selectedOpportunity?.id) {
+        setPartnerInfo(null);
+        setLastFetchedOpportunityId(null);
+        return;
+      }
+
+      // Prevent duplicate calls for the same opportunity
+      if (lastFetchedOpportunityId === selectedOpportunity.id) {
+        return;
+      }
+
+      setLastFetchedOpportunityId(selectedOpportunity.id);
+      setIsLoadingPartnerInfo(true);
+      try {
+        const response = await fetch('/api/salesforce/partner-info', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            opportunityId: selectedOpportunity.id
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setPartnerInfo(data);
+        } else {
+          console.error('Failed to fetch partner info:', response.status, response.statusText);
+          setPartnerInfo(null);
+        }
+      } catch (error) {
+        console.error('Error fetching partner info:', error);
+        setPartnerInfo(null);
+      } finally {
+        setIsLoadingPartnerInfo(false);
+      }
+    };
+
+    fetchPartnerInfo();
+  }, [selectedOpportunity?.id, lastFetchedOpportunityId]);
+
 
   const handleSearchAvomaMeetings = async () => {
     if (!fromDate || !toDate) return;
@@ -199,7 +293,8 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
           opportunityName: selectedOpportunity?.name,
           salesforceAccountId: salesforceAccountId,
           salesforceOpportunityId: salesforceOpportunityId,
-          useEnhancedSearch: true
+          useEnhancedSearch: true,
+          partnerAccountId: partnerInfo?.opportunity?.partnerAccountId
         }),
       });
 
@@ -803,6 +898,22 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
     <section className="space-y-6">
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-2xl font-bold mb-6">Project Objectives & Scope</h2>
+        
+        {/* Partner Information */}
+        {isLoadingPartnerInfo ? (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
+              <span className="text-gray-700">Loading partner information...</span>
+            </div>
+          </div>
+        ) : (
+          <PartnerInfo
+            opportunityId={selectedOpportunity?.id}
+            partnerInfo={partnerInfo}
+            salesforceInstanceUrl={salesforceInstanceUrl}
+          />
+        )}
         
         {/* Google Drive Document Selection */}
         <div className="mb-8">

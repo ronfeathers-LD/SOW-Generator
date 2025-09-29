@@ -83,6 +83,14 @@ export default function AdminNav() {
                   >
                     Slack Config
                   </Link>
+                  <div className="border-t border-gray-200 my-1"></div>
+                  <Link 
+                    href="/admin/salesforce-fields-explorer"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsApiConfigOpen(false)}
+                  >
+                    Salesforce Fields Explorer
+                  </Link>
                 </div>
               </div>
             )}

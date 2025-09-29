@@ -17,6 +17,11 @@ export interface SalesforceAccountData {
   industry?: string;
   phone?: string;
   account_segment?: string; // Account_Segment__c field
+  // Partner-related fields
+  partner_account_status?: string; // Partner_Account_Status__c
+  partner_type?: string; // Partner_Type__c
+  partner_tier?: string; // Partner_Tier__c
+  primary_partner_contact?: string; // Primary_Partner_Contact__c
   selected_at: string; // ISO timestamp
 }
 
@@ -39,6 +44,12 @@ export interface SalesforceOpportunityData {
   stage_name?: string;
   close_date?: string; // ISO date
   description?: string;
+  // Partner-related fields
+  isv_partner_account?: string; // ISV_Partner_Account__c
+  isv_partner_account_name?: string; // Partner account name
+  implementation_partner?: string; // Implementation_Partner__c
+  channel_partner_contract_amount?: number; // Channel_Partner_Contract_Amount__c
+  date_of_partner_engagement?: string; // Date_of_Partner_Engagement__c
   selected_at: string; // ISO timestamp
 }
 
@@ -93,6 +104,12 @@ export interface SalesforceOpportunityResponse {
   StageName?: string;
   CloseDate?: string;
   Description?: string;
+  // Partner-related fields
+  ISV_Partner_Account__c?: string;
+  ISV_Partner_Account__r?: { Name: string };
+  Implementation_Partner__c?: string;
+  Channel_Partner_Contract_Amount__c?: number;
+  Date_of_Partner_Engagement__c?: string;
 }
 
 // Helper functions for working with Salesforce data
@@ -135,5 +152,11 @@ export const createSalesforceOpportunityData = (opportunity: SalesforceOpportuni
   stage_name: opportunity.StageName,
   close_date: opportunity.CloseDate,
   description: opportunity.Description,
+  // Partner-related fields
+  isv_partner_account: opportunity.ISV_Partner_Account__c,
+  isv_partner_account_name: opportunity.ISV_Partner_Account__r?.Name,
+  implementation_partner: opportunity.Implementation_Partner__c,
+  channel_partner_contract_amount: opportunity.Channel_Partner_Contract_Amount__c,
+  date_of_partner_engagement: opportunity.Date_of_Partner_Engagement__c,
   selected_at: new Date().toISOString(),
 }); 

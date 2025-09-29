@@ -18,8 +18,12 @@ export async function middleware(request: NextRequest) {
                        request.nextUrl.pathname.startsWith("/_next") ||
                        request.nextUrl.pathname === "/favicon.ico" ||
                        request.nextUrl.pathname.startsWith("/public") ||
+                       request.nextUrl.pathname.startsWith("/images") ||
                        request.nextUrl.pathname.startsWith("/api/public") ||
-                       request.nextUrl.pathname.startsWith("/api/sow-content-templates");
+                       request.nextUrl.pathname.startsWith("/api/sow-content-templates") ||
+                       request.nextUrl.pathname.startsWith("/salesforce-fields-explorer") ||
+                       request.nextUrl.pathname.startsWith("/api/salesforce/fields-explorer") ||
+                       request.nextUrl.pathname.startsWith("/api/salesforce/partner-info");
 
   // Allow access to public routes
   if (isPublicRoute) {

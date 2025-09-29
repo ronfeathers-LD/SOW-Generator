@@ -80,6 +80,14 @@ export interface SalesforceOpportunity {
   Account?: {
     Name: string;
   };
+  // Partner-related fields
+  ISV_Partner_Account__c?: string;
+  ISV_Partner_Account__r?: {
+    Name: string;
+  };
+  Implementation_Partner__c?: string;
+  Channel_Partner_Contract_Amount__c?: number;
+  Date_of_Partner_Engagement__c?: string;
 }
 
 class SalesforceClient {
@@ -92,6 +100,13 @@ class SalesforceClient {
     this.conn = new jsforce.Connection({
       loginUrl: cleanLoginUrl
     });
+  }
+
+  /**
+   * Get the Salesforce connection (for advanced operations)
+   */
+  getConnection(): jsforce.Connection {
+    return this.conn;
   }
 
   /**
@@ -428,7 +443,10 @@ class SalesforceClient {
     try {
       const query = `
         SELECT Id, Name, Amount, CloseDate, StageName, Description, AccountId,
-               Account.Name
+               Account.Name,
+               ISV_Partner_Account__c, ISV_Partner_Account__r.Name,
+               Implementation_Partner__c, Channel_Partner_Contract_Amount__c,
+               Date_of_Partner_Engagement__c
         FROM Opportunity 
         WHERE AccountId = '${accountId}' 
           AND StageName != 'Closed Lost'
