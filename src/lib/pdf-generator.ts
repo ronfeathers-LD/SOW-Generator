@@ -472,6 +472,13 @@ export class PDFGenerator {
               margin: 0 !important;
             }
             
+            /* Client logo specific styling - no shadow */
+            .client-logo img {
+              box-shadow: none !important;
+              border-radius: 0 !important;
+              margin: 0 !important;
+            }
+            
             /* Style content-managed tables */
             .content table {
               width: 100% !important;
