@@ -441,7 +441,7 @@ export async function PUT(
               );
             }
 
-            // Send email notification to account owner or commercial approvals team
+            // Send email notification to commercial approvals team with account owner in CC
             try {
               const emailService = await getEmailService();
               if (emailService) {
@@ -456,17 +456,27 @@ export async function PUT(
                     .eq('id', id)
                     .single();
 
-                  // Use account owner email if available, otherwise fall back to commercial approvals
-                  const approverEmail = sowWithOwner?.salesforce_account_owner_email || 'sowapprovalscommercial@leandata.com';
-                  
+                  // Prepare CC emails (account owner if available)
+                  const ccEmails: string[] = [];
+                  if (sowWithOwner?.salesforce_account_owner_email) {
+                    ccEmails.push(sowWithOwner.salesforce_account_owner_email);
+                  }
+
+                  // Send single email to commercial approvals team with account owner in CC
                   await emailService.sendSOWApprovalNotification(
                     id,
                     sowTitle,
                     clientName,
-                    approverEmail,
-                    submitterName
+                    'sowapprovalscommercial@leandata.com',
+                    submitterName,
+                    ccEmails
                   );
-                  console.log(`✅ Email notification sent to ${approverEmail}`);
+                  
+                  if (ccEmails.length > 0) {
+                    console.log(`✅ Email notification sent to commercial approvals team with account owner in CC: ${ccEmails.join(', ')}`);
+                  } else {
+                    console.log('✅ Email notification sent to commercial approvals team (no account owner email found)');
+                  }
                 }
               }
             } catch (emailError) {

@@ -73,7 +73,8 @@ class EmailService {
   async sendTemplateEmail(
     template: EmailTemplate,
     recipientEmail: string,
-    variables: Record<string, string> = {}
+    variables: Record<string, string> = {},
+    ccEmails: string[] = []
   ): Promise<boolean> {
     try {
       // Validate recipient email domain
@@ -89,6 +90,17 @@ class EmailService {
       if (!emailRegex.test(recipientEmail) || domain !== 'leandata.com') {
         logInvalidEmailWarning(recipientEmail, 'email template');
         return false;
+      }
+
+      // Validate CC emails
+      const validCCEmails: string[] = [];
+      for (const ccEmail of ccEmails) {
+        const ccDomain = ccEmail.toLowerCase().split('@')[1];
+        if (emailRegex.test(ccEmail) && ccDomain === 'leandata.com') {
+          validCCEmails.push(ccEmail);
+        } else {
+          logInvalidEmailWarning(ccEmail, 'email CC');
+        }
       }
 
       if (!this.transporter) {
@@ -108,13 +120,18 @@ class EmailService {
         textContent = textContent.replace(regex, value);
       });
 
-      const mailOptions = {
+      const mailOptions: any = {
         from: `"${this.config.fromName}" <${this.config.fromEmail}>`,
         to: recipientEmail,
         subject: subject,
         html: htmlContent,
         text: textContent
       };
+
+      // Add CC if there are valid CC emails
+      if (validCCEmails.length > 0) {
+        mailOptions.cc = validCCEmails.join(', ');
+      }
 
       const result = await this.transporter.sendMail(mailOptions);
       console.log('✅ Email sent successfully:', result.messageId);
@@ -153,7 +170,8 @@ class EmailService {
     sowTitle: string,
     clientName: string,
     approverEmail: string,
-    authorName: string
+    authorName: string,
+    ccEmails: string[] = []
   ): Promise<boolean> {
     // Validate approver email domain
     if (!approverEmail || typeof approverEmail !== 'string') {
@@ -203,7 +221,7 @@ class EmailService {
       clientName,
       authorName,
       sowUrl
-    });
+    }, ccEmails);
   }
 
   /**
