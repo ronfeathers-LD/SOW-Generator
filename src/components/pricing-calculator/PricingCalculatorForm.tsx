@@ -162,9 +162,10 @@ export default function PricingCalculatorForm({ products, data, onChange }: Pric
           className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="">Select Account Segment</option>
+          <option value="LE">Large Enterprise (LE)</option>
+          <option value="EE">Enterprise (EE)</option>
           <option value="MM">MidMarket (MM)</option>
-          <option value="Enterprise">Enterprise</option>
-          <option value="SMB">SMB</option>
+          <option value="EC">Enterprise Core (EC)</option>
         </select>
         <p className="mt-1 text-sm text-gray-500">
           MidMarket accounts get 5 additional hours

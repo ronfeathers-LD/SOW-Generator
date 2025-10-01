@@ -16,6 +16,7 @@ interface SOWSummary {
   client_name: string;
   created_at: string;
   updated_at: string;
+  account_segment?: string;
   template?: {
     products?: string[];
     number_of_units?: string;
@@ -144,6 +145,7 @@ export default function SOWDataLoader({ isOpen, onClose, onDataLoad }: SOWDataLo
           billing_email: '',
           purchase_order_number: '',
         } : undefined,
+        account_segment: selectedSOW.account_segment || selectedSOW.selectedAccount?.Employee_Band__c,
         selectedAccount: selectedSOW.selectedAccount ? {
           Id: '',
           Name: selectedSOW.client_name || '',
