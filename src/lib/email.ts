@@ -234,7 +234,8 @@ class EmailService {
     authorEmail: string,
     status: 'approved' | 'rejected',
     approverName: string,
-    comments?: string
+    comments?: string,
+    ccEmails: string[] = []
   ): Promise<boolean> {
     // Validate author email domain
     if (!authorEmail || typeof authorEmail !== 'string') {
@@ -285,7 +286,7 @@ class EmailService {
       comments: comments || '',
       sowUrl,
       statusColor
-    });
+    }, ccEmails);
   }
 
   /**

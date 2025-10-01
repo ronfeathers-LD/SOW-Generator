@@ -586,11 +586,38 @@ export async function PUT(
             console.error('Slack notification failed for SOW rejection:', slackError);
           }
 
-          // Send email notification to SOW author
-          if (authorEmail) {
-            try {
-              const emailService = await getEmailService();
-              if (emailService) {
+          // Send email notifications for SOW rejection
+          try {
+            const emailService = await getEmailService();
+            if (emailService) {
+              // Get account owner email for CC
+              const { data: sowWithOwner } = await supabase
+                .from('sows')
+                .select('salesforce_account_owner_email')
+                .eq('id', id)
+                .single();
+
+              // Prepare CC emails (account owner if available)
+              const ccEmails: string[] = [];
+              if (sowWithOwner?.salesforce_account_owner_email) {
+                ccEmails.push(sowWithOwner.salesforce_account_owner_email);
+              }
+
+              // Send email to commercial approvals team with account owner in CC
+              await emailService.sendSOWStatusNotification(
+                id,
+                sowTitle,
+                clientName,
+                'sowapprovalscommercial@leandata.com',
+                'rejected',
+                session.user.email || 'Unknown Approver',
+                comments,
+                ccEmails
+              );
+              console.log('SOW rejection email sent to commercial approvals team with account owner in CC');
+
+              // Also send email to SOW author if available
+              if (authorEmail) {
                 await emailService.sendSOWStatusNotification(
                   id,
                   sowTitle,
@@ -602,9 +629,9 @@ export async function PUT(
                 );
                 console.log('SOW rejection email sent to author:', authorEmail);
               }
-            } catch (emailError) {
-              console.error('Email notification failed for SOW rejection:', emailError);
             }
+          } catch (emailError) {
+            console.error('Email notification failed for SOW rejection:', emailError);
           }
         }
       } catch (error) {
