@@ -212,19 +212,6 @@ export async function GET(
       },
     };
 
-    console.log('SOW GET: rejected_at field:', sow.rejected_at);
-    console.log('SOW GET: status field:', sow.status);
-    
-    // 🔍 LOG: SOW data being returned
-    console.log('🔍 SOW GET - Raw SOW Data:', {
-      sowId: sow.id,
-      sowTitle: sow.sow_title,
-      clientName: sow.client_name,
-      account_segment: sow.account_segment,
-      salesforce_account_id: sow.salesforce_account_id,
-      salesforce_account_owner_name: sow.salesforce_account_owner_name,
-      salesforce_account_owner_email: sow.salesforce_account_owner_email
-    });
 
     // 🔧 FIX: If account_segment is missing but we have salesforce_account_id, fetch it
     if (!sow.account_segment && sow.salesforce_account_id) {
@@ -264,17 +251,22 @@ export async function GET(
       }
     }
     
-    console.log('🔍 SOW GET - Transformed SOW Data:', {
-      sowId: transformedSow.id,
-      sowTitle: transformedSow.template?.sow_title,
-      clientName: transformedSow.template?.client_name,
-      account_segment: transformedSow.account_segment,
-      salesforce_account_id: transformedSow.salesforce_account_id,
-      salesforce_account_owner_name: transformedSow.salesforce_account_owner_name,
-      salesforce_account_owner_email: transformedSow.salesforce_account_owner_email
-    });
+    // Fetch Salesforce data for this SOW
+    const { data: salesforceData, error: salesforceError } = await supabase
+      .from('sow_salesforce_data')
+      .select('*')
+      .eq('sow_id', (await params).id)
+      .single();
+
+    if (salesforceError && salesforceError.code !== 'PGRST116') {
+      console.error('Error fetching Salesforce data:', salesforceError);
+    }
+
     
-    return NextResponse.json(transformedSow);
+    return NextResponse.json({
+      ...transformedSow,
+      salesforce_data: salesforceData || null
+    });
   } catch (error) {
     console.error('Error fetching SOW:', error);
     return NextResponse.json(
