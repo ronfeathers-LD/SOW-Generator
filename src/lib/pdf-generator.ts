@@ -35,9 +35,11 @@ interface ChangeOrderPDFData {
 }
 
 /**
- * Get LeanData logo URL for PDF embedding
+ * Get LeanData logo URL for PDF generation
+ * Using direct blob storage URL for better reliability
  */
 function getLeanDataLogoUrl(): string {
+  // Use the direct blob storage URL that works in both development and production
   return 'https://tlxeqgk0yr1ztnva.public.blob.vercel-storage.com/rte-images/1758909456734-katoxspoked.png';
 }
 
@@ -246,9 +248,13 @@ export class PDFGenerator {
               '--disable-features=VizDisplayCompositor',
               '--disable-ipc-flooding-protection',
               '--memory-pressure-off',
-              '--max_old_space_size=4096'
+              '--max_old_space_size=4096',
+              // Additional optimization flags for smaller PDFs
+              '--disable-javascript',
+              '--disable-plugins',
+              '--disable-default-apps'
             ],
-            defaultViewport: { width: 1200, height: 1600 },
+            defaultViewport: { width: 800, height: 1000 },
             executablePath: await chromium.executablePath(),
             headless: true,
             timeout: 60000
@@ -313,8 +319,8 @@ export class PDFGenerator {
         await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
         // Page content set successfully
         
-        // Set viewport for consistent rendering
-        await page.setViewport({ width: 1200, height: 1600 });
+        // Set viewport for consistent rendering (optimized for smaller PDF size)
+        await page.setViewport({ width: 800, height: 1000 });
         // Viewport set
         
         // Generate PDF
@@ -327,7 +333,10 @@ export class PDFGenerator {
             right: '0.5in',
             bottom: '0.5in',
             left: '0.5in'
-          }
+          },
+          // Optimize for smaller file size
+          preferCSSPageSize: true,
+          displayHeaderFooter: false
         });
         
         // PDF generated successfully, size: ${pdfBuffer.length} bytes
@@ -440,11 +449,10 @@ export class PDFGenerator {
           <meta charset="utf-8">
           <title>${title}</title>
           <style>
-            @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
-            
+            /* Optimized CSS for smaller PDF size */
             body {
-              font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-              line-height: 1.6;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+              line-height: 1.5;
               color: #333;
               margin: 0;
               padding: 0;
@@ -452,84 +460,74 @@ export class PDFGenerator {
             
             .content-page {
               padding: 20px 40px;
-              box-sizing: border-box;
             }
             
-            /* Image sizing for content-managed sections */
+            /* Optimized images */
             img {
-              max-width: 100% !important;
-              height: auto !important;
-              display: block !important;
-              margin: 16px auto !important;
-              border-radius: 8px !important;
-              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+              max-width: 100%;
+              max-height: 300px;
+              height: auto;
+              display: block;
+              margin: 12px auto;
+              border-radius: 4px;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             }
             
-            /* Logo specific styling - no shadow */
-            .logo img {
-              box-shadow: none !important;
-              border-radius: 0 !important;
-              margin: 0 !important;
+            .logo img, .client-logo img {
+              box-shadow: none;
+              border-radius: 0;
+              margin: 0;
             }
             
-            /* Client logo specific styling - no shadow */
-            .client-logo img {
-              box-shadow: none !important;
-              border-radius: 0 !important;
-              margin: 0 !important;
+            /* Consolidated table styles - standardized borders */
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 12px 0;
+              border: 1px solid #ddd;
+              border-radius: 4px;
+              overflow: hidden;
             }
             
-            /* Style content-managed tables */
-            .content table {
-              width: 100% !important;
-              border: 1px solid #d1d5db !important;
-              border-collapse: separate !important;
-              border-spacing: 0 !important;
-              border-radius: 8px !important;
-              overflow: hidden !important;
-              margin: 16px 0 !important;
+            .content-table {
+              margin-top: 16px;
             }
             
-            .content table thead {
-              background-color: #26D07C !important;
+            .change-order-table {
+              margin-bottom: 15px;
+              border: 1px solid #ddd;
             }
             
+            .content table thead,
             .content table:not(:has(thead)) tbody tr:first-child {
-              background-color: #26D07C !important;
+              background-color: #26D07C;
             }
             
-            .content table th,
-            .content table:not(:has(thead)) tbody tr:first-child td {
-              background-color: #26D07C !important;
-              border: none !important;
-              padding: 12px 24px !important;
-              text-align: left !important;
-              font-weight: 700 !important;
-              color: #ffffff !important;
-              text-transform: uppercase !important;
-              font-size: 12px !important;
-              letter-spacing: 0.05em !important;
-              border-bottom: 1px solid #e5e7eb !important;
+            th, .content table:not(:has(thead)) tbody tr:first-child td {
+              background-color: #26D07C;
+              border: none;
+              padding: 8px 12px;
+              text-align: left;
+              font-weight: 700;
+              color: #fff;
+              text-transform: uppercase;
+              font-size: 11px;
+              border-bottom: 1px solid #e5e7eb;
             }
             
-            .content table tbody {
-              background-color: #ffffff !important;
+            td {
+              border: none;
+              padding: 10px 12px;
+              color: #374151;
+              vertical-align: top;
+              border-bottom: 1px solid #e5e7eb;
             }
             
-            .content table td {
-              border: none !important;
-              padding: 16px 24px !important;
-              color: #374151 !important;
-              vertical-align: top !important;
-              border-bottom: 1px solid #e5e7eb !important;
+            tr:last-child td {
+              border-bottom: none;
             }
             
-            .content table tr:last-child td {
-              border-bottom: none !important;
-            }
-            
-
-            
+            /* Title page */
             .title-page {
               text-align: center;
               display: flex;
@@ -537,67 +535,67 @@ export class PDFGenerator {
               justify-content: center;
               min-height: 100vh;
               padding: 20px 40px;
-              box-sizing: border-box;
             }
             
             .logo {
-              width: 200px;
-              height: 100px;
+              width: 150px;
+              height: 75px;
               margin: 0 auto 24px;
             }
             
             .delivery-methodology {
-              font-size: 18px;
-              color: #6B7280;
+              font-size: 16px;
+              color: #666;
               font-weight: 500;
-              margin-bottom: 40px;
+              margin-bottom: 32px;
             }
             
             .main-title {
-              font-size: 48px;
+              font-size: 42px;
               font-weight: 700;
-              color: #111827;
-              margin: 0 0 16px 0;
+              color: #111;
+              margin: 0 0 12px 0;
               line-height: 1.2;
             }
             
             .client-subtitle {
-              font-size: 20px;
-              color: #6B7280;
-              margin-bottom: 48px;
+              font-size: 18px;
+              color: #666;
+              margin-bottom: 40px;
             }
             
             .client-name {
-              color: #111827;
+              color: #111;
               font-weight: 600;
             }
             
             .client-logo {
-              width: 120px;
-              height: 60px;
-              margin: 0 auto 48px;
+              width: 100px;
+              height: 50px;
+              margin: 0 auto 40px;
             }
             
+            /* Signatures */
             .signature-section {
-              margin-top: 60px;
+              margin-top: 50px;
               text-align: left;
             }
             
             .signature-item {
-              margin-bottom: 40px;
+              margin-bottom: 32px;
             }
             
             .signature-text {
-              font-size: 16px;
+              font-size: 14px;
               color: #374151;
-              margin-bottom: 16px;
+              margin-bottom: 12px;
               font-weight: 500;
             }
             
             .signature-grid {
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 40px;
+              gap: 32px;
               align-items: start;
             }
             
@@ -605,12 +603,12 @@ export class PDFGenerator {
               width: 100%;
               height: 2px;
               background-color: #000;
-              margin-bottom: 16px;
+              margin-bottom: 12px;
             }
             
             .signature-info {
-              font-size: 14px;
-              line-height: 1.4;
+              font-size: 12px;
+              line-height: 1.3;
             }
             
             .signature-info.left {
@@ -621,13 +619,14 @@ export class PDFGenerator {
               text-align: center;
             }
             
+            /* Content sections */
             .section-title {
-              font-size: 24px;
+              font-size: 20px;
               font-weight: 700;
-              color: #111827;
-              margin-bottom: 16px;
-              border-bottom: 2px solid #E5E7EB;
-              padding-bottom: 8px;
+              color: #111;
+              margin-bottom: 12px;
+              border-bottom: 2px solid #e5e7eb;
+              padding-bottom: 6px;
             }
             
             .section-title.center {
@@ -635,97 +634,64 @@ export class PDFGenerator {
             }
             
             .content {
-              margin-bottom: 16px;
+              margin-bottom: 12px;
             }
             
             .content h3 {
-              font-size: 18px;
+              font-size: 16px;
               font-weight: 600;
-              color: #111827;
-              margin-bottom: 16px;
+              color: #111;
+              margin-bottom: 12px;
             }
             
             .content p {
-              margin-bottom: 16px;
-              line-height: 1.6;
+              margin-bottom: 12px;
+              line-height: 1.5;
             }
             
             .content ul {
-              margin-bottom: 16px;
-              padding-left: 24px;
+              margin-bottom: 12px;
+              padding-left: 20px;
             }
             
             .content li {
-              margin-bottom: 8px;
-              line-height: 1.6;
+              margin-bottom: 6px;
+              line-height: 1.5;
             }
             
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin: 16px 0;
-            }
-            
-            th, td {
-              border: 1px solid #D1D5DB;
-              padding: 12px;
-              text-align: left;
-              vertical-align: top;
-            }
-            
-            th {
-              background-color: #F3F4F6;
-              font-weight: 600;
-              color: #374151;
-            }
-            
+            /* Billing info */
             .billing-info {
-              background-color: #F9FAFB;
-              padding: 24px;
-              border-radius: 8px;
-              margin-top: 16px;
+              background-color: #f9f9f9;
+              padding: 16px;
+              border-radius: 6px;
+              margin-top: 12px;
             }
             
             .billing-grid {
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 16px;
-              margin-top: 16px;
+              gap: 12px;
+              margin-top: 12px;
             }
             
             .billing-label {
-              font-size: 14px;
-              color: #6B7280;
-              margin-bottom: 4px;
+              font-size: 12px;
+              color: #666;
+              margin-bottom: 2px;
             }
             
             .billing-value {
               font-weight: 500;
-              color: #111827;
+              color: #111;
             }
             
             .payment-terms {
-              margin-top: 16px;
-              padding-top: 16px;
-              border-top: 1px solid #E5E7EB;
-              font-size: 14px;
-              color: #6B7280;
+              margin-top: 12px;
+              padding-top: 12px;
+              border-top: 1px solid #e5e7eb;
+              font-size: 12px;
+              color: #666;
             }
-            
-            .pricing-item {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              padding: 12px 0;
-              border-bottom: 1px solid #E5E7EB;
-            }
-            
-            .role-name {
-              font-weight: 600;
-              color: #111827;
-            }
-            
-
           </style>
         </head>
         <body>
@@ -734,7 +700,7 @@ export class PDFGenerator {
             <div class="title-page">
               <!-- LeanData Logo -->
               <div class="logo" style="margin-bottom: 24px;">
-                <img src="${leanDataLogoUrl}" alt="LeanData Logo" style="width: 200px; height: 100px; object-fit: contain; box-shadow: none;">
+                <img src="${leanDataLogoUrl}" alt="LeanData Logo" style="width: 150px; height: 75px; object-fit: contain; box-shadow: none;">
               </div>
               
               <!-- LeanData Delivery Methodology -->
@@ -751,7 +717,7 @@ export class PDFGenerator {
               <!-- Optional Client Logo -->
               ${companyLogo && companyLogo.trim().length > 0 ? `
               <div class="client-logo" style="display: flex; justify-content: center; align-items: center; margin: 0 0 20px 0; border: 2px solid white; width: 100%;">
-                <img src="${companyLogo}" alt="${clientName} Logo" style="width: 240px; height: 120px; object-fit: contain;">
+                <img src="${companyLogo}" alt="${clientName} Logo" style="width: 200px; height: 100px; object-fit: contain;">
               </div>
               ` : ''}
               
@@ -963,7 +929,7 @@ export class PDFGenerator {
             ${pricingRoles && pricingRoles.length > 0 ? `
             <div class="content">
               <h3>Project Team Roles</h3>
-              <table style="width: 100%; border-collapse: collapse; margin-top: 16px; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden;">
+              <table class="content-table">
                 <thead>
                   <tr style="background-color: #26D07C; color: #ffffff;">
                     <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">LeanData Role</th>
@@ -986,7 +952,7 @@ export class PDFGenerator {
             ${clientRoles && clientRoles.length > 0 ? `
             <div class="content">
               <h3>Client Roles</h3>
-              <table style="width: 100%; border-collapse: collapse; margin-top: 16px; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden;">
+              <table class="content-table">
                 <thead>
                   <tr style="background-color: #26D07C; color: #ffffff;">
                     <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">${clientName} Role</th>
@@ -1050,7 +1016,7 @@ export class PDFGenerator {
                 ];
                 
                 return `
-                  <table style="width: 100%; border-collapse: collapse; margin-top: 16px; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden;">
+                  <table class="content-table">
                     <thead>
                       <tr style="background-color: #26D07C; color: #ffffff;">
                         <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">Phase</th>
@@ -1094,7 +1060,7 @@ export class PDFGenerator {
             ${pricingRoles && pricingRoles.length > 0 ? `
             <div class="content">
               <h3>Pricing Roles</h3>
-              <table style="width: 100%; border-collapse: collapse; margin-top: 16px; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden;">
+              <table class="content-table">
                 <thead>
                   <tr style="background-color: #26D07C; color: #ffffff;">
                     <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">Role</th>
@@ -1335,8 +1301,8 @@ export class PDFGenerator {
         await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
         // Page content set successfully
         
-        // Set viewport for consistent rendering
-        await page.setViewport({ width: 1200, height: 1600 });
+        // Set viewport for consistent rendering (optimized for smaller PDF size)
+        await page.setViewport({ width: 800, height: 1000 });
         // Viewport set
         
         // Generate PDF
@@ -1349,7 +1315,10 @@ export class PDFGenerator {
             right: '0.5in',
             bottom: '0.5in',
             left: '0.5in'
-          }
+          },
+          // Optimize for smaller file size
+          preferCSSPageSize: true,
+          displayHeaderFooter: false
         });
         
         // PDF generated successfully, size: ${pdfBuffer.length} bytes
@@ -1646,29 +1615,29 @@ export class PDFGenerator {
         ${pricing_roles && pricing_roles.length > 0 ? `
         <div class="pricing-section" style="margin-top: 20px;">
             <h3 style="font-size: 12pt; font-weight: bold; margin-bottom: 15px; text-decoration: underline;">Pricing Changes:</h3>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+            <table class="change-order-table">
                 <thead>
                     <tr style="background-color: #f5f5f5;">
-                        <th style="border: 1px solid #000; padding: 8px; text-align: left; font-weight: bold;">Role</th>
-                        <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold;">Rate/Hr</th>
-                        <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold;">Hours</th>
-                        <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold;">Total Cost</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-weight: bold;">Role</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">Rate/Hr</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">Hours</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">Total Cost</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${pricing_roles.map((role) => `
                     <tr>
-                        <td style="border: 1px solid #000; padding: 8px;">${role.role}</td>
-                        <td style="border: 1px solid #000; padding: 8px; text-align: center;">$${role.ratePerHour.toFixed(2)}</td>
-                        <td style="border: 1px solid #000; padding: 8px; text-align: center;">${role.totalHours}</td>
-                        <td style="border: 1px solid #000; padding: 8px; text-align: center;">$${role.totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">${role.role}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">$${role.ratePerHour.toFixed(2)}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${role.totalHours}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">$${role.totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                     `).join('')}
                 </tbody>
                 <tfoot>
                     <tr style="background-color: #f0f0f0;">
-                        <td colspan="3" style="border: 1px solid #000; padding: 8px; font-weight: bold; text-align: right;">Total Change Order Amount:</td>
-                        <td style="border: 1px solid #000; padding: 8px; font-weight: bold; text-align: center;">$${(total_change_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td colspan="3" style="border: 1px solid #ddd; padding: 8px; font-weight: bold; text-align: right;">Total Change Order Amount:</td>
+                        <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; text-align: center;">$${(total_change_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                 </tfoot>
             </table>
