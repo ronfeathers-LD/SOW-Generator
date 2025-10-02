@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
@@ -17,6 +17,15 @@ interface CustomerInformationTabProps {
     stageName?: string;
     closeDate?: string;
     description?: string;
+    // Partner fields
+    isvPartnerAccount?: string;
+    isvPartnerAccountName?: string;
+    partnerAccount?: string;
+    partnerAccountName?: string;
+    implementationPartner?: string;
+    channelPartnerContractAmount?: number;
+    dateOfPartnerEngagement?: string;
+    isPartnerSourced?: boolean;
   } | null;
   availableOpportunities: Array<{
     id: string;
@@ -25,6 +34,15 @@ interface CustomerInformationTabProps {
     stageName?: string;
     closeDate?: string;
     description?: string;
+    // Partner fields
+    isvPartnerAccount?: string;
+    isvPartnerAccountName?: string;
+    partnerAccount?: string;
+    partnerAccountName?: string;
+    implementationPartner?: string;
+    channelPartnerContractAmount?: number;
+    dateOfPartnerEngagement?: string;
+    isPartnerSourced?: boolean;
   }>;
   onCustomerSelectedFromSalesforce: (customerData: { account: unknown; opportunities: unknown[] }) => void;
   onOpportunitySelectedFromSalesforce: (opportunity: {
@@ -34,6 +52,15 @@ interface CustomerInformationTabProps {
     stageName?: string;
     closeDate?: string;
     description?: string;
+    // Partner fields
+    isvPartnerAccount?: string;
+    isvPartnerAccountName?: string;
+    partnerAccount?: string;
+    partnerAccountName?: string;
+    implementationPartner?: string;
+    channelPartnerContractAmount?: number;
+    dateOfPartnerEngagement?: string;
+    isPartnerSourced?: boolean;
   } | null) => void;
   onAvailableOpportunitiesUpdate: (opportunities: Array<{
     id: string;
@@ -42,6 +69,12 @@ interface CustomerInformationTabProps {
     stageName?: string;
     closeDate?: string;
     description?: string;
+    // Partner fields
+    isvPartnerAccount?: string;
+    isvPartnerAccountName?: string;
+    implementationPartner?: string;
+    channelPartnerContractAmount?: number;
+    dateOfPartnerEngagement?: string;
   }>) => void;
   getSalesforceLink: (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => string;
   onLogoChange: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
@@ -61,34 +94,8 @@ export default function CustomerInformationTab({
   getSalesforceLink,
   onLogoChange,
 }: CustomerInformationTabProps) {
-  
-  // 🔍 LOG: Account segment display
-  useEffect(() => {
-    console.log('🔍 CUSTOMER INFO TAB - Account Segment Display:', {
-      selectedAccount: selectedAccount ? {
-        Id: selectedAccount.Id,
-        Name: selectedAccount.Name,
-        Employee_Band__c: selectedAccount.Employee_Band__c
-      } : null,
-      displayValue: selectedAccount?.Employee_Band__c || 'N/A'
-    });
-  }, [selectedAccount]);
   const [currentStep, setCurrentStep] = useState<SelectionStep>('account');
-  const [, setIsLoadingOpportunities] = useState(false);
 
-  // Debug logging to help troubleshoot account owner issue
-  console.log('🔍 CustomerInformationTab Debug:', {
-    selectedAccount: selectedAccount ? {
-      Id: selectedAccount.Id,
-      Name: selectedAccount.Name,
-      Owner: selectedAccount.Owner
-    } : null,
-    initialData: initialData ? {
-      salesforce_account_owner_name: initialData.salesforce_account_owner_name,
-      salesforce_account_owner_email: initialData.salesforce_account_owner_email,
-      salesforce_account_id: initialData.salesforce_account_id
-    } : null
-  });
 
   // Helper function to get account owner information
   const getAccountOwnerInfo = () => {
@@ -105,7 +112,6 @@ export default function CustomerInformationTab({
     
     // Load opportunities if we're going to the opportunity step and we have a selected account with a valid ID
     if (step === 'opportunity' && selectedAccount && selectedAccount.Id && availableOpportunities.length === 0) {
-      setIsLoadingOpportunities(true);
       try {
         const response = await fetch('/api/salesforce/account-opportunities', {
           method: 'POST',
@@ -138,7 +144,7 @@ export default function CustomerInformationTab({
             statusText: response.statusText,
             error: errorData,
             url: response.url,
-            accountId: selectedAccount.id
+            accountId: selectedAccount.Id
           });
         }
       } catch (error) {
@@ -148,19 +154,16 @@ export default function CustomerInformationTab({
           message: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : 'No stack trace'
         });
-      } finally {
-        setIsLoadingOpportunities(false);
       }
     }
   };
 
   // Function to refresh opportunities data
   const refreshOpportunities = async () => {
-    if (!selectedAccount?.id) {
+    if (!selectedAccount?.Id) {
       return;
     }
     
-    setIsLoadingOpportunities(true);
     try {
       const response = await fetch('/api/salesforce/account-opportunities', {
         method: 'POST',
@@ -168,7 +171,7 @@ export default function CustomerInformationTab({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          accountId: selectedAccount.id,
+          accountId: selectedAccount.Id,
           forceRefresh: true // Force refresh from Salesforce
         }),
       });
@@ -201,12 +204,13 @@ export default function CustomerInformationTab({
       }
     } catch (error) {
       console.error('Error refreshing opportunities:', error);
-    } finally {
-      setIsLoadingOpportunities(false);
     }
   };
 
-  const handleAccountSelected = (customerData: { account: unknown; opportunities: unknown[] }) => {
+  const handleAccountSelected = async (customerData: { account: unknown; opportunities: unknown[] }) => {
+    // Force refresh opportunities to get latest data with partner fields
+    await refreshOpportunities();
+    
     onCustomerSelectedFromSalesforce(customerData);
     // Automatically proceed to opportunity selection since we already have the opportunities
     setCurrentStep('opportunity');
@@ -219,6 +223,12 @@ export default function CustomerInformationTab({
     stageName?: string;
     closeDate?: string;
     description?: string;
+    // Partner fields
+    isvPartnerAccount?: string;
+    isvPartnerAccountName?: string;
+    implementationPartner?: string;
+    channelPartnerContractAmount?: number;
+    dateOfPartnerEngagement?: string;
   } | null) => {
     onOpportunitySelectedFromSalesforce(opportunity);
     if (opportunity) {
@@ -228,7 +238,25 @@ export default function CustomerInformationTab({
 
   return (
     <section className="space-y-6">
-      <h2 className="text-2xl font-bold">Customer Information</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Customer Information</h2>
+        {/* Partner Badge - Only show if there's partner data */}
+        {formData.salesforce_data?.opportunity_data?.is_partner_sourced && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+            <div className="flex items-center">
+              <svg className="w-4 h-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <span className="text-blue-900 font-medium text-sm">
+                Partner-Sourced
+                {formData.salesforce_data?.opportunity_data?.isv_partner_account_name && 
+                  `: ${formData.salesforce_data.opportunity_data.isv_partner_account_name}`
+                }
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
       
       {/* Enhanced Confirmation Checklist */}
       <div className="bg-white shadow rounded-lg p-6">
@@ -344,7 +372,18 @@ export default function CustomerInformationTab({
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">Opportunity</p>
+                  <div className="flex items-start justify-between mb-2">
+                    <p className="text-sm font-medium text-gray-900">Opportunity</p>
+                    {/* Partner-sourced indicator badge - top right */}
+                    {selectedOpportunity && selectedOpportunity.isPartnerSourced && (
+                      <div className="flex items-center text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-full">
+                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        Partner Sourced
+                      </div>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-500 mb-2">
                     {selectedOpportunity 
                       ? selectedOpportunity.name
@@ -404,6 +443,26 @@ export default function CustomerInformationTab({
                           </svg>
                           View in Salesforce
                         </a>
+                      )}
+                      {/* Partner information */}
+                      {selectedOpportunity && selectedOpportunity.isvPartnerAccountName && (
+                        <div className="mt-2 pt-2 border-t border-gray-200">
+                          <div className="flex items-center text-xs text-gray-600">
+                            <svg className="h-3 w-3 mr-1 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                            </svg>
+                            <span className="mr-1">Partner:</span>
+                            <a 
+                              href={getSalesforceLink(selectedOpportunity.isvPartnerAccount || selectedOpportunity.partnerAccount || '', 'Account')}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {selectedOpportunity.isvPartnerAccountName || selectedOpportunity.partnerAccountName}
+                            </a>
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}
@@ -498,7 +557,30 @@ export default function CustomerInformationTab({
                            className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
                            onClick={() => handleOpportunitySelected(opportunity)}
                          >
-                           <div className="font-medium text-gray-900">{opportunity.name}</div>
+                           <div className="flex items-center justify-between">
+                             <div className="font-medium text-gray-900">{opportunity.name}</div>
+                             {/* Partner-sourced indicator */}
+                             {opportunity.isPartnerSourced && (
+                               <div className="flex items-center text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-full">
+                                 <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                 </svg>
+                                 Partner Sourced
+                                 {(opportunity.isvPartnerAccountName || opportunity.partnerAccountName) && (
+                                   <span className="ml-1">
+                                     • <a 
+                                       href={getSalesforceLink(opportunity.isvPartnerAccount || opportunity.partnerAccount || '', 'Account')}
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       className="underline hover:text-purple-800"
+                                     >
+                                       {opportunity.isvPartnerAccountName || opportunity.partnerAccountName}
+                                     </a>
+                                   </span>
+                                 )}
+                               </div>
+                             )}
+                           </div>
                            <div className="text-sm text-gray-600 mt-1">
                              <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium mr-2">
                                {opportunity.stageName}

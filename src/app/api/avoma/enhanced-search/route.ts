@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       accountName,
       opportunityName,
       contactEmails,
-      additionalSearchTerms,
+      // additionalSearchTerms, // Not used by Avoma API
       useSmartSearch = true,
       salesforceAccountId,
       salesforceOpportunityId,
@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
 
     // Get Avoma configuration from database
     const avomaConfig = await getAvomaConfig();
+    
     
     if (!avomaConfig) {
       return NextResponse.json(
@@ -163,26 +164,30 @@ export async function POST(request: NextRequest) {
     const searchContactEmails = contactEmails || 
                                 salesforceData?.contacts_data?.map((contact: SalesforceContact) => contact.Email).filter(Boolean);
     
-    const searchTerms = additionalSearchTerms || 
-                       ['scoping', 'scope', 'requirements', 'discovery', 'project', 'proposal', 'sow'];
+    // Note: Avoma API doesn't support generic search terms, only CRM IDs and attendee emails
+    // const searchTerms = additionalSearchTerms || 
+    //                    ['scoping', 'scope', 'requirements', 'discovery', 'project', 'proposal', 'sow'];
 
     // Use provided IDs with priority over fetched ones
     const finalSalesforceAccountId = salesforceAccountId || salesforceData?.account_data?.id;
     const finalSalesforceOpportunityId = salesforceOpportunityId || salesforceData?.opportunity_data?.id;
     
     // Partner account information
-    const finalPartnerAccountId = partnerAccountId || salesforceData?.opportunity_data?.partnerAccountId;
+    const finalPartnerAccountId = partnerAccountId || 
+                                 salesforceData?.opportunity_data?.isv_partner_account ||
+                                 salesforceData?.opportunity_data?.partner_account;
     
 
     // Perform enhanced search
     let meetings: AvomaCall[] = [];
+    
     
     if (useSmartSearch) {
       meetings = await avomaClient.smartSearchMeetings(
         searchAccountName,
         searchOpportunityName,
         searchContactEmails,
-        searchTerms,
+        // searchTerms, // Not used by Avoma API
         finalSalesforceAccountId,
         finalSalesforceOpportunityId,
         fromDate,
@@ -194,7 +199,7 @@ export async function POST(request: NextRequest) {
         searchAccountName,
         searchOpportunityName,
         searchContactEmails,
-        searchTerms,
+        // searchTerms, // Not used by Avoma API
         finalSalesforceAccountId,
         finalSalesforceOpportunityId,
         fromDate,
@@ -211,7 +216,7 @@ export async function POST(request: NextRequest) {
           accountName: searchAccountName,
           opportunityName: searchOpportunityName,
           contactEmails: searchContactEmails,
-          searchTerms: searchTerms,
+          // searchTerms: searchTerms, // Not used by Avoma API
           usedSalesforceData: !!salesforceData,
           usedSOWData: !!sowData,
           salesforceAccountId: finalSalesforceAccountId,
@@ -235,7 +240,7 @@ export async function POST(request: NextRequest) {
         accountName: searchAccountName,
         opportunityName: searchOpportunityName,
         contactEmails: searchContactEmails,
-        searchTerms: searchTerms,
+        // searchTerms: searchTerms, // Not used by Avoma API
         usedSalesforceData: !!salesforceData,
         usedSOWData: !!sowData,
         salesforceAccountId: finalSalesforceAccountId,

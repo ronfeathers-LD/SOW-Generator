@@ -5,7 +5,7 @@ import { SOWData, SOWTemplate } from '@/types/sow';
 import { SalesforceAccount, SalesforceContact } from '@/lib/salesforce';
 import ProjectOverviewTab from './sow/ProjectOverviewTab';
 import CustomerInformationTab from './sow/CustomerInformationTab';
-import ObjectivesTab from './sow/ObjectivesTab';
+import ObjectivesWizard from './sow/ObjectivesWizard';
 import TeamRolesTab from './sow/TeamRolesTab';
 import BillingInformationTab from './sow/BillingInformationTab';
 import BillingPaymentTab from './sow/BillingPaymentTab';
@@ -283,6 +283,15 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     stageName?: string;
     closeDate?: string;
     description?: string;
+    // Partner fields
+    isvPartnerAccount?: string;
+    isvPartnerAccountName?: string;
+    partnerAccount?: string;
+    partnerAccountName?: string;
+    implementationPartner?: string;
+    channelPartnerContractAmount?: number;
+    dateOfPartnerEngagement?: string;
+    isPartnerSourced?: boolean;
   } | null>(null);
   const [availableOpportunities, setAvailableOpportunities] = useState<Array<{
     id: string;
@@ -368,6 +377,28 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           
           // Debug logging removed
         }
+        
+        // Also reconstruct selected opportunity with partner data if available
+        if (data.success && data.data?.opportunity_data) {
+          const opportunityData = data.data.opportunity_data;
+          setSelectedOpportunity({
+            id: opportunityData.id,
+            name: opportunityData.name,
+            amount: opportunityData.amount,
+            stageName: opportunityData.stage_name,
+            closeDate: opportunityData.close_date,
+            description: opportunityData.description || '',
+            // Partner fields
+            isvPartnerAccount: opportunityData.isv_partner_account,
+            isvPartnerAccountName: opportunityData.isv_partner_account_name,
+            partnerAccount: opportunityData.partner_account,
+            partnerAccountName: opportunityData.partner_account_name,
+            implementationPartner: opportunityData.implementation_partner,
+            channelPartnerContractAmount: opportunityData.channel_partner_contract_amount,
+            dateOfPartnerEngagement: opportunityData.date_of_partner_engagement,
+            isPartnerSourced: opportunityData.is_partner_sourced
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading stored Salesforce data:', error);
@@ -377,22 +408,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   // Load existing data when editing
   useEffect(() => {
     if (initialData) {
-      console.log('🔍 SOWForm Debug - initialData:', {
-        salesforce_account_owner_name: initialData.salesforce_account_owner_name,
-        salesforce_account_owner_email: initialData.salesforce_account_owner_email,
-        salesforce_account_id: initialData.salesforce_account_id,
-        selectedAccount: initialData.selectedAccount,
-        template_client_name: initialData.template?.client_name,
-        header_client_name: initialData.header?.client_name
-      });
 
       // Set selected account if available from initialData or if customer name exists
       if (initialData.selectedAccount) {
-        console.log('🔍 SOWForm: Using selectedAccount from initialData:', {
-          Id: initialData.selectedAccount.Id,
-          Name: initialData.selectedAccount.Name,
-          Employee_Band__c: initialData.selectedAccount.Employee_Band__c
-        });
         setSelectedAccount(initialData.selectedAccount);
       } else if (initialData.template?.client_name || initialData.header?.client_name) {
         const accountId = initialData.salesforce_account_id || '';
@@ -407,12 +425,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             Email: initialData.salesforce_account_owner_email || ''
           } : undefined
         };
-        console.log('🔍 SOWForm: Reconstructing selectedAccount:', {
-          Id: reconstructedAccount.Id,
-          Name: reconstructedAccount.Name,
-          Employee_Band__c: reconstructedAccount.Employee_Band__c,
-          account_segment_from_initialData: initialData.account_segment
-        });
         setSelectedAccount(reconstructedAccount);
       }
       
@@ -460,8 +472,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         }));
       }
       
-      // Set selected opportunity if opportunity data exists
-      if (initialData.template?.opportunity_id || initialData.template?.opportunity_name || initialData.opportunity_id || initialData.opportunity_name) {
+      // Set selected opportunity if opportunity data exists (fallback if not loaded from Salesforce data)
+      if ((initialData.template?.opportunity_id || initialData.template?.opportunity_name || initialData.opportunity_id || initialData.opportunity_name) && !selectedOpportunity) {
         setSelectedOpportunity({
           id: initialData.template?.opportunity_id || initialData.opportunity_id || '',
           name: initialData.template?.opportunity_name || initialData.opportunity_name || '',
@@ -488,7 +500,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         }));
       }
     }
-  }, [initialData]);
+  }, [initialData, selectedOpportunity]);
   
   // Navigation blocking for unsaved changes
   useEffect(() => {
@@ -681,13 +693,31 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       StageName?: string;
       CloseDate?: string;
       Description?: string;
+      // Partner fields
+      isvPartnerAccount?: string;
+      isvPartnerAccountName?: string;
+      partnerAccount?: string;
+      partnerAccountName?: string;
+      implementationPartner?: string;
+      channelPartnerContractAmount?: number;
+      dateOfPartnerEngagement?: string;
+      isPartnerSourced?: boolean;
     }>).map(opp => ({
       id: opp.Id,
       name: opp.Name,
       amount: opp.Amount,
       stageName: opp.StageName,
       closeDate: opp.CloseDate,
-      description: opp.Description
+      description: opp.Description,
+      // Partner fields
+      isvPartnerAccount: opp.isvPartnerAccount,
+      isvPartnerAccountName: opp.isvPartnerAccountName,
+      partnerAccount: opp.partnerAccount,
+      partnerAccountName: opp.partnerAccountName,
+      implementationPartner: opp.implementationPartner,
+      channelPartnerContractAmount: opp.channelPartnerContractAmount,
+      dateOfPartnerEngagement: opp.dateOfPartnerEngagement,
+      isPartnerSourced: opp.isPartnerSourced
     })) || []);
     
     // Reset selected opportunity when account changes
@@ -767,6 +797,15 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     stageName?: string;
     closeDate?: string;
     description?: string;
+    // Partner fields
+    isvPartnerAccount?: string;
+    isvPartnerAccountName?: string;
+    partnerAccount?: string;
+    partnerAccountName?: string;
+    implementationPartner?: string;
+    channelPartnerContractAmount?: number;
+    dateOfPartnerEngagement?: string;
+    isPartnerSourced?: boolean;
   } | null) => {
     setSelectedOpportunity(opportunity);
     
@@ -798,7 +837,15 @@ export default function SOWForm({ initialData }: SOWFormProps) {
             Amount: opportunity.amount,
             StageName: opportunity.stageName || '',
             CloseDate: opportunity.closeDate || '',
-            Description: opportunity.description || ''
+            Description: opportunity.description || '',
+            // Partner fields
+            ISV_Partner_Account__c: opportunity.isvPartnerAccount,
+            ISV_Partner_Account__r: opportunity.isvPartnerAccountName ? { Name: opportunity.isvPartnerAccountName } : undefined,
+            Partner_Account__c: opportunity.partnerAccount,
+            Partner_Account__r: opportunity.partnerAccountName ? { Name: opportunity.partnerAccountName } : undefined,
+            Implementation_Partner__c: opportunity.implementationPartner,
+            Channel_Partner_Contract_Amount__c: opportunity.channelPartnerContractAmount,
+            Date_of_Partner_Engagement__c: opportunity.dateOfPartnerEngagement
           });
           
           await fetch(`/api/sow/${initialData.id}/salesforce-data`, {
@@ -903,22 +950,19 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
         case 'Objectives':
           tabData = {
-            objectives: {
-              description: formData.objectives?.description,
-              key_objectives: formData.objectives?.key_objectives,
-              avoma_transcription: formData.objectives?.avoma_transcription,
-              avoma_url: formData.objectives?.avoma_url,
-              avoma_recordings: formData.objectives?.avoma_recordings,
-            },
-            scope: {
-              deliverables: formData.scope?.deliverables,
-            },
+            objectives_description: formData.objectives?.description,
+            objectives_key_objectives: formData.objectives?.key_objectives,
+            objectives_avoma_transcription: formData.objectives?.avoma_transcription,
+            objectives_avoma_url: formData.objectives?.avoma_url,
+            deliverables: formData.scope?.deliverables,
             custom_deliverables_content: formData.custom_deliverables_content,
             deliverables_content_edited: formData.deliverables_content_edited,
             custom_objective_overview_content: formData.custom_objective_overview_content,
             objective_overview_content_edited: formData.objective_overview_content_edited,
             custom_key_objectives_content: formData.custom_key_objectives_content,
             key_objectives_content_edited: formData.key_objectives_content_edited,
+            selected_documents: formData.selected_documents,
+            selected_meetings: formData.selected_meetings,
           };
           break;
 
@@ -1309,7 +1353,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
 
       {/* Objectives Section */}
       {activeTab === 'Objectives' && (
-        <ObjectivesTab
+        <ObjectivesWizard
           formData={formData}
           setFormData={updateFormData}
           selectedAccount={selectedAccount}

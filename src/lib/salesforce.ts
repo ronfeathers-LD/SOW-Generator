@@ -85,6 +85,10 @@ export interface SalesforceOpportunity {
   ISV_Partner_Account__r?: {
     Name: string;
   };
+  Partner_Account__c?: string;
+  Partner_Account__r?: {
+    Name: string;
+  };
   Implementation_Partner__c?: string;
   Channel_Partner_Contract_Amount__c?: number;
   Date_of_Partner_Engagement__c?: string;
@@ -445,6 +449,7 @@ class SalesforceClient {
         SELECT Id, Name, Amount, CloseDate, StageName, Description, AccountId,
                Account.Name,
                ISV_Partner_Account__c, ISV_Partner_Account__r.Name,
+               Partner_Account__c, Partner_Account__r.Name,
                Implementation_Partner__c, Channel_Partner_Contract_Amount__c,
                Date_of_Partner_Engagement__c
         FROM Opportunity 

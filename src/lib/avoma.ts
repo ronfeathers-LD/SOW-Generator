@@ -415,7 +415,7 @@ class AvomaClient {
     accountName: string,
     opportunityName?: string,
     contactEmails?: string[],
-    additionalSearchTerms?: string[],
+    // additionalSearchTerms?: string[], // Not used by Avoma API
     salesforceAccountId?: string,
     salesforceOpportunityId?: string,
     fromDate?: string,
@@ -454,9 +454,11 @@ class AvomaClient {
         }
         
         try {
-          const meetingResults = await this.makeRequest(`/meetings?${meetingParams.toString()}`);
+          const apiUrl = `/meetings?${meetingParams.toString()}`;
+          const meetingResults = await this.makeRequest(apiUrl);
           
           if (meetingResults.results && meetingResults.results.length > 0) {
+            
             // Convert to our expected format and filter out meetings without transcripts
             const allMeetings = meetingResults.results.map((meeting: AvomaApiMeeting) => ({
               id: meeting.uuid,
@@ -478,17 +480,20 @@ class AvomaClient {
               purpose: meeting.purpose?.label
             }));
             
+            
             // Filter to only include meetings with transcripts
             const meetingsWithTranscripts = allMeetings.filter((meeting: unknown) => {
               const meetingData = meeting as Record<string, unknown>;
               return meetingData.transcript_ready && meetingData.transcription_uuid;
             });
             
-            
             return meetingsWithTranscripts;
           }
         } catch (error) {
-          console.error('Meetings API error:', error instanceof Error ? error.message : String(error));
+          console.error('❌ Meetings API error:', error instanceof Error ? error.message : String(error));
+          console.error('❌ Full error details:', error);
+          // Don't return empty array on error, let it bubble up
+          throw error;
         }
       }
 
@@ -517,7 +522,7 @@ class AvomaClient {
               accountName,
               opportunityName,
               contactEmails,
-              additionalSearchTerms,
+              // additionalSearchTerms, // Not used by Avoma API
               salesforceAccountId,
               salesforceOpportunityId
             );
@@ -556,7 +561,7 @@ class AvomaClient {
               accountName,
               opportunityName,
               contactEmails,
-              additionalSearchTerms,
+              // additionalSearchTerms, // Not used by Avoma API
               salesforceAccountId,
               salesforceOpportunityId
             );
@@ -581,7 +586,7 @@ class AvomaClient {
     accountName: string,
     opportunityName?: string,
     contactEmails?: string[],
-    additionalSearchTerms?: string[],
+    // additionalSearchTerms?: string[], // Not used by Avoma API
     salesforceAccountId?: string,
     salesforceOpportunityId?: string
   ): boolean {
@@ -628,12 +633,9 @@ class AvomaClient {
         attendeeEmails.some(attendeeEmail => attendeeEmail.includes(email.toLowerCase()))
       ) : true;
 
-    // Check for additional search terms (if provided)
-    const hasAdditionalTerms = additionalSearchTerms && additionalSearchTerms.length > 0 ?
-      additionalSearchTerms.some(term => 
-        subject.includes(term.toLowerCase()) ||
-        purpose.includes(term.toLowerCase())
-      ) : true;
+    // Note: Avoma API doesn't support additional search terms
+    // Keeping this for backward compatibility but always returning true
+    const hasAdditionalTerms = true;
 
     // Check for scoping-related keywords
     const hasScopingKeywords = subject.includes('scoping') || 
@@ -717,7 +719,7 @@ class AvomaClient {
     accountName: string,
     opportunityName?: string,
     contactEmails?: string[],
-    additionalSearchTerms?: string[],
+    // additionalSearchTerms?: string[], // Not used by Avoma API
     salesforceAccountId?: string,
     salesforceOpportunityId?: string,
     fromDate?: string,
@@ -730,7 +732,7 @@ class AvomaClient {
         accountName,
         opportunityName,
         contactEmails,
-        additionalSearchTerms,
+        // additionalSearchTerms, // Not used by Avoma API
         salesforceAccountId,
         salesforceOpportunityId,
         fromDate,
@@ -744,7 +746,7 @@ class AvomaClient {
           accountName,
           undefined, // No opportunity filter
           undefined, // No contact filter
-          ['scoping', 'scope', 'requirements', 'discovery', 'project', 'proposal', 'sow'],
+          // ['scoping', 'scope', 'requirements', 'discovery', 'project', 'proposal', 'sow'], // Not used by Avoma API
           salesforceAccountId,
           undefined, // No opportunity ID filter
           fromDate,
@@ -753,7 +755,54 @@ class AvomaClient {
         );
       }
 
-      // Strategy 3: If still no results, try partial account name matching
+      // Strategy 3: If still no results, try OPPORTUNITY ID ONLY search
+      if (meetings.length === 0 && salesforceOpportunityId) {
+        
+        const meetingParams = new URLSearchParams({
+          from_date: fromDate ? `${fromDate}T00:00:00` : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
+          to_date: toDate ? `${toDate}T23:59:59` : new Date().toISOString(),
+          page_size: '100'
+        });
+        
+        meetingParams.append('crm_opportunity_ids', salesforceOpportunityId);
+        
+        try {
+          const apiUrl = `/meetings?${meetingParams.toString()}`;
+          const opportunityResults = await this.makeRequest(apiUrl);
+          
+          if (opportunityResults.results && opportunityResults.results.length > 0) {
+            // Map to expected format and filter for meetings with transcripts
+            const mappedMeetings = opportunityResults.results.map((meeting: { uuid: string; subject?: string; purpose?: { label?: string }; [key: string]: unknown }) => ({
+              id: meeting.uuid,
+              uuid: meeting.uuid,
+              title: meeting.subject || 'Untitled Meeting',
+              subject: meeting.subject,
+              start_at: meeting.start_at,
+              duration: meeting.duration,
+              organizer_email: meeting.organizer_email,
+              attendees: meeting.attendees || [],
+              hasTranscript: !!meeting.transcription_uuid,
+              transcription_uuid: meeting.transcription_uuid,
+              transcript_ready: meeting.transcript_ready,
+              audio_ready: meeting.audio_ready,
+              video_ready: meeting.video_ready,
+              notes_ready: meeting.notes_ready,
+              state: meeting.state,
+              purpose: meeting.purpose?.label,
+              url: meeting.uuid ? `https://app.avoma.com/meetings/${meeting.uuid}` : undefined
+            }));
+            
+            // Filter to only include meetings with transcripts
+            meetings = mappedMeetings.filter((meeting: { transcript_ready?: boolean; transcription_uuid?: string }) => 
+              meeting.transcript_ready && meeting.transcription_uuid
+            );
+          }
+        } catch (error) {
+          console.error('Opportunity ID only search error:', error);
+        }
+      }
+
+      // Strategy 4: If still no results, try partial account name matching
       if (meetings.length === 0 && accountName.length > 3) {
         const accountWords = accountName.split(' ').filter(word => word.length > 3);
         for (const word of accountWords) {
@@ -761,7 +810,7 @@ class AvomaClient {
             word,
             undefined,
             undefined,
-            ['scoping', 'scope', 'requirements', 'discovery', 'project', 'proposal', 'sow'],
+            // ['scoping', 'scope', 'requirements', 'discovery', 'project', 'proposal', 'sow'], // Not used by Avoma API
             undefined, // No account ID for partial matching
             undefined, // No opportunity ID for partial matching
             fromDate,
@@ -772,7 +821,7 @@ class AvomaClient {
         }
       }
 
-      // Strategy 4: If still no results, try contact email search
+      // Strategy 5: If still no results, try contact email search
       if (meetings.length === 0 && contactEmails && contactEmails.length > 0) {
         for (const email of contactEmails) {
           const domain = email.split('@')[1];
@@ -781,7 +830,7 @@ class AvomaClient {
               domain.split('.')[0], // Use domain name as account name
               undefined,
               [email],
-              ['scoping', 'scope', 'requirements', 'discovery', 'project', 'proposal', 'sow'],
+              // ['scoping', 'scope', 'requirements', 'discovery', 'project', 'proposal', 'sow'], // Not used by Avoma API
               undefined, // No account ID for domain matching
               undefined, // No opportunity ID for domain matching
               fromDate,

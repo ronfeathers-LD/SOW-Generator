@@ -38,7 +38,7 @@ export default function PricingCalculator({
   };
 
   // Calculate account segment hours
-  const accountSegmentHours = calculateAccountSegmentHours(selectedAccount?.Employee_Band__c);
+  const accountSegmentHours = calculateAccountSegmentHours(formData.account_segment || selectedAccount?.Employee_Band__c);
 
   // Helper function to get shared BookIt user count (maximum across all BookIt products)
   const getSharedBookItUserCount = (): string => {

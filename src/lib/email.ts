@@ -120,7 +120,14 @@ class EmailService {
         textContent = textContent.replace(regex, value);
       });
 
-      const mailOptions: any = {
+      const mailOptions: {
+        from: string;
+        to: string;
+        subject: string;
+        html: string;
+        text: string;
+        cc?: string;
+      } = {
         from: `"${this.config.fromName}" <${this.config.fromEmail}>`,
         to: recipientEmail,
         subject: subject,

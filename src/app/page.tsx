@@ -42,9 +42,10 @@ export default async function Home() {
                 <Image
                   src="/images/leandata-logo.png"
                   alt="LeanData Logo"
-                  width={48}
-                  height={48}
-                  className="h-12 w-auto"
+                  width={200}
+                  height={200}
+                  className="h-16 w-auto"
+                  priority
                 />
                 <div className="h-12 w-px bg-gray-300"></div>
                 <div className="text-left">

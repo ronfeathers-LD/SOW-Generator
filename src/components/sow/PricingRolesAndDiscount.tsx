@@ -125,8 +125,8 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
 
   // Use shared utility to calculate all hours - memoized to prevent recalculation
   const hoursResult = useMemo(() => 
-    calculateAllHours(formData.template || {}, selectedAccount?.Employee_Band__c),
-    [formData.template, selectedAccount?.Employee_Band__c]
+    calculateAllHours(formData.template || {}, typeof formData.account_segment === 'string' ? formData.account_segment : selectedAccount?.Employee_Band__c), 
+    [formData.template, formData.account_segment, selectedAccount?.Employee_Band__c]
   );
   const { productHours, userGroupHours, accountSegmentHours, baseProjectHours, pmHours, totalUnits, shouldAddProjectManager } = hoursResult;
 
@@ -399,11 +399,14 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     const roleToRemove = pricingRoles.find(role => role.id === id);
     
     if (roleToRemove?.role === 'Project Manager') {
+      // Get account segment from formData or selectedAccount
+      const accountSegment = formData.account_segment || selectedAccount?.Employee_Band__c;
+      
       // For Project Manager, handle different account segments differently
-      if (selectedAccount?.Employee_Band__c === 'EC' || selectedAccount?.Employee_Band__c === 'MM') {
+      if (accountSegment === 'EC' || accountSegment === 'MM') {
         // EC and MM accounts: trigger PM Hours Removal flow (approval required)
         setShowPMHoursRemovalModal(true);
-      } else if (selectedAccount?.Employee_Band__c === 'EE' || selectedAccount?.Employee_Band__c === 'LE') {
+      } else if (accountSegment === 'EE' || accountSegment === 'LE') {
         // EE and LE accounts: show confirmation modal and remove directly
         setPmRoleToRemove(id);
         setShowEnterprisePMRemovalModal(true);
@@ -430,6 +433,8 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
 
   // Get current calculations using role distribution
   const totalHours = roleDistribution.totalProjectHours;
+  
+  // Get account segment from formData or selectedAccount (unused variable removed)
 
   return (
     <div className="space-y-6">
@@ -537,7 +542,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
             {/* Account Segment Hours Breakdown */}
             {accountSegmentHours > 0 && (
               <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-900">Account Segment ({selectedAccount?.Employee_Band__c}):</span>
+                <span className="font-medium text-gray-900">Account Segment ({typeof formData.account_segment === 'string' ? formData.account_segment : selectedAccount?.Employee_Band__c || 'N/A'}):</span>
                 <span className="font-semibold text-gray-900">+{accountSegmentHours} hours</span>
               </div>
             )}

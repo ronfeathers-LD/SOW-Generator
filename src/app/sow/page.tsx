@@ -3,6 +3,7 @@
 import React, { useEffect, useState, Suspense, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { getStatusColor } from '@/lib/utils/statusUtils';
 
 interface SOW {
@@ -17,10 +18,11 @@ interface SOW {
   version?: number;
   is_latest?: boolean;
   parent_id?: string;
-  revisions?: SOW[]; // Add revisions for hierarchical display
+  clientSOWs?: SOW[]; // Add clientSOWs for client-based grouping
 }
 
 function SOWListContent() {
+  const { data: session } = useSession();
   const [sows, setSows] = useState<SOW[]>([]);
   const [filteredSows, setFilteredSows] = useState<SOW[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +35,10 @@ function SOWListContent() {
  
   const searchParams = useSearchParams();
   const statusFilter = searchParams.get('status');
+  const showHidden = searchParams.get('show_hidden') === 'true';
+  
+  // Check if user is admin
+  const isAdmin = session?.user?.role === 'admin';
 
   // Sorting function
   const handleSort = (key: keyof SOW) => {
@@ -84,7 +90,16 @@ function SOWListContent() {
   useEffect(() => {
     const fetchSOWs = async () => {
       try {
-        const response = await fetch('/api/sow');
+        // Build query string based on filters
+        const params = new URLSearchParams();
+        if (showHidden) {
+          params.append('show_hidden', 'true');
+        }
+        
+        const queryString = params.toString();
+        const url = queryString ? `/api/sow?${queryString}` : '/api/sow';
+        
+        const response = await fetch(url);
         
         if (!response.ok) {
           const errorText = await response.text();
@@ -103,36 +118,66 @@ function SOWListContent() {
     };
 
     fetchSOWs();
-  }, []);
+  }, [showHidden]);
 
-  // Group SOWs hierarchically (parent SOWs with their revisions)
-  const groupSOWsHierarchically = useCallback((sowsToGroup: SOW[]) => {
-    // First, identify root SOWs (those without parent_id)
-    const rootSOWs = sowsToGroup.filter(sow => !sow.parent_id);
-    
-    // Group revisions by their parent_id
-    const revisionsByParent = sowsToGroup.reduce((acc, sow) => {
-      if (sow.parent_id) {
-        if (!acc[sow.parent_id]) {
-          acc[sow.parent_id] = [];
-        }
-        acc[sow.parent_id].push(sow);
+  // Group SOWs by client name (client-based grouping)
+  const groupSOWsByClient = useCallback((sowsToGroup: SOW[]) => {
+    // Group SOWs by client_name
+    const sowsByClient = sowsToGroup.reduce((acc, sow) => {
+      const clientName = sow.client_name || 'Unknown Client';
+      if (!acc[clientName]) {
+        acc[clientName] = [];
       }
+      acc[clientName].push(sow);
       return acc;
     }, {} as Record<string, SOW[]>);
     
-    // Create hierarchical structure
-    const hierarchicalSOWs: (SOW & { revisions?: SOW[] })[] = [];
+    // Create client-based structure with sorted SOWs
+    const clientGroups: (SOW & { clientSOWs?: SOW[] })[] = [];
     
-    rootSOWs.forEach(rootSOW => {
-      const revisions = revisionsByParent[rootSOW.id] || [];
-      hierarchicalSOWs.push({
-        ...rootSOW,
-        revisions: revisions.sort((a, b) => (a.version || 1) - (b.version || 1))
+    Object.entries(sowsByClient).forEach(([clientName, sows]) => {
+      // Sort SOWs by version (ascending) and then by created_at (descending)
+      const sortedSOWs = sows.sort((a, b) => {
+        // First sort by version if available
+        if (a.version && b.version) {
+          return a.version - b.version;
+        }
+        // Then by creation date (newest first)
+        const aDate = new Date(a.created_at).getTime();
+        const bDate = new Date(b.created_at).getTime();
+        return bDate - aDate;
+      });
+      
+      // Find the latest SOW (highest version or most recent)
+      const latestSOW = sortedSOWs.reduce((latest, current) => {
+        // If current has a higher version, it's the latest
+        if (current.version && latest.version && current.version > latest.version) {
+          return current;
+        }
+        // If current is marked as latest, it's the latest
+        if (current.is_latest) {
+          return current;
+        }
+        // If latest is marked as latest, keep it
+        if (latest.is_latest) {
+          return latest;
+        }
+        // Otherwise, use the most recent by creation date
+        const currentDate = new Date(current.created_at).getTime();
+        const latestDate = new Date(latest.created_at).getTime();
+        return currentDate > latestDate ? current : latest;
+      });
+      
+      // Use the latest SOW as the "header" and attach all SOWs as clientSOWs
+      clientGroups.push({
+        ...latestSOW,
+        client_name: clientName, // Ensure client name is set
+        clientSOWs: sortedSOWs
       });
     });
     
-    return hierarchicalSOWs;
+    // Sort client groups by client name
+    return clientGroups.sort((a, b) => a.client_name.localeCompare(b.client_name));
   }, []);
 
   // Filter and sort SOWs based on status filter and sort config
@@ -146,18 +191,18 @@ function SOWListContent() {
     // Apply sorting
     filtered = sortSOWs(filtered);
     
-    // Group hierarchically
-    const hierarchicalSOWs = groupSOWsHierarchically(filtered);
+    // Group by client
+    const clientGroupedSOWs = groupSOWsByClient(filtered);
     
-    setFilteredSows(hierarchicalSOWs);
-  }, [sows, statusFilter, sortConfig, sortSOWs, groupSOWsHierarchically]);
+    setFilteredSows(clientGroupedSOWs);
+  }, [sows, statusFilter, sortConfig, sortSOWs, groupSOWsByClient]);
 
   // Helper function to render a single SOW row
-  const renderSOWRow = (sow: SOW, isRevision: boolean = false) => (
-    <tr key={sow.id} className={isRevision ? 'bg-gray-50' : ''}>
-      <td className={`py-4 pr-3 text-sm font-medium text-gray-900 ${isRevision ? 'pl-8' : 'pl-4'}`}>
+  const renderSOWRow = (sow: SOW, isClientSOW: boolean = false) => (
+    <tr key={sow.id} className={isClientSOW ? 'bg-gray-50' : ''}>
+      <td className={`py-4 pr-3 text-sm font-medium text-gray-900 ${isClientSOW ? 'pl-8' : 'pl-4'}`}>
         <div className="flex items-center space-x-2">
-          {isRevision && (
+          {isClientSOW && (
             <span className="text-gray-400 text-xs">└─</span>
           )}
           <span>{sow.client_name || 'N/A'}</span>
@@ -172,9 +217,9 @@ function SOWListContent() {
               {sow.is_latest ? ' (Latest)' : ' (Previous)'}
             </div>
           )}
-          {isRevision && (
+          {isClientSOW && (
             <div className="text-xs text-gray-400">
-              Revision of original SOW
+              SOW Version
             </div>
           )}
         </div>
@@ -229,12 +274,13 @@ function SOWListContent() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
           </Link>
-          {sow.status !== 'approved' && (
+          {/* Hide/Unhide button - only show for non-hidden SOWs */}
+          {!showHidden && (sow.status !== 'approved' || isAdmin) && (
             <button
               onClick={() => handleHide(sow.id, sow.sow_title, sow.status)}
               disabled={deletingId === sow.id}
               className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed p-1"
-              title={sow.status === 'approved' ? 'Approved SOWs cannot be hidden' : 'Hide SOW'}
+              title={sow.status === 'approved' && !isAdmin ? 'Approved SOWs cannot be hidden' : 'Hide SOW'}
             >
               {deletingId === sow.id ? (
                 <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -248,12 +294,33 @@ function SOWListContent() {
               )}
             </button>
           )}
-          {sow.status === 'approved' && (
+          {!showHidden && sow.status === 'approved' && !isAdmin && (
             <span className="text-gray-400 cursor-not-allowed p-1" title="Approved SOWs cannot be hidden">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             </span>
+          )}
+          {/* Unhide button - only show for hidden SOWs */}
+          {showHidden && isAdmin && (
+            <button
+              onClick={() => handleUnhide(sow.id, sow.sow_title)}
+              disabled={deletingId === sow.id}
+              className="text-green-600 hover:text-green-900 disabled:opacity-50 disabled:cursor-not-allowed p-1"
+              title="Unhide SOW"
+            >
+              {deletingId === sow.id ? (
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              )}
+            </button>
           )}
         </div>
       </td>
@@ -294,6 +361,45 @@ function SOWListContent() {
       setFilteredSows(filteredSows.filter(sow => sow.id !== id));
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to hide SOW';
+      setError(errorMessage);
+      alert(`Error: ${errorMessage}`);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleUnhide = async (id: string, sowTitle: string) => {
+    // Confirmation dialog for unhiding
+    const confirmMessage = `Are you sure you want to unhide "${sowTitle}"?\n\n` +
+      `This action will make this SOW visible again in the system.\n\n` +
+      `Type "UNHIDE" to confirm:`;
+    
+    const userInput = prompt(confirmMessage);
+    if (userInput !== 'UNHIDE') {
+      return;
+    }
+
+    setDeletingId(id);
+    try {
+      const response = await fetch(`/api/sow/${id}/unhide`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to unhide SOW');
+      }
+
+      await response.json();
+      
+      // Show success message
+      alert(`SOW "${sowTitle}" unhidden successfully.`);
+
+      // Remove the unhidden SOW from the hidden list
+      setSows(sows.filter(sow => sow.id !== id));
+      setFilteredSows(filteredSows.filter(sow => sow.id !== id));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to unhide SOW';
       setError(errorMessage);
       alert(`Error: ${errorMessage}`);
     } finally {
@@ -347,11 +453,18 @@ function SOWListContent() {
                   - {getStatusLabel(statusFilter)}
                 </span>
               )}
+              {showHidden && (
+                <span className="ml-2 text-lg font-normal text-red-500">
+                  - Hidden SOWs
+                </span>
+              )}
             </h1>
             <p className="mt-2 text-sm text-gray-700">
-              {statusFilter 
-                ? `Showing ${getStatusLabel(statusFilter)} SOWs`
-                : 'A list of all Statements of Work in the system.'
+              {showHidden 
+                ? 'A list of hidden Statements of Work (Admin only).'
+                : statusFilter 
+                  ? `Showing ${getStatusLabel(statusFilter)} SOWs`
+                  : 'A list of all Statements of Work in the system.'
               }
             </p>
           </div>
@@ -383,7 +496,7 @@ function SOWListContent() {
           <Link
             href="/sow"
             className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-              !statusFilter 
+              !statusFilter && !showHidden
                 ? 'bg-indigo-100 text-indigo-800' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
@@ -430,6 +543,19 @@ function SOWListContent() {
           >
             Rejected ({sows.filter(sow => sow.status === 'rejected').length})
           </Link>
+          {/* Admin-only Hidden SOWs filter */}
+          {isAdmin && (
+            <Link
+              href="/sow?show_hidden=true"
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                showHidden 
+                  ? 'bg-red-100 text-red-800' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Hidden SOWs ({sows.length})
+            </Link>
+          )}
         </div>
 
         <div className="mt-8 overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
@@ -534,13 +660,23 @@ function SOWListContent() {
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
                     {filteredSows && filteredSows.length > 0 ? (
-                      filteredSows.map((sow) => (
-                        <React.Fragment key={sow.id}>
-                          {/* Parent SOW */}
-                          {renderSOWRow(sow, false)}
-                          {/* Revisions */}
-                          {sow.revisions && sow.revisions.map((revision) => 
-                            renderSOWRow(revision, true)
+                      filteredSows.map((clientGroup) => (
+                        <React.Fragment key={clientGroup.id}>
+                          {/* Only show client header if there are multiple SOWs */}
+                          {clientGroup.clientSOWs && clientGroup.clientSOWs.length > 1 ? (
+                            <>
+                              {/* Client Header SOW */}
+                              {renderSOWRow(clientGroup, false)}
+                              {/* Client SOWs */}
+                              {clientGroup.clientSOWs.map((sow) => 
+                                renderSOWRow(sow, true)
+                              )}
+                            </>
+                          ) : (
+                            /* Single SOW - show it directly without header */
+                            clientGroup.clientSOWs && clientGroup.clientSOWs.map((sow) => 
+                              renderSOWRow(sow, false)
+                            )
                           )}
                         </React.Fragment>
                       ))

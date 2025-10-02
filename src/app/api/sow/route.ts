@@ -257,7 +257,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
@@ -265,14 +265,33 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: sows, error } = await supabaseApi
+    // Parse query parameters
+    const { searchParams } = new URL(request.url);
+    const showHidden = searchParams.get('show_hidden') === 'true';
+    const isAdmin = session.user.role === 'admin';
+
+    // Only allow admins to see hidden SOWs
+    if (showHidden && !isAdmin) {
+      return NextResponse.json({ error: 'Admin access required to view hidden SOWs' }, { status: 403 });
+    }
+
+    let query = supabaseApi
       .from('sows')
       .select(`
         *,
         author:users!sows_author_id_fkey(name)
-      `)
-      .eq('is_hidden', false) // Only show non-hidden SOWs
-      .order('created_at', { ascending: false });
+      `);
+
+    // Apply filter based on show_hidden parameter
+    if (showHidden) {
+      // Show only hidden SOWs
+      query = query.eq('is_hidden', true);
+    } else {
+      // Show only non-hidden SOWs (default behavior)
+      query = query.eq('is_hidden', false);
+    }
+
+    const { data: sows, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
       console.error('Supabase error:', error);

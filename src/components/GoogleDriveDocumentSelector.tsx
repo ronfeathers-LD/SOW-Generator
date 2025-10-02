@@ -60,7 +60,6 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
 
   // Load folder contents
   const loadFolderContents = useCallback(async (folderId: string) => {
-    console.log('Loading folder contents for ID:', folderId);
     setIsLoading(true);
     setError(null);
     
@@ -80,7 +79,6 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
         isFolder: item.mimeType === 'application/vnd.google-apps.folder'
       })) || [];
       
-      console.log('Folder contents loaded:', contents.length, 'items');
       setFolderContents(contents);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load folder contents');
@@ -96,17 +94,14 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
     
     // Prevent duplicate calls for the same customer
     if (hasLoadedRef.current.has(customerName)) {
-      console.log('Skipping duplicate preload for customer:', customerName);
       return;
     }
     
     // Prevent concurrent calls for the same customer
     if (loadingRef.current.has(customerName)) {
-      console.log('Already loading for customer:', customerName);
       return;
     }
     
-    console.log('Starting preload for customer:', customerName);
     loadingRef.current.add(customerName);
     setIsPreloading(true);
     try {
@@ -178,7 +173,6 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
       
       // Mark this customer as loaded
       hasLoadedRef.current.add(customerName);
-      console.log('Marked customer as loaded:', customerName);
     } catch (err) {
       console.warn('Failed to preload customer folders:', err);
       // Don't show error to user for preloading - just fall back to browse mode
@@ -213,7 +207,6 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
   // Preload customer folders when component mounts or when triggered externally
   useEffect(() => {
     if (customerName && !folderId) {
-      console.log('useEffect triggered - customerName:', customerName, 'folderId:', folderId);
       
       // Clear any existing timeout
       if (debounceTimeoutRef.current) {
@@ -282,22 +275,18 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
     const folder = [...folderContents, ...searchResults].find(item => item.id === folderId);
     if (!folder) return;
     
-    console.log('Opening folder:', folder.name, 'ID:', folderId);
     
     const newPath = currentFolder ? [...currentFolder.path, folder.name] : [folder.name];
     setCurrentFolder({ id: folderId, name: folder.name, path: newPath });
     
     // Switch to browse mode when opening a folder
     setSearchMode('browse');
-    console.log('Switched to browse mode');
     
     // Clear search results since we're now browsing
     setSearchResults([]);
-    console.log('Cleared search results');
     
     await loadFolderContents(folderId);
     
-    console.log('After loading folder contents - searchMode:', 'browse', 'folderContents length:', folderContents.length);
   };
 
   // Handle back navigation
@@ -477,58 +466,78 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
           </div>
         )}
         
-        {/* Manual Search Input - Show when no results found */}
+        {/* No Results Cards - Show when no folders found */}
         {!isPreloading && searchResults.length === 0 && customerName && (
-          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-            <div className="text-sm text-yellow-800 mb-3">
-              <strong>No folders found for customer &quot;{customerName}&quot;</strong><br />
-              The folder name in Google Drive might be different from the Salesforce account name.
-            </div>
-            
-            {!showManualSearch ? (
-              <button
-                onClick={() => setShowManualSearch(true)}
-                className="px-3 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition-colors"
-              >
-                🔍 Search with Different Terms
-              </button>
-            ) : (
-              <div className="space-y-3">
-                <div>
-                  <label htmlFor="manualSearch" className="block text-sm font-medium text-yellow-800 mb-1">
-                    Search for folders using different terms:
-                  </label>
-                  <input
-                    type="text"
-                    id="manualSearch"
-                    value={manualSearchTerm}
-                    onChange={(e) => setManualSearchTerm(e.target.value)}
-                    placeholder="e.g., company abbreviation, project name, or different spelling"
-                    className="w-full px-4 py-3 border border-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-                  />
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => performManualSearch(manualSearchTerm)}
-                    disabled={isManualSearching || !manualSearchTerm.trim()}
-                    className="px-3 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {isManualSearching ? 'Searching...' : 'Search'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowManualSearch(false);
-                      setManualSearchTerm('');
-                    }}
-                    className="px-3 py-2 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
+          <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* No Folders Found Card */}
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+              <div className="text-sm text-yellow-800 mb-3">
+                <strong>No folders found for customer &quot;{customerName}&quot;</strong><br />
+                The folder name in Google Drive might be different from the Salesforce account name.
               </div>
-            )}
+              
+              {!showManualSearch ? (
+                <button
+                  onClick={() => setShowManualSearch(true)}
+                  className="px-3 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition-colors"
+                >
+                  🔍 Search with Different Terms
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <label htmlFor="manualSearch" className="block text-sm font-medium text-yellow-800 mb-1">
+                      Search for folders using different terms:
+                    </label>
+                    <input
+                      type="text"
+                      id="manualSearch"
+                      value={manualSearchTerm}
+                      onChange={(e) => setManualSearchTerm(e.target.value)}
+                      placeholder="e.g., company abbreviation, project name, or different spelling"
+                      className="w-full px-4 py-3 border border-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                    />
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => performManualSearch(manualSearchTerm)}
+                      disabled={isManualSearching || !manualSearchTerm.trim()}
+                      className="px-3 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isManualSearching ? 'Searching...' : 'Search'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowManualSearch(false);
+                        setManualSearchTerm('');
+                      }}
+                      className="px-3 py-2 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* No Documents Found Card */}
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-md text-center">
+              <svg className="mx-auto h-8 w-8 text-blue-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+              <div className="text-sm text-blue-800 mb-3">
+                <strong>No documents found</strong><br />
+                Browse all available folders to find content.
+              </div>
+              <button
+                onClick={() => loadRootFolders()}
+                className="px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+              >
+                📁 Browse All Folders
+              </button>
+            </div>
           </div>
         )}
         
@@ -704,8 +713,8 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
         </div>
       )}
 
-      {/* Empty State - Only show when not preloading and actually no results */}
-      {!isPreloading && !isLoading && !error && folderContents.length === 0 && searchResults.length === 0 && (
+      {/* Empty State - Only show when not preloading and actually no results and no customer name */}
+      {!isPreloading && !isLoading && !error && folderContents.length === 0 && searchResults.length === 0 && !customerName && (
         <div className="text-center py-8 text-gray-500">
           <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />

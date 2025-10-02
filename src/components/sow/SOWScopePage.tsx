@@ -1,6 +1,6 @@
 'use client';
 
-import { processContent } from '@/lib/text-to-html';
+import { useSOWContent } from '@/lib/hooks/useSOWContent';
 
 interface SOWScopePageProps {
   customContent?: string;
@@ -13,6 +13,25 @@ export default function SOWScopePage({
   customDeliverablesContent,
   isEdited 
 }: SOWScopePageProps) {
+  const { content, loading } = useSOWContent({
+    sectionName: 'scope',
+    customContent,
+  });
+
+  if (loading) {
+    return (
+      <div className="max-w-none text-left">
+        <div className="animate-pulse">
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-none text-left">
       {isEdited ? (
@@ -24,27 +43,19 @@ export default function SOWScopePage({
           </div>
           
           <div id="sow-content-scope" className="text-base leading-relaxed">
-            {customContent ? (
-              <div dangerouslySetInnerHTML={{ __html: processContent(customContent) }} />
-            ) : (
-              <p className="text-gray-600 italic">No custom scope content found</p>
-            )}
+            <div dangerouslySetInnerHTML={{ __html: content }} />
           </div>
         </div>
       ) : (
         <div id="sow-content-scope" className="text-base leading-relaxed">
-          {customContent ? (
-            <div dangerouslySetInnerHTML={{ __html: processContent(customContent) }} />
-          ) : (
-            <p className="text-gray-600 italic">No custom scope content found</p>
-          )}
+          <div dangerouslySetInnerHTML={{ __html: content }} />
         </div>
       )}
       
       {/* Deliverables Content */}
       {customDeliverablesContent && (
         <div id="sow-content-deliverables" className="mt-6 text-base leading-relaxed">
-          <div dangerouslySetInnerHTML={{ __html: processContent(customDeliverablesContent) }} />
+          <div dangerouslySetInnerHTML={{ __html: customDeliverablesContent }} />
         </div>
       )}
     </div>

@@ -678,8 +678,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'SOW not found' }, { status: 404 });
     }
 
-    // Prevent hiding of approved SOWs
-    if (existingSOW.status === 'approved') {
+    // Prevent hiding of approved SOWs for non-admin users
+    if (existingSOW.status === 'approved' && user.role !== 'admin') {
       return NextResponse.json({ 
         error: 'Cannot hide approved SOWs. Approved SOWs are protected.' 
       }, { status: 403 });

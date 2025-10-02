@@ -67,14 +67,34 @@ export async function POST(request: NextRequest) {
     const salesforceOpportunities = await salesforceClient.getAccountOpportunities(accountId);
 
     // Transform Salesforce opportunity objects to match frontend expectations
-    const opportunities = salesforceOpportunities.map(opportunity => ({
-      id: opportunity.Id,
-      name: opportunity.Name,
-      amount: opportunity.Amount,
-      closeDate: opportunity.CloseDate,
-      stageName: opportunity.StageName,
-      description: opportunity.Description
-    }));
+    const opportunities = salesforceOpportunities.map(opportunity => {
+      // Calculate if this opportunity is partner-sourced (same logic as partner-info API)
+      const isPartnerSourced = !!(
+        opportunity.ISV_Partner_Account__c || 
+        opportunity.Partner_Account__c ||
+        opportunity.Implementation_Partner__c ||
+        opportunity.Date_of_Partner_Engagement__c ||
+        opportunity.Channel_Partner_Contract_Amount__c
+      );
+
+      return {
+        id: opportunity.Id,
+        name: opportunity.Name,
+        amount: opportunity.Amount,
+        closeDate: opportunity.CloseDate,
+        stageName: opportunity.StageName,
+        description: opportunity.Description,
+        // Partner fields
+        isvPartnerAccount: opportunity.ISV_Partner_Account__c,
+        isvPartnerAccountName: opportunity.ISV_Partner_Account__r?.Name,
+        partnerAccount: opportunity.Partner_Account__c,
+        partnerAccountName: opportunity.Partner_Account__r?.Name,
+        implementationPartner: opportunity.Implementation_Partner__c,
+        channelPartnerContractAmount: opportunity.Channel_Partner_Contract_Amount__c,
+        dateOfPartnerEngagement: opportunity.Date_of_Partner_Engagement__c,
+        isPartnerSourced: isPartnerSourced
+      };
+    });
 
     // Cache the opportunities
     salesforceCache.cacheOpportunities(accountId, opportunities);

@@ -8,6 +8,7 @@ import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import Image from '@tiptap/extension-image';
 import { useEffect, useRef, useCallback } from 'react';
+import { processContent } from '@/lib/text-to-html';
 
 interface TipTapEditorProps {
   value: string;
@@ -43,91 +44,14 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
       }
     };
   }, []);
-  
-  // Helper function to check if content is HTML
-  const isHtmlContent = (content: string): boolean => {
-    if (!content) return false;
-    const trimmed = content.trim();
-    return trimmed.startsWith('<') && trimmed.includes('>');
-  };
 
-  // Helper function to clean nested UL tags
-  const cleanNestedUlTags = (html: string): string => {
-    // Remove nested <ul> tags that are directly inside other <ul> tags
-    // This handles cases like <ul><ul><li>...</li></ul></ul>
-    return html.replace(/<ul([^>]*)>\s*<ul([^>]*)>/g, '<ul$1>');
-  };
-
-  // Helper function to clean HTML content for TipTap
+  // Helper function to clean HTML content for TipTap using the proper content processor
   const cleanHtmlForTipTap = useCallback((html: string): string => {
     if (!html) return '';
     
-    // If it's already HTML, clean up nested UL tags and return
-    if (isHtmlContent(html)) {
-      // Clean up nested UL tags first
-      const cleanedHtml = cleanNestedUlTags(html);
-      
-      // Additional check: if it contains proper list structure, return cleaned version
-      if (cleanedHtml.includes('<ul>') && cleanedHtml.includes('<li>')) {
-        return cleanedHtml;
-      }
-      if (cleanedHtml.includes('<ol>') && cleanedHtml.includes('<li>')) {
-        return cleanedHtml;
-      }
-      // For other HTML content, return cleaned version
-      return cleanedHtml;
-    }
-    
-    // If it's plain text, convert to basic HTML but be conservative
-    const lines = html.split('\n');
-    const processedLines: string[] = [];
-    let currentList: string[] = [];
-    
-    lines.forEach(line => {
-      const trimmed = line.trim();
-      if (!trimmed) {
-        // If we have a current list, close it
-        if (currentList.length > 0) {
-          processedLines.push(`<ul class="list-disc pl-6 prose prose-md max-w-none">${currentList.join('')}</ul>`);
-          currentList = [];
-        }
-        return;
-      }
-      
-      // Handle bullet points - collect in current list
-      if (trimmed.startsWith('• ') || trimmed.startsWith('- ')) {
-        currentList.push(`<li>${trimmed.substring(2)}</li>`);
-        return;
-      }
-      
-      // Handle numbered lists - collect in current list
-      if (/^\d+\.\s/.test(trimmed)) {
-        currentList.push(`<li>${trimmed.replace(/^\d+\.\s/, '')}</li>`);
-        return;
-      }
-      
-              // If we have a current list and encounter non-list content, close the list first
-        if (currentList.length > 0) {
-          processedLines.push(`<ul class="list-disc pl-6 prose prose-md max-w-none">${currentList.join('')}</ul>`);
-          currentList = [];
-        }
-      
-      // Handle bold text
-      let processed = trimmed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      
-      // Handle italic text
-      processed = processed.replace(/\*(.*?)\*/g, '<em>$1</em>');
-      
-      // Wrap in <p> tag
-      processedLines.push(`<p>${processed}</p>`);
-    });
-    
-    // Close any remaining list
-    if (currentList.length > 0) {
-      processedLines.push(`<ul class="list-disc pl-6 prose prose-md max-w-none">${currentList.join('')}</ul>`);
-    }
-    
-    return processedLines.join('');
+    // Use the same content processing that was used before the wizard
+    // This handles headers (# Header -> <h1>), lists, bold/italic, etc.
+    return processContent(html);
   }, []);
   
   const editor = useEditor({
@@ -171,9 +95,6 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
         
         // Also clean up any empty paragraphs that might be left
         html = html.replace(/<p><\/p>/g, '');
-        
-        // Clean up nested UL tags
-        html = cleanNestedUlTags(html);
         
         // Fix list structure: ensure list items are properly wrapped in ul/ol tags
         // This handles cases where TipTap generates individual <li> elements without proper list containers

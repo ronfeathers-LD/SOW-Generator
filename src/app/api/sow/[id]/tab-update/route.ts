@@ -87,7 +87,14 @@ export async function PUT(
         break;
 
       case 'Objectives':
-        // Handle objectives data
+        // Handle objectives data - support both flat fields (new) and nested objects (legacy)
+        // Flat fields (new format from wizard)
+        if (data.objectives_description !== undefined) updateData.objectives_description = data.objectives_description;
+        if (data.objectives_key_objectives !== undefined) updateData.objectives_key_objectives = data.objectives_key_objectives;
+        if (data.objectives_avoma_transcription !== undefined) updateData.avoma_transcription = data.objectives_avoma_transcription;
+        if (data.objectives_avoma_url !== undefined) updateData.avoma_url = data.objectives_avoma_url;
+        
+        // Legacy nested format (for backward compatibility)
         if (data.objectives) {
           if (data.objectives.description !== undefined) updateData.objectives_description = data.objectives.description;
           if (data.objectives.key_objectives !== undefined) updateData.objectives_key_objectives = data.objectives.key_objectives;
@@ -139,10 +146,15 @@ export async function PUT(
             }
           }
         }
-        // Handle scope data (deliverables)
-        if (data.scope) {
-          if (data.scope.deliverables !== undefined) updateData.deliverables = data.scope.deliverables;
-        }
+        
+        // Handle deliverables - support both flat fields (new) and nested objects (legacy)
+        if (data.deliverables !== undefined) updateData.deliverables = data.deliverables;
+        if (data.scope && data.scope.deliverables !== undefined) updateData.deliverables = data.scope.deliverables;
+        
+        // Handle wizard data
+        if (data.selected_documents !== undefined) updateData.selected_documents = data.selected_documents;
+        if (data.selected_meetings !== undefined) updateData.selected_meetings = data.selected_meetings;
+        
         // Handle custom deliverables content
         if (data.custom_deliverables_content !== undefined) updateData.custom_deliverables_content = data.custom_deliverables_content;
         if (data.deliverables_content_edited !== undefined) updateData.deliverables_content_edited = data.deliverables_content_edited;
@@ -152,6 +164,11 @@ export async function PUT(
         // Handle custom key objectives content
         if (data.custom_key_objectives_content !== undefined) updateData.custom_key_objectives_content = data.custom_key_objectives_content;
         if (data.key_objectives_content_edited !== undefined) updateData.key_objectives_content_edited = data.key_objectives_content_edited;
+        // Handle custom scope content (for wizard-generated scope)
+        if (data.custom_scope_content !== undefined) updateData.custom_scope_content = data.custom_scope_content;
+        if (data.scope_content_edited !== undefined) updateData.scope_content_edited = data.scope_content_edited;
+        // Handle preview content (for Content Preview step)
+        if (data.preview_content !== undefined) updateData.preview_content = data.preview_content;
         break;
 
       case 'Signers & Roles':

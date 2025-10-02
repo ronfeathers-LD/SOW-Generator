@@ -184,6 +184,25 @@ export interface SOWData {
   pm_hours_removed?: number;
   pm_hours_removal_approved?: boolean;
   pm_hours_removal_date?: Date;
+  
+  // Objectives Wizard Data
+  selected_documents?: Array<{
+    id: string;
+    name: string;
+    mimeType: string;
+    size?: string;
+    content?: string;
+    wasTruncated?: boolean;
+  }>;
+  selected_meetings?: Array<{
+    id: string;
+    url: string;
+    transcription?: string;
+    title?: string;
+    date?: string;
+    status: 'pending' | 'completed' | 'failed';
+  }>;
+  preview_content?: string;
   pm_hours_requirement_disabled?: boolean;
   pm_hours_requirement_disabled_date?: Date;
   pm_hours_requirement_disabled_requester_id?: string;
@@ -194,6 +213,31 @@ export interface SOWData {
   
   // Account Information
   account_segment?: string;
+  
+  // Salesforce Data (from sow_salesforce_data table)
+  salesforce_data?: {
+    sow_id: string;
+    account_data?: {
+      id: string;
+      name: string;
+      partner_account_status?: string;
+      partner_type?: string;
+      partner_tier?: string;
+      primary_partner_contact?: string;
+    };
+    opportunity_data?: {
+      id: string;
+      name: string;
+      isv_partner_account?: string;
+      isv_partner_account_name?: string;
+      partner_account?: string;
+      implementation_partner?: string;
+      channel_partner_contract_amount?: number;
+      date_of_partner_engagement?: string;
+      is_partner_sourced?: boolean;
+    };
+    last_synced_at?: string;
+  };
   
   // Custom content fields
   custom_intro_content?: string;

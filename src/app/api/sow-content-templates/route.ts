@@ -14,7 +14,15 @@ export async function GET() {
       return NextResponse.json({ error: 'Failed to fetch content templates' }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    // Transform the data to match the expected interface
+    const transformedData = data.map(template => ({
+      ...template,
+      section_name: template.name,
+      section_title: template.name, // Use name as title for now
+      default_content: template.content?.default_content || template.content || '',
+    }));
+
+    return NextResponse.json(transformedData);
   } catch (error) {
     console.error('Error in GET /api/sow-content-templates:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
