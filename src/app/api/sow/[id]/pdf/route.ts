@@ -190,27 +190,13 @@ export async function POST(
       
       // PDF generated successfully, size: ${pdfBuffer.length} bytes
       
-      // Check if this is an alternative format (HTML instead of PDF)
-      const isHTML = pdfBuffer.length > 0 && 
-        new TextDecoder().decode(pdfBuffer.slice(0, 100)).includes('<!DOCTYPE html>');
-      
-      if (isHTML) {
-        console.log('📄 Returning HTML format for client-side PDF conversion');
-        return new NextResponse(pdfBuffer, {
-          headers: {
-            'Content-Type': 'text/html',
-            'Content-Disposition': `attachment; filename="SOW-${id}.html"`
-          }
-        });
-      } else {
-        // Return the PDF as a response
-        return new NextResponse(pdfBuffer, {
-          headers: {
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename="SOW-${id}.pdf"`
-          }
-        });
-      }
+      // Return the PDF as a response
+      return new NextResponse(pdfBuffer, {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="SOW-${id}.pdf"`
+        }
+      });
     } finally {
       // Clean up
       await pdfGenerator.close();
