@@ -31,7 +31,10 @@ function SOWListContent() {
   const [sortConfig, setSortConfig] = useState<{
     key: keyof SOW;
     direction: 'asc' | 'desc';
-  } | null>(null);
+  } | null>({
+    key: 'created_at',
+    direction: 'desc'
+  });
  
   const searchParams = useSearchParams();
   const statusFilter = searchParams.get('status');

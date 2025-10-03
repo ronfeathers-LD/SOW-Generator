@@ -85,6 +85,12 @@ export default function PricingCalculatorForm({ products, data, onChange }: Pric
     onChange(newData);
   };
 
+  const handleDiscountPercentageChange = (percentage: number) => {
+    const newData = { ...localData, discount_percentage: percentage };
+    setLocalData(newData);
+    onChange(newData);
+  };
+
   const isProductSelected = (productName: string) => {
     return localData.products.includes(productName);
   };
@@ -214,8 +220,15 @@ export default function PricingCalculatorForm({ products, data, onChange }: Pric
               </label>
               <input
                 type="number"
-                value={localData.discount_amount || ''}
-                onChange={(e) => handleDiscountAmountChange(parseFloat(e.target.value) || 0)}
+                value={localData.discount_type === 'fixed' ? (localData.discount_amount || '') : (localData.discount_percentage || '')}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value) || 0;
+                  if (localData.discount_type === 'fixed') {
+                    handleDiscountAmountChange(value);
+                  } else {
+                    handleDiscountPercentageChange(value);
+                  }
+                }}
                 className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 placeholder={localData.discount_type === 'fixed' ? '0.00' : '0'}
                 step={localData.discount_type === 'fixed' ? '0.01' : '0.1'}
