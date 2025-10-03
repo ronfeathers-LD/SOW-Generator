@@ -87,6 +87,54 @@ function SOWListContent() {
     });
   }, [sortConfig]);
 
+  // Sort grouped SOWs based on current sort configuration
+  const sortGroupedSOWs = useCallback((groupedSOWs: (SOW & { clientSOWs?: SOW[] })[]) => {
+    if (!sortConfig) return groupedSOWs;
+
+    return [...groupedSOWs].sort((a, b) => {
+      // For client_name, sort by the client name
+      if (sortConfig.key === 'client_name') {
+        const aValue = a.client_name || '';
+        const bValue = b.client_name || '';
+        return sortConfig.direction === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      // For other fields, sort by the header SOW's value (the latest SOW)
+      const aValue: string | number | Date = a[sortConfig.key] as string | number | Date;
+      const bValue: string | number | Date = b[sortConfig.key] as string | number | Date;
+
+      // Handle null/undefined values
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return sortConfig.direction === 'asc' ? 1 : -1;
+      if (bValue == null) return sortConfig.direction === 'asc' ? -1 : 1;
+
+      // Handle dates
+      if (aValue instanceof Date && bValue instanceof Date) {
+        return sortConfig.direction === 'asc' 
+          ? aValue.getTime() - bValue.getTime()
+          : bValue.getTime() - aValue.getTime();
+      }
+
+      // Handle strings
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortConfig.direction === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      // Handle numbers
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortConfig.direction === 'asc' 
+          ? aValue - bValue
+          : bValue - aValue;
+      }
+
+      return 0;
+    });
+  }, [sortConfig]);
+
   useEffect(() => {
     const fetchSOWs = async () => {
       try {
@@ -188,14 +236,14 @@ function SOWListContent() {
       filtered = sows.filter(sow => sow.status === statusFilter);
     }
     
-    // Apply sorting
-    filtered = sortSOWs(filtered);
-    
-    // Group by client
+    // Group by client first
     const clientGroupedSOWs = groupSOWsByClient(filtered);
     
-    setFilteredSows(clientGroupedSOWs);
-  }, [sows, statusFilter, sortConfig, sortSOWs, groupSOWsByClient]);
+    // Apply sorting to the grouped results
+    const sortedGroupedSOWs = sortGroupedSOWs(clientGroupedSOWs);
+    
+    setFilteredSows(sortedGroupedSOWs);
+  }, [sows, statusFilter, sortConfig, groupSOWsByClient, sortGroupedSOWs]);
 
   // Helper function to render a single SOW row
   const renderSOWRow = (sow: SOW, isClientSOW: boolean = false) => (
