@@ -290,8 +290,7 @@ export class PDFGenerator {
           this.browser = await puppeteerCore.launch({
             args: [
               ...chromium.args,
-              '--hide-scrollbars',
-              '--disable-web-security',
+              // Core serverless flags
               '--no-sandbox',
               '--disable-setuid-sandbox',
               '--disable-dev-shm-usage',
@@ -299,23 +298,53 @@ export class PDFGenerator {
               '--no-first-run',
               '--no-zygote',
               '--single-process',
-              '--disable-extensions',
+              // Memory optimization
+              '--max_old_space_size=128',
+              '--memory-pressure-off',
               '--disable-background-timer-throttling',
               '--disable-backgrounding-occluded-windows',
               '--disable-renderer-backgrounding',
-              '--disable-features=VizDisplayCompositor',
-              '--disable-ipc-flooding-protection',
-              '--memory-pressure-off',
-              '--max_old_space_size=4096',
-              // Additional optimization flags for smaller PDFs
-              '--disable-javascript',
+              // Disable unnecessary features
+              '--disable-extensions',
               '--disable-plugins',
-              '--disable-default-apps'
+              '--disable-default-apps',
+              '--disable-javascript',
+              '--disable-images',
+              '--disable-web-security',
+              '--disable-features=VizDisplayCompositor,TranslateUI',
+              '--disable-ipc-flooding-protection',
+              '--disable-hang-monitor',
+              '--disable-prompt-on-repost',
+              '--disable-domain-reliability',
+              '--disable-component-extensions-with-background-pages',
+              '--disable-background-networking',
+              '--disable-sync',
+              '--disable-translate',
+              '--mute-audio',
+              '--no-default-browser-check',
+              '--no-pings',
+              '--disable-logging',
+              '--disable-permissions-api',
+              // Additional memory savings
+              '--disable-client-side-phishing-detection',
+              '--disable-component-update',
+              '--disable-extensions-file-access-check',
+              '--disable-extensions-http-throttling',
+              '--disable-features=BlinkGenPropertyTrees',
+              '--disable-field-trial-config',
+              '--disable-back-forward-cache',
+              '--force-color-profile=srgb',
+              '--metrics-recording-only',
+              '--use-mock-keychain'
             ],
             defaultViewport: { width: 800, height: 1000 },
             executablePath: executablePath,
             headless: true,
-            timeout: 60000
+            timeout: 30000,
+            ignoreDefaultArgs: ['--disable-extensions'],
+            handleSIGINT: false,
+            handleSIGTERM: false,
+            handleSIGHUP: false
           });
           
           const browserTime = Date.now() - browserStartTime;
@@ -419,7 +448,15 @@ export class PDFGenerator {
         
         console.log('📋 Setting page content...');
         const contentStartTime = Date.now();
-        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+        
+        // Set shorter timeout for content loading
+        page.setDefaultTimeout(10000);
+        page.setDefaultNavigationTimeout(10000);
+        
+        await page.setContent(htmlContent, { 
+          waitUntil: 'domcontentloaded',
+          timeout: 10000 
+        });
         const contentTime = Date.now() - contentStartTime;
         console.log(`✅ Page content set successfully in ${contentTime}ms`);
         
@@ -429,19 +466,26 @@ export class PDFGenerator {
         
         console.log('📄 Generating PDF...');
         const pdfStartTime = Date.now();
-        const pdfBuffer = await page.pdf({
-          format: 'A4',
-          printBackground: true,
-          margin: {
-            top: '0.5in',
-            right: '0.5in',
-            bottom: '0.5in',
-            left: '0.5in'
-          },
-          // Optimize for smaller file size
-          preferCSSPageSize: true,
-          displayHeaderFooter: false
-        });
+        
+        // Generate PDF with shorter timeout
+        const pdfBuffer = await Promise.race([
+          page.pdf({
+            format: 'A4',
+            printBackground: true,
+            margin: {
+              top: '0.5in',
+              right: '0.5in',
+              bottom: '0.5in',
+              left: '0.5in'
+            },
+            // Optimize for smaller file size
+            preferCSSPageSize: true,
+            displayHeaderFooter: false
+          }),
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('PDF generation timeout')), 15000)
+          )
+        ]);
         const pdfTime = Date.now() - pdfStartTime;
         
         const totalTime = Date.now() - startTime;
@@ -484,28 +528,233 @@ export class PDFGenerator {
         console.error('Error stack:', error.stack);
       }
       
-      // If browser-based generation fails, try alternative approach
-      if (error instanceof Error && error.message.includes('browser restrictions')) {
-        console.log('🔄 Attempting alternative PDF generation method...');
-        return this.generatePDFAlternative(sowData);
-      }
+      // If browser-based generation fails, return HTML fallback
+      console.log('🔄 PDF generation failed, returning HTML fallback...');
       
-      throw error;
+      // Re-sort products for fallback
+      const productsArray = Array.isArray(sowData.products) ? sowData.products : (sowData.products ? [sowData.products] : []);
+      const sortedProducts = productsArray.length > 0 ? await sortProducts(productsArray) : [];
+      const fallbackProductNames = sortedProducts.length > 0 ? await resolveProductNames(sortedProducts) : [];
+      
+      return this.generateHTMLFallback(sowData, fallbackProductNames);
     }
   }
 
   /**
-   * Alternative PDF generation method for serverless environments
-   * This generates a simple HTML file that can be converted to PDF by the client
+   * HTML fallback when PDF generation fails
+   * Returns a styled HTML document that can be printed to PDF by the user
    */
-  private generatePDFAlternative(sowData: SOWData): Uint8Array {
-    console.log('📄 Generating alternative PDF format (HTML file)...');
+  private generateHTMLFallback(sowData: SOWData, resolvedProductNames: any[]): Uint8Array {
+    console.log('📄 Generating HTML fallback document...');
     
-    const htmlContent = this.generateSOWHTML(sowData, []);
-    const htmlBytes = new TextEncoder().encode(htmlContent);
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOW ${sowData.id} - ${sowData.opportunity_name || 'Statement of Work'}</title>
+    <style>
+        @media print {
+            @page {
+                size: A4;
+                margin: 0.5in;
+            }
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            max-width: 200px;
+            height: auto;
+            margin-bottom: 10px;
+        }
+        
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2563eb;
+            margin: 10px 0;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: #666;
+        }
+        
+        .section {
+            margin: 25px 0;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2563eb;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .info-item {
+            padding: 10px;
+            background: #f9fafb;
+            border-radius: 5px;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #374151;
+            font-size: 14px;
+        }
+        
+        .info-value {
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .products-table th,
+        .products-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .products-table th {
+            background: #f9fafb;
+            font-weight: bold;
+            color: #374151;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .error-notice {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #92400e;
+        }
+        
+        .error-notice strong {
+            color: #78350f;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="https://tlxeqgk0yr1ztnva.public.blob.vercel-storage.com/rte-images/1758909456734-katoxspoked.png" alt="LeanData Logo" class="logo">
+        <div class="title">Statement of Work</div>
+        <div class="subtitle">${sowData.opportunity_name || 'Professional Services'}</div>
+    </div>
     
-    console.log('✅ Alternative HTML content generated, size:', htmlBytes.length, 'bytes');
-    return htmlBytes;
+    <div class="error-notice">
+        <strong>Notice:</strong> PDF generation is temporarily unavailable due to server limitations. 
+        This HTML document contains all the same information and can be printed to PDF using your browser's print function (Ctrl+P or Cmd+P).
+    </div>
+    
+    <div class="section">
+        <div class="section-title">Project Information</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">SOW ID</div>
+                <div class="info-value">${sowData.id}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Opportunity</div>
+                <div class="info-value">${sowData.opportunity_name || 'N/A'}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Client</div>
+                <div class="info-value">${sowData.client_name || 'N/A'}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Account Owner</div>
+                <div class="info-value">${(sowData as any).account_owner || 'N/A'}</div>
+            </div>
+        </div>
+    </div>
+    
+    ${resolvedProductNames.length > 0 ? `
+    <div class="section">
+        <div class="section-title">Products & Services</div>
+        <table class="products-table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${resolvedProductNames.map(product => `
+                    <tr>
+                        <td>${product.name || 'N/A'}</td>
+                        <td>${product.description || 'N/A'}</td>
+                        <td>${product.quantity || 1}</td>
+                        <td>$${product.unit_price || 0}</td>
+                        <td>$${product.total_price || 0}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    </div>
+    ` : ''}
+    
+    <div class="section">
+        <div class="section-title">Terms & Conditions</div>
+        <p>This Statement of Work outlines the scope of professional services to be provided by LeanData. 
+        All work will be performed in accordance with our standard terms and conditions.</p>
+        
+        <p><strong>Contact Information:</strong></p>
+        <p>For questions about this SOW, please contact Ron Feathers at LeanData.</p>
+    </div>
+    
+    <div class="footer">
+        <p>Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+        <p>LeanData - Professional Services</p>
+    </div>
+</body>
+</html>`;
+
+    return new TextEncoder().encode(htmlContent);
   }
 
   private generateSOWHTML(sowData: SOWData, sortedProducts: string[] = []): string {
