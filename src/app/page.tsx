@@ -61,8 +61,7 @@ export default async function Home() {
             </h2>
             
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Streamline your SOW creation process with our intelligent, Salesforce-integrated platform. 
-              Built for sales teams and project managers who need professional documentation fast.
+              Generate professional SOWs aligned with Salesforce Accounts and Opportunities using AI-powered content creation from scoping documents and client meeting transcriptions.
             </p>
 
             {/* CTA Button */}
@@ -79,7 +78,7 @@ export default async function Home() {
                   </svg>
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Lightning Fast</h3>
-                <p className="text-gray-600 text-sm">Generate professional SOWs in minutes, not hours. Our AI-powered templates get you started instantly.</p>
+                <p className="text-gray-600 text-sm">Generate professional SOWs in minutes, not hours. AI-powered templates get you started instantly.</p>
               </div>
 
               <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
