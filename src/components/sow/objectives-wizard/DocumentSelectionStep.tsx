@@ -58,13 +58,9 @@ const DocumentSelectionStep: React.FC<DocumentSelectionStepProps> = ({
   }, [updateWizardData]);
 
   const handleNext = useCallback(() => {
-    // Validate that at least one document is selected
-    if (wizardData.selectedDocuments.length === 0) {
-      alert('Please select at least one document to continue.');
-      return;
-    }
+    // Document selection is optional, proceed to next step
     onNext();
-  }, [wizardData.selectedDocuments.length, onNext]);
+  }, [onNext]);
 
   return (
     <div className="space-y-6">
@@ -104,7 +100,7 @@ const DocumentSelectionStep: React.FC<DocumentSelectionStepProps> = ({
         <div className="flex space-x-3">
           <button
             onClick={handleNext}
-            disabled={wizardData.selectedDocuments.length === 0 || isPreloading}
+            disabled={isPreloading}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             Next: Avoma Calls

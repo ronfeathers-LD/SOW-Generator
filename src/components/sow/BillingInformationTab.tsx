@@ -252,46 +252,8 @@ export default function BillingInformationTab({
     }
   };
 
-  const saveBillingInfo = async () => {
-    if (!formData.id) {
-      console.error('No SOW ID available for billing info save');
-      return;
-    }
-
-    try {
-      const requestBody = {
-        tab: 'Billing Information',
-        data: {
-          template: {
-            billing_company_name: formData.template?.billing_company_name || '',
-            billing_address: formData.template?.billing_address || '',
-            purchase_order_number: formData.template?.purchase_order_number || '',
-            // Preserve existing billing contact information
-            billing_contact_name: formData.template?.billing_contact_name || '',
-            billing_email: formData.template?.billing_email || '',
-          }
-        }
-      };
-
-      const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save billing information');
-      }
-
-      setBillingSuccess('Billing information saved successfully!');
-      setTimeout(() => setBillingSuccess(null), 3000);
-    } catch (error) {
-      setBillingError('Failed to save billing information');
-      console.error('Error saving billing info:', error);
-    }
-  };
+  // Billing information is automatically saved when fetched from Salesforce
+  // No manual save function needed
 
   return (
     <section className="space-y-8">
@@ -549,15 +511,7 @@ export default function BillingInformationTab({
                   />
                 </div>
 
-                <div className="pt-4">
-                  <button
-                    type="button"
-                    onClick={saveBillingInfo}
-                    className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                  >
-                    Save Billing Information
-                  </button>
-                </div>
+                {/* Billing information is automatically saved when fetched from Salesforce */}
               </div>
             </div>
           </div>

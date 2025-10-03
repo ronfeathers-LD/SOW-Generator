@@ -308,6 +308,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   // Ref to get current pricing data from BillingPaymentTab
   const pricingRef = useRef<{ getCurrentPricingData?: () => PricingData }>(null);
   const [salesforceInstanceUrl, setSalesforceInstanceUrl] = useState<string>('https://na1.salesforce.com');
+  const [hasLoadedSalesforceData, setHasLoadedSalesforceData] = useState<boolean>(false);
 
   // Wrapper function to update form data
   const updateFormData = (newData: Partial<SOWData>) => {
@@ -428,8 +429,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         setSelectedAccount(reconstructedAccount);
       }
       
-      // Load stored Salesforce data if we have a SOW ID
-      if (initialData.id) {
+      // Load stored Salesforce data if we have a SOW ID and haven't loaded it yet
+      if (initialData.id && !hasLoadedSalesforceData) {
+        setHasLoadedSalesforceData(true);
         loadStoredSalesforceData(initialData.id);
       }
       
@@ -500,7 +502,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         }));
       }
     }
-  }, [initialData, selectedOpportunity]);
+  }, [initialData, hasLoadedSalesforceData]); // Added hasLoadedSalesforceData to prevent multiple loads
   
   // Navigation blocking for unsaved changes
   useEffect(() => {

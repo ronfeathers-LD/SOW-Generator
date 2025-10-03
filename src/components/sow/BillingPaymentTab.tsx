@@ -3,7 +3,7 @@ import { SOWData } from '@/types/sow';
 import PricingRolesAndDiscount from '@/components/sow/PricingRolesAndDiscount';
 import LoadingModal from '@/components/ui/LoadingModal';
 import { calculateAllHours, calculateRoleHoursDistribution } from '@/lib/hours-calculation-utils';
-import { getPricingRolesConfig, getDefaultRateForRole, PricingRoleConfig } from '@/lib/pricing-roles-config';
+import { getPricingRolesConfig, getDefaultRateForRole, getDescriptionForRole, PricingRoleConfig } from '@/lib/pricing-roles-config';
 
 interface PricingRole {
   id: string;
@@ -57,6 +57,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
     defaultRate: 250, // Default rate
     totalHours: 0,
     totalCost: 0,
+    description: '', // Will be populated when pricingRolesConfig loads
   })));
 
   const [discountConfig, setDiscountConfig] = useState<DiscountConfig>({
@@ -84,6 +85,32 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
 
     loadPricingRolesConfig();
   }, []);
+
+  // Populate descriptions when pricingRolesConfig loads or when pricingRoles change
+  useEffect(() => {
+    if (pricingRolesConfig.length > 0 && pricingRoles.length > 0) {
+      const updatedRoles = pricingRoles.map(role => {
+        const description = getDescriptionForRole(role.role, pricingRolesConfig);
+        // Only update if description is empty (to avoid overriding user changes)
+        if (!role.description && description) {
+          return {
+            ...role,
+            description: description,
+          };
+        }
+        return role;
+      });
+      
+      // Check if any descriptions were updated
+      const hasUpdates = updatedRoles.some((role, index) => 
+        role.description !== pricingRoles[index].description
+      );
+      
+      if (hasUpdates) {
+        setPricingRoles(updatedRoles);
+      }
+    }
+  }, [pricingRolesConfig, pricingRoles.length]); // Added pricingRoles.length to detect when roles are created
 
   // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({
@@ -150,6 +177,11 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
           const defaultRate = isAccountExecutive ? 0 : (role.defaultRate || getDefaultRateForRole(role.role, pricingRolesConfig) || 250);
           const ratePerHour = isAccountExecutive ? 0 : (role.ratePerHour || 0);
           
+          // Get description from saved data or from config if available
+          const savedDescription = role.description || '';
+          const configDescription = getDescriptionForRole(role.role, pricingRolesConfig);
+          const description = savedDescription || configDescription || '';
+          
           return {
             id: Math.random().toString(36).substr(2, 9), // Generate new ID for each role
             role: role.role,
@@ -157,7 +189,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
             defaultRate: defaultRate,
             totalHours: role.totalHours || 0,
             totalCost: ratePerHour * (role.totalHours || 0),
-            description: role.description || '',
+            description: description,
           };
         });
         
@@ -293,9 +325,11 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       const hasOnboardingSpecialist = updatedRoles.some(role => role.role === 'Onboarding Specialist');
       if (!hasOnboardingSpecialist) {
         const defaultRate = getDefaultRateForRole('Onboarding Specialist', pricingRolesConfig);
+        const description = getDescriptionForRole('Onboarding Specialist', pricingRolesConfig);
         const onboardingRole: PricingRole = {
           id: Math.random().toString(36).substr(2, 9),
           role: 'Onboarding Specialist',
+          description: description,
           ratePerHour: defaultRate,
           defaultRate: defaultRate,
           totalHours: roleDistribution.onboardingSpecialistHours,
@@ -308,10 +342,12 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
           if (role.role === 'Onboarding Specialist') {
             // Onboarding Specialist gets distributed hours
             const defaultRate = getDefaultRateForRole('Onboarding Specialist', pricingRolesConfig);
+            const description = getDescriptionForRole('Onboarding Specialist', pricingRolesConfig);
             // Preserve the user's custom rate (don't override it with default)
             const currentRate = role.ratePerHour;
             return {
               ...role,
+              description: description || role.description, // Update description if available
               ratePerHour: currentRate,
               defaultRate: defaultRate,
               totalHours: roleDistribution.onboardingSpecialistHours,
@@ -330,9 +366,11 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
         if (!hasProjectManager) {
           // Add new Project Manager role
           const defaultRate = getDefaultRateForRole('Project Manager', pricingRolesConfig);
+          const description = getDescriptionForRole('Project Manager', pricingRolesConfig);
           const pmRole: PricingRole = {
             id: Math.random().toString(36).substr(2, 9),
             role: 'Project Manager',
+            description: description,
             ratePerHour: defaultRate,
             defaultRate: defaultRate,
             totalHours: roleDistribution.projectManagerHours,
@@ -342,10 +380,12 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
         } else {
           // Update existing Project Manager role
           const defaultRate = getDefaultRateForRole('Project Manager', pricingRolesConfig);
+          const description = getDescriptionForRole('Project Manager', pricingRolesConfig);
           updatedRoles = updatedRoles.map(role => {
             if (role.role === 'Project Manager') {
               return {
                 ...role,
+                description: description || role.description, // Update description if available
                 totalHours: roleDistribution.projectManagerHours,
                 totalCost: defaultRate * roleDistribution.projectManagerHours,
               };

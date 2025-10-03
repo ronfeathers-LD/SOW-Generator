@@ -233,14 +233,8 @@ const FinalEditStep: React.FC<FinalEditStepProps> = ({
         >
           Previous: AI Generation
         </button>
-        <div className="flex space-x-3">
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
-          >
-            {isSaving ? 'Saving...' : 'Save Objectives'}
-          </button>
+        <div className="text-sm text-gray-500 self-center">
+          Use the floating "Save Objectives" button to save your changes
         </div>
       </div>
     </div>

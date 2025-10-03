@@ -37,3 +37,9 @@ export function getDefaultRateForRole(roleName: string, configs: PricingRoleConf
   const config = configs.find(c => c.role_name === roleName);
   return config?.default_rate || 250; // Default to 250 if not found
 }
+
+// Helper function to get description for a role
+export function getDescriptionForRole(roleName: string, configs: PricingRoleConfig[]): string {
+  const config = configs.find(c => c.role_name === roleName);
+  return config?.description || '';
+}
