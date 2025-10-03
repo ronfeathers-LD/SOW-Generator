@@ -222,13 +222,71 @@ interface SOWData {
 export class PDFGenerator {
   private browser: import('puppeteer').Browser | import('puppeteer-core').Browser | null = null;
 
+  /**
+   * Diagnostic function to check PDF generation environment
+   */
+  async diagnoseEnvironment(): Promise<{
+    environment: string;
+    memoryUsage: number;
+    chromiumAvailable: boolean;
+    chromiumPath?: string;
+    puppeteerAvailable: boolean;
+    systemInfo: any;
+  }> {
+    const diagnostics = {
+      environment: process.env.NODE_ENV || 'unknown',
+      memoryUsage: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      chromiumAvailable: false,
+      chromiumPath: undefined as string | undefined,
+      puppeteerAvailable: false,
+      systemInfo: {
+        nodeVersion: process.version,
+        platform: process.platform,
+        arch: process.arch,
+        uptime: Math.round(process.uptime()),
+        totalMemory: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+        externalMemory: Math.round(process.memoryUsage().external / 1024 / 1024),
+        rssMemory: Math.round(process.memoryUsage().rss / 1024 / 1024)
+      }
+    };
+
+    try {
+      // Check if chromium is available
+      diagnostics.chromiumPath = await chromium.executablePath();
+      diagnostics.chromiumAvailable = true;
+      console.log('✅ Chromium is available at:', diagnostics.chromiumPath);
+    } catch (error) {
+      console.warn('⚠️ Chromium not available:', error);
+    }
+
+    try {
+      // Check if puppeteer is available
+      const puppeteer = await import('puppeteer');
+      diagnostics.puppeteerAvailable = true;
+      console.log('✅ Puppeteer is available');
+    } catch (error) {
+      console.warn('⚠️ Puppeteer not available:', error);
+    }
+
+    return diagnostics;
+  }
+
   async initialize() {
     if (!this.browser) {
+      const initStartTime = Date.now();
+      console.log('🔧 Starting browser initialization...');
+      console.log(`💾 Initial memory usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
+      
       try {
         if (process.env.NODE_ENV === 'production') {
           // Use Vercel-optimized approach for production
           console.log('🚀 Launching Vercel-optimized Chromium...');
+          console.log('📋 Using chromium args:', chromium.args);
           
+          const executablePath = await chromium.executablePath();
+          console.log('📁 Chromium executable path:', executablePath);
+          
+          const browserStartTime = Date.now();
           this.browser = await puppeteerCore.launch({
             args: [
               ...chromium.args,
@@ -255,16 +313,29 @@ export class PDFGenerator {
               '--disable-default-apps'
             ],
             defaultViewport: { width: 800, height: 1000 },
-            executablePath: await chromium.executablePath(),
+            executablePath: executablePath,
             headless: true,
             timeout: 60000
           });
           
-          console.log('✅ Vercel-optimized Chromium launched successfully');
+          const browserTime = Date.now() - browserStartTime;
+          const totalTime = Date.now() - initStartTime;
+          console.log(`✅ Vercel-optimized Chromium launched successfully in ${browserTime}ms (total: ${totalTime}ms)`);
+          console.log(`💾 Memory after browser launch: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
+          
+          // Add browser event listeners for debugging
+          this.browser.on('disconnected', () => {
+            console.warn('⚠️ Browser disconnected unexpectedly');
+          });
+          
+          this.browser.on('targetdestroyed', (target: any) => {
+            console.warn('⚠️ Browser target destroyed:', target.url());
+          });
         } else {
           // Use full puppeteer for local development
-          // Launching full Puppeteer for local development...
+          console.log('🚀 Launching full Puppeteer for local development...');
           
+          const browserStartTime = Date.now();
           this.browser = await puppeteer.launch({
             headless: true,
             args: [
@@ -275,10 +346,21 @@ export class PDFGenerator {
             timeout: 60000
           });
           
-          // Full Puppeteer launched successfully
+          const browserTime = Date.now() - browserStartTime;
+          const totalTime = Date.now() - initStartTime;
+          console.log(`✅ Full Puppeteer launched successfully in ${browserTime}ms (total: ${totalTime}ms)`);
+          console.log(`💾 Memory after browser launch: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
         }
       } catch (error) {
-        console.error('❌ Failed to launch browser:', error);
+        const totalTime = Date.now() - initStartTime;
+        console.error(`❌ Failed to launch browser after ${totalTime}ms:`, error);
+        
+        // Log detailed error information
+        if (error instanceof Error) {
+          console.error('Error name:', error.name);
+          console.error('Error message:', error.message);
+          console.error('Error stack:', error.stack);
+        }
         
         // Fallback to HTML generation if browser fails
         throw new Error(
@@ -286,14 +368,23 @@ export class PDFGenerator {
           'Falling back to HTML generation for serverless environments.'
         );
       }
+    } else {
+      console.log('✅ Browser already initialized');
     }
   }
 
   async generateSOWPDF(sowData: SOWData): Promise<Uint8Array> {
-    // Starting PDF generation for SOW: ${sowData.id}
+    const startTime = Date.now();
+    console.log(`🚀 Starting PDF generation for SOW: ${sowData.id}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+    console.log(`💾 Memory usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
+    
+    let page: any = null;
     
     try {
+      console.log('🔧 Initializing browser...');
       await this.initialize();
+      console.log('✅ Browser initialized successfully');
       
       // Sort products for consistent display order and resolve IDs to names
       const productsArray = Array.isArray(sowData.products) ? sowData.products : (sowData.products ? [sowData.products] : []);
@@ -304,27 +395,40 @@ export class PDFGenerator {
         throw new Error('Browser not initialized');
       }
 
-      // Browser initialized successfully
-      const page = await this.browser.newPage();
-      // New page created
+      console.log('📄 Creating new page...');
+      page = await this.browser.newPage();
+      console.log('✅ New page created');
+      
+      // Add page event listeners for debugging
+      page.on('error', (error: any) => {
+        console.error('🚨 Page error:', error.message);
+      });
+      
+      page.on('pageerror', (error: any) => {
+        console.error('🚨 Page script error:', error.message);
+      });
+      
+      page.on('requestfailed', (request: any) => {
+        console.warn('⚠️ Request failed:', request.url(), request.failure()?.errorText);
+      });
       
       try {
-        // Generate HTML content for the SOW
-        // Generating HTML content...
+        console.log('📝 Generating HTML content...');
         const htmlContent = this.generateSOWHTML(sowData, resolvedProductNames);
-        // HTML content generated, length: ${htmlContent.length}
+        console.log(`✅ HTML content generated, length: ${htmlContent.length} characters`);
         
-        // Set content and wait for any dynamic content to load
-        // Setting page content...
+        console.log('📋 Setting page content...');
+        const contentStartTime = Date.now();
         await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-        // Page content set successfully
+        const contentTime = Date.now() - contentStartTime;
+        console.log(`✅ Page content set successfully in ${contentTime}ms`);
         
-        // Set viewport for consistent rendering (optimized for smaller PDF size)
+        console.log('🖼️ Setting viewport...');
         await page.setViewport({ width: 800, height: 1000 });
-        // Viewport set
+        console.log('✅ Viewport set');
         
-        // Generate PDF
-        // Generating PDF...
+        console.log('📄 Generating PDF...');
+        const pdfStartTime = Date.now();
         const pdfBuffer = await page.pdf({
           format: 'A4',
           printBackground: true,
@@ -338,19 +442,47 @@ export class PDFGenerator {
           preferCSSPageSize: true,
           displayHeaderFooter: false
         });
+        const pdfTime = Date.now() - pdfStartTime;
         
-        // PDF generated successfully, size: ${pdfBuffer.length} bytes
+        const totalTime = Date.now() - startTime;
+        console.log(`✅ PDF generated successfully in ${pdfTime}ms (total: ${totalTime}ms)`);
+        console.log(`📊 PDF size: ${pdfBuffer.length} bytes`);
+        console.log(`💾 Final memory usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
+        
         return new Uint8Array(pdfBuffer);
         
       } catch (error) {
-        console.error('❌ Error during PDF generation process:', error);
+        const errorTime = Date.now() - startTime;
+        console.error(`❌ Error during PDF generation process after ${errorTime}ms:`, error);
+        
+        // Log detailed error information
+        if (error instanceof Error) {
+          console.error('Error name:', error.name);
+          console.error('Error message:', error.message);
+          console.error('Error stack:', error.stack);
+        }
+        
         throw error;
       } finally {
-        await page.close();
-        // Page closed
+        if (page) {
+          try {
+            await page.close();
+            console.log('✅ Page closed');
+          } catch (closeError) {
+            console.error('❌ Error closing page:', closeError);
+          }
+        }
       }
     } catch (error) {
-      console.error('❌ Fatal error in PDF generation:', error);
+      const totalTime = Date.now() - startTime;
+      console.error(`❌ Fatal error in PDF generation after ${totalTime}ms:`, error);
+      
+      // Log detailed error information
+      if (error instanceof Error) {
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
       
       // If browser-based generation fails, try alternative approach
       if (error instanceof Error && error.message.includes('browser restrictions')) {
