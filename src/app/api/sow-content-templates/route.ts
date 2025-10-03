@@ -17,9 +17,9 @@ export async function GET() {
     // Transform the data to match the expected interface
     const transformedData = data.map(template => ({
       ...template,
-      section_name: template.name,
-      section_title: template.name, // Use name as title for now
-      default_content: template.content?.default_content || template.content || '',
+      section_name: template.section_name,
+      section_title: template.section_title,
+      default_content: template.default_content || '',
     }));
 
     return NextResponse.json(transformedData);
