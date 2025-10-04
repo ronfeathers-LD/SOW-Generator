@@ -253,7 +253,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   );
 
 
-  const [activeTab, setActiveTab] = useState('Project Overview');
+  const [activeTab, setActiveTab] = useState('Customer Information');
 
   const handleTabChange = (tabKey: string) => {
     // Check for unsaved changes when switching from Content Editing tab
@@ -1114,8 +1114,8 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   };
 
   const tabs = useMemo(() => [
-    { key: 'Project Overview', label: 'Project Overview' },
     { key: 'Customer Information', label: 'Customer Information' },
+    { key: 'Project Overview', label: 'Project Overview' },
     { key: 'Objectives', label: 'Objectives' },
       { key: 'Signers & Roles', label: 'Signers & POCs' },
     { key: 'Billing Information', label: 'Billing Information' },
