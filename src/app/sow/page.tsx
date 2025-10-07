@@ -52,43 +52,6 @@ function SOWListContent() {
     setSortConfig({ key, direction });
   };
 
-  // Sort SOWs based on current sort configuration
-  const sortSOWs = useCallback((sowsToSort: SOW[]) => {
-    if (!sortConfig) return sowsToSort;
-
-    return [...sowsToSort].sort((a, b) => {
-      const aValue: string | number | Date = a[sortConfig.key] as string | number | Date;
-      const bValue: string | number | Date = b[sortConfig.key] as string | number | Date;
-
-      // Handle null/undefined values
-      if (aValue == null && bValue == null) return 0;
-      if (aValue == null) return sortConfig.direction === 'asc' ? 1 : -1;
-      if (bValue == null) return sortConfig.direction === 'asc' ? -1 : 1;
-
-      // Handle dates
-      if (aValue instanceof Date && bValue instanceof Date) {
-        return sortConfig.direction === 'asc' 
-          ? aValue.getTime() - bValue.getTime()
-          : bValue.getTime() - aValue.getTime();
-      }
-
-      // Handle strings
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortConfig.direction === 'asc' 
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
-      }
-
-      // Handle numbers
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortConfig.direction === 'asc' 
-          ? aValue - bValue
-          : bValue - aValue;
-      }
-
-      return 0;
-    });
-  }, [sortConfig]);
 
   // Sort grouped SOWs based on current sort configuration
   const sortGroupedSOWs = useCallback((groupedSOWs: (SOW & { clientSOWs?: SOW[] })[]) => {

@@ -28,7 +28,7 @@ export async function GET() {
   }
 }
 
-function generateRecommendations(diagnostics: any): string[] {
+function generateRecommendations(diagnostics: Record<string, unknown>): string[] {
   const recommendations: string[] = [];
   
   if (!diagnostics.chromiumAvailable) {
@@ -39,7 +39,7 @@ function generateRecommendations(diagnostics: any): string[] {
     recommendations.push('Puppeteer not available - check puppeteer installation');
   }
   
-  if (diagnostics.memoryUsage > 512) {
+  if ((diagnostics.memoryUsage as number) > 512) {
     recommendations.push('High memory usage detected - consider reducing --max_old_space_size');
   }
   
@@ -47,7 +47,7 @@ function generateRecommendations(diagnostics: any): string[] {
     recommendations.push('Production environment detected - ensure serverless compatibility');
   }
   
-  if (diagnostics.systemInfo.totalMemory > 1024) {
+  if ((diagnostics.systemInfo as { totalMemory: number }).totalMemory > 1024) {
     recommendations.push('Large memory allocation detected - may cause serverless timeout');
   }
   

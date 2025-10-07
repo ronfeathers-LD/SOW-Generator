@@ -502,7 +502,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         }));
       }
     }
-  }, [initialData, hasLoadedSalesforceData]); // Added hasLoadedSalesforceData to prevent multiple loads
+  }, [initialData, hasLoadedSalesforceData, selectedOpportunity]); // Added hasLoadedSalesforceData to prevent multiple loads
   
   // Navigation blocking for unsaved changes
   useEffect(() => {
@@ -641,6 +641,14 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleLogoRemove = () => {
+    setFormData({
+      ...formData,
+      template: { ...formData.template!, company_logo: '' },
+      header: { ...formData.header!, company_logo: '' }
+    });
   };
 
 
@@ -1350,6 +1358,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           onAvailableOpportunitiesUpdate={setAvailableOpportunities}
           getSalesforceLink={getSalesforceLink}
           onLogoChange={handleLogoChange}
+          onLogoRemove={handleLogoRemove}
         />
       )}
 

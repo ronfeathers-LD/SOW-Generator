@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
 import TipTapEditor from '../../TipTapEditor';
@@ -26,13 +26,8 @@ interface FinalEditStepProps {
 const FinalEditStep: React.FC<FinalEditStepProps> = ({
   wizardData,
   updateWizardData,
-  formData,
-  setFormData,
   onPrev,
 }) => {
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const handleObjectiveOverviewChange = useCallback((content: string) => {
     const updatedObjectives = {
@@ -62,67 +57,6 @@ const FinalEditStep: React.FC<FinalEditStepProps> = ({
     updateWizardData({ generatedObjectives: updatedObjectives });
   }, [wizardData.generatedObjectives, updateWizardData]);
 
-  const handleSave = useCallback(async () => {
-    setIsSaving(true);
-    setSaveError(null);
-    setSaveSuccess(false);
-
-    try {
-      // Prepare the data to save
-      const saveData: Partial<SOWData> = {
-        custom_objective_overview_content: wizardData.generatedObjectives.overview,
-        objective_overview_content_edited: true,
-        custom_key_objectives_content: wizardData.generatedObjectives.keyObjectivesHtml || 
-          (wizardData.generatedObjectives.keyObjectives ? 
-            wizardData.generatedObjectives.keyObjectives.map(obj => `<p>• ${obj}</p>`).join('') : ''),
-        key_objectives_content_edited: true,
-        custom_deliverables_content: wizardData.generatedObjectives.deliverablesHtml || 
-          (wizardData.generatedObjectives.deliverables ? 
-            wizardData.generatedObjectives.deliverables.map(del => `<p>${del}</p>`).join('') : ''),
-        deliverables_content_edited: true,
-        objectives: {
-          ...formData.objectives,
-          description: wizardData.generatedObjectives.overview,
-          key_objectives: wizardData.generatedObjectives.keyObjectives,
-        },
-        deliverables: wizardData.generatedObjectives.deliverables.join('\n'),
-        selected_documents: wizardData.selectedDocuments,
-        selected_meetings: wizardData.selectedMeetings,
-        preview_content: wizardData.previewContent,
-      };
-
-      // Update form data - merge with existing data to preserve ID and other fields
-      setFormData({ ...formData, ...saveData });
-
-      // If we have an SOW ID, save to database using tab-update endpoint
-      if (formData.id) {
-        const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            tab: 'Objectives',
-            data: saveData,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Failed to save objectives');
-        }
-      }
-
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-
-    } catch (error) {
-      console.error('Error saving objectives:', error);
-      setSaveError(error instanceof Error ? error.message : 'Failed to save objectives');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [wizardData, formData, setFormData]);
 
   // Use stored HTML content if available, otherwise convert array to proper HTML list
   const keyObjectivesHtml = wizardData.generatedObjectives.keyObjectivesHtml || 
@@ -146,18 +80,6 @@ const FinalEditStep: React.FC<FinalEditStepProps> = ({
         </p>
       </div>
 
-      {/* Save Status */}
-      {saveSuccess && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-green-800 text-sm">✓ Objectives saved successfully!</p>
-        </div>
-      )}
-
-      {saveError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800 text-sm">{saveError}</p>
-        </div>
-      )}
 
       {/* Objective Overview */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -234,7 +156,7 @@ const FinalEditStep: React.FC<FinalEditStepProps> = ({
           Previous: AI Generation
         </button>
         <div className="text-sm text-gray-500 self-center">
-          Use the floating "Save Objectives" button to save your changes
+          Use the floating &quot;Save Objectives&quot; button to save your changes
         </div>
       </div>
     </div>

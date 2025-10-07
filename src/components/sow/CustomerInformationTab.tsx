@@ -78,6 +78,7 @@ interface CustomerInformationTabProps {
   }>) => void;
   getSalesforceLink: (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => string;
   onLogoChange: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  onLogoRemove: () => void;
 }
 
 type SelectionStep = 'account' | 'opportunity' | 'logo' | null;
@@ -93,6 +94,7 @@ export default function CustomerInformationTab({
   onAvailableOpportunitiesUpdate,
   getSalesforceLink,
   onLogoChange,
+  onLogoRemove,
 }: CustomerInformationTabProps) {
   const [currentStep, setCurrentStep] = useState<SelectionStep>('account');
 
@@ -640,7 +642,16 @@ export default function CustomerInformationTab({
                    {/* Logo Preview */}
                    {(formData.template?.company_logo || formData.header?.company_logo) && (
                      <div className="bg-white border border-gray-200 rounded-md p-4">
-                       <h5 className="text-sm font-medium text-gray-900 mb-2">Logo Preview</h5>
+                       <div className="flex justify-between items-center mb-2">
+                         <h5 className="text-sm font-medium text-gray-900">Logo Preview</h5>
+                         <button
+                           type="button"
+                           onClick={onLogoRemove}
+                           className="text-sm text-red-600 hover:text-red-800 font-medium"
+                         >
+                           Remove Logo
+                         </button>
+                       </div>
                        <Image
                          src={formData.template?.company_logo || formData.header?.company_logo || ''}
                          alt="Company Logo"

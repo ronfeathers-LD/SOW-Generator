@@ -110,7 +110,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
         setPricingRoles(updatedRoles);
       }
     }
-  }, [pricingRolesConfig, pricingRoles.length]); // Added pricingRoles.length to detect when roles are created
+  }, [pricingRolesConfig, pricingRoles.length, pricingRoles]); // Added pricingRoles.length to detect when roles are created
 
   // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({

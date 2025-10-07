@@ -1,9 +1,11 @@
-import puppeteer, { Browser } from 'puppeteer';
+import puppeteer, { Browser, Page } from 'puppeteer';
 import puppeteerCore from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
 import { parseObjectives } from './utils/parse-objectives';
 import { sortProducts, resolveProductNames } from './utils/productSorting';
 import { processContent } from './text-to-html';
+import fs from 'fs';
+import path from 'path';
 
 // Interface for change order data used in PDF generation
 interface ChangeOrderPDFData {
@@ -35,12 +37,30 @@ interface ChangeOrderPDFData {
 }
 
 /**
- * Get LeanData logo URL for PDF generation
- * Using direct blob storage URL for better reliability
+ * Get LeanData logo base64 data for PDF generation
+ * Using base64 encoded logo for better reliability
  */
 function getLeanDataLogoUrl(): string {
-  // Use the direct blob storage URL that works in both development and production
-  return 'https://tlxeqgk0yr1ztnva.public.blob.vercel-storage.com/rte-images/1758909456734-katoxspoked.png';
+  try {
+    // Path to the local logo file
+    const logoPath = path.join(process.cwd(), 'public', 'images', 'leandata-logo.png');
+    
+    // Check if file exists
+    if (fs.existsSync(logoPath)) {
+      // Read the file and convert to base64
+      const logoBuffer = fs.readFileSync(logoPath);
+      const base64Logo = logoBuffer.toString('base64');
+      return `data:image/png;base64,${base64Logo}`;
+    } else {
+      console.warn('LeanData logo file not found at:', logoPath);
+      // Fallback to external URL if local file doesn't exist
+      return 'https://tlxeqgk0yr1ztnva.public.blob.vercel-storage.com/rte-images/1758909456734-katoxspoked.png';
+    }
+  } catch (error) {
+    console.error('Error loading LeanData logo:', error);
+    // Fallback to external URL if there's an error
+    return 'https://tlxeqgk0yr1ztnva.public.blob.vercel-storage.com/rte-images/1758909456734-katoxspoked.png';
+  }
 }
 
 /**
@@ -231,7 +251,7 @@ export class PDFGenerator {
     chromiumAvailable: boolean;
     chromiumPath?: string;
     puppeteerAvailable: boolean;
-    systemInfo: any;
+    systemInfo: Record<string, unknown>;
   }> {
     const diagnostics = {
       environment: process.env.NODE_ENV || 'unknown',
@@ -261,7 +281,6 @@ export class PDFGenerator {
 
     try {
       // Check if puppeteer is available
-      const puppeteer = await import('puppeteer');
       diagnostics.puppeteerAvailable = true;
       console.log('✅ Puppeteer is available');
     } catch (error) {
