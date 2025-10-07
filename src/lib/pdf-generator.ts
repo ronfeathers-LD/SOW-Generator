@@ -1,4 +1,4 @@
-import puppeteer, { Browser, Page } from 'puppeteer';
+import puppeteer, { Browser } from 'puppeteer';
 import puppeteerCore from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
 import { parseObjectives } from './utils/parse-objectives';
@@ -376,6 +376,7 @@ export class PDFGenerator {
             console.warn('⚠️ Browser disconnected unexpectedly');
           });
           
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.browser.on('targetdestroyed', (target: any) => {
             console.warn('⚠️ Browser target destroyed:', target.url());
           });
@@ -427,6 +428,7 @@ export class PDFGenerator {
     console.log(`📊 Environment: ${process.env.NODE_ENV}`);
     console.log(`💾 Memory usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let page: any = null;
     
     try {
@@ -448,14 +450,17 @@ export class PDFGenerator {
       console.log('✅ New page created');
       
       // Add page event listeners for debugging
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       page.on('error', (error: any) => {
         console.error('🚨 Page error:', error.message);
       });
       
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       page.on('pageerror', (error: any) => {
         console.error('🚨 Page script error:', error.message);
       });
       
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       page.on('requestfailed', (request: any) => {
         console.warn('⚠️ Request failed:', request.url(), request.failure()?.errorText);
       });
