@@ -463,12 +463,12 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-amber-800">
-                Pricing Hours Need to be Updated
+                Manually Adjusted Hours Detected
               </h3>
               <div className="mt-2 text-sm text-amber-700">
                 <p>
-                  The calculated hours don&apos;t match the current pricing data. Please click &quot;Auto-Calculate Hours&quot; 
-                  to update the pricing based on your current product selection and unit counts, then save your changes.
+                  These pricing hours have been manually adjusted and differ from the auto-calculated hours. 
+                  Please verify that they accurately reflect your project scope before proceeding.
                 </p>
               </div>
             </div>

@@ -50,3 +50,7 @@ next-env.d.ts
 
 # Resources
 /RESOURCES/
+
+# Database backups (sensitive data)
+/backups/
+*.sql.info
