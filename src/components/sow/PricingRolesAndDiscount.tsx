@@ -698,8 +698,15 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                   </label>
                   <input
                     type="number"
-                    value={discountConfig?.amount || ''}
-                    onChange={(e) => setDiscountConfig({ ...discountConfig, amount: parseFloat(e.target.value) || 0 })}
+                    value={discountConfig.type === 'fixed' ? (discountConfig?.amount || '') : (discountConfig?.percentage || '')}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      if (discountConfig.type === 'fixed') {
+                        setDiscountConfig({ ...discountConfig, amount: value });
+                      } else {
+                        setDiscountConfig({ ...discountConfig, percentage: value });
+                      }
+                    }}
                     className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500"
                     placeholder={discountConfig.type === 'fixed' ? '0.00' : '0'}
                     step={discountConfig.type === 'fixed' ? '0.01' : '0.1'}
