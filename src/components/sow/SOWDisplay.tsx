@@ -1216,7 +1216,7 @@ export default function SOWDisplay({
                           <tbody className="bg-white divide-y divide-gray-200">
                             {sow.clientRoles.map((role, idx) => (
                               <tr key={idx} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">{role.role || role.contact_title || 'N/A'}</td>
+                                <td className="px-6 py-4 font-semibold text-gray-900">{role.role || role.contact_title || 'N/A'}</td>
                                 <td className="px-6 py-4 text-gray-700">
                                   <div>
                                     <div className="font-medium">{role.name || 'N/A'}</div>
