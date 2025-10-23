@@ -172,7 +172,8 @@ export async function POST(
       billing_contact_name: sowData.billing_contact_name || '',
       billing_address: sowData.billing_address || '',
       billing_email: sowData.billing_email || '',
-      purchase_order_number: sowData.purchase_order_number || ''
+      purchase_order_number: sowData.purchase_order_number || '',
+      pm_hours_requirement_disabled: sowData.pm_hours_requirement_disabled || false
     };
 
     // Use the working PDFGenerator class
