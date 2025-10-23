@@ -568,7 +568,7 @@ export class PDFGenerator {
 
     
     // Parse client roles
-    const clientRoles = this.parseJSONField(sowData.client_roles, []) as ClientRole[];
+    let clientRoles = this.parseJSONField(sowData.client_roles, []) as ClientRole[];
     // Parse pricing roles - handle both direct array and nested structure
     let pricingRoles: PricingRole[] = [];
     if (sowData.pricing_roles) {
@@ -584,6 +584,8 @@ export class PDFGenerator {
     // Filter out Project Manager role if PM hours are removed
     if (sowData.pm_hours_requirement_disabled) {
       pricingRoles = pricingRoles.filter(role => role.role !== 'Project Manager');
+      // Also filter out Project Manager from client roles
+      clientRoles = clientRoles.filter(role => role.role !== 'Project Manager');
     }
     
     // Always filter out Account Executive from pricing roles table
