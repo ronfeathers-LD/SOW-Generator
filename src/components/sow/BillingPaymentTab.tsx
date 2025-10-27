@@ -1,4 +1,4 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
 import { SOWData } from '@/types/sow';
 import PricingRolesAndDiscount from '@/components/sow/PricingRolesAndDiscount';
 import LoadingModal from '@/components/ui/LoadingModal';
@@ -86,31 +86,47 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
     loadPricingRolesConfig();
   }, []);
 
-  // Populate descriptions when pricingRolesConfig loads or when pricingRoles change
+  // Populate descriptions when pricingRolesConfig loads
+  // DISABLED: This was interfering with loading saved roles
+  /*
   useEffect(() => {
+    // Only run this effect if we haven't loaded initial roles yet (to avoid interfering with initial load)
+    if (!initialRolesLoadedRef.current) {
+      return;
+    }
+    
     if (pricingRolesConfig.length > 0 && pricingRoles.length > 0) {
-      const updatedRoles = pricingRoles.map(role => {
-        const description = getDescriptionForRole(role.role, pricingRolesConfig);
-        // Only update if description is empty (to avoid overriding user changes)
-        if (!role.description && description) {
-          return {
-            ...role,
-            description: description,
-          };
+      // Check if ANY role needs description update
+      const needsUpdate = pricingRoles.some(role => {
+        if (!role.description) {
+          const description = getDescriptionForRole(role.role, pricingRolesConfig);
+          return !!description;
         }
-        return role;
+        return false;
       });
       
-      // Check if any descriptions were updated
-      const hasUpdates = updatedRoles.some((role, index) => 
-        role.description !== pricingRoles[index].description
-      );
-      
-      if (hasUpdates) {
+      // Only update if we need to
+      if (needsUpdate) {
+        const updatedRoles = pricingRoles.map(role => {
+          if (!role.description) {
+            const description = getDescriptionForRole(role.role, pricingRolesConfig);
+            if (description) {
+              return {
+                ...role,
+                description: description,
+              };
+            }
+          }
+          return role;
+        });
+        
+        console.log('📝 Updating descriptions for', updatedRoles.length, 'roles');
         setPricingRoles(updatedRoles);
       }
     }
-  }, [pricingRolesConfig, pricingRoles.length, pricingRoles]); // Added pricingRoles.length to detect when roles are created
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pricingRolesConfig, pricingRoles.length]); // Removed pricingRoles from deps to prevent infinite loop
+  */
 
   // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({
@@ -144,123 +160,129 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
     }
   }), [pricingRoles, discountConfig]);
 
+  // Track if we've loaded initial roles to prevent re-loading
+  const initialRolesLoadedRef = useRef(false);
+
   // Load saved pricing data when component mounts
   useEffect(() => {
-    if (formData.pricing) {
-      // Load discount configuration
-      if (!discountConfig.initialized) {
-        setDiscountConfig({
-          type: formData.pricing.discount_type || 'none',
-          amount: formData.pricing.discount_amount || 0,
-          percentage: formData.pricing.discount_percentage || 0,
-          initialized: true,
-        });
-      }
-
-      // Load saved pricing roles
-      // Check if roles is an object with a roles array property, or if it's directly an array
-      let rolesArray: Array<{ role: string; ratePerHour?: number; defaultRate?: number; totalHours?: number; description?: string }> = [];
-      
-      if (formData.pricing.roles && typeof formData.pricing.roles === 'object' && !Array.isArray(formData.pricing.roles)) {
-        // If roles is an object, look for the roles array property
-        const rolesObj = formData.pricing.roles as { roles?: Array<{ role: string; ratePerHour?: number; defaultRate?: number; totalHours?: number; description?: string }> };
-        rolesArray = rolesObj.roles || [];
-      } else if (Array.isArray(formData.pricing.roles)) {
-        // If roles is directly an array, use it
-        rolesArray = formData.pricing.roles as Array<{ role: string; ratePerHour?: number; defaultRate?: number; totalHours?: number; description?: string }>;
-      }
-      
-      if (rolesArray && rolesArray.length > 0) {
-        const savedRoles = rolesArray.map((role) => {
-          // Account Executive should have null rates since it won't appear in final SOW pricing
-          const isAccountExecutive = role.role === 'Account Executive';
-          const defaultRate = isAccountExecutive ? 0 : (role.defaultRate || getDefaultRateForRole(role.role, pricingRolesConfig) || 250);
-          const ratePerHour = isAccountExecutive ? 0 : (role.ratePerHour || 0);
-          
-          // Get description from saved data or from config if available
-          const savedDescription = role.description || '';
-          const configDescription = getDescriptionForRole(role.role, pricingRolesConfig);
-          const description = savedDescription || configDescription || '';
-          
-          return {
-            id: Math.random().toString(36).substr(2, 9), // Generate new ID for each role
-            role: role.role,
-            ratePerHour: ratePerHour,
-            defaultRate: defaultRate,
-            totalHours: role.totalHours || 0,
-            totalCost: ratePerHour * (role.totalHours || 0),
-            description: description,
-          };
-        });
-        
-        // Simply use the saved roles directly - no need for complex merging
-        // Don't filter out Project Manager role here - let the UI components handle display logic
-        setPricingRoles(savedRoles);
-      }
+    // Only load once
+    if (initialRolesLoadedRef.current) {
+      return;
     }
-  }, [formData.pricing, discountConfig.initialized, formData.pm_hours_requirement_disabled, pricingRolesConfig]); // Include pricingRolesConfig to ensure it's loaded
+    
+    if (!formData.pricing) {
+      return;
+    }
+    
+    // Load discount configuration
+    if (!discountConfig.initialized) {
+      setDiscountConfig({
+        type: formData.pricing.discount_type || 'none',
+        amount: formData.pricing.discount_amount || 0,
+        percentage: formData.pricing.discount_percentage || 0,
+        initialized: true,
+      });
+    }
+
+    // Load saved pricing roles
+    let rolesArray: Array<{ role: string; ratePerHour?: number; defaultRate?: number; totalHours?: number; description?: string }> = [];
+    
+    if (formData.pricing.roles && typeof formData.pricing.roles === 'object' && !Array.isArray(formData.pricing.roles)) {
+      // If roles is an object, look for the roles array property
+      const rolesObj = formData.pricing.roles as { roles?: Array<{ role: string; ratePerHour?: number; defaultRate?: number; totalHours?: number; description?: string }> };
+      rolesArray = rolesObj.roles || [];
+    } else if (Array.isArray(formData.pricing.roles)) {
+      // If roles is directly an array, use it
+      rolesArray = formData.pricing.roles as Array<{ role: string; ratePerHour?: number; defaultRate?: number; totalHours?: number; description?: string }>;
+    }
+    
+    if (rolesArray && rolesArray.length > 0) {
+      const savedRoles = rolesArray.map((role) => {
+        // Account Executive should have null rates since it won't appear in final SOW pricing
+        const isAccountExecutive = role.role === 'Account Executive';
+        const defaultRate = isAccountExecutive ? 0 : (role.defaultRate || getDefaultRateForRole(role.role, pricingRolesConfig) || 250);
+        const ratePerHour = isAccountExecutive ? 0 : (role.ratePerHour || 0);
+        
+        // Get description from saved data or from config if available
+        const savedDescription = role.description || '';
+        const configDescription = getDescriptionForRole(role.role, pricingRolesConfig);
+        const description = savedDescription || configDescription || '';
+        
+        return {
+          id: Math.random().toString(36).substr(2, 9), // Generate new ID for each role
+          role: role.role,
+          ratePerHour: ratePerHour,
+          defaultRate: defaultRate,
+          totalHours: role.totalHours || 0,
+          totalCost: ratePerHour * (role.totalHours || 0),
+          description: description,
+        };
+      });
+      
+      setPricingRoles(savedRoles);
+      initialRolesLoadedRef.current = true;
+    } else {
+      initialRolesLoadedRef.current = true; // Mark as loaded even if empty
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Load once on mount only
 
   // This effect was causing infinite re-renders - removed
 
-  // Auto-save pricing roles when they change (debounced to prevent infinite re-renders)
-  useEffect(() => {
-    if (formData.id && pricingRoles.length > 0) {
-      const savePricingRoles = async () => {
-        try {
-          const subtotal = pricingRoles.reduce((sum, role) => sum + role.totalCost, 0);
-          let discountTotal = 0;
-          if (discountConfig.type === 'fixed') {
-            discountTotal = discountConfig.amount || 0;
-          } else if (discountConfig.type === 'percentage') {
-            discountTotal = subtotal * ((discountConfig.percentage || 0) / 100);
+  // Manual save function - called when user clicks "Save Pricing"
+  const savePricingRoles = async () => {
+    if (!formData.id || pricingRoles.length === 0) {
+      return;
+    }
+
+    try {
+      const subtotal = pricingRoles.reduce((sum, role) => sum + role.totalCost, 0);
+      let discountTotal = 0;
+      if (discountConfig.type === 'fixed') {
+        discountTotal = discountConfig.amount || 0;
+      } else if (discountConfig.type === 'percentage') {
+        discountTotal = subtotal * ((discountConfig.percentage || 0) / 100);
+      }
+      const totalAmount = subtotal - discountTotal;
+
+      const requestBody = {
+        tab: 'Pricing',
+        data: {
+          pricing: {
+            roles: pricingRoles.map(role => ({
+              role: role.role,
+              ratePerHour: role.ratePerHour,
+              defaultRate: role.defaultRate,
+              totalHours: role.totalHours,
+              description: role.description,
+            })),
+            discount_type: discountConfig.type,
+            discount_amount: discountConfig.type === 'fixed' ? (discountConfig.amount || null) : null,
+            discount_percentage: discountConfig.type === 'percentage' ? (discountConfig.percentage || null) : null,
+            subtotal,
+            discount_total: discountTotal,
+            total_amount: totalAmount,
+            auto_calculated: false,
+            last_calculated: new Date().toISOString(),
           }
-          const totalAmount = subtotal - discountTotal;
-
-          const requestBody = {
-            tab: 'Pricing',
-            data: {
-              pricing: {
-                roles: pricingRoles.map(role => ({
-                  role: role.role,
-                  ratePerHour: role.ratePerHour,
-                  defaultRate: role.defaultRate,
-                  totalHours: role.totalHours,
-                  description: role.description,
-                })),
-                discount_type: discountConfig.type,
-                discount_amount: discountConfig.type === 'fixed' ? (discountConfig.amount || null) : null,
-                discount_percentage: discountConfig.type === 'percentage' ? (discountConfig.percentage || null) : null,
-                subtotal,
-                discount_total: discountTotal,
-                total_amount: totalAmount,
-                auto_calculated: false,
-                last_calculated: new Date().toISOString(),
-              }
-            }
-          };
-
-
-          const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody),
-          });
-
-          if (!response.ok) {
-            console.error('Failed to save pricing roles:', response.statusText);
-          }
-        } catch (error) {
-          console.error('Error saving pricing roles:', error);
         }
       };
 
-      // Debounce the save operation to avoid too many API calls
-      const timeoutId = setTimeout(savePricingRoles, 2000);
-      return () => clearTimeout(timeoutId);
+      const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to save pricing roles:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error saving pricing roles:', error);
     }
-  }, [pricingRoles, formData.id, discountConfig]);
+  };
 
   // Check for pricing mismatch between current form data and saved pricing
   useEffect(() => {
@@ -408,7 +430,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       }
       const newTotalAmount = newSubtotal - newDiscountTotal;
       
-      // Update form data directly
+      // Update form data directly - PRESERVE ALL ROLES, not just the ones we modified
       const updatedFormData: Partial<SOWData> = {
         ...formData,
         pricing: {
@@ -418,6 +440,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
             ratePerHour: role.ratePerHour,
             defaultRate: role.defaultRate,
             totalHours: role.totalHours,
+            description: role.description,
           })),
           discount_type: discountConfig.type,
                 discount_amount: discountConfig.type === 'fixed' ? (discountConfig.amount || null) : null,

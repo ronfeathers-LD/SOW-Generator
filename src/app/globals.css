@@ -160,6 +160,15 @@ p {
   width: 100% !important;
 }
 
+/* Override overflow for role dropdowns */
+.formatSOWTable .relative {
+  overflow: visible !important;
+}
+
+.formatSOWTable .role-dropdown-container {
+  overflow: visible !important;
+}
+
 .formatSOWTable table thead,
 #sow-content-project-phases table thead,
 .formatSOWTable #sow-content-project-phases table thead,

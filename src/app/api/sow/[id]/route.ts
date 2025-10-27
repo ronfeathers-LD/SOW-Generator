@@ -197,6 +197,18 @@ export async function GET(
       billingInfo: sow.billing_info || {},
       // Include pricing configuration from JSONB fields
       pricing: {
+        roles: (() => {
+          // If pricing_roles is an object with a roles property, use that
+          if (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles) && sow.pricing_roles.roles) {
+            return sow.pricing_roles.roles;
+          }
+          // If pricing_roles is an array, use it directly
+          if (Array.isArray(sow.pricing_roles)) {
+            return sow.pricing_roles;
+          }
+          // Otherwise return empty array
+          return [];
+        })(),
         project_management_included: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.project_management_included || false : false,
         project_management_hours: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.project_management_hours || 40 : 40,
         project_management_rate: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.project_management_rate || 225 : 225,

@@ -64,13 +64,21 @@ export async function POST(request: Request) {
 
     const supabase = createServiceRoleClient();
     
+    // Only include fields that are guaranteed to exist in the table
     const insertData: Record<string, unknown> = {
       role_name: role_name.trim(),
       default_rate,
-      is_active,
-      description: description.trim(),
-      sort_order: typeof sort_order === 'number' ? sort_order : 0
+      is_active
     };
+
+    // Only add optional fields if they're provided
+    if (description && description.trim()) {
+      insertData.description = description.trim();
+    }
+    
+    if (typeof sort_order === 'number' && sort_order >= 0) {
+      insertData.sort_order = sort_order;
+    }
 
     // Only add audit fields if the columns exist (after migration)
     if (session.user.email) {
@@ -85,11 +93,20 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
+      console.error('Error creating pricing role:', {
+        error,
+        errorCode: error.code,
+        errorMessage: error.message,
+        errorDetails: error.details,
+        errorHint: error.hint,
+        insertData
+      });
+      
       if (error.code === '23505') { // Unique constraint violation
         return new NextResponse('A role with this name already exists', { status: 409 });
       }
-      console.error('Error creating pricing role:', error);
-      return new NextResponse('Internal Server Error', { status: 500 });
+      
+      return new NextResponse(`Internal Server Error: ${error.message}`, { status: 500 });
     }
 
     return NextResponse.json(newRole, { status: 201 });

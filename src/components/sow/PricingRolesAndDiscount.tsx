@@ -72,23 +72,10 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   selectedAccount,
   pricingRolesConfig: _pricingRolesConfig = [] // eslint-disable-line @typescript-eslint/no-unused-vars
 }) => {
-  const [openDropdowns, setOpenDropdowns] = useState<Set<string>>(new Set());
 
 
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.role-dropdown-container')) {
-        setOpenDropdowns(new Set());
-      }
-    };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+
   // Helper function to safely get products array
   const getProducts = () => {
     const template = formData.template;
@@ -104,6 +91,8 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   const [pmRoleToRemove, setPmRoleToRemove] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [isManuallyEditing, setIsManuallyEditing] = useState(false);
+  const [showRoleSelectModal, setShowRoleSelectModal] = useState(false);
+  const [roleBeingEdited, setRoleBeingEdited] = useState<string | null>(null);
   const hasAutoCalculated = useRef(false);
 
   // Fetch products on component mount
@@ -190,7 +179,9 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     hasAutoCalculated.current = false;
   }, [formData.id]);
 
-  // Auto-calculate hours on page load if they haven't been calculated yet
+  // DISABLED: Auto-calculate hours on page load
+  // This was interfering with loading saved pricing roles
+  /*
   useEffect(() => {
     const shouldAutoCalculate = () => {
       // Don't auto-calculate if we've already done it
@@ -238,6 +229,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.template, approvedPMHoursRequest, isAutoCalculating]);
+  */
 
   // Calculate role hours distribution - memoized to prevent recalculation
   const roleDistribution = useMemo(() => 
@@ -253,6 +245,8 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   // Auto-sync role hours based on calculated distribution
   // Only run this when baseProjectHours changes or when PM hours status changes, not when pricingRoles change
   // Skip this if user is manually editing to prevent overriding manual changes
+  // DISABLED: This effect was dropping non-PM/Onboarding roles from the array
+  /*
   useEffect(() => {
     if (pricingRoles.length > 0 && !isManuallyEditing) {
       const updatedRoles = pricingRoles.map(role => {
@@ -284,7 +278,9 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
         setPricingRoles(updatedRoles);
       }
     }
-  }, [roleDistribution, pricingRoles, isManuallyEditing, setPricingRoles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roleDistribution, isManuallyEditing, setPricingRoles]);
+  */
 
   // Wrapper for autoCalculateHours that triggers PM status check
   const handleRecalculateHours = useCallback(async () => {
@@ -768,23 +764,21 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                                     }
                                   }
                                 }}
-                                onFocus={() => setOpenDropdowns(prev => new Set(prev).add(role.id))}
+                                onFocus={() => {
+                                  setRoleBeingEdited(role.id);
+                                  setShowRoleSelectModal(true);
+                                }}
                                 className={`block w-full px-4 py-3 pr-10 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
                                   isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
                                 }`}
                                 disabled={!!isPMRemoved || !!isPMPending}
-                                placeholder={_pricingRolesConfig.length === 0 ? "Loading roles..." : "Enter role name or select from list"}
+                                placeholder={_pricingRolesConfig.length === 0 ? "Loading roles..." : "Enter role name or click to select"}
                               />
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const newSet = new Set(openDropdowns);
-                                  if (newSet.has(role.id)) {
-                                    newSet.delete(role.id);
-                                  } else {
-                                    newSet.add(role.id);
-                                  }
-                                  setOpenDropdowns(newSet);
+                                  setRoleBeingEdited(role.id);
+                                  setShowRoleSelectModal(true);
                                 }}
                                 className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
                                 disabled={!!isPMRemoved || !!isPMPending || _pricingRolesConfig.length === 0}
@@ -794,53 +788,6 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                                 </svg>
                               </button>
                             </div>
-                            
-                            {/* Custom dropdown */}
-                            {openDropdowns.has(role.id) && _pricingRolesConfig.length > 0 && (
-                              <div className="absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-xl" style={{ zIndex: 9999, maxHeight: '200px', overflowY: 'auto', minWidth: 'max-content', width: '250px' }}>
-                                {_pricingRolesConfig.map((config) => {
-                                  return (
-                                    <button
-                                      key={config.role_name}
-                                      type="button"
-                                      onClick={() => {
-                                        // Batch all updates into a single state update to avoid race conditions
-                                        const updatedRoles = pricingRoles.map((r: PricingRole) => {
-                                          if (r.id === role.id) {
-                                            const defaultRate = getDefaultRateForRole(config.role_name, _pricingRolesConfig);
-                                            // Account Executive should have null rates since it won't appear in final SOW pricing
-                                            const isAccountExecutive = config.role_name === 'Account Executive';
-                                            return {
-                                              ...r,
-                                              role: config.role_name,
-                                              description: config.description || '',
-                                              defaultRate: isAccountExecutive ? 0 : defaultRate,
-                                              ratePerHour: isAccountExecutive ? 0 : defaultRate
-                                            };
-                                          }
-                                          return r;
-                                        });
-                                        setPricingRoles(updatedRoles);
-                                        
-                                        setOpenDropdowns(prev => {
-                                          const newSet = new Set(prev);
-                                          newSet.delete(role.id);
-                                          return newSet;
-                                        });
-                                      }}
-                                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-100 last:border-b-0"
-                                      disabled={!!isPMRemoved || !!isPMPending}
-                                      style={{ display: 'block', minHeight: '40px' }}
-                                    >
-                                      <div className="font-medium">{config.role_name}</div>
-                                      {config.description && (
-                                        <div className="text-xs text-gray-500 mt-1">{config.description}</div>
-                                      )}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            )}
                           </div>
                           {isPMPending && (
                             <div className="flex items-center text-blue-600 text-xs">
@@ -1101,6 +1048,69 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
           requestId={pendingPMHoursRequest.id}
           onStatusChange={handlePMHoursRemovalRequestSubmitted}
         />
+      )}
+
+      {/* Role Selection Modal */}
+      {showRoleSelectModal && roleBeingEdited && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 z-10">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium text-gray-900">Select a Role</h3>
+                <button
+                  onClick={() => {
+                    setShowRoleSelectModal(false);
+                    setRoleBeingEdited(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div className="px-6 py-4">
+              <div className="space-y-2">
+                {_pricingRolesConfig.map((config) => {
+                  return (
+                    <button
+                      key={config.role_name}
+                      type="button"
+                      onClick={() => {
+                        const updatedRoles = pricingRoles.map((r: PricingRole) => {
+                          if (r.id === roleBeingEdited) {
+                            const defaultRate = getDefaultRateForRole(config.role_name, _pricingRolesConfig);
+                            const isAccountExecutive = config.role_name === 'Account Executive';
+                            return {
+                              ...r,
+                              role: config.role_name,
+                              description: config.description || '',
+                              defaultRate: isAccountExecutive ? 0 : defaultRate,
+                              ratePerHour: isAccountExecutive ? 0 : defaultRate
+                            };
+                          }
+                          return r;
+                        });
+                        setPricingRoles(updatedRoles);
+                        setShowRoleSelectModal(false);
+                        setRoleBeingEdited(null);
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border border-gray-200 rounded-md transition-colors"
+                    >
+                      <div className="font-medium text-gray-900">{config.role_name}</div>
+                      {config.description && (
+                        <div className="text-xs text-gray-500 mt-1">{config.description}</div>
+                      )}
+                      <div className="text-xs text-gray-400 mt-1">Default Rate: ${config.default_rate}/hr</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Enterprise PM Removal Confirmation Modal */}
