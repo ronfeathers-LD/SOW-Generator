@@ -72,9 +72,28 @@ export async function POST(request: NextRequest) {
 
 
 
-    // Authenticate with Salesforce using stored credentials
+    // Authenticate with Salesforce using stored credentials (graceful retry)
+    const attemptAuthenticate = async () => {
+      await salesforceClient.authenticate(
+        config.username,
+        config.password,
+        config.security_token || undefined,
+        config.login_url
+      );
+      if (!salesforceClient.isAuthenticated()) {
+        // Small delay and one more attempt
+        await new Promise((r) => setTimeout(r, 250));
+        await salesforceClient.authenticate(
+          config.username,
+          config.password,
+          config.security_token || undefined,
+          config.login_url
+        );
+      }
+    };
+
     try {
-      await salesforceClient.authenticate(config.username, config.password, config.security_token || undefined, config.login_url);
+      await attemptAuthenticate();
     } catch (authError) {
       console.error('Salesforce authentication error:', authError);
       return NextResponse.json(
@@ -87,11 +106,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify authentication was successful
+    const connection = salesforceClient.getConnection();
+    const hasInstanceUrl = !!connection.instanceUrl;
+    const hasAccessToken = !!connection.accessToken;
+    
     if (!salesforceClient.isAuthenticated()) {
-      console.error('Salesforce authentication failed - connection not properly established');
+      console.error('Salesforce authentication failed - connection not properly established', {
+        hasInstanceUrl,
+        hasAccessToken,
+        instanceUrl: connection.instanceUrl,
+        loginUrl: connection.loginUrl,
+        accessTokenPresent: !!connection.accessToken
+      });
       return NextResponse.json(
-        { error: 'Salesforce authentication failed - connection not properly established after successful authentication' },
-        { status: 500 }
+        { 
+          error: 'Salesforce authentication failed - connection not properly established after successful authentication',
+          details: `Instance URL: ${hasInstanceUrl ? 'present' : 'missing'}, Access Token: ${hasAccessToken ? 'present' : 'missing'}`
+        },
+        { status: 502 }
       );
     }
 

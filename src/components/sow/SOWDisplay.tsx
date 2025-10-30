@@ -11,7 +11,8 @@ import SOWOutOfScopePage from '@/components/sow/SOWOutOfScopePage';
 import SOWAssumptionsPage from '@/components/sow/SOWAssumptionsPage';
 import SOWProjectPhasesPage from '@/components/sow/SOWProjectPhasesPage';
 import PricingDisplay from '@/components/sow/PricingDisplay';
-import SimpleApproval from '@/components/sow/SimpleApproval';
+// import SimpleApproval from '@/components/sow/SimpleApproval';
+import MultiStepApprovalWorkflow from '@/components/sow/MultiStepApprovalWorkflow';
 import SOWComments from '@/components/sow/SOWComments';
 import SaveToGoogleDrive from '@/components/sow/SaveToGoogleDrive';
 import LoadingModal from '@/components/ui/LoadingModal';
@@ -19,6 +20,27 @@ import CreateRevisionButton from '@/components/sow/CreateRevisionButton';
 import SOWRevisionHistory from '@/components/sow/SOWRevisionHistory';
 import { useSession } from 'next-auth/react';
 import { parseObjectives } from '@/lib/utils/parse-objectives';
+
+function getFixLinkForMessage(message: string, sowId: string): { href: string; text: string } | null {
+  const lower = message.toLowerCase();
+
+  const mappings: Array<{ match: (s: string) => boolean; hash: string; text: string }> = [
+    { match: s => s.includes('client role') || s.includes('signer') || s.includes('signature'), hash: 'signers-&-roles', text: 'Fix in Signers & Roles' },
+    { match: s => s.includes('billing'), hash: 'billing-information', text: 'Fix in Billing Information' },
+    { match: s => s.includes('objective'), hash: 'objectives', text: 'Fix in Objectives' },
+    { match: s => s.includes('project overview') || s.includes('product') || s.includes('timeline'), hash: 'project-overview', text: 'Fix in Project Overview' },
+    { match: s => s.includes('pricing') || s.includes('hours') || s.includes('rate'), hash: 'pricing', text: 'Fix in Pricing' },
+    { match: s => s.includes('customer') || s.includes('client ') || s.includes('contact'), hash: 'customer-information', text: 'Fix in Customer Information' },
+    { match: s => s.includes('content') || s.includes('intro') || s.includes('scope') || s.includes('deliverable'), hash: 'content-editing', text: 'Fix in Content Editing' },
+  ];
+
+  for (const m of mappings) {
+    if (m.match(lower)) {
+      return { href: `/sow/${sowId}/edit#${m.hash}`, text: m.text };
+    }
+  }
+  return null;
+}
 
 export type SOWDisplayMode = 'full' | 'print';
 
@@ -135,9 +157,22 @@ function ValidationSubmitButton({ sow }: { sow: SOW }) {
             <div className="mb-2">
               <p className="text-red-700 font-medium">Missing Required Fields:</p>
               <ul className="text-red-600 ml-4 list-disc">
-                {validation.missingFields.map((field, index) => (
-                  <li key={index}>{field}</li>
-                ))}
+                {validation.missingFields.map((field, index) => {
+                  const link = getFixLinkForMessage(field, sow.id);
+                  return (
+                    <li key={index}>
+                      {field}
+                      {link && (
+                        <>
+                          {' '}
+                          <Link href={link.href} className="text-blue-600 hover:underline">
+                            {link.text}
+                          </Link>
+                        </>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -146,9 +181,22 @@ function ValidationSubmitButton({ sow }: { sow: SOW }) {
             <div className="mb-2">
               <p className="text-red-700 font-medium">Validation Errors:</p>
               <ul className="text-red-600 ml-4 list-disc">
-                {validation.errors.map((error, index) => (
-                  <li key={index}>{error}</li>
-                ))}
+                {validation.errors.map((error, index) => {
+                  const link = getFixLinkForMessage(error, sow.id);
+                  return (
+                    <li key={index}>
+                      {error}
+                      {link && (
+                        <>
+                          {' '}
+                          <Link href={link.href} className="text-blue-600 hover:underline">
+                            {link.text}
+                          </Link>
+                        </>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -942,13 +990,17 @@ export default function SOWDisplay({
                   <dt className="font-semibold text-gray-700">Purchase Order Number:</dt>
                   <dd className="text-gray-900">{sow.template?.purchase_order_number || 'N/A'}</dd>
                   
+                  {/* TODO: Wire this in the future when we have a way to read the terms from SFDC 
                   <dt className="font-semibold text-gray-700">Payment Terms:</dt>
                   <dd className="text-gray-900">Net 30</dd>
                   
+                  
                   <dt className="font-semibold text-gray-700">Currency:</dt>
                   <dd className="text-gray-900">USD</dd>
+                  */ }
                 </dl>
                 
+                {/* TODO: Wire this in the future when we have a way to determine the billing cycle 
                 <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                   <p className="text-sm text-yellow-800">
                     <strong>Payment Terms:</strong> Net 30 • 
@@ -956,6 +1008,7 @@ export default function SOWDisplay({
                     <strong>Billing Cycle:</strong> Monthly or upon completion of major milestones
                   </p>
                 </div>
+                */}
               </div>
             </div>
           )}
@@ -1373,13 +1426,16 @@ export default function SOWDisplay({
                         <dt className="font-semibold text-gray-700">Purchase Order Number:</dt>
                         <dd className="text-gray-900">{sow.template?.purchase_order_number || 'N/A'}</dd>
                         
+                        {/* TODO: Wire this in the future when we have a way to read the terms from SFDC
                         <dt className="font-semibold text-gray-700">Payment Terms:</dt>
                         <dd className="text-gray-900">Net 30</dd>
                         
                         <dt className="font-semibold text-gray-700">Currency:</dt>
                         <dd className="text-gray-900">USD</dd>
+                        */}
                       </dl>
                       
+                      {/* TODO: Wire this in the future when we have a way to determine the billing cycle 
                       <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                         <p className="text-sm text-yellow-800">
                           <strong>Payment Terms:</strong> Net 30 • 
@@ -1387,6 +1443,7 @@ export default function SOWDisplay({
                           <strong>Billing Cycle:</strong> Monthly or upon completion of major milestones
                         </p>
                       </div>
+                      */}
                     </div>
                   </div>
                 )}
@@ -1460,44 +1517,13 @@ export default function SOWDisplay({
                     )}
                     
                     {sow.status === 'in_review' && (
-                      <>
-                        <p className="text-blue-600 mb-4">
-                          This SOW is currently under review.
-                        </p>
-                        
-                        {/* Show approval component only for managers/admins */}
-                        {showApproval && canApprove ? (
-                          <SimpleApproval
-                            sowId={sow.id}
-                            sowTitle={sow.sowTitle || 'Untitled SOW'}
-                            clientName={sow.clientName || 'Unknown Client'}
-                            onStatusChange={() => window.location.reload()}
-                          />
-                        ) : (
-                          <div className="space-y-3">
-                            <div className="bg-green-50 border border-green-200 rounded p-3">
-                              <p className="text-sm text-green-800">
-                                <strong>Waiting for approval:</strong> This SOW has been submitted for review and is waiting for a Manager or Admin to approve it.
-                              </p>
-                              {sow.submitted_by_name && (
-                                <p className="text-sm text-green-700 mt-2">
-                                  <strong>Submitted by:</strong> {sow.submitted_by_name}
-                                </p>
-                              )}
-                              {sow.submitted_at && (
-                                <p className="text-sm text-green-700">
-                                  <strong>Submitted on:</strong> {new Date(sow.submitted_at).toLocaleDateString()}
-                                </p>
-                              )}
-                            </div>
-                            <div className="bg-gray-50 border border-gray-200 rounded p-3">
-                              <p className="text-xs text-gray-600">
-                                <strong>Approval Process:</strong> Once approved, this SOW will be ready for client signature. If rejected, it will return to draft status with feedback for improvements.
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </>
+                      <MultiStepApprovalWorkflow
+                        sowId={sow.id}
+                        sowTitle={sow.sowTitle || 'Untitled SOW'}
+                        clientName={sow.clientName || 'Unknown Client'}
+                        showApproval={showApproval}
+                        canApprove={canApprove}
+                      />
                     )}
                     
                     {sow.status === 'approved' && (

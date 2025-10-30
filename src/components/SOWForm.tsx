@@ -692,9 +692,6 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       Owner: accountObj.Owner
     });
     
-    console.log('✅ SOWForm: Updated selectedAccount with Account Segment:', accountObj.Employee_Band__c);
-    console.log('✅ SOWForm: Account Owner Info:', accountObj.Owner);
-    
     // Store available opportunities - convert from uppercase API response to lowercase for component use
     setAvailableOpportunities((opportunities as Array<{
       Id: string;

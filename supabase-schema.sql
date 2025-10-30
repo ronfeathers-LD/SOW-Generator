@@ -107,6 +107,8 @@ CREATE TABLE IF NOT EXISTS sows (
 );
 
 -- Create users table
+-- Note: CHECK constraint for roles is enforced at application level
+-- to avoid migration issues with existing databases
 CREATE TABLE IF NOT EXISTS users (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
@@ -329,9 +331,9 @@ END $$;
 
 -- Insert default approval stages
 INSERT INTO approval_stages (name, description, sort_order) VALUES
-  ('Legal Review', 'Legal team review and approval', 1),
-  ('Finance Review', 'Finance team review and approval', 2),
-  ('Executive Approval', 'Executive team final approval', 3)
+  ('Professional Services', 'Professional Services team review and approval', 1),
+  ('Project Management', 'Project Management review and approval', 2),
+  ('Sr. Leadership', 'Senior Leadership final approval', 3)
 ON CONFLICT DO NOTHING;
 
 -- Enable Row Level Security (RLS)

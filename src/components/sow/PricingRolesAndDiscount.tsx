@@ -90,6 +90,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   const [showEnterprisePMRemovalModal, setShowEnterprisePMRemovalModal] = useState(false);
   const [pmRoleToRemove, setPmRoleToRemove] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isManuallyEditing, setIsManuallyEditing] = useState(false);
   const [showRoleSelectModal, setShowRoleSelectModal] = useState(false);
   const [roleBeingEdited, setRoleBeingEdited] = useState<string | null>(null);
@@ -145,6 +146,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   };
 
   // Get total units for display
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getTotalUnits = useCallback((): number => {
     return hoursResult.totalUnits;
   }, [hoursResult.totalUnits]);

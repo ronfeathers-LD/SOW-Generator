@@ -301,9 +301,9 @@ export default function HelpPage() {
 
               <h3 className="text-lg font-semibold text-gray-800 mb-2">Approval Workflow:</h3>
               <ol className="list-decimal list-inside space-y-2 text-gray-700">
-                <li><strong>Internal Review:</strong> Have a colleague review for accuracy</li>
-                <li><strong>Manager Approval:</strong> Get manager sign-off on pricing and scope</li>
-                <li><strong>Legal Review:</strong> Ensure terms and conditions are appropriate</li>
+                <li><strong>Professional Services:</strong> PS team reviews deliverables and resourcing</li>
+                <li><strong>Project Management:</strong> PM team validates project scope and timeline</li>
+                <li><strong>Sr. Leadership:</strong> Senior leadership final approval</li>
                 <li><strong>Client Presentation:</strong> Present SOW to client for approval</li>
                 <li><strong>Final Signatures:</strong> Collect all required signatures</li>
               </ol>

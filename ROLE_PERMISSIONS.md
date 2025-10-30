@@ -2,9 +2,10 @@
 
 ## 🎯 **Role Structure Overview**
 
-The system uses a **dual-role system**:
-- **`role` field**: Primary role ('user', 'manager', 'admin')
-- **`role` field**: Primary role ('user', 'manager', 'pmo', 'admin')
+The system uses a **role-based access control (RBAC)** with the following roles:
+- **Base Roles**: 'user', 'manager', 'pmo', 'admin'
+- **Specialized Roles**: 'sales', 'pro_services', 'solution_consultant'
+- **Legacy Support**: Existing roles remain functional
 
 ## 📋 **Detailed Permissions by Role**
 
@@ -25,8 +26,8 @@ The system uses a **dual-role system**:
 
 ---
 
-### **2. Manager (`role = 'manager')**
-**Access Level**: Team Leadership
+### **2. Manager (`role = 'manager')** - Now PS Manager
+**Access Level**: Professional Services Team Leadership
 **Navigation**: Dashboard, SOWs, Manager Portal
 
 **Permissions**:
@@ -34,11 +35,14 @@ The system uses a **dual-role system**:
 - ✅ Access Manager Portal (`/manager`)
 - ✅ View team SOWs and metrics
 - ✅ Approve/reject SOWs under review
+- ✅ **Approve Professional Services stage** in multi-step workflow
 - ✅ Access team management functions
 - ✅ View team reports
 - ❌ Cannot access PM Director portal
 - ❌ Cannot access admin functions
 - ❌ Cannot manage system configuration
+
+**Note**: Manager role serves as Professional Services Manager for SOW approval workflows
 
 ---
 
@@ -62,7 +66,53 @@ The system uses a **dual-role system**:
 
 ---
 
-### **4. Administrator (`role = 'admin')**
+### **4. Sales (`role = 'sales')**
+**Access Level**: Sales Team
+**Navigation**: Dashboard, SOWs
+
+**Permissions**:
+- ✅ All Regular User permissions
+- ✅ Create and edit SOWs
+- ✅ View sales-related SOWs
+- ✅ Access Salesforce integration
+- ✅ Access client information
+- ❌ Cannot approve SOWs in multi-step workflow
+- ❌ Cannot access admin functions
+- ❌ Limited access to PMO and Manager portals
+
+---
+
+### **5. Professional Services (`role = 'pro_services')**
+**Access Level**: PS Team Member
+**Navigation**: Dashboard, SOWs
+
+**Permissions**:
+- ✅ All Regular User permissions
+- ✅ Create and edit SOWs
+- ✅ View PS-related SOWs and assignments
+- ✅ Add comments to SOW approvals
+- ✅ View PM hours and resource planning
+- ❌ Cannot approve Professional Services stage (only PS Manager can)
+- ❌ Cannot access admin functions
+
+---
+
+### **6. Solution Consultant (`role = 'solution_consultant')`
+**Access Level**: Solution Architecture Team
+**Navigation**: Dashboard, SOWs
+
+**Permissions**:
+- ✅ All Regular User permissions
+- ✅ Create and edit SOWs
+- ✅ Review technical requirements and scope
+- ✅ Access Salesforce integration
+- ✅ Add technical input to SOWs
+- ❌ Cannot approve SOWs in multi-step workflow
+- ❌ Cannot access admin functions
+
+---
+
+### **7. Administrator (`role = 'admin')**
 **Access Level**: System Administration
 **Navigation**: Dashboard, SOWs, Admin Portal, + any other portals based on flags
 
@@ -76,6 +126,7 @@ The system uses a **dual-role system**:
 - ✅ System integration management
 - ✅ Audit logs and system monitoring
 - ✅ Database and security management
+- ✅ Approve any stage in multi-step workflow (override)
 
 ---
 
@@ -83,9 +134,12 @@ The system uses a **dual-role system**:
 
 ### **Role Hierarchy**:
 1. **`user`** → Basic user with SOW access
-2. **`manager`** → Team oversight + basic access
-3. **`pmo`** → Project management oversight + basic access
-4. **`admin`** → Full system access
+2. **`sales`** → Sales team with client access
+3. **`pro_services`** → PS team member
+4. **`solution_consultant`** → Solution architecture team
+5. **`manager`** → PS Manager, can approve PS stage
+6. **`pmo`** → Project management oversight, can approve PM stage
+7. **`admin`** → Full system access, can approve any stage
 
 ### **Access Inheritance**:
 - **Admin** automatically gets access to all portals
@@ -100,7 +154,10 @@ The system uses a **dual-role system**:
 | Role | Dashboard | SOWs | PMO | Manager | Admin |
 |------|-----------|------|-----|---------|-------|
 | `user` | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `manager` | ✅ | ✅ | ❌ | ✅ | ❌ |
+| `sales` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `pro_services` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `solution_consultant` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `manager` (PS Manager) | ✅ | ✅ | ❌ | ✅ | ❌ |
 | `pmo` | ✅ | ✅ | ✅ | ❌ | ❌ |
 | `admin` | ✅ | ✅ | ✅ | ✅ | ✅ |
 
@@ -135,7 +192,7 @@ CREATE TABLE users (
   id UUID PRIMARY KEY,
   name TEXT,
   email TEXT UNIQUE,
-  role TEXT CHECK (role IN ('user', 'manager', 'pmo', 'admin')),
+  role TEXT CHECK (role IN ('user', 'sales', 'pro_services', 'solution_consultant', 'manager', 'pmo', 'admin')),
   -- ... other fields
 );
 ```
@@ -159,11 +216,17 @@ interface Session {
 // Check if user is PMO
 const isPMO = session.user.role === 'pmo';
 
-// Check if user is Manager
-const isManager = session.user.role === 'manager';
+// Check if user is PS Manager (can approve PS stage)
+const isPSManager = session.user.role === 'manager';
 
 // Check if user is Admin
 const isAdmin = session.user.role === 'admin';
+
+// Check if user can approve Professional Services stage
+const canApprovePS = session.user.role === 'manager' || session.user.role === 'admin';
+
+// Check if user can approve Project Management stage
+const canApprovePM = session.user.role === 'pmo' || session.user.role === 'admin';
 ```
 
 ---

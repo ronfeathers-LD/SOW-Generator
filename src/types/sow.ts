@@ -450,4 +450,61 @@ export interface ChangeOrderCreationRequest {
     totalHours: number;
     totalCost: number;
   }>;
+}
+
+// Multi-Step Approval Workflow Types
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'not_started' | 'skipped';
+
+export interface ApprovalStage {
+  id: string;
+  name: string;
+  description: string;
+  sort_order: number;
+  is_active: boolean;
+  required_roles?: string[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SOWApproval {
+  id: string;
+  sow_id: string;
+  stage_id: string;
+  status: ApprovalStatus;
+  approver_id?: string;
+  comments?: string;
+  approved_at?: string;
+  rejected_at?: string;
+  created_at: string;
+  updated_at: string;
+  stage?: ApprovalStage;
+  approver?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
+export interface ApprovalWorkflowStatus {
+  sow_id: string;
+  current_stage?: SOWApproval;
+  all_stages: SOWApproval[];
+  completion_percentage: number;
+  requires_pm_approval: boolean;
+  total_stages: number;
+  completed_stages: number;
+}
+
+export interface ApprovalActionRequest {
+  action: 'approve' | 'reject' | 'skip';
+  comments?: string;
+}
+
+export interface ApprovalInitiationResult {
+  success: boolean;
+  workflow_created: boolean;
+  stages_created: number;
+  requires_pm_approval: boolean;
+  first_stage_id?: string;
+  error?: string;
 } 

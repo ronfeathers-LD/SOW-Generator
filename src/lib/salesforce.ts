@@ -197,7 +197,7 @@ class SalesforceClient {
         }
       }
       
-      // Verify that the connection has a valid instance URL after authentication
+      // Verify that the connection has both instance URL and access token after authentication
       if (!this.conn.instanceUrl) {
         // If jsforce didn't set the instance URL, try to derive it from the login URL
         console.warn('Salesforce connection missing instance URL, attempting to derive from login URL');
@@ -219,7 +219,6 @@ class SalesforceClient {
         }
         
         if (derivedInstanceUrl) {
-  
           // Set the instance URL manually
           (this.conn as { instanceUrl?: string }).instanceUrl = derivedInstanceUrl;
         } else {
@@ -227,6 +226,23 @@ class SalesforceClient {
         }
       }
       
+      // Verify access token is present after authentication
+      if (!this.conn.accessToken) {
+        // Some environments expose the token as sessionId; map it if present
+        const sessionId = (this.conn as unknown as { sessionId?: string }).sessionId;
+        if (sessionId) {
+          (this.conn as unknown as { accessToken?: string }).accessToken = sessionId;
+        }
+      }
+
+      if (!this.conn.accessToken) {
+        console.error('Salesforce authentication succeeded but access token is missing', {
+          hasInstanceUrl: !!this.conn.instanceUrl,
+          instanceUrl: this.conn.instanceUrl,
+          loginUrl: this.conn.loginUrl
+        });
+        throw new Error('Salesforce authentication succeeded but access token was not set. This may indicate a jsforce library issue or authentication configuration problem.');
+      }
       
       // Authentication successful
     } catch (error) {

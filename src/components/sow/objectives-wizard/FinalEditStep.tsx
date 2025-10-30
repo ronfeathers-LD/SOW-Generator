@@ -66,10 +66,6 @@ const FinalEditStep: React.FC<FinalEditStepProps> = ({
   const deliverablesHtml = wizardData.generatedObjectives.deliverablesHtml || 
     (wizardData.generatedObjectives.deliverables ? 
       wizardData.generatedObjectives.deliverables.map(del => `<p>${del}</p>`).join('') : '');
-  
-  console.log('Final Edit Step - deliverablesHtml:', deliverablesHtml);
-  console.log('Final Edit Step - raw deliverablesHtml:', wizardData.generatedObjectives.deliverablesHtml);
-  console.log('Final Edit Step - deliverables array:', wizardData.generatedObjectives.deliverables);
 
   return (
     <div className="space-y-6">

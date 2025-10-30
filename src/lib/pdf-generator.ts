@@ -1393,17 +1393,7 @@ export class PDFGenerator {
                     <div class="billing-label">Purchase Order Number:</div>
                     <div class="billing-value">${billingInfo?.po_number || 'N/A'}</div>
                   </div>
-                  <div>
-                    <div class="billing-label">Payment Terms:</div>
-                    <div class="billing-value">Net 30</div>
-                  </div>
-                  <div>
-                    <div class="billing-label">Currency:</div>
-                    <div class="billing-value">USD</div>
-                  </div>
-                </div>
-                <div class="payment-terms">
-                  Payment Terms: Net 30 • Currency: USD • Billing Cycle: Monthly or upon completion of major milestones
+                 
                 </div>
               </div>
             </div>

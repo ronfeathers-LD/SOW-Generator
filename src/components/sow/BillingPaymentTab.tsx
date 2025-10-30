@@ -162,6 +162,40 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
 
   // Track if we've loaded initial roles to prevent re-loading
   const initialRolesLoadedRef = useRef(false);
+  // Track if we've performed first autoCalc for this SOW
+  const hasFirstAutoCalcRef = useRef(false);
+
+  /* eslint-disable react-hooks/exhaustive-deps */
+  // Effect: Auto-calc if pricingRoles are blank on load or products change
+  useEffect(() => {
+    const products = formData?.template?.products || [];
+    if (!formData || products.length === 0) return;
+    if (hasFirstAutoCalcRef.current) return;
+    const blank =
+      pricingRoles.length === 0 ||
+      pricingRoles.every(role =>
+        (role.role === 'Onboarding Specialist' || role.role === 'Project Manager') &&
+        (role.totalHours === 0)
+      );
+    if (blank) {
+      hasFirstAutoCalcRef.current = true;
+      autoCalculateHours();
+    }
+  // deps: formData.id, productsKey, pricingRoles.length
+  }, [formData?.id, formData?.template?.products, pricingRoles.length]);
+  /* eslint-enable react-hooks/exhaustive-deps */
+
+  // Used to control info message about auto-calc
+  const [justAutoCalculated, setJustAutoCalculated] = useState(false);
+
+  // Slightly modify autoCalculateHours to set the info flag
+  const autoCalculateHoursWithFlag = async () => {
+    setJustAutoCalculated(false); // reset
+    await autoCalculateHours();
+    setJustAutoCalculated(true);
+    // Unset after a few seconds to not persist the highlight
+    setTimeout(() => setJustAutoCalculated(false), 4000);
+  };
 
   // Load saved pricing data when component mounts
   useEffect(() => {
@@ -230,6 +264,8 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
   // This effect was causing infinite re-renders - removed
 
   // Manual save function - called when user clicks "Save Pricing"
+  // Note: Currently auto-save is handled elsewhere, keeping this for future manual save button
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const savePricingRoles = async () => {
     if (!formData.id || pricingRoles.length === 0) {
       return;
@@ -415,6 +451,11 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
             return role;
           });
         }
+      } else {
+        // Rules indicate PM should NOT be present: remove any PM roles
+        if (hasProjectManager) {
+          updatedRoles = updatedRoles.filter(role => role.role !== 'Project Manager');
+        }
       }
 
       // Update pricing roles and then calculate totals in the same render cycle
@@ -475,6 +516,29 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
     <section className="space-y-6">
       <h2 className="text-2xl font-bold">Pricing</h2>
       
+      {/* Auto-calc info messaging */}
+      {justAutoCalculated && !hasPricingMismatch && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-2">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414L9.414 14l-3.707-3.707a1 1 0 011.414-1.414L9.414 11.586l6.293-6.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-green-800">
+                Hours auto-calculated
+              </h3>
+              <div className="mt-2 text-sm text-green-700">
+                <p>
+                  Role hours have been automatically calculated based on selected products and units. You may now edit them if you require custom values.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Pricing Mismatch Warning */}
       {hasPricingMismatch && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
@@ -508,11 +572,10 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
           setPricingRoles={setPricingRoles}
           discountConfig={discountConfig}
           setDiscountConfig={setDiscountConfig}
-          autoCalculateHours={autoCalculateHours}
+          autoCalculateHours={autoCalculateHoursWithFlag}
           isAutoCalculating={isAutoCalculating}
           onHoursCalculated={() => {
-            // This callback is called after hours are calculated
-            // The UI components now handle PM role display logic properly
+            // UI components now handle PM display logic
           }}
           selectedAccount={selectedAccount}
           pricingRolesConfig={pricingRolesConfig}

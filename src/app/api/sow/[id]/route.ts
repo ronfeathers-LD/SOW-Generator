@@ -177,6 +177,12 @@ export async function GET(
       submitted_by: sow.submitted_by || null,
       submitted_at: sow.submitted_at || null,
       submitted_by_name: submittedByName,
+      // Include approval/rejection tracking
+      approval_comments: sow.approval_comments || null,
+      approved_at: sow.approved_at || null,
+      rejected_at: sow.rejected_at || null,
+      approved_by: sow.approved_by || null,
+      rejected_by: sow.rejected_by || null,
       // Include client roles
       roles: {
         client_roles: sow.client_roles || []
@@ -321,7 +327,7 @@ export async function PUT(
     }
 
     // Prepare update data - only allow specific fields to be updated
-    const allowedFields = ['status', 'salesforce_account_id', 'salesforce_account_owner_name', 'salesforce_account_owner_email', 'account_segment'];
+    const allowedFields = ['status', 'salesforce_account_id', 'salesforce_account_owner_name', 'salesforce_account_owner_email', 'account_segment', 'rejected_at', 'approved_at', 'approval_comments'];
     const updateData: Record<string, unknown> = {};
     
     // Only include fields that are allowed and provided
@@ -362,11 +368,9 @@ export async function PUT(
     // If rejecting, keep status as rejected and set rejection tracking
     if (data.status === 'rejected') {
       updateData.status = 'rejected';
-      // Ensure rejected_at is set if not already provided
-      if (!data.rejected_at) {
-        updateData.rejected_at = new Date().toISOString();
-        console.log('SOW Rejection: Set rejected_at to:', updateData.rejected_at);
-      }
+      // Ensure rejected_at is set
+      updateData.rejected_at = data.rejected_at || new Date().toISOString();
+      console.log('SOW Rejection: Set rejected_at to:', updateData.rejected_at);
     }
 
     // Add approval tracking
@@ -396,6 +400,22 @@ export async function PUT(
         { error: 'Failed to update SOW status' },
         { status: 500 }
       );
+    }
+
+    // Initialize multi-step approval workflow when SOW is submitted for review
+    if (data.status === 'in_review') {
+      try {
+        const { ApprovalWorkflowService } = await import('@/lib/approval-workflow-service');
+        const workflowResult = await ApprovalWorkflowService.initiateWorkflow(id, supabase);
+        
+        if (!workflowResult.success) {
+          console.error('Failed to initialize approval workflow:', workflowResult.error);
+          // Don't fail the submission if workflow init fails
+        }
+      } catch (workflowError) {
+        console.error('Error initializing approval workflow:', workflowError);
+        // Don't fail the submission if workflow init fails
+      }
     }
 
     // Send Slack notification when SOW is submitted for review
@@ -433,9 +453,7 @@ export async function PUT(
             const sowUrl = getSOWUrl(id);
 
             // Skip notifications for Hula Truck
-            if (clientName.toLowerCase() === 'hula truck') {
-              console.log('🚫 Skipping Slack notification for Hula Truck SOW submission');
-            } else {
+            if (clientName.toLowerCase() !== 'hula truck') {
               await slackService.sendMessage(
                 `:memo: *New SOW Submitted for Review*\n\n` +
                 `*Client:* ${clientName}\n` +
@@ -450,9 +468,7 @@ export async function PUT(
               const emailService = await getEmailService();
               if (emailService) {
                 // Skip email notifications for Hula Truck
-                if (clientName.toLowerCase() === 'hula truck') {
-                  console.log('🚫 Skipping email notification for Hula Truck SOW submission');
-                } else {
+                if (clientName.toLowerCase() !== 'hula truck') {
                   // Get account owner email from SOW data
                   const { data: sowWithOwner } = await supabase
                     .from('sows')
@@ -475,12 +491,6 @@ export async function PUT(
                     submitterName,
                     ccEmails
                   );
-                  
-                  if (ccEmails.length > 0) {
-                    console.log(`✅ Email notification sent to commercial approvals team with account owner in CC: ${ccEmails.join(', ')}`);
-                  } else {
-                    console.log('✅ Email notification sent to commercial approvals team (no account owner email found)');
-                  }
                 }
               }
             } catch (emailError) {
@@ -618,7 +628,6 @@ export async function PUT(
                 comments,
                 ccEmails
               );
-              console.log('SOW rejection email sent to commercial approvals team with account owner in CC');
 
               // Also send email to SOW author if available
               if (authorEmail) {
@@ -631,7 +640,6 @@ export async function PUT(
                   session.user.email || 'Unknown Approver',
                   comments
                 );
-                console.log('SOW rejection email sent to author:', authorEmail);
               }
             }
           } catch (emailError) {

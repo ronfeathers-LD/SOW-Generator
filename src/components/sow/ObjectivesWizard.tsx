@@ -155,7 +155,6 @@ const ObjectivesWizard = React.memo(function ObjectivesWizard({
         // Set new timeout for auto-save
         autoSaveTimeoutRef.current = setTimeout(async () => {
           try {
-            console.log('Auto-saving wizard data...', updatedFormData);
             const response = await fetch(`/api/sow/${formDataRef.current.id}/tab-update`, {
               method: 'PUT',
               headers: {
@@ -170,8 +169,6 @@ const ObjectivesWizard = React.memo(function ObjectivesWizard({
             if (!response.ok) {
               const errorText = await response.text().catch(() => 'Unknown error');
               console.error('Failed to auto-save wizard data:', response.status, errorText);
-            } else {
-              console.log('Wizard data auto-saved successfully');
             }
           } catch (error) {
             console.error('Error auto-saving wizard data:', error);

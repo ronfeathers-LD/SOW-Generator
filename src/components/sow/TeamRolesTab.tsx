@@ -97,7 +97,7 @@ export default function TeamRolesTab({
   const loadContacts = async (accountId: string) => {
     setIsLoadingContacts(true);
     try {
-      const response = await fetch('/api/salesforce/account-contacts', {
+      const doFetch = async () => fetch('/api/salesforce/account-contacts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,12 +107,29 @@ export default function TeamRolesTab({
         }),
       });
 
+      // First attempt
+      let response = await doFetch();
+      if (!response.ok && response.status >= 500) {
+        // brief backoff then retry once
+        await new Promise((r) => setTimeout(r, 300));
+        response = await doFetch();
+      }
+
       if (response.ok) {
         const data = await response.json();
         setAvailableContacts(data.contacts || []);
+      } else {
+        const errorData = await response.json().catch(() => ({ 
+          error: 'Failed to load contacts',
+          details: `HTTP ${response.status}: ${response.statusText}`
+        }));
+        console.error('Error loading contacts:', errorData.error, errorData.details);
+        setAvailableContacts([]);
       }
     } catch (error) {
       console.error('Error loading contacts:', error);
+      // Set empty array on error to prevent UI issues
+      setAvailableContacts([]);
     } finally {
       setIsLoadingContacts(false);
     }
