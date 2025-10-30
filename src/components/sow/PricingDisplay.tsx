@@ -1,4 +1,7 @@
+'use client';
 
+import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface PricingRole {
   role: string;
@@ -18,6 +21,7 @@ interface PricingDisplayProps {
   totalAmount: number;
   lastCalculated?: string | null;
   pmHoursRemoved?: boolean; // New prop to indicate if PM hours are removed
+  isPrintMode?: boolean; // New prop to indicate if in print mode
 }
 
 export default function PricingDisplay({
@@ -28,8 +32,24 @@ export default function PricingDisplay({
   subtotal,
   totalAmount,
   lastCalculated,
-  pmHoursRemoved = false
+  pmHoursRemoved = false,
+  isPrintMode = false
 }: PricingDisplayProps) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  
+  // Calculate tooltip position when it should be shown
+  useEffect(() => {
+    if (showTooltip && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setTooltipPosition({
+        top: rect.bottom + 8,
+        left: rect.left + rect.width / 2
+      });
+    }
+  }, [showTooltip]);
+  
   // Filter out Project Manager role if PM hours are removed, and always filter out Account Executive
   const filteredPricingRoles = pricingRoles.filter(role => {
     // Always exclude Account Executive from pricing roles table
@@ -55,7 +75,7 @@ export default function PricingDisplay({
           <h3 className="text-lg font-semibold text-gray-900">Pricing Roles</h3>
         </div>
 
-        <div className="overflow-x-auto formatSOWTable">
+        <div className="overflow-x-auto formatSOWTable" style={{ overflowY: 'visible' }}>
           <table>
             <thead>
               <tr>
@@ -146,8 +166,48 @@ export default function PricingDisplay({
                     </td>
                   )}
                   <td className="text-center align-middle" style={{verticalAlign: 'middle', height: '80px', display: 'table-cell'}}>
-                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%'}}>
-                      {filteredPricingRoles.reduce((sum, role) => sum + (role.totalHours || 0), 0)}
+                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '8px'}}>
+                      <span>{filteredPricingRoles.reduce((sum, role) => sum + (role.totalHours || 0), 0)}</span>
+                      {!isPrintMode && filteredPricingRoles.length > 1 && (
+                        <>
+                          <button
+                            ref={buttonRef}
+                            type="button"
+                            className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                            onMouseEnter={() => setShowTooltip(true)}
+                            onMouseLeave={() => setShowTooltip(false)}
+                            aria-label="Show hours breakdown"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </button>
+                          {showTooltip && typeof document !== 'undefined' && createPortal(
+                            <div 
+                              className="fixed w-64 bg-gray-900 text-white text-sm rounded-lg shadow-lg z-[9999]"
+                              style={{ 
+                                top: `${tooltipPosition.top}px`, 
+                                left: `${tooltipPosition.left}px`,
+                                transform: 'translateX(-50%)'
+                              }}
+                              onMouseEnter={() => setShowTooltip(true)}
+                              onMouseLeave={() => setShowTooltip(false)}
+                            >
+                              <div className="p-3">
+                                <div className="font-semibold mb-2 pb-2 border-b border-gray-700">Hours Breakdown</div>
+                                {filteredPricingRoles.map((role, idx) => (
+                                  <div key={idx} className="flex justify-between py-1">
+                                    <span>{role.role}:</span>
+                                    <span className="font-medium">{role.totalHours} hrs</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="absolute left-1/2 -translate-x-1/2 -top-1 w-2 h-2 bg-gray-900 rotate-45"></div>
+                            </div>,
+                            document.body
+                          )}
+                        </>
+                      )}
                     </div>
                   </td>
                   <td className="text-center align-middle" style={{verticalAlign: 'middle', height: '80px', display: 'table-cell'}}>

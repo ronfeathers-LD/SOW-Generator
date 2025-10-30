@@ -160,12 +160,18 @@ p {
   width: 100% !important;
 }
 
-/* Override overflow for role dropdowns */
+/* Override overflow for role dropdowns and tooltips */
 .formatSOWTable .relative {
   overflow: visible !important;
 }
 
 .formatSOWTable .role-dropdown-container {
+  overflow: visible !important;
+}
+
+/* Allow tooltips in table cells to overflow */
+.formatSOWTable table td .relative,
+.formatSOWTable table td .absolute {
   overflow: visible !important;
 }
 

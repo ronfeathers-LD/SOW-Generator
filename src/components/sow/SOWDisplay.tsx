@@ -953,6 +953,7 @@ export default function SOWDisplay({
                 totalAmount={sow.pricing?.total_amount || 0}
                 lastCalculated={sow.pricing?.last_calculated || null}
                 pmHoursRemoved={sow.pm_hours_requirement_disabled || false}
+                isPrintMode={true}
               />
 
               <p className="mb-2 text-sm text-gray-700">LeanData shall notify Customer when costs are projected to exceed this estimate, providing the opportunity for Customer and LeanData to resolve jointly how to proceed. Hours listed above are to be consumed by the end date and cannot be extended.</p>
@@ -1389,6 +1390,7 @@ export default function SOWDisplay({
                       totalAmount={sow.pricing?.total_amount || 0}
                       lastCalculated={sow.pricing?.last_calculated || null}
                       pmHoursRemoved={sow.pm_hours_requirement_disabled || false}
+                      isPrintMode={false}
                     />
 
                     <p className="mb-2 text-sm text-gray-700">LeanData shall notify Customer when costs are projected to exceed this estimate, providing the opportunity for Customer and LeanData to resolve jointly how to proceed. Hours listed above are to be consumed by the end date and cannot be extended.</p>
