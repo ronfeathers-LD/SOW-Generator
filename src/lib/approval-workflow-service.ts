@@ -12,6 +12,10 @@ import {
 } from '@/types/sow';
 import { requiresPMApproval } from './approval-workflow-rules';
 import { canApproveStage } from './utils/approval-permissions';
+import { getSlackService } from './slack';
+import { getEmailService } from './email';
+import { getSOWUrl } from './utils/app-url';
+import { filterValidLeandataEmails } from './utils/email-domain-validation';
 
 interface ApprovalStage {
   id: string;
@@ -411,20 +415,63 @@ export class ApprovalWorkflowService {
         return { success: false, error: 'Failed to reject stage' };
       }
 
-      // Delete all other approval records (pending, approved, not_started) to allow clean workflow re-initialization on resubmission
+            // Delete all other approval records (pending, approved, not_started) to allow clean workflow re-initialization on resubmission                           
       // Keep the rejected record itself for audit/history purposes
-      // This ensures when the SOW is resubmitted, a fresh workflow can be created
+      // This ensures when the SOW is resubmitted, a fresh workflow can be created                                                                              
       await supabase
         .from('sow_approvals')
         .delete()
         .eq('sow_id', sowId)
         .neq('status', 'rejected'); // Keep rejected records for audit trail
 
-      // Return SOW to draft status
-      await supabase
+      // Get SOW details for notifications and status update
+      const { data: sow, error: sowError } = await supabase
         .from('sows')
-        .update({ status: 'draft' })
+        .select('sow_title, client_name, author_id, salesforce_account_owner_email')
+        .eq('id', sowId)
+        .single();
+
+      if (sowError || !sow) {
+        console.error('Error fetching SOW for rejection:', sowError);
+        // Still log the audit action even if SOW fetch fails
+        await this.logAuditAction(
+          sowId,
+          'stage_rejected',
+          approverId,
+          approval.status,
+          'rejected',
+          comments,
+          { stage_name: approval.stage.name }
+        );
+        return { success: false, error: 'Failed to fetch SOW details' };
+      }
+
+      // Get approver information for notifications
+      const { data: approver } = await supabase
+        .from('users')
+        .select('name, email')
+        .eq('id', approverId)
+        .single();
+
+      const approverName = approver?.name || approver?.email || 'Unknown Approver';
+      const approverEmail = approver?.email || '';
+
+      // Set SOW to rejected status (not draft) - rejection status remains until revision is created
+      const rejectedAt = new Date().toISOString();
+      const { error: statusUpdateError } = await supabase
+        .from('sows')
+        .update({ 
+          status: 'rejected',
+          rejected_at: rejectedAt,
+          approval_comments: comments.trim(),
+          rejected_by: approverId
+        })
         .eq('id', sowId);
+
+      if (statusUpdateError) {
+        console.error('Error updating SOW status to rejected:', statusUpdateError);
+        return { success: false, error: 'Failed to update SOW status' };
+      }
 
       // Log the rejection
       await this.logAuditAction(
@@ -437,10 +484,154 @@ export class ApprovalWorkflowService {
         { stage_name: approval.stage.name }
       );
 
+      // Send notifications
+      try {
+        await this.sendRejectionNotifications(
+          sowId,
+          sow,
+          approverName,
+          approverEmail,
+          approval.stage.name,
+          comments.trim(),
+          supabase
+        );
+      } catch (notificationError) {
+        console.error('Error sending rejection notifications:', notificationError);
+        // Don't fail the rejection if notifications fail
+      }
+
       return { success: true };
     } catch (error) {
       console.error('Error in rejectStage:', error);
       return { success: false, error: 'Internal server error' };
+    }
+  }
+
+  /**
+   * Send rejection notifications (Slack and Email)
+   */
+  private static async sendRejectionNotifications(
+    sowId: string,
+    sow: { sow_title: string | null; client_name: string | null; author_id: string | null; salesforce_account_owner_email: string | null },
+    approverName: string,
+    approverEmail: string,
+    stageName: string,
+    comments: string,
+    supabaseClient: SupabaseClient
+  ): Promise<void> {
+    try {
+      // Get author information
+      let authorName = 'Unknown User';
+      let authorEmail = '';
+      if (sow.author_id) {
+        const { data: author } = await supabaseClient
+          .from('users')
+          .select('name, email')
+          .eq('id', sow.author_id)
+          .single();
+        if (author) {
+          authorName = author.name || author.email || 'Unknown User';
+          authorEmail = author.email || '';
+        }
+      }
+
+      const clientName = sow.client_name || 'Unknown Client';
+      const sowTitle = sow.sow_title || 'Untitled SOW';
+      const sowUrl = getSOWUrl(sowId);
+
+      // Send Slack notification using sendApprovalNotification
+      try {
+        const slackService = await getSlackService();
+        if (slackService) {
+          // Use sendApprovalNotification which includes stage information
+          await slackService.sendApprovalNotification(
+            sowId,
+            sowTitle,
+            clientName,
+            stageName,
+            approverName,
+            'rejected',
+            comments
+          );
+        }
+      } catch (slackError) {
+        console.error('Slack notification failed for SOW rejection:', slackError);
+        // Don't throw - continue with email notification
+      }
+
+      // Send email notifications to SOW author
+      if (authorEmail) {
+        try {
+          const emailService = await getEmailService();
+          if (emailService) {
+            // Prepare CC emails (account owner if available)
+            const ccEmails: string[] = [];
+            if (sow.salesforce_account_owner_email) {
+              const validAccountOwnerEmail = filterValidLeandataEmails([sow.salesforce_account_owner_email]);
+              if (validAccountOwnerEmail.length > 0) {
+                ccEmails.push(...validAccountOwnerEmail);
+              }
+            }
+
+            // Send rejection email
+            const emailSent = await emailService.sendTemplateEmail(
+              {
+                name: 'sow_rejection',
+                subject: `SOW Rejected: ${sowTitle}`,
+                htmlContent: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #dc2626;">SOW Rejected</h2>
+                    
+                    <div style="background-color: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
+                      <h3 style="margin-top: 0; color: #991b1b;">${sowTitle}</h3>
+                      <p><strong>Client:</strong> ${clientName}</p>
+                      <p><strong>Rejected by:</strong> ${approverName}</p>
+                      <p><strong>Stage:</strong> ${stageName}</p>
+                      <p><strong>Status:</strong> Rejected</p>
+                    </div>
+                    
+                    <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                      <h4 style="margin-top: 0; color: #374151;">Rejection Comments:</h4>
+                      <p style="color: #4b5563; white-space: pre-wrap;">${comments}</p>
+                    </div>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                      <a href="${sowUrl}" 
+                         style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                        View SOW
+                      </a>
+                    </div>
+                    
+                    <p style="color: #6b7280; font-size: 14px;">
+                      The SOW author can create a new revision to address the feedback and resubmit for approval.
+                    </p>
+                  </div>
+                `
+              },
+              authorEmail,
+              {
+                sowTitle,
+                clientName,
+                approverName,
+                stageName,
+                comments,
+                sowUrl
+              },
+              ccEmails
+            );
+
+            if (!emailSent) {
+              console.error('Failed to send rejection email notification');
+            }
+          }
+        } catch (emailError) {
+          console.error('Error sending email notification for SOW rejection:', emailError);
+          // Don't throw - email failure shouldn't break the rejection
+        }
+      }
+    } catch (error) {
+      console.error('Error in sendRejectionNotifications:', error);
+      // Don't throw - notification failures shouldn't break the rejection
     }
   }
 
