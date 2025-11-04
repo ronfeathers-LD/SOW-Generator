@@ -86,11 +86,10 @@ export default function ApprovalWorkflowDisplay({ sowId }: ApprovalWorkflowDispl
 
       {/* Stages List */}
       <div className="space-y-4">
-        {workflow.all_stages.map((stageApproval, index) => (
+        {workflow.all_stages.map((stageApproval) => (
           <StageItem
             key={stageApproval.id}
             stageApproval={stageApproval}
-            index={index}
             isCurrent={stageApproval.id === workflow.current_stage?.id}
           />
         ))}
@@ -110,11 +109,10 @@ export default function ApprovalWorkflowDisplay({ sowId }: ApprovalWorkflowDispl
 
 interface StageItemProps {
   stageApproval: SOWApproval;
-  index: number;
   isCurrent: boolean;
 }
 
-function StageItem({ stageApproval, index, isCurrent }: StageItemProps) {
+function StageItem({ stageApproval, isCurrent }: StageItemProps) {
   const { stage, status, approver, approved_at, comments } = stageApproval;
 
   const getStatusBadge = () => {
@@ -158,14 +156,11 @@ function StageItem({ stageApproval, index, isCurrent }: StageItemProps) {
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="flex items-center space-x-3 mb-2">
-            <span className="text-lg font-bold text-gray-400">#{index + 1}</span>
-            <div>
-              <h4 className="font-semibold text-gray-900">{stage?.name || 'Unknown Stage'}</h4>
-              {stage?.description && (
-                <p className="text-sm text-gray-600">{stage.description}</p>
-              )}
-            </div>
+          <div className="mb-2">
+            <h4 className="font-semibold text-gray-900">{stage?.name || 'Unknown Stage'}</h4>
+            {stage?.description && (
+              <p className="text-sm text-gray-600">{stage.description}</p>
+            )}
           </div>
 
           {status === 'approved' && approver && (

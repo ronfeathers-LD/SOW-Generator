@@ -215,13 +215,20 @@ export class ApprovalWorkflowService {
           stage:approval_stages(*),
           approver:users(id, name, email)
         `)
-        .eq('sow_id', sowId)
-        .order('created_at', { ascending: true });
+        .eq('sow_id', sowId);
 
       if (error || !approvals) {
         console.error('Error fetching approvals:', error);
         return null;
       }
+
+      // Sort by stage sort_order to ensure Professional Services is always Step 1
+      // This ensures step numbers remain consistent regardless of which stages are included
+      approvals.sort((a, b) => {
+        const aSortOrder = (a.stage as { sort_order?: number })?.sort_order ?? 999;
+        const bSortOrder = (b.stage as { sort_order?: number })?.sort_order ?? 999;
+        return aSortOrder - bSortOrder;
+      });
 
       // For parallel approval: find first pending stage (for backwards compatibility with UI)
       // Note: In parallel mode, multiple stages can be pending simultaneously

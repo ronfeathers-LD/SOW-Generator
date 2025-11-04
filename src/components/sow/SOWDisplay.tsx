@@ -783,39 +783,56 @@ export default function SOWDisplay({
             />
           </div>
 
-          {/* Roles Section */}
-          <div id="roles" className="formatSOWTable mb-12 print:mb-8 page-break-inside-avoid print:page-break-inside-avoid">
-            <h2 className="text-3xl font-bold mb-6">4. ROLES AND RESPONSIBILITIES</h2>
+                    {/* Roles Section */}
+          <div id="roles" className="formatSOWTable mb-12 print:mb-8 page-break-inside-avoid print:page-break-inside-avoid">                                    
+            <h2 className="text-3xl font-bold mb-6">4. ROLES AND RESPONSIBILITIES</h2>                                                                          
             
             {/* Project Team Roles */}
-            {Array.isArray(sow.pricingRoles) && sow.pricingRoles.length > 0 && (
-              <div className="mb-8">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">Project Team Roles</h3>
-                <div className="overflow-x-auto formatSOWTable">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>LeanData Role</th>
-                        <th>Responsibilities</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sow.pricingRoles.map((role: unknown, idx) => {
-                        const roleData = role as Record<string, unknown>;
-                        return (
-                          <tr key={idx}>
-                            <td>{String(roleData.role || 'N/A')}</td>
-                            <td>
-                              <div className="whitespace-pre-line">{String(roleData.description || 'No description provided')}</div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+            {Array.isArray(sow.pricingRoles) && sow.pricingRoles.length > 0 && (() => {
+              // Filter out Account Executive and Project Manager if PM hours are removed
+              const filteredRoles = sow.pricingRoles.filter((role: unknown) => {
+                const roleData = role as Record<string, unknown>;
+                const roleName = String(roleData.role || '');
+                // Always exclude Account Executive
+                if (roleName === 'Account Executive') {
+                  return false;
+                }
+                // Exclude Project Manager if PM hours are removed
+                if (sow.pm_hours_requirement_disabled && roleName === 'Project Manager') {
+                  return false;
+                }
+                return true;
+              });
+
+              return filteredRoles.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Project Team Roles</h3>                                                                
+                  <div className="overflow-x-auto formatSOWTable">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>LeanData Role</th>
+                          <th>Responsibilities</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredRoles.map((role: unknown, idx) => {
+                          const roleData = role as Record<string, unknown>;
+                          return (
+                            <tr key={idx}>
+                              <td>{String(roleData.role || 'N/A')}</td>
+                              <td>
+                                <div className="whitespace-pre-line">{String(roleData.description || 'No description provided')}</div>                            
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
             
             {/* Display Client Roles if they exist */}
             {sow.clientRoles && Array.isArray(sow.clientRoles) && sow.clientRoles.length > 0 && (
@@ -1220,39 +1237,56 @@ export default function SOWDisplay({
                   </div>
                 </div>
 
-                {/* Roles and Responsibilities Section */}
-                <div id="content-roles" className="max-w-7xl mx-auto bg-white p-8 mb-12">
-                  <h2 className="text-3xl font-bold mb-6">4. ROLES AND RESPONSIBILITIES</h2>
+                                {/* Roles and Responsibilities Section */}
+                <div id="content-roles" className="max-w-7xl mx-auto bg-white p-8 mb-12">                                                                       
+                  <h2 className="text-3xl font-bold mb-6">4. ROLES AND RESPONSIBILITIES</h2>                                                                    
                   
                   {/* Project Team Roles */}
-                  {Array.isArray(sow.pricingRoles) && sow.pricingRoles.length > 0 && (
-                    <div className="mb-8">
-                      <h3 className="text-xl font-semibold text-gray-900 mb-4">Project Team Roles</h3>
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg overflow-hidden">
-                          <thead style={{backgroundColor: '#26D07C'}}>
-                            <tr>
-                              <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">LeanData Role</th>
-                              <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Responsibilities</th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {sow.pricingRoles.map((role: unknown, idx) => {
-                              const roleData = role as Record<string, unknown>;
-                              return (
-                                <tr key={idx} className="hover:bg-gray-50">
-                                  <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900 align-top">{String(roleData.role || 'N/A')}</td>
-                                  <td className="px-6 py-4 text-gray-700 align-top">
-                                    <div className="whitespace-pre-line">{String(roleData.description || 'No description provided')}</div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                  {Array.isArray(sow.pricingRoles) && sow.pricingRoles.length > 0 && (() => {
+                    // Filter out Account Executive and Project Manager if PM hours are removed
+                    const filteredRoles = sow.pricingRoles.filter((role: unknown) => {
+                      const roleData = role as Record<string, unknown>;
+                      const roleName = String(roleData.role || '');
+                      // Always exclude Account Executive
+                      if (roleName === 'Account Executive') {
+                        return false;
+                      }
+                      // Exclude Project Manager if PM hours are removed
+                      if (sow.pm_hours_requirement_disabled && roleName === 'Project Manager') {
+                        return false;
+                      }
+                      return true;
+                    });
+
+                    return filteredRoles.length > 0 && (
+                      <div className="mb-8">
+                        <h3 className="text-xl font-semibold text-gray-900 mb-4">Project Team Roles</h3>                                                          
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg overflow-hidden">                               
+                            <thead style={{backgroundColor: '#26D07C'}}>
+                              <tr>
+                                <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">LeanData Role</th>                      
+                                <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Responsibilities</th>                   
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {filteredRoles.map((role: unknown, idx) => {
+                                const roleData = role as Record<string, unknown>;
+                                return (
+                                  <tr key={idx} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900 align-top">{String(roleData.role || 'N/A')}</td>       
+                                    <td className="px-6 py-4 text-gray-700 align-top">                                                                            
+                                      <div className="whitespace-pre-line">{String(roleData.description || 'No description provided')}</div>                      
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                   
                   {/* Client Roles Table */}
                   {Array.isArray(sow.clientRoles) && sow.clientRoles.length > 0 && (
