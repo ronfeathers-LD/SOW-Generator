@@ -606,6 +606,18 @@ export default function SOWDisplay({
     fetchSOW();
   }, [sowId, showVersionHistory]);
 
+  // Update document title when SOW is loaded
+  useEffect(() => {
+    if (sow) {
+      const title = sow.sowTitle || 'Untitled SOW';
+      const clientName = sow.clientName ? ` - ${sow.clientName}` : '';
+      document.title = `${title}${clientName}`;
+    } else if (!loading && !error) {
+      // Reset to default when SOW is not available
+      document.title = 'View SOW';
+    }
+  }, [sow, loading, error]);
+
   // Fetch products once
   useEffect(() => {
     const fetchProducts = async () => {
