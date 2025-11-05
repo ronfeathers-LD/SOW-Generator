@@ -521,7 +521,6 @@ export class ApprovalWorkflowService {
   ): Promise<void> {
     try {
       // Get author information
-      let authorName = 'Unknown User';
       let authorEmail = '';
       if (sow.author_id) {
         const { data: author } = await supabaseClient
@@ -530,7 +529,6 @@ export class ApprovalWorkflowService {
           .eq('id', sow.author_id)
           .single();
         if (author) {
-          authorName = author.name || author.email || 'Unknown User';
           authorEmail = author.email || '';
         }
       }
