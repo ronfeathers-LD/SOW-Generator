@@ -51,12 +51,17 @@ export default function ProjectOverviewTab({
   // Get the default title with created date
   const getDefaultTitle = (): string => {
     const customerName = formData.template?.client_name || '';
+    const opportunityName = formData.template?.opportunity_name || '';
     const createdDate = formatCreatedDate(formData.created_at);
     
-    if (customerName && createdDate) {
-      return `Statement of Work for ${customerName} - ${createdDate}`;
+    // Opportunity is always required, so use opportunity name format
+    if (opportunityName && customerName) {
+      return `${opportunityName} - ${customerName}`;
+    } else if (customerName && createdDate) {
+      // Fallback only if somehow customer name exists but opportunity doesn't
+      return `${customerName} - ${createdDate}`;
     } else if (customerName) {
-      return `Statement of Work for ${customerName}`;
+      return customerName;
     } else {
       return 'Statement of Work';
     }
@@ -419,7 +424,7 @@ export default function ProjectOverviewTab({
             placeholder={getDefaultTitle()}
           />
           <p className="mt-2 text-sm text-gray-500">
-            Customize the title for this Statement of Work. The default format is &quot;Statement of Work for [Account Name] - [Created Date]&quot;.
+            Customize the title for this Statement of Work. The default format is &quot;[Opportunity Name] - [Account Name]&quot;.
           </p>
         </div>
       </div>

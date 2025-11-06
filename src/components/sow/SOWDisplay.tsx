@@ -609,9 +609,9 @@ export default function SOWDisplay({
   // Update document title when SOW is loaded
   useEffect(() => {
     if (sow) {
+      const clientName = sow.clientName || '';
       const title = sow.sowTitle || 'Untitled SOW';
-      const clientName = sow.clientName ? ` - ${sow.clientName}` : '';
-      document.title = `${title}${clientName}`;
+      document.title = clientName ? `${clientName} - ${title}` : title;
     } else if (!loading && !error) {
       // Reset to default when SOW is not available
       document.title = 'View SOW';

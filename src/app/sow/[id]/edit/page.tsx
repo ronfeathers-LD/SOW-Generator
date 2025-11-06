@@ -165,6 +165,18 @@ export default function EditSOWPage() {
     fetchSOW();
   }, [params.id, router]);
 
+  // Update document title when SOW is loaded
+  useEffect(() => {
+    if (sow) {
+      const clientName = sow.header?.client_name || sow.template?.client_name || '';
+      const title = sow.header?.sow_title || sow.template?.sow_title || 'Untitled SOW';
+      document.title = clientName ? `${clientName} - ${title}` : title;
+    } else if (!loading) {
+      // Reset to default when SOW is not available
+      document.title = 'Edit SOW';
+    }
+  }, [sow, loading]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">

@@ -49,11 +49,9 @@ export default function SOWForm({ initialData }: SOWFormProps) {
       ? {
           ...initialData,
           template: {
-            sow_title: initialData.template?.sow_title || `Statement of Work for LeanData Implementation - ${new Date().toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}`,
+            sow_title: initialData.template?.sow_title || (initialData.template?.opportunity_name && initialData.template?.client_name
+              ? `${initialData.template.opportunity_name} - ${initialData.template.client_name}`
+              : ''),
             company_logo: initialData.template?.company_logo || '',
             client_name: initialData.template?.client_name || '',
             customer_signature_name: initialData.template?.customer_signature_name || '',
@@ -136,11 +134,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
           // Template Variables
           template: {
             // Header Information
-            sow_title: `Statement of Work for LeanData Implementation - ${new Date().toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}`,
+            sow_title: '',
             company_logo: '',
             
             // Customer Information
