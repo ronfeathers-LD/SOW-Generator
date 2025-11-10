@@ -273,7 +273,32 @@ export class SlackMentionService {
    */
   static async validateSlackToken(): Promise<boolean> {
     try {
-      const botToken = process.env.SLACK_BOT_TOKEN;
+      let botToken = process.env.SLACK_BOT_TOKEN;
+      if (!botToken) {
+        try {
+          const { createServiceRoleClient } = await import('./supabase-server');
+          const supabase = createServiceRoleClient();
+
+          const { data: slackConfig } = await supabase
+            .from('slack_config')
+            .select('bot_token, workspace_domain')
+            .order('id', { ascending: false })
+            .limit(1)
+            .single();
+
+          botToken = slackConfig?.bot_token || undefined;
+
+          if (slackConfig?.workspace_domain && !process.env.SLACK_WORKSPACE_DOMAIN) {
+            process.env.SLACK_WORKSPACE_DOMAIN = slackConfig.workspace_domain;
+          }
+          if (botToken && !process.env.SLACK_BOT_TOKEN) {
+            process.env.SLACK_BOT_TOKEN = botToken;
+          }
+        } catch (error) {
+          console.warn('Failed to load Slack bot token from database during validation:', error);
+        }
+      }
+
       if (!botToken) {
         return false;
       }
