@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { createServiceRoleClient } from '@/lib/supabase-server';
 import { authOptions } from '@/lib/auth';
+import { getSlackService } from '@/lib/slack';
+import { getSOWUrl } from '@/lib/utils/app-url';
 
 export async function POST(
   request: Request,
@@ -131,6 +133,34 @@ export async function POST(
       version: newRevision.version,
       parent_id: newRevision.parent_id
     });
+
+    // Notify Slack about the new revision (skip Hula Truck)
+    try {
+      const clientName = newRevision.client_name || 'Unknown Client';
+      if (clientName.toLowerCase() === 'hula truck') {
+        console.log('🚫 Skipping Slack notification for Hula Truck SOW revision');
+      } else {
+        const slackService = await getSlackService();
+        if (!slackService) {
+          console.warn('Slack service not configured - cannot send revision notification');
+        } else {
+          const sowUrl = getSOWUrl(newRevision.id);
+          const revisionVersion = newRevision.version ?? 'Unknown';
+
+          await slackService.sendMessage(
+            `:repeat: *SOW Revision Created*\n\n` +
+              `*Client:* ${clientName}\n` +
+              `*Version:* v${revisionVersion}\n` +
+              `*Created by:* ${session.user.email}\n\n` +
+              `:link: <${sowUrl}|Edit Revision>\n\n` +
+              `A new revision has been created in draft status and is ready for updates.`
+          );
+        }
+      }
+    } catch (slackError) {
+      console.error('Slack notification failed for SOW revision creation:', slackError);
+      // Notification failures should not block revision creation
+    }
 
     return NextResponse.json({
       success: true,
