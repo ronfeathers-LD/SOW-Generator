@@ -85,7 +85,7 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
-      message: `Stage ${action}d successfully`,
+      message: `Stage ${action === 'approve' ? 'approved' : 'rejected'} successfully`,
       workflow: updatedStatus
     });
   } catch (error) {

@@ -322,7 +322,10 @@ export async function PUT(
     const data = await request.json();
     
     // Allow status updates and Account Segment updates
-    if (data.status && !['draft', 'in_review', 'approved', 'rejected'].includes(data.status)) {
+    if (
+      data.status &&
+      !['draft', 'in_review', 'approved', 'rejected', 'recalled'].includes(data.status)
+    ) {
       return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
     }
 

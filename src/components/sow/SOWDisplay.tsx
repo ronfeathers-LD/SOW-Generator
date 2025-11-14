@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-// import { useParams, useRouter } from 'next/navigation'; // Not used in this component
+import { useRouter } from 'next/navigation';
 import SOWTitlePage from '@/components/sow/SOWTitlePage';
 import SOWIntroPage from '@/components/sow/SOWIntroPage';
 import SOWObjectivesPage from '@/components/sow/SOWObjectivesPage';
@@ -261,7 +261,7 @@ interface SOW {
     total_hours: number;
     totalCost: number;
   }>;
-  status: 'draft' | 'in_review' | 'approved' | 'rejected';
+  status: 'draft' | 'in_review' | 'approved' | 'rejected' | 'recalled';
   submitted_by?: string;
   submitted_at?: string;
   submitted_by_name?: string;
@@ -362,6 +362,8 @@ interface SOW {
   pm_hours_requirement_disabled_date?: string;
   pm_hours_requirement_disabled_requester_id?: string;
   pm_hours_requirement_disabled_approver_id?: string;
+  author_id?: string | null;
+  is_latest?: boolean;
 }
 
 interface SOWVersion {
@@ -438,11 +440,13 @@ export default function SOWDisplay({
   const [downloadingPDF, setDownloadingPDF] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [downloadStatus, setDownloadStatus] = useState<'idle' | 'generating' | 'downloading' | 'success' | 'error'>('idle');
+  const [isRecalling, setIsRecalling] = useState(false);
 
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
   const isManager = session?.user?.role === 'manager';
   const canApprove = isAdmin || isManager;
+  const router = useRouter();
 
   // Data fetching logic (shared between modes)
   useEffect(() => {
@@ -568,7 +572,10 @@ export default function SOWDisplay({
           approved_at: data.approved_at || undefined,
           rejected_at: data.rejected_at || undefined,
           approval_comments: data.approval_comments || undefined,
-        };
+          author_id: data.author_id || null,
+          is_latest: data.is_latest ?? true,
+          version: data.version || 1,
+        } as SOW;
         
         setSOW(parsedData);
         
@@ -639,6 +646,60 @@ export default function SOWDisplay({
     if (!sow) return false;
     return sow.status === 'draft';
   }, [sow]);
+
+  const canRecallSOW = useMemo(() => {
+    if (!sow || sow.status !== 'in_review' || !session?.user) {
+      return false;
+    }
+
+    const isAuthor = sow.author_id && sow.author_id === session.user.id;
+    return (sow.is_latest ?? true) && (isAuthor || isManager || isAdmin);
+  }, [sow, session?.user, isManager, isAdmin]);
+
+  const handleRecall = useCallback(async () => {
+    if (!sow) return;
+
+    const confirmed = confirm(
+      `Recall "${sow.sowTitle}" for ${sow.clientName || 'this client'}?\n\n` +
+      'This will cancel the current review, mark this version as recalled, and create a new draft revision for further edits.'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setIsRecalling(true);
+      const response = await fetch(`/api/sow/${sow.id}/recall`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to recall SOW');
+      }
+
+      const result = await response.json();
+      alert(result.message || 'SOW recalled. A new draft revision has been created.');
+
+      if (result.newRevisionId) {
+        router.push(`/sow/${result.newRevisionId}/edit`);
+      } else if (result.newRevision?.id) {
+        router.push(`/sow/${result.newRevision.id}/edit`);
+      } else {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error recalling SOW:', error);
+      const message = error instanceof Error ? error.message : 'Failed to recall SOW. Please try again.';
+      alert(message);
+    } finally {
+      setIsRecalling(false);
+    }
+  }, [router, sow]);
 
   // Loading and error states
   if (loading) {
@@ -1565,13 +1626,55 @@ export default function SOWDisplay({
                     )}
                     
                     {sow.status === 'in_review' && (
-                      <MultiStepApprovalWorkflow
-                        sowId={sow.id}
-                        sowTitle={sow.sowTitle || 'Untitled SOW'}
-                        clientName={sow.clientName || 'Unknown Client'}
-                        showApproval={showApproval}
-                        canApprove={canApprove}
-                      />
+                      <>
+                        <MultiStepApprovalWorkflow
+                          sowId={sow.id}
+                          sowTitle={sow.sowTitle || 'Untitled SOW'}
+                          clientName={sow.clientName || 'Unknown Client'}
+                          showApproval={showApproval}
+                          canApprove={canApprove}
+                        />
+
+                        {canRecallSOW && (
+                          <div className="mt-4 border-t border-gray-200 pt-4">
+                            <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                              Need to keep editing?
+                            </h4>
+                            <p className="text-sm text-gray-600 mb-3">
+                              Recalling cancels the current review, marks this version as recalled, and opens a new draft revision for updates before resubmitting.
+                            </p>
+                            <button
+                              onClick={handleRecall}
+                              disabled={isRecalling}
+                              className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${
+                                isRecalling
+                                  ? 'bg-gray-400 cursor-not-allowed'
+                                  : 'bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500'
+                              }`}
+                            >
+                              {isRecalling ? (
+                                <>
+                                  <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Recalling...
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 12H5m7 7l-7-7 7-7" />
+                                  </svg>
+                                  Recall & Create Revision
+                                </>
+                              )}
+                            </button>
+                            <p className="mt-2 text-xs text-gray-500">
+                              All outstanding approval requests will be cancelled. Approvers must review the new draft once it is resubmitted.
+                            </p>
+                          </div>
+                        )}
+                      </>
                     )}
                     
                     {sow.status === 'approved' && (
@@ -1686,6 +1789,30 @@ export default function SOWDisplay({
                         />
 
                         {/* Revision History */}
+                        <SOWRevisionHistory 
+                          sowId={sow.id} 
+                          currentVersion={sow.version || 1}
+                        />
+                      </div>
+                    )}
+
+                    {sow.status === 'recalled' && (
+                      <div className="space-y-6">
+                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                          <div className="flex items-center mb-2">
+                            <svg className="h-5 w-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h11a1 1 0 01.707.293l6 6a1 1 0 01-1.414 1.414L13 11.414V21a1 1 0 11-2 0v-9.586L4.707 16.707A1 1 0 013.293 15.293l6-6A1 1 0 0110 9h11" />
+                            </svg>
+                            <h3 className="text-lg font-medium text-purple-800">SOW Recalled</h3>
+                          </div>
+                          <p className="text-purple-700 mb-3">
+                            This version was recalled from the approval process. A new draft revision has been created for continued editing.
+                          </p>
+                          <p className="text-sm text-purple-600">
+                            Switch to the latest version from the revision history to keep working on the draft before resubmitting.
+                          </p>
+                        </div>
+
                         <SOWRevisionHistory 
                           sowId={sow.id} 
                           currentVersion={sow.version || 1}

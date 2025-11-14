@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 interface SOWRevision {
   id: string;
   version: number;
-  status: 'draft' | 'in_review' | 'approved' | 'rejected';
+  status: 'draft' | 'in_review' | 'approved' | 'rejected' | 'recalled';
   created_at: string;
   updated_at: string;
   rejected_at?: string;
@@ -60,6 +60,7 @@ export default function SOWRevisionHistory({ sowId, currentVersion }: SOWRevisio
       case 'approved': return 'text-green-600 bg-green-100';
       case 'rejected': return 'text-red-600 bg-red-100';
       case 'in_review': return 'text-blue-600 bg-blue-100';
+      case 'recalled': return 'text-purple-600 bg-purple-100';
       case 'draft': return 'text-gray-600 bg-gray-100';
       default: return 'text-gray-600 bg-gray-100';
     }
@@ -70,6 +71,7 @@ export default function SOWRevisionHistory({ sowId, currentVersion }: SOWRevisio
       case 'approved': return '✅';
       case 'rejected': return '❌';
       case 'in_review': return '👀';
+      case 'recalled': return '🔁';
       case 'draft': return '📝';
       default: return '📄';
     }
@@ -186,6 +188,25 @@ export default function SOWRevisionHistory({ sowId, currentVersion }: SOWRevisio
                     View Revision →
                   </a>
                 </div>
+              </div>
+            )}
+
+            {revision.status === 'recalled' && (
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">
+                    Recalled on {new Date(revision.updated_at).toLocaleDateString()}
+                  </span>
+                  <a
+                    href={`/sow/${revision.id}`}
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    View Revision →
+                  </a>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  This version was recalled and archived. Continue work on the subsequent draft revision.
+                </p>
               </div>
             )}
           </div>

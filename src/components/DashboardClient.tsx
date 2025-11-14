@@ -9,6 +9,7 @@ interface DashboardClientProps {
     in_review: number;
     approved: number;
     rejected: number;
+    recalled: number;
   };
   recentSOWs: Array<{
     id: string;
@@ -41,6 +42,8 @@ export default function DashboardClient({ stats, recentSOWs, pendingApprovals }:
         return 'bg-green-100 text-green-800 border-green-200';
       case 'rejected':
         return 'bg-red-100 text-red-800 border-red-200';
+      case 'recalled':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -56,6 +59,8 @@ export default function DashboardClient({ stats, recentSOWs, pendingApprovals }:
         return 'Approved';
       case 'rejected':
         return 'Rejected';
+      case 'recalled':
+        return 'Recalled';
       default:
         return status;
     }
@@ -102,7 +107,7 @@ export default function DashboardClient({ stats, recentSOWs, pendingApprovals }:
 
         <div className="space-y-6">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <Link href="/sow" className="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer group">
               <div className="flex items-center">
                 <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
@@ -169,6 +174,20 @@ export default function DashboardClient({ stats, recentSOWs, pendingApprovals }:
                 <div className="ml-3">
                   <p className="text-sm font-medium text-gray-500">Rejected</p>
                   <p className="text-2xl font-semibold text-gray-900 group-hover:text-red-600 transition-colors">{stats.rejected}</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link href="/sow?status=recalled" className="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer group">
+              <div className="flex items-center">
+                <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+                  <svg className="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h11a1 1 0 01.707.293l6 6a1 1 0 01-1.414 1.414L13 11.414V21a1 1 0 11-2 0v-9.586L4.707 16.707A1 1 0 013.293 15.293l6-6A1 1 0 0110 9h11" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-500">Recalled</p>
+                  <p className="text-2xl font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">{stats.recalled}</p>
                 </div>
               </div>
             </Link>

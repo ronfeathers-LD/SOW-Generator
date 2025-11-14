@@ -17,7 +17,7 @@ async function getDashboardStats(session: Session) {
     
     if (userError || !userData) {
       return {
-        stats: { total: 0, draft: 0, in_review: 0, approved: 0, rejected: 0 },
+        stats: { total: 0, draft: 0, in_review: 0, approved: 0, rejected: 0, recalled: 0 },
         recentSOWs: [],
         pendingApprovals: []
       };
@@ -65,7 +65,8 @@ async function getDashboardStats(session: Session) {
       draft: 0,
       in_review: 0,
       approved: 0,
-      rejected: 0
+      rejected: 0,
+      recalled: 0
     };
 
     if (sowStats) {
@@ -193,7 +194,7 @@ async function getDashboardStats(session: Session) {
   } catch (error) {
     console.error('Error in getDashboardStats:', error);
     return {
-      stats: { total: 0, draft: 0, in_review: 0, approved: 0, rejected: 0 },
+      stats: { total: 0, draft: 0, in_review: 0, approved: 0, rejected: 0, recalled: 0 },
       recentSOWs: [],
       pendingApprovals: []
     };

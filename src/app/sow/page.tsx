@@ -427,6 +427,7 @@ function SOWListContent() {
       case 'in_review': return 'In Review';
       case 'approved': return 'Approved';
       case 'rejected': return 'Rejected';
+      case 'recalled': return 'Recalled';
       default: return status;
     }
   };
@@ -556,6 +557,16 @@ function SOWListContent() {
             }`}
           >
             Rejected ({sows.filter(sow => sow.status === 'rejected').length})
+          </Link>
+          <Link
+            href="/sow?status=recalled"
+            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+              statusFilter === 'recalled' 
+                ? 'bg-purple-100 text-purple-800' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Recalled ({sows.filter(sow => sow.status === 'recalled').length})
           </Link>
           {/* Admin-only Hidden SOWs filter */}
           {isAdmin && (
