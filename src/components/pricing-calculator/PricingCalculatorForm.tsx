@@ -25,15 +25,23 @@ interface CalculatorData {
   discount_type?: 'none' | 'fixed' | 'percentage';
   discount_amount?: number;
   discount_percentage?: number;
+  hourly_rates?: {
+    onboardingSpecialist?: number;
+    projectManager?: number;
+    technicalLead?: number;
+    developer?: number;
+    qaEngineer?: number;
+  };
 }
 
 interface PricingCalculatorFormProps {
   products: Product[];
   data: CalculatorData;
   onChange: (data: CalculatorData) => void;
+  isScenario?: boolean;
 }
 
-export default function PricingCalculatorForm({ products, data, onChange }: PricingCalculatorFormProps) {
+export default function PricingCalculatorForm({ products, data, onChange, isScenario = false }: PricingCalculatorFormProps) {
   const [localData, setLocalData] = useState<CalculatorData>(data);
 
   useEffect(() => {
@@ -87,6 +95,18 @@ export default function PricingCalculatorForm({ products, data, onChange }: Pric
 
   const handleDiscountPercentageChange = (percentage: number) => {
     const newData = { ...localData, discount_percentage: percentage };
+    setLocalData(newData);
+    onChange(newData);
+  };
+
+  const handleHourlyRateChange = (role: keyof NonNullable<CalculatorData['hourly_rates']>, rate: number) => {
+    const newData = {
+      ...localData,
+      hourly_rates: {
+        ...localData.hourly_rates,
+        [role]: rate > 0 ? rate : undefined,
+      },
+    };
     setLocalData(newData);
     onChange(newData);
   };
@@ -237,6 +257,90 @@ export default function PricingCalculatorForm({ products, data, onChange }: Pric
           )}
         </div>
       </div>
+
+      {/* Hourly Rates (only for scenarios) */}
+      {isScenario && (
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Hourly Rates</h3>
+          <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+            <p className="text-sm text-gray-600 mb-4">
+              Adjust hourly rates for this scenario. Leave blank to use standard rates.
+            </p>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Onboarding Specialist ($/hour)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={localData.hourly_rates?.onboardingSpecialist || ''}
+                  onChange={(e) => handleHourlyRateChange('onboardingSpecialist', parseFloat(e.target.value) || 0)}
+                  className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="250"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Project Manager ($/hour)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={localData.hourly_rates?.projectManager || ''}
+                  onChange={(e) => handleHourlyRateChange('projectManager', parseFloat(e.target.value) || 0)}
+                  className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="250"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Technical Lead ($/hour)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={localData.hourly_rates?.technicalLead || ''}
+                  onChange={(e) => handleHourlyRateChange('technicalLead', parseFloat(e.target.value) || 0)}
+                  className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="200"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Developer ($/hour)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={localData.hourly_rates?.developer || ''}
+                  onChange={(e) => handleHourlyRateChange('developer', parseFloat(e.target.value) || 0)}
+                  className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="150"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  QA Engineer ($/hour)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={localData.hourly_rates?.qaEngineer || ''}
+                  onChange={(e) => handleHourlyRateChange('qaEngineer', parseFloat(e.target.value) || 0)}
+                  className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="125"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Products Selection */}
       <div>

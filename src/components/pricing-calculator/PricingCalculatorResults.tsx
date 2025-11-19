@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { calculateAllHours, calculateRoleHoursDistribution, HOURS_CALCULATION_RULES } from '@/lib/hours-calculation-utils';
 
 interface CalculatorData {
@@ -15,6 +15,13 @@ interface CalculatorData {
   discount_type?: 'none' | 'fixed' | 'percentage';
   discount_amount?: number;
   discount_percentage?: number;
+  hourly_rates?: {
+    onboardingSpecialist?: number;
+    projectManager?: number;
+    technicalLead?: number;
+    developer?: number;
+    qaEngineer?: number;
+  };
 }
 
 interface PricingCalculatorResultsProps {
@@ -67,6 +74,33 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
     [baseProjectHours, pmHours, shouldAddProjectManager, data.pm_hours_removed]
   );
 
+  // Helper function to get rate for a role, using scenario-specific rates if available
+  const getRoleRate = useCallback((roleName: string, scenario?: CalculatorData): number => {
+    const standardRole = STANDARD_ROLES.find(r => r.role === roleName);
+    if (!standardRole) return 0;
+    
+    const ratesToCheck = scenario?.hourly_rates || data.hourly_rates;
+    if (ratesToCheck) {
+      if (roleName === 'Onboarding Specialist' && ratesToCheck.onboardingSpecialist) {
+        return ratesToCheck.onboardingSpecialist;
+      }
+      if (roleName === 'Project Manager' && ratesToCheck.projectManager) {
+        return ratesToCheck.projectManager;
+      }
+      if (roleName === 'Technical Lead' && ratesToCheck.technicalLead) {
+        return ratesToCheck.technicalLead;
+      }
+      if (roleName === 'Developer' && ratesToCheck.developer) {
+        return ratesToCheck.developer;
+      }
+      if (roleName === 'QA Engineer' && ratesToCheck.qaEngineer) {
+        return ratesToCheck.qaEngineer;
+      }
+    }
+    
+    return standardRole.ratePerHour;
+  }, [data.hourly_rates]);
+
   // Calculate pricing roles
   const pricingRoles = useMemo((): PricingRole[] => {
     const roles: PricingRole[] = [];
@@ -74,10 +108,12 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
     // Onboarding Specialist gets distributed hours
     const onboardingSpecialist = STANDARD_ROLES.find(r => r.role === 'Onboarding Specialist');
     if (onboardingSpecialist) {
+      const rate = getRoleRate('Onboarding Specialist');
       roles.push({
         ...onboardingSpecialist,
+        ratePerHour: rate,
         totalHours: roleDistribution.onboardingSpecialistHours,
-        totalCost: roleDistribution.onboardingSpecialistHours * onboardingSpecialist.ratePerHour
+        totalCost: roleDistribution.onboardingSpecialistHours * rate
       });
     }
 
@@ -85,16 +121,18 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
     if (roleDistribution.projectManagerHours > 0) {
       const projectManager = STANDARD_ROLES.find(r => r.role === 'Project Manager');
       if (projectManager) {
+        const rate = getRoleRate('Project Manager');
         roles.push({
           ...projectManager,
+          ratePerHour: rate,
           totalHours: roleDistribution.projectManagerHours,
-          totalCost: roleDistribution.projectManagerHours * projectManager.ratePerHour
+          totalCost: roleDistribution.projectManagerHours * rate
         });
       }
     }
 
     return roles;
-  }, [roleDistribution]);
+  }, [roleDistribution, getRoleRate]);
 
   const subtotal = pricingRoles.reduce((sum, role) => sum + role.totalCost, 0);
   const totalHours = roleDistribution.totalProjectHours;
@@ -136,10 +174,12 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
       // Onboarding Specialist gets distributed hours
       const onboardingSpecialist = STANDARD_ROLES.find(r => r.role === 'Onboarding Specialist');
       if (onboardingSpecialist) {
+        const rate = getRoleRate('Onboarding Specialist', scenario);
         scenarioRoles.push({
           ...onboardingSpecialist,
+          ratePerHour: rate,
           totalHours: scenarioRoleDistribution.onboardingSpecialistHours,
-          totalCost: scenarioRoleDistribution.onboardingSpecialistHours * onboardingSpecialist.ratePerHour
+          totalCost: scenarioRoleDistribution.onboardingSpecialistHours * rate
         });
       }
 
@@ -147,10 +187,12 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
       if (scenarioRoleDistribution.projectManagerHours > 0) {
         const projectManager = STANDARD_ROLES.find(r => r.role === 'Project Manager');
         if (projectManager) {
+          const rate = getRoleRate('Project Manager', scenario);
           scenarioRoles.push({
             ...projectManager,
+            ratePerHour: rate,
             totalHours: scenarioRoleDistribution.projectManagerHours,
-            totalCost: scenarioRoleDistribution.projectManagerHours * projectManager.ratePerHour
+            totalCost: scenarioRoleDistribution.projectManagerHours * rate
           });
         }
       }
@@ -178,7 +220,7 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
         hours: scenarioHours
       };
     });
-  }, [scenarios]);
+  }, [scenarios, getRoleRate]);
 
   if (data.products.length === 0) {
     return (
@@ -304,42 +346,59 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
       {scenarioComparisons.length > 0 && (
         <div className="space-y-4">
           <h3 className="text-lg font-medium text-gray-900">Scenario Comparisons</h3>
-          {scenarioComparisons.map((scenario) => (
-            <div key={scenario.index} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <h4 className="font-medium text-gray-900 mb-3">Scenario {scenario.index}</h4>
-              
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">Total Hours:</span>
-                  <span className="ml-2 font-medium">{scenario.totalHours}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Subtotal:</span>
-                  <span className="ml-2 font-medium">${scenario.subtotal.toLocaleString()}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Products:</span>
-                  <span className="ml-2 font-medium">{scenario.hours.productHours > 0 ? 'Yes' : 'No'}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">PM Required:</span>
-                  <span className="ml-2 font-medium">{scenario.hours.shouldAddProjectManager ? 'Yes' : 'No'}</span>
-                </div>
-                {scenario.discountTotal > 0 && (
-                  <>
-                    <div>
-                      <span className="text-gray-600">Discount:</span>
-                      <span className="ml-2 font-medium text-green-600">-${scenario.discountTotal.toLocaleString()}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Total Cost:</span>
-                      <span className="ml-2 font-medium">${scenario.totalAmount.toLocaleString()}</span>
-                    </div>
-                  </>
+          {scenarioComparisons.map((scenario) => {
+            return (
+              <div key={scenario.index} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-3">Scenario {scenario.index}</h4>
+                
+                {/* Role Costs with Rates */}
+                {scenario.roles.length > 0 && (
+                  <div className="mb-4 space-y-2">
+                    <h5 className="text-sm font-medium text-gray-700 mb-2">Role Costs:</h5>
+                    {scenario.roles.map((role, roleIdx) => (
+                      <div key={roleIdx} className="flex justify-between items-center text-sm">
+                        <span className="text-gray-700">
+                          {role.role} ({role.totalHours}h @ ${role.ratePerHour}/hr):
+                        </span>
+                        <span className="font-medium">${role.totalCost.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
+                
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Total Hours:</span>
+                    <span className="ml-2 font-medium">{scenario.totalHours}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Subtotal:</span>
+                    <span className="ml-2 font-medium">${scenario.subtotal.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Products:</span>
+                    <span className="ml-2 font-medium">{scenario.hours.productHours > 0 ? 'Yes' : 'No'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">PM Required:</span>
+                    <span className="ml-2 font-medium">{scenario.hours.shouldAddProjectManager ? 'Yes' : 'No'}</span>
+                  </div>
+                  {scenario.discountTotal > 0 && (
+                    <>
+                      <div>
+                        <span className="text-gray-600">Discount:</span>
+                        <span className="ml-2 font-medium text-green-600">-${scenario.discountTotal.toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Total Cost:</span>
+                        <span className="ml-2 font-medium">${scenario.totalAmount.toLocaleString()}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

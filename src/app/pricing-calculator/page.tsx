@@ -28,6 +28,13 @@ interface CalculatorData {
   discount_type?: 'none' | 'fixed' | 'percentage';
   discount_amount?: number;
   discount_percentage?: number;
+  hourly_rates?: {
+    onboardingSpecialist?: number;
+    projectManager?: number;
+    technicalLead?: number;
+    developer?: number;
+    qaEngineer?: number;
+  };
 }
 
 export default function PricingCalculatorPage() {
@@ -92,7 +99,16 @@ export default function PricingCalculatorPage() {
   };
 
   const handleCreateScenario = () => {
-    const newScenario = { ...calculatorData };
+    const newScenario = { 
+      ...calculatorData,
+      hourly_rates: {
+        onboardingSpecialist: 250,
+        projectManager: 250,
+        technicalLead: 200,
+        developer: 150,
+        qaEngineer: 125,
+      }
+    };
     setScenarios([...scenarios, newScenario]);
     setActiveScenarioIndex(scenarios.length);
   };
@@ -226,6 +242,7 @@ export default function PricingCalculatorPage() {
                 products={products}
                 data={activeScenarioIndex === -1 ? calculatorData : scenarios[activeScenarioIndex] || calculatorData}
                 onChange={activeScenarioIndex === -1 ? handleDataChange : (newData) => handleScenarioChange(activeScenarioIndex, newData)}
+                isScenario={activeScenarioIndex !== -1}
               />
             </div>
           </div>
