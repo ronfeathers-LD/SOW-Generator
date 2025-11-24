@@ -99,7 +99,8 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    if (sow.author_id !== user.id) {
+    const isAdmin = user.role === 'admin';
+    if (sow.author_id !== user.id && !isAdmin) {
       return NextResponse.json({ 
         error: 'You can only request PM hours requirement disable for SOWs you created' 
       }, { status: 403 });
