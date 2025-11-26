@@ -14,7 +14,22 @@ export async function PUT(
     const { tab, data } = await request.json();
     const sowId = (await params).id;
     
+    // Get user session to check role
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
+    // Get user info to check role
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, role')
+      .eq('email', session.user.email)
+      .single();
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
 
     // Find the SOW to ensure it exists
     const { data: existingSOW, error: findError } = await supabase
@@ -25,6 +40,18 @@ export async function PUT(
 
     if (findError || !existingSOW) {
       return NextResponse.json({ error: 'SOW not found' }, { status: 404 });
+    }
+
+    // Check if SOW is in approval status and restrict edits (except for admins editing pricing)
+    const isAdmin = user.role === 'admin';
+    const isInReview = existingSOW.status === 'in_review';
+    const isPricingTab = tab === 'Pricing';
+    
+    // If SOW is in review, only allow admins to edit pricing/discounts
+    if (isInReview && !(isAdmin && isPricingTab)) {
+      return NextResponse.json({ 
+        error: 'SOW is currently under review. Only admins can edit pricing and discounts during approval.' 
+      }, { status: 403 });
     }
 
     // Build update data object based on the tab
@@ -322,12 +349,11 @@ export async function PUT(
 
     // Log changes to changelog
     try {
-      const session = await getServerSession(authOptions);
       await ChangelogService.compareSOWs(
         sowId,
         existingSOW,
         updatedSOW,
-        session?.user?.id,
+        user.id,
         { source: 'tab_update', tab: tab, update_type: 'tab_specific' }
       );
     } catch (changelogError) {
