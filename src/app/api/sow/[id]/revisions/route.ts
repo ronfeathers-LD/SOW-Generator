@@ -20,6 +20,8 @@ interface SOWRevision {
   author_id: string | null;
   rejected_by: string | null;
   approved_by: string | null;
+  pm_hours_requirement_disabled: boolean | null;
+  pm_hours_requirement_disabled_date: string | null;
   users: UserInfo | null;
   rejector: UserInfo | null;
   approver: UserInfo | null;
@@ -83,6 +85,8 @@ export async function GET(
         author_id,
         rejected_by,
         approved_by,
+        pm_hours_requirement_disabled,
+        pm_hours_requirement_disabled_date,
         users!author_id(name, email),
         rejector:users!rejected_by(name, email),
         approver:users!approved_by(name, email)
@@ -109,6 +113,8 @@ export async function GET(
       rejected_at: revision.rejected_at,
       approved_at: revision.approved_at,
       approval_comments: revision.approval_comments,
+      pm_hours_requirement_disabled: revision.pm_hours_requirement_disabled || false,
+      pm_hours_requirement_disabled_date: revision.pm_hours_requirement_disabled_date || null,
       author: revision.users ? {
         name: revision.users.name,
         email: revision.users.email

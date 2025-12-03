@@ -13,9 +13,10 @@ export interface ApprovalStageConfig {
 }
 
 /**
- * Check if an SOW meets PM hour designation
- * PM hours are required when: 3+ products OR 100+ total units
- * This is independent of whether PM hours were later removed via PM hours removal request
+ * Check if an SOW requires PM approval
+ * PM approval is required when: 3+ products OR 100+ total units
+ * EXCEPTION: If PM hours have been removed (pm_hours_requirement_disabled = true), 
+ * then PM approval is NOT required
  */
 interface PricingRole {
   units?: number | string;
@@ -26,6 +27,11 @@ export function requiresPMApproval(sow: {
   pricing_roles?: Array<PricingRole>;
   pm_hours_requirement_disabled?: boolean;
 }): boolean {
+  // If PM hours have been removed, PM approval is not required
+  if (sow.pm_hours_requirement_disabled === true) {
+    return false;
+  }
+  
   // Check if SOW would have PM hours based on business rules
   const products = sow.products || [];
   const filteredProducts = products.filter((p: string) => p !== '511f28fa-6cc4-41f9-9234-dc45056aa2d2'); // Exclude BookIt Links
@@ -65,7 +71,7 @@ export async function getRequiredApprovalStages(sow: {
     required: true,
   });
   
-  // Stage 2: Project Management (CONDITIONAL - only if PM hours exist)
+  // Stage 2: Project Management (CONDITIONAL - only if PM hours exist and haven't been removed)
   const needsPMApproval = requiresPMApproval(sow);
   if (needsPMApproval) {
     stages.push({
@@ -75,11 +81,14 @@ export async function getRequiredApprovalStages(sow: {
       reason: 'SOW meets PM hour designation (3+ products or 100+ units)',
     });
   } else {
+    const reason = sow.pm_hours_requirement_disabled
+      ? 'PM hours have been removed from this SOW'
+      : 'SOW does not meet PM hour designation';
     stages.push({
       stage_id: 'project-management',
       name: 'Project Management',
       required: false,
-      reason: 'SOW does not meet PM hour designation',
+      reason: reason,
     });
   }
   

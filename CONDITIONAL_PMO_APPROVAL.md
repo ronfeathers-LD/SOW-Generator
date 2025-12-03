@@ -32,13 +32,10 @@ If a SOW meets PM hour designation:
 
 ## 🤔 Important Clarifications
 
-### PM Hours Removal Doesn't Matter
-Even if PM hours were later removed via a PM hours removal request (`pm_hours_requirement_disabled = true`), if the SOW **meets the original PM hour designation criteria**, it still requires PMO approval.
+### PM Hours Removal Exempts from PM Approval
+If PM hours have been removed via a PM hours removal request (`pm_hours_requirement_disabled = true`), the SOW **does NOT require PMO approval**, even if it originally met the PM hour designation criteria (3+ products or 100+ units).
 
-**Why?** The PMO needs to review and approve the removal decision itself. They validate that:
-- The PM hours were appropriate to begin with
-- The removal is justified
-- Alternative resource planning is in place
+**Why?** The PM hours removal request itself goes through an approval process (by PM Directors), so once approved, the SOW no longer needs PM approval in the final approval workflow.
 
 ### Example Scenarios
 
@@ -65,15 +62,25 @@ Even if PM hours were later removed via a PM hours removal request (`pm_hours_re
 - Units: 250 units
 - PM designation: ✅ Yes (has 3+ products)
 - PM hours removed: ✅ Yes (via removal request)
-- **Result:** ✅ Still include Stage 2 (PMO), all 3 stages required
-- **Why:** PMO needs to approve the removal decision
+- **Result:** ⏭️ Skip Stage 2 (PMO), only 2 stages required
+- **Why:** PM hours removal was already approved by PM Directors, so PM approval is not needed in the final workflow
 
 ## 📋 Implementation
 
 The logic is implemented in `src/lib/approval-workflow-rules.ts`:
 
 ```typescript
-export function requiresPMApproval(sow: SOWData): boolean {
+export function requiresPMApproval(sow: {
+  products: string[];
+  pricing_roles?: Array<PricingRole>;
+  pm_hours_requirement_disabled?: boolean;
+}): boolean {
+  // If PM hours have been removed, PM approval is not required
+  if (sow.pm_hours_requirement_disabled === true) {
+    return false;
+  }
+  
+  // Check if SOW would have PM hours based on business rules
   const products = sow.products || [];
   const filteredProducts = products.filter(p => p !== BOOKIT_LINKS_ID);
   const has3OrMoreProducts = filteredProducts.length >= 3;
@@ -112,7 +119,7 @@ export function requiresPMApproval(sow: SOWData): boolean {
 ## ✅ Summary
 
 - **Stage 1 (PS):** Always required
-- **Stage 2 (PM):** Required only if SOW has 3+ products OR 100+ units
+- **Stage 2 (PM):** Required only if SOW has 3+ products OR 100+ units **AND** PM hours have NOT been removed
 - **Stage 3 (Sr. Leadership):** Always required
-- **PM hours removal status:** Irrelevant to routing decision
+- **PM hours removal status:** If `pm_hours_requirement_disabled = true`, PM approval is NOT required
 
