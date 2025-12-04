@@ -366,13 +366,6 @@ interface SOW {
   is_latest?: boolean;
 }
 
-interface SOWVersion {
-  id: string;
-  version: number;
-  isLatest: boolean;
-  createdAt: string;
-}
-
 interface SalesforceData {
   account_data?: {
     name: string;

@@ -76,12 +76,6 @@ function parseHTMLFromJSON(value: string): { isHTML: boolean; content: string; r
   return { isHTML: false, content: value, rawValue: value };
 }
 
-// Helper function to strip HTML tags and get text content for diffing
-function stripHtmlTags(html: string): string {
-  // Remove HTML tags but preserve their content
-  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
 // Helper function to compute word-level diff and return highlighted HTML
 function computeDiff(prev: string, next: string, isHtml: boolean = false): { prevHtml: string; nextHtml: string } {
   if (!prev && !next) {
@@ -242,7 +236,7 @@ function computeWordDiff(prevWords: string[], nextWords: string[]): Array<{type:
       j++;
     } else {
       // Words don't match - look ahead to find next match
-      let foundMatch = false;
+      const foundMatch = false;
       let bestMatch = { prevIdx: -1, nextIdx: -1, distance: Infinity };
       
       // Look ahead in both arrays (limited to prevent performance issues)
