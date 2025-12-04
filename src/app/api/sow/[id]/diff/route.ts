@@ -113,8 +113,8 @@ export async function GET(
       },
       changes: filteredChanges.sort((a, b) => {
         // Sort by change type, then by field name
-        const typeOrder = { 'field_update': 0, 'content_edit': 1 };
-        const typeDiff = (typeOrder[a.change_type] || 2) - (typeOrder[b.change_type] || 2);
+        const typeOrder: Record<string, number> = { 'field_update': 0, 'content_edit': 1, 'status_change': 2 };
+        const typeDiff = (typeOrder[a.change_type] ?? 2) - (typeOrder[b.change_type] ?? 2);
         return typeDiff !== 0 ? typeDiff : a.field_name.localeCompare(b.field_name);
       }),
       totalChanges: filteredChanges.length
