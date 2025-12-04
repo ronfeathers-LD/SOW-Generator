@@ -1272,6 +1272,30 @@ export default function SOWDisplay({
           {/* Tab Content */}
           {activeTab === 'content' && (
             <div className="w-full">
+              {/* Rejected Status Indicator - Subtle */}
+              {sow.status === 'rejected' && (
+                <div className="mb-4 bg-red-50 border-l-4 border-red-300 rounded-r p-3">
+                  <div className="flex items-center">
+                    <svg className="h-4 w-4 text-red-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <div className="flex-1">
+                      <p className="text-sm text-red-700">
+                        <span className="font-medium">This revision was rejected</span>
+                        {sow.rejected_at && (
+                          <span className="text-red-600 ml-1">
+                            on {new Date(sow.rejected_at).toLocaleDateString()}
+                          </span>
+                        )}
+                        {sow.approval_comments && (
+                          <span className="text-red-600 ml-1">• {sow.approval_comments}</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div id="sow-content-to-export">
                 {/* Title Page Section */}
                 <div id="title-page" className="mb-12">
