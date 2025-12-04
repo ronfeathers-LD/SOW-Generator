@@ -93,6 +93,11 @@ export async function GET(
 
     const changes = ChangelogService.compareSOWsForDiff(sow1Filtered, sow2Filtered);
 
+    // Filter out status changes - status is already shown in the revision info header
+    const filteredChanges = changes.filter(change => 
+      change.field_name !== 'status' && change.change_type !== 'status_change'
+    );
+
     return NextResponse.json({
       sow1: {
         id: sow1.id,
@@ -106,13 +111,13 @@ export async function GET(
         status: sow2.status,
         created_at: sow2.created_at
       },
-      changes: changes.sort((a, b) => {
+      changes: filteredChanges.sort((a, b) => {
         // Sort by change type, then by field name
-        const typeOrder = { 'status_change': 0, 'field_update': 1, 'content_edit': 2 };
-        const typeDiff = (typeOrder[a.change_type] || 3) - (typeOrder[b.change_type] || 3);
+        const typeOrder = { 'field_update': 0, 'content_edit': 1 };
+        const typeDiff = (typeOrder[a.change_type] || 2) - (typeOrder[b.change_type] || 2);
         return typeDiff !== 0 ? typeDiff : a.field_name.localeCompare(b.field_name);
       }),
-      totalChanges: changes.length
+      totalChanges: filteredChanges.length
     });
 
   } catch (error) {
