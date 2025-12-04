@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import SOWRevisionDiff from './SOWRevisionDiff';
 
 interface SOWRevision {
   id: string;
@@ -36,6 +38,9 @@ export default function SOWRevisionHistory({ sowId, currentVersion }: SOWRevisio
   const [revisions, setRevisions] = useState<SOWRevision[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showDiff, setShowDiff] = useState(false);
+  const [diffRevision1, setDiffRevision1] = useState<string | null>(null);
+  const [diffRevision2, setDiffRevision2] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRevisions = async () => {
@@ -43,7 +48,11 @@ export default function SOWRevisionHistory({ sowId, currentVersion }: SOWRevisio
         const response = await fetch(`/api/sow/${sowId}/revisions`);
         if (response.ok) {
           const data = await response.json();
-          setRevisions(data.revisions || []);
+          // Sort by version descending (most recent first) as a backup
+          const sortedRevisions = (data.revisions || []).sort((a: SOWRevision, b: SOWRevision) => {
+            return b.version - a.version;
+          });
+          setRevisions(sortedRevisions);
         } else {
           setError('Failed to load revision history');
         }
@@ -109,9 +118,25 @@ export default function SOWRevisionHistory({ sowId, currentVersion }: SOWRevisio
     );
   }
 
+  const handleCompareSelected = () => {
+    if (diffRevision1 && diffRevision2) {
+      setShowDiff(true);
+    }
+  };
+
   return (
     <div className="bg-white shadow rounded-lg p-6">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">Revision History</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-medium text-gray-900">Revision History</h3>
+        {diffRevision1 && diffRevision2 && (
+          <button
+            onClick={handleCompareSelected}
+            className="text-sm px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+          >
+            Compare Selected ({revisions.find(r => r.id === diffRevision1)?.version} vs {revisions.find(r => r.id === diffRevision2)?.version})
+          </button>
+        )}
+      </div>
       
       <div className="space-y-4">
         {revisions.map((revision) => (
@@ -197,43 +222,81 @@ export default function SOWRevisionHistory({ sowId, currentVersion }: SOWRevisio
               )}
             </div>
 
-            {revision.status === 'rejected' && (
-              <div className="mt-3 pt-3 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">
-                    Rejected on {new Date(revision.rejected_at!).toLocaleDateString()}
-                  </span>
-                  <a
-                    href={`/sow/${revision.id}`}
-                    className="text-sm text-blue-600 hover:text-blue-800"
+            {/* Action Buttons */}
+            <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center space-x-2">
+                <Link
+                  href={`/sow/${revision.id}`}
+                  className="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  View Revision
+                </Link>
+                {revisions.length > 1 && (
+                  <button
+                    onClick={() => {
+                      // Set this revision as the first comparison, or toggle if already selected
+                      if (diffRevision1 === revision.id) {
+                        setDiffRevision1(null);
+                        setShowDiff(false);
+                      } else if (diffRevision2 === revision.id) {
+                        setDiffRevision2(null);
+                        setShowDiff(false);
+                      } else if (!diffRevision1) {
+                        setDiffRevision1(revision.id);
+                      } else if (!diffRevision2) {
+                        setDiffRevision2(revision.id);
+                        setShowDiff(true);
+                      } else {
+                        // Replace the first one
+                        setDiffRevision1(revision.id);
+                        setDiffRevision2(null);
+                        setShowDiff(false);
+                      }
+                    }}
+                    className={`text-sm px-3 py-1 rounded ${
+                      diffRevision1 === revision.id || diffRevision2 === revision.id
+                        ? 'bg-purple-600 text-white hover:bg-purple-700'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
                   >
-                    View Revision →
-                  </a>
-                </div>
+                    {diffRevision1 === revision.id || diffRevision2 === revision.id
+                      ? 'Selected for Compare'
+                      : 'Compare'}
+                  </button>
+                )}
               </div>
-            )}
-
+              {revision.status === 'rejected' && (
+                <span className="text-sm text-gray-600">
+                  Rejected on {new Date(revision.rejected_at!).toLocaleDateString()}
+                </span>
+              )}
+              {revision.status === 'recalled' && (
+                <span className="text-sm text-gray-600">
+                  Recalled on {new Date(revision.updated_at).toLocaleDateString()}
+                </span>
+              )}
+            </div>
             {revision.status === 'recalled' && (
-              <div className="mt-3 pt-3 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">
-                    Recalled on {new Date(revision.updated_at).toLocaleDateString()}
-                  </span>
-                  <a
-                    href={`/sow/${revision.id}`}
-                    className="text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    View Revision →
-                  </a>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  This version was recalled and archived. Continue work on the subsequent draft revision.
-                </p>
-              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                This version was recalled and archived. Continue work on the subsequent draft revision.
+              </p>
             )}
           </div>
         ))}
       </div>
+
+      {/* Diff Modal */}
+      {showDiff && diffRevision1 && diffRevision2 && (
+        <SOWRevisionDiff
+          sowId1={diffRevision1}
+          sowId2={diffRevision2}
+          onClose={() => {
+            setShowDiff(false);
+            setDiffRevision1(null);
+            setDiffRevision2(null);
+          }}
+        />
+      )}
     </div>
   );
 }

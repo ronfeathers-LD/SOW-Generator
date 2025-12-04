@@ -92,7 +92,7 @@ export async function GET(
         approver:users!approved_by(name, email)
       `)
       .or(`id.eq.${rootSowId},parent_id.eq.${rootSowId}`)
-      .order('version', { ascending: true }) as { data: SOWRevision[] | null; error: Error | null };
+      .order('version', { ascending: false }) as { data: SOWRevision[] | null; error: Error | null };
 
     if (revisionsError) {
       console.error('Revision API: Error fetching revisions:', revisionsError);

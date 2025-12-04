@@ -402,6 +402,53 @@ export class ChangelogService {
   }
 
   /**
+   * Compare two SOW objects and return the differences (without logging)
+   */
+  static compareSOWsForDiff(
+    previousSOW: Record<string, unknown>,
+    newSOW: Record<string, unknown>
+  ): ChangeDiff[] {
+    const changes: ChangeDiff[] = [];
+    
+    // Get all unique field names from both objects
+    const allFields = Array.from(new Set([
+      ...Object.keys(previousSOW),
+      ...Object.keys(newSOW)
+    ]));
+
+    // Filter out internal/system fields that we don't want to track
+    const excludedFields = new Set([
+      'id', 'created_at', 'updated_at', 'is_latest', 'parent_id', 'version',
+      'author_id', 'salesforce_account_id', 'salesforce_contact_id'
+    ]);
+
+    for (const field of allFields) {
+      // Skip excluded fields
+      if (excludedFields.has(field)) {
+        continue;
+      }
+
+      const prevValue = previousSOW[field];
+      const newValue = newSOW[field];
+
+      if (this.hasChanged(prevValue, newValue)) {
+        const changeType = this.getChangeType(field);
+        const diffSummary = this.generateDiffSummary(field, this.valueToString(prevValue), this.valueToString(newValue), changeType);
+        
+        changes.push({
+          field_name: field,
+          previous_value: this.valueToString(prevValue),
+          new_value: this.valueToString(newValue),
+          change_type: changeType,
+          diff_summary: diffSummary
+        });
+      }
+    }
+
+    return changes;
+  }
+
+  /**
    * Compare two SOW objects and generate changelog entries
    */
   static async compareSOWs(
@@ -457,7 +504,7 @@ export class ChangelogService {
   /**
    * Helper method to convert values to strings
    */
-  private static valueToString(value: unknown): string {
+  static valueToString(value: unknown): string {
     if (value === null || value === undefined) {
       return '';
     }
@@ -470,7 +517,7 @@ export class ChangelogService {
   /**
    * Helper method to check if values have changed
    */
-  private static hasChanged(prev: unknown, next: unknown): boolean {
+  static hasChanged(prev: unknown, next: unknown): boolean {
     if (prev === next) return false;
     if (prev === null && next === null) return false;
     if (prev === undefined && next === undefined) return false;
@@ -484,7 +531,7 @@ export class ChangelogService {
   /**
    * Helper method to determine change type based on field name
    */
-  private static getChangeType(fieldName: string): 'field_update' | 'content_edit' | 'status_change' {
+  static getChangeType(fieldName: string): 'field_update' | 'content_edit' | 'status_change' {
     if (fieldName === 'status') {
       return 'status_change';
     }
@@ -497,7 +544,7 @@ export class ChangelogService {
   /**
    * Helper method to generate human-readable diff summary
    */
-  private static generateDiffSummary(
+  static generateDiffSummary(
     fieldName: string,
     previousValue: string,
     newValue: string,
@@ -538,7 +585,7 @@ export class ChangelogService {
   /**
    * Helper method to get human-readable field names
    */
-  private static getFieldDisplayName(fieldName: string): string {
+  static getFieldDisplayName(fieldName: string): string {
     const fieldMap: Record<string, string> = {
       // Common field mappings for better readability
       'client_name': 'Client Name',

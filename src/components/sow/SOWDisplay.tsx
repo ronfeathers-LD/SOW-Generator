@@ -433,7 +433,6 @@ export default function SOWDisplay({
   // const router = useRouter(); // Not used in this component
   const [sow, setSOW] = useState<SOW | null>(null);
   const [salesforceData, setSalesforceData] = useState<SalesforceData | null>(null);
-  const [versions, setVersions] = useState<SOWVersion[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -441,6 +440,7 @@ export default function SOWDisplay({
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [downloadStatus, setDownloadStatus] = useState<'idle' | 'generating' | 'downloading' | 'success' | 'error'>('idle');
   const [isRecalling, setIsRecalling] = useState(false);
+  const [activeTab, setActiveTab] = useState<'content' | 'status' | 'revisions' | 'comments'>('content');
 
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
@@ -594,14 +594,6 @@ export default function SOWDisplay({
           }
         }
 
-        // Fetch version history
-        if (showVersionHistory) {
-          const versionsResponse = await fetch(`/api/sow/${sowId}/versions`);
-          if (versionsResponse.ok) {
-            const versionsData = await versionsResponse.json();
-            setVersions(versionsData);
-          }
-        }
       } catch (err) {
         console.error('Error fetching SOW:', err);
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -1225,10 +1217,61 @@ export default function SOWDisplay({
             </div>
           )}
 
-          {/* Two Column Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main SOW Content - Left Column (2/3 width) */}
-            <div className="lg:col-span-2">
+          {/* Tab Navigation */}
+          {showActions && (
+            <div className="mb-6 border-b border-gray-200">
+              <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+                <button
+                  onClick={() => setActiveTab('content')}
+                  className={`${
+                    activeTab === 'content'
+                      ? 'border-indigo-500 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none`}
+                >
+                  Content
+                </button>
+                <button
+                  onClick={() => setActiveTab('status')}
+                  className={`${
+                    activeTab === 'status'
+                      ? 'border-indigo-500 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none`}
+                >
+                  Status & Approvals
+                </button>
+                {showVersionHistory && (
+                  <button
+                    onClick={() => setActiveTab('revisions')}
+                    className={`${
+                      activeTab === 'revisions'
+                        ? 'border-indigo-500 text-indigo-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none`}
+                  >
+                    Revisions
+                  </button>
+                )}
+                {showComments && (
+                  <button
+                    onClick={() => setActiveTab('comments')}
+                    className={`${
+                      activeTab === 'comments'
+                        ? 'border-indigo-500 text-indigo-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none`}
+                  >
+                    Comments
+                  </button>
+                )}
+              </nav>
+            </div>
+          )}
+
+          {/* Tab Content */}
+          {activeTab === 'content' && (
+            <div className="w-full">
               <div id="sow-content-to-export">
                 {/* Title Page Section */}
                 <div id="title-page" className="mb-12">
@@ -1588,272 +1631,264 @@ export default function SOWDisplay({
                     isEdited={sow.assumptions_content_edited}
                   />
                 </div>
-
-                {/* Version History */}
-                {showVersionHistory && versions.length > 1 && (
-                  <div id="version-history" className="mb-8">
-                    <h2 className="text-lg font-medium text-gray-900 mb-4">Version History</h2>
-                    <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                      <ul className="divide-y divide-gray-200">
-                        {versions.map((version) => (
-                          <li key={version.id}>
-                            <Link
-                              href={`/sow/${version.id}`}
-                              className="block hover:bg-gray-50"
-                            >
-                              <div className="px-4 py-4 sm:px-6">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center">
-                                    <p className="text-sm font-medium text-indigo-600 truncate">
-                                      Version {version.version}
-                                    </p>
-                                    {version.isLatest && (
-                                      <span className="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Latest
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="ml-2 flex-shrink-0 flex">
-                                    <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                                      {new Date(version.createdAt).toLocaleDateString()}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
+          )}
 
-            {/* Status and Actions - Right Column (1/3 width) */}
-            {showActions && (
-              <div className="lg:col-span-1">
-                <div className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
-                  <div className="bg-white shadow rounded-lg p-4">
-                    <h3 className="text-lg font-semibold mb-4">SOW Status</h3>
-                    
-                    {sow.status === 'draft' && (
-                      <>
-                        <p className="text-gray-600 mb-4">
-                          This SOW is currently in draft status. Submit it for review when ready.
+          {/* Status & Approvals Tab */}
+          {activeTab === 'status' && showActions && (
+            <div className="bg-white shadow rounded-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Status & Approvals</h2>
+              
+              <div className="space-y-6">
+                {/* Current Status */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Current Status</h3>
+                  
+                  {sow.status === 'draft' && (
+                    <div className="space-y-4">
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <p className="text-gray-700 mb-4">
+                          This SOW is currently in <strong>draft</strong> status. Submit it for review when ready.
                         </p>
-                        
-                        {/* Validation check and button - anyone can submit */}
                         <ValidationSubmitButton sow={sow} />
-                      </>
-                    )}
-                    
-                    {sow.status === 'in_review' && (
-                      <>
-                        <MultiStepApprovalWorkflow
-                          sowId={sow.id}
-                          sowTitle={sow.sowTitle || 'Untitled SOW'}
-                          clientName={sow.clientName || 'Unknown Client'}
-                          showApproval={showApproval}
-                          canApprove={canApprove}
-                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {sow.status === 'in_review' && (
+                    <div className="space-y-4">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <p className="text-blue-700 font-medium mb-2">
+                          Status: <span className="font-bold">In Review</span>
+                        </p>
+                        {sow.submitted_at && (
+                          <p className="text-sm text-blue-600">
+                            Submitted on: {new Date(sow.submitted_at).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                      
+                      <MultiStepApprovalWorkflow
+                        sowId={sow.id}
+                        sowTitle={sow.sowTitle || 'Untitled SOW'}
+                        clientName={sow.clientName || 'Unknown Client'}
+                        showApproval={showApproval}
+                        canApprove={canApprove}
+                      />
 
-                        {canRecallSOW && (
-                          <div className="mt-4 border-t border-gray-200 pt-4">
-                            <h4 className="text-sm font-semibold text-gray-900 mb-2">
-                              Need to keep editing?
-                            </h4>
-                            <p className="text-sm text-gray-600 mb-3">
-                              Recalling cancels the current review, marks this version as recalled, and opens a new draft revision for updates before resubmitting.
-                            </p>
-                            <button
-                              onClick={handleRecall}
-                              disabled={isRecalling}
-                              className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${
-                                isRecalling
-                                  ? 'bg-gray-400 cursor-not-allowed'
-                                  : 'bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500'
-                              }`}
-                            >
-                              {isRecalling ? (
-                                <>
-                                  <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                  </svg>
-                                  Recalling...
-                                </>
-                              ) : (
-                                <>
-                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 12H5m7 7l-7-7 7-7" />
-                                  </svg>
-                                  Recall & Create Revision
-                                </>
-                              )}
-                            </button>
-                            <p className="mt-2 text-xs text-gray-500">
-                              All outstanding approval requests will be cancelled. Approvers must review the new draft once it is resubmitted.
+                      {canRecallSOW && (
+                        <div className="border-t border-gray-200 pt-4">
+                          <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                            Need to keep editing?
+                          </h4>
+                          <p className="text-sm text-gray-600 mb-3">
+                            Recalling cancels the current review, marks this version as recalled, and opens a new draft revision for updates before resubmitting.
+                          </p>
+                          <button
+                            onClick={handleRecall}
+                            disabled={isRecalling}
+                            className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${
+                              isRecalling
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500'
+                            }`}
+                          >
+                            {isRecalling ? (
+                              <>
+                                <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Recalling...
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 12H5m7 7l-7-7 7-7" />
+                                </svg>
+                                Recall & Create Revision
+                              </>
+                            )}
+                          </button>
+                          <p className="mt-2 text-xs text-gray-500">
+                            All outstanding approval requests will be cancelled. Approvers must review the new draft once it is resubmitted.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {sow.status === 'approved' && (
+                    <div className="space-y-4">
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="flex items-center mb-2">
+                          <svg className="h-5 w-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <h3 className="text-lg font-medium text-green-800">SOW Approved</h3>
+                        </div>
+                        {sow.approved_at && (
+                          <p className="text-sm text-green-700 mb-2">
+                            Approved on: {new Date(sow.approved_at).toLocaleDateString()}
+                          </p>
+                        )}
+                        {sow.approval_comments && (
+                          <div className="bg-green-100 border border-green-300 rounded p-3 mt-3">
+                            <p className="text-sm text-green-800">
+                              <strong>Approval Comments:</strong> {sow.approval_comments}
                             </p>
                           </div>
                         )}
-                      </>
-                    )}
-                    
-                    {sow.status === 'approved' && (
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <p className="text-green-600 mb-2">
-                            This SOW has been approved.
-                          </p>
-                          {sow.approved_at && (
-                            <p className="text-sm text-gray-600">
-                              Approved on: {new Date(sow.approved_at).toLocaleDateString()}
-                            </p>
-                          )}
-                          {sow.approval_comments && (
-                            <div className="bg-green-50 border border-green-200 rounded p-3">
-                              <p className="text-sm text-green-800">
-                                <strong>Approval Comments:</strong> {sow.approval_comments}
-                              </p>
-                            </div>
-                          )}
-                        </div>
+                      </div>
 
-                        {/* New Revision Button */}
-                        <div className="pt-4 border-t border-gray-200">
-                          <button
-                            onClick={async () => {
-                              try {
-                                const response = await fetch(`/api/sow/${sow.id}/version`, {
-                                  method: 'POST'
-                                });
-                                
-                                if (!response.ok) {
-                                  throw new Error('Failed to create new version');
-                                }
-                                
-                                const newVersion = await response.json();
-                                window.location.href = `/sow/${newVersion.id}`;
-                              } catch (err) {
-                                console.error('Error creating new version:', err);
-                                alert('Failed to create new version. Please try again.');
-                              }
-                            }}
-                            className="w-full bg-indigo-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 mb-3"
-                          >
-                            <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                            Create New Revision
-                          </button>
+                      {/* Actions for Approved SOWs */}
+                      <div className="border-t border-gray-200 pt-4 space-y-4">
+                        <div>
+                          <h4 className="text-md font-semibold text-gray-900 mb-3">Actions</h4>
                           
-                          {/* Create Change Order Button */}
-                          <button
-                            onClick={() => {
-                              // Navigate to change orders page with this SOW pre-selected
-                              window.location.href = `/change-orders?sowId=${sow.id}`;
-                            }}
-                            className="w-full bg-orange-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 mb-3"
-                          >
-                            <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Create Change Order
-                          </button>
-                        </div>
+                          {/* Create Change Order */}
+                          <div className="mb-4">
+                            <button
+                              onClick={() => {
+                                window.location.href = `/change-orders?sowId=${sow.id}`;
+                              }}
+                              className="w-full bg-orange-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                            >
+                              <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Create Change Order
+                            </button>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Document modifications to this approved SOW
+                            </p>
+                          </div>
 
-                        {/* Save to Google Drive Button */}
-                        {showGoogleDrive && (
-                          <div className="pt-4 border-t border-gray-200">
-                            <div className="flex gap-3">
+                          {/* Google Drive Integration */}
+                          {showGoogleDrive && (
+                            <div>
                               <SaveToGoogleDrive 
                                 sowId={sow.id}
                                 customerName={sow.clientName || 'Unknown Customer'}
                                 sowTitle={sow.sowTitle || 'Untitled SOW'}
                               />
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    {sow.status === 'rejected' && (
-                      <div className="space-y-6">
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                          <div className="flex items-center mb-2">
-                            <svg className="h-5 w-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                            </svg>
-                            <h3 className="text-lg font-medium text-red-800">SOW Rejected</h3>
-                          </div>
-                          <p className="text-red-700 mb-3">
-                            This SOW has been rejected and requires revisions before it can be resubmitted.
-                          </p>
-                          <div className="space-y-2">
-                            <p className="text-sm text-red-600">
-                              <strong>Rejected on:</strong> {sow.rejected_at ? new Date(sow.rejected_at).toLocaleDateString() : 'Unknown'}
-                            </p>
-                            {sow.approval_comments && (
-                              <div className="bg-red-100 border border-red-300 rounded p-3">
-                                <p className="text-sm text-red-800">
-                                  <strong>Rejection Comments:</strong> {sow.approval_comments}
-                                </p>
-                              </div>
-                            )}
-                          </div>
+                          )}
                         </div>
-
-                        {/* Create New Revision Button */}
-                        <CreateRevisionButton
-                          sowId={sow.id}
-                          sowTitle={sow.sowTitle || 'Untitled SOW'}
-                          clientName={sow.clientName || 'Unknown Client'}
-                        />
-
-                        {/* Revision History */}
-                        <SOWRevisionHistory 
-                          sowId={sow.id} 
-                          currentVersion={sow.version || 1}
-                        />
                       </div>
-                    )}
-
-                    {sow.status === 'recalled' && (
-                      <div className="space-y-6">
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                          <div className="flex items-center mb-2">
-                            <svg className="h-5 w-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h11a1 1 0 01.707.293l6 6a1 1 0 01-1.414 1.414L13 11.414V21a1 1 0 11-2 0v-9.586L4.707 16.707A1 1 0 013.293 15.293l6-6A1 1 0 0110 9h11" />
-                            </svg>
-                            <h3 className="text-lg font-medium text-purple-800">SOW Recalled</h3>
-                          </div>
-                          <p className="text-purple-700 mb-3">
-                            This version was recalled from the approval process. A new draft revision has been created for continued editing.
-                          </p>
-                          <p className="text-sm text-purple-600">
-                            Switch to the latest version from the revision history to keep working on the draft before resubmitting.
+                    </div>
+                  )}
+                  
+                  {sow.status === 'rejected' && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="flex items-center mb-2">
+                        <svg className="h-5 w-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <h3 className="text-lg font-medium text-red-800">SOW Rejected</h3>
+                      </div>
+                      <p className="text-red-700 mb-3">
+                        This SOW has been rejected and requires revisions before it can be resubmitted.
+                      </p>
+                      {sow.rejected_at && (
+                        <p className="text-sm text-red-600 mb-2">
+                          <strong>Rejected on:</strong> {new Date(sow.rejected_at).toLocaleDateString()}
+                        </p>
+                      )}
+                      {sow.approval_comments && (
+                        <div className="bg-red-100 border border-red-300 rounded p-3 mt-3">
+                          <p className="text-sm text-red-800">
+                            <strong>Rejection Comments:</strong> {sow.approval_comments}
                           </p>
                         </div>
-
-                        <SOWRevisionHistory 
-                          sowId={sow.id} 
-                          currentVersion={sow.version || 1}
-                        />
+                      )}
+                    </div>
+                  )}
+                  
+                  {sow.status === 'recalled' && (
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                      <div className="flex items-center mb-2">
+                        <svg className="h-5 w-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h11a1 1 0 01.707.293l6 6a1 1 0 01-1.414 1.414L13 11.414V21a1 1 0 11-2 0v-9.586L4.707 16.707A1 1 0 013.293 15.293l6-6A1 1 0 0110 9h11" />
+                        </svg>
+                        <h3 className="text-lg font-medium text-purple-800">SOW Recalled</h3>
                       </div>
-                    )}
-
-                    {/* Comments Section */}
-                    {showComments && (
-                      <div className="mt-6">
-                        <SOWComments sowId={sow.id} />
-                      </div>
-                    )}
-                  </div>
+                      <p className="text-purple-700 mb-3">
+                        This version was recalled from the approval process. A new draft revision has been created for continued editing.
+                      </p>
+                      <p className="text-sm text-purple-600">
+                        Switch to the latest version from the revision history to keep working on the draft before resubmitting.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Revisions Tab */}
+          {activeTab === 'revisions' && showVersionHistory && (
+            <div className="space-y-6">
+              <div className="bg-white shadow rounded-lg p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Revisions</h2>
+                
+                {/* Create New Revision Button (if applicable) */}
+                {(sow.status === 'approved' || sow.status === 'rejected') && (
+                  <div className="mb-6">
+                    {sow.status === 'rejected' ? (
+                      <CreateRevisionButton
+                        sowId={sow.id}
+                        sowTitle={sow.sowTitle || 'Untitled SOW'}
+                        clientName={sow.clientName || 'Unknown Client'}
+                      />
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const response = await fetch(`/api/sow/${sow.id}/version`, {
+                              method: 'POST'
+                            });
+                            
+                            if (!response.ok) {
+                              throw new Error('Failed to create new version');
+                            }
+                            
+                            const newVersion = await response.json();
+                            window.location.href = `/sow/${newVersion.id}`;
+                          } catch (err) {
+                            console.error('Error creating new version:', err);
+                            alert('Failed to create new version. Please try again.');
+                          }
+                        }}
+                        className="w-full bg-indigo-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 mb-3"
+                      >
+                        <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Create New Revision
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Revision History */}
+                <SOWRevisionHistory 
+                  sowId={sow.id} 
+                  currentVersion={sow.version || 1}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Comments Tab */}
+          {activeTab === 'comments' && showComments && (
+            <div className="bg-white shadow rounded-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Comments & Discussion</h2>
+              <SOWComments sowId={sow.id} />
+            </div>
+          )}
+
         </>
       )}
 
