@@ -123,6 +123,11 @@ export async function POST(
         updateData.salesforce_account_owner_email = salesforceData.account_data.owner_email;
       }
       
+      // Sync client_name from Salesforce if account name is available
+      if (salesforceData.account_data.name) {
+        updateData.client_name = salesforceData.account_data.name;
+      }
+      
       await supabase
         .from('sows')
         .update(updateData)
@@ -201,6 +206,11 @@ export async function PATCH(
       }
       if (updates.account_data.owner_email) {
         updateData.salesforce_account_owner_email = updates.account_data.owner_email;
+      }
+      
+      // Sync client_name from Salesforce if account name is available
+      if (updates.account_data.name) {
+        updateData.client_name = updates.account_data.name;
       }
       
       await supabase

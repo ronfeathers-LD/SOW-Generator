@@ -743,7 +743,7 @@ export default function SOWDisplay({
           <div id="title-page" className="mb-12 print:mb-8 page-break-inside-avoid print:page-break-inside-avoid print:min-h-screen print:flex print:flex-col print:justify-center">
             <SOWTitlePage 
               title={sow.sowTitle || 'SOW Title Not Available'}
-              clientName={sow.clientName || 'Client Name Not Available'}
+              clientName={salesforceData?.account_data?.name || sow.clientName || 'Client Name Not Available'}
               companyLogo={sow.companyLogo}
               clientSignature={{
                 name: sow.clientSignerName || 'Not Entered',
@@ -777,7 +777,7 @@ export default function SOWDisplay({
           <div id="sow-intro" className="mb-12 print:mb-8 page-break-inside-avoid print:page-break-inside-avoid">
             <h2 className="text-3xl font-bold text-center mb-6">LEANDATA, INC. STATEMENT OF WORK</h2>
             <SOWIntroPage 
-              clientName={sow.clientName || 'Client'}
+              clientName={salesforceData?.account_data?.name || sow.clientName || 'Client'}
               customContent={sow.custom_intro_content}
               isEdited={sow.intro_content_edited || false}
             />
@@ -900,7 +900,7 @@ export default function SOWDisplay({
                   <table>
                     <thead>
                       <tr>
-                        <th>{sow.clientName || 'Client'} Role</th>
+                        <th>{salesforceData?.account_data?.name || sow.clientName || 'Client'} Role</th>
                         <th>Contact</th>
                         <th>Responsibilities</th>
                       </tr>

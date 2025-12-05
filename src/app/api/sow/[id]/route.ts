@@ -280,6 +280,28 @@ export async function GET(
       console.error('Error fetching Salesforce data:', salesforceError);
     }
 
+    // Sync client_name from Salesforce if it's different
+    if (salesforceData?.account_data?.name && salesforceData.account_data.name !== sow.client_name) {
+      try {
+        await supabase
+          .from('sows')
+          .update({ 
+            client_name: salesforceData.account_data.name,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', (await params).id);
+        
+        // Update the transformed data to reflect the change
+        transformedSow.client_name = salesforceData.account_data.name;
+        transformedSow.template.client_name = salesforceData.account_data.name;
+        transformedSow.header.client_name = salesforceData.account_data.name;
+        
+        console.log(`✅ Synced client_name from Salesforce: "${salesforceData.account_data.name}"`);
+      } catch (syncError) {
+        console.error('Error syncing client_name from Salesforce:', syncError);
+      }
+    }
+
     
     return NextResponse.json({
       ...transformedSow,

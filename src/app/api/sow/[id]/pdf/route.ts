@@ -109,11 +109,49 @@ export async function POST(
       }
     }
 
+    // Fetch Salesforce data if available to get the account name
+    let salesforceAccountName = null;
+    if (sowData.salesforce_account_id) {
+      try {
+        const { data: salesforceData, error: salesforceError } = await supabase
+          .from('sow_salesforce_data')
+          .select('account_data')
+          .eq('sow_id', id)
+          .single();
+        
+        if (!salesforceError && salesforceData?.account_data?.name) {
+          salesforceAccountName = salesforceData.account_data.name;
+          
+          // Sync client_name from Salesforce if it's different
+          if (salesforceAccountName !== sowData.client_name) {
+            try {
+              await supabase
+                .from('sows')
+                .update({ 
+                  client_name: salesforceAccountName,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', id);
+              
+              // Update local data
+              sowData.client_name = salesforceAccountName;
+              
+              console.log(`✅ Synced client_name from Salesforce in PDF route: "${salesforceAccountName}"`);
+            } catch (syncError) {
+              console.error('Error syncing client_name from Salesforce in PDF route:', syncError);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to fetch Salesforce data for PDF:', error);
+      }
+    }
+
     // Transform the data to match the PDFGenerator interface
     const transformedData = {
       id: sowData.id,
       sow_title: sowData.sow_title || '',
-      client_name: sowData.client_name || '',
+      client_name: salesforceAccountName || sowData.client_name || '',
       company_logo: sowData.company_logo || '',
       client_signer_name: sowData.client_signer_name || '',
       client_title: sowData.client_title || '',
