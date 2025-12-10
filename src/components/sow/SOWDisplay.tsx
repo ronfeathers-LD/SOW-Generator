@@ -1657,6 +1657,15 @@ export default function SOWDisplay({
                     isEdited={sow.assumptions_content_edited}
                   />
                 </div>
+
+                {/* AI Generation Disclaimer */}
+                <div className="max-w-7xl mx-auto mt-8 pt-8 border-t-2 border-gray-300 bg-gray-50 px-6 py-4 mb-12">
+                  <p className="text-xs text-gray-600 text-center italic leading-relaxed">
+                    <strong>Note:</strong> This Statement of Work was generated with the assistance of artificial intelligence. 
+                    While we strive for accuracy, please review all details carefully as there may be minor errors or inconsistencies. 
+                    If you notice any discrepancies, please contact us immediately.
+                  </p>
+                </div>
               </div>
             </div>
           )}
