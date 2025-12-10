@@ -1864,6 +1864,15 @@ export class PDFGenerator {
             </div>
         </div>
     </div>
+
+    <!-- AI Generation Disclaimer -->
+    <div class="ai-disclaimer" style="margin-top: 40px; padding: 20px; background-color: #f9fafb; border-top: 2px solid #e5e7eb; border-bottom: 2px solid #e5e7eb; font-size: 11px; color: #6b7280; line-height: 1.6; text-align: center;">
+        <p style="margin: 0; font-style: italic;">
+            <strong>Note:</strong> This Statement of Work was generated with the assistance of artificial intelligence. 
+            While we strive for accuracy, please review all details carefully as there may be minor errors or inconsistencies. 
+            If you notice any discrepancies, please contact us immediately.
+        </p>
+    </div>
 </body>
 </html>
     `;
