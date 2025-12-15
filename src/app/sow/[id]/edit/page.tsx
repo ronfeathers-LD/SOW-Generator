@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import SOWForm from '@/components/SOWForm';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
@@ -9,8 +10,13 @@ import { SalesforceAccount } from '@/lib/salesforce';
 export default function EditSOWPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { data: session } = useSession();
   const [sow, setSOW] = useState<SOWData | null>(null);
+  const [sowStatus, setSOWStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const isAdmin = session?.user?.role === 'admin';
+  const pricingOnly = searchParams?.get('tab') === 'pricing';
 
   useEffect(() => {
     const fetchSOW = async () => {
@@ -22,8 +28,10 @@ export default function EditSOWPage() {
           
           // Check if SOW is editable
           const status = data.status;
+          setSOWStatus(status);
           
-          if (status === 'approved' || status === 'rejected') {
+          // Allow admins to edit pricing on approved SOWs
+          if ((status === 'approved' || status === 'rejected') && !(isAdmin && pricingOnly)) {
             // Redirect to view page with error message
             router.push(`/sow/${params.id}?error=immutable`);
             return;
@@ -163,7 +171,7 @@ export default function EditSOWPage() {
     };
 
     fetchSOW();
-  }, [params.id, router]);
+  }, [params.id, router, isAdmin, pricingOnly]);
 
   // Update document title when SOW is loaded
   useEffect(() => {
@@ -198,5 +206,8 @@ export default function EditSOWPage() {
     );
   }
 
-  return <SOWForm initialData={sow} />;
+  // Determine if we're in pricing-only mode (admin editing approved SOW)
+  const isPricingOnlyMode = pricingOnly && isAdmin && sowStatus === 'approved';
+  
+  return <SOWForm initialData={sow} pricingOnly={isPricingOnlyMode} />;
 } 

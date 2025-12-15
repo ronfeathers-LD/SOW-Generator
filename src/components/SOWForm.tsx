@@ -41,9 +41,10 @@ interface PricingData {
 
 interface SOWFormProps {
   initialData?: SOWData;
+  pricingOnly?: boolean;
 }
 
-export default function SOWForm({ initialData }: SOWFormProps) {
+export default function SOWForm({ initialData, pricingOnly = false }: SOWFormProps) {
   const [formData, setFormData] = useState<Partial<SOWData>>(
     initialData
       ? {
@@ -247,7 +248,7 @@ export default function SOWForm({ initialData }: SOWFormProps) {
   );
 
 
-  const [activeTab, setActiveTab] = useState('Customer Information');
+  const [activeTab, setActiveTab] = useState(pricingOnly ? 'Pricing' : 'Customer Information');
 
   const handleTabChange = (tabKey: string) => {
     // Check for unsaved changes when switching from Content Editing tab
@@ -1112,15 +1113,24 @@ export default function SOWForm({ initialData }: SOWFormProps) {
     }
   };
 
-  const tabs = useMemo(() => [
-    { key: 'Customer Information', label: 'Customer Information' },
-    { key: 'Project Overview', label: 'Project Overview' },
-    { key: 'Objectives', label: 'Objectives' },
+  const tabs = useMemo(() => {
+    const allTabs = [
+      { key: 'Customer Information', label: 'Customer Information' },
+      { key: 'Project Overview', label: 'Project Overview' },
+      { key: 'Objectives', label: 'Objectives' },
       { key: 'Signers & Roles', label: 'Signers & POCs' },
-    { key: 'Billing Information', label: 'Billing Information' },
-    { key: 'Pricing', label: 'Pricing and LeanData Roles' },
-    { key: 'Content Editing', label: 'Content Editing' },
-  ], []);
+      { key: 'Billing Information', label: 'Billing Information' },
+      { key: 'Pricing', label: 'Pricing and LeanData Roles' },
+      { key: 'Content Editing', label: 'Content Editing' },
+    ];
+    
+    // If pricing-only mode, only show Pricing tab
+    if (pricingOnly) {
+      return allTabs.filter(tab => tab.key === 'Pricing');
+    }
+    
+    return allTabs;
+  }, [pricingOnly]);
 
 
 
@@ -1303,6 +1313,24 @@ export default function SOWForm({ initialData }: SOWFormProps) {
         )}
 
       <div className="space-y-8 pb-20">
+      {/* Pricing-Only Mode Notice */}
+      {pricingOnly && (
+        <div className="mb-4 bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-blue-700">
+                <strong>Pricing-Only Edit Mode:</strong> You are editing pricing and discounts on an approved SOW. Only pricing-related fields can be modified.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tab Navigation */}
       <div className="mb-8 border-b border-gray-200">
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
