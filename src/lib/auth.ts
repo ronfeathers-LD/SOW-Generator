@@ -37,11 +37,11 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'production' ? undefined : 'dev-secret'),
   session: {
     strategy: 'jwt' as const,
-    maxAge: 60 * 60 * 1, // 1 hour in seconds
+    maxAge: 30 * 24 * 60 * 60, // 1 month (30 days) in seconds
   },
   jwt: {
     secret: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'production' ? undefined : 'dev-secret'),
-    maxAge: 60 * 60 * 1, // 1 hour in seconds
+    maxAge: 30 * 24 * 60 * 60, // 1 month (30 days) in seconds
   },
   debug: false, // Disable debug to avoid warnings
   callbacks: {
