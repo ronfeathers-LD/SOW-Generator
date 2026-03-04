@@ -64,9 +64,21 @@ export default function PricingDisplay({
   });
 
   // Check if any role has a discount (different defaultRate and ratePerHour)
-  const hasAnyDiscount = filteredPricingRoles.some(role => 
+  const hasAnyDiscount = filteredPricingRoles.some(role =>
     role.defaultRate && role.defaultRate !== role.ratePerHour
   );
+
+  // Recalculate subtotal and total from filtered roles to ensure consistency
+  // This fixes the case where PM hours are removed but stored subtotal/total still include PM costs
+  const effectiveSubtotal = filteredPricingRoles.reduce((sum, role) => sum + (role.totalCost || 0), 0);
+  let effectiveDiscountTotal = 0;
+  if (discountType === 'fixed') {
+    effectiveDiscountTotal = discountAmount || 0;
+  } else if (discountType === 'percentage') {
+    effectiveDiscountTotal = effectiveSubtotal * ((discountPercentage || 0) / 100);
+  }
+  const effectiveTotalAmount = effectiveSubtotal - effectiveDiscountTotal;
+
   return (
     <div className="space-y-6">
       {/* Pricing Roles Table */}
@@ -242,7 +254,7 @@ export default function PricingDisplay({
           <div className="bg-white p-3 rounded border">
             <div className="text-sm text-gray-600">Subtotal</div>
             <div className="text-xl font-bold text-gray-900">
-              ${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ${effectiveSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
           {(discountType === 'fixed' && discountAmount && discountAmount > 0) || (discountType === 'percentage' && discountPercentage && discountPercentage > 0) ? (
@@ -256,7 +268,7 @@ export default function PricingDisplay({
                 )}
               </div>
               <div className="text-xs text-gray-500 mt-1">
-                {discountType === 'fixed' 
+                {discountType === 'fixed'
                   ? `Fixed discount of $${discountAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                   : `${discountPercentage}% discount applied to subtotal`
                 }
@@ -266,7 +278,7 @@ export default function PricingDisplay({
           <div className="bg-white p-3 rounded border">
             <div className="text-sm text-gray-600">Total Amount</div>
             <div className="text-xl font-bold text-green-600">
-              ${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ${effectiveTotalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
         </div>
