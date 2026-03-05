@@ -69,8 +69,8 @@ export default function Navigation() {
               <Image
                 src="/leandata-logo.svg"
                 alt="LeanData"
-                width={112}
-                height={20}
+                width={84}
+                height={15}
                 priority
               />
             </div>
@@ -93,8 +93,8 @@ export default function Navigation() {
               <Image
                 src="/leandata-logo.svg"
                 alt="LeanData"
-                width={112}
-                height={20}
+                width={84}
+                height={15}
                 priority
               />
             </div>
@@ -134,18 +134,18 @@ export default function Navigation() {
             <Image
               src="/leandata-logo.svg"
               alt="LeanData"
-              width={140}
-              height={25}
+              width={84}
+              height={15}
               priority
             />
           </div>
           
           {/* Desktop Navigation - Hidden on mobile */}
-          <div className="hidden md:flex items-center">
-            <div className="flex space-x-8">
+          <div className="hidden md:flex items-stretch">
+            <div className="flex items-stretch space-x-8">
               <Link 
                 href="/dashboard" 
-                className={`inline-flex items-center px-1 pt-1 border-b-2 text-xs font-semibold uppercase tracking-wider ${
+                className={`flex items-center px-3 border-b-2 text-xs font-semibold uppercase tracking-wider ${
                   pathname === '/dashboard' 
                     ? 'border-green-500 text-white font-bold' 
                     : 'border-transparent hover:border-green-200 hover:text-white'
@@ -156,7 +156,7 @@ export default function Navigation() {
               </Link>
               <Link 
                 href="/sow" 
-                className={`inline-flex items-center px-1 pt-1 border-b-2 text-xs font-semibold uppercase tracking-wider ${
+                className={`flex items-center px-3 border-b-2 text-xs font-semibold uppercase tracking-wider ${
                   pathname.startsWith('/sow') 
                     ? 'border-green-500 text-white font-bold' 
                     : 'border-transparent hover:border-green-200 hover:text-white'
@@ -167,7 +167,7 @@ export default function Navigation() {
               </Link>
               <Link 
                 href="/change-orders" 
-                className={`inline-flex items-center px-1 pt-1 border-b-2 text-xs font-semibold uppercase tracking-wider ${
+                className={`flex items-center px-3 border-b-2 text-xs font-semibold uppercase tracking-wider ${
                   pathname.startsWith('/change-orders') 
                     ? 'border-green-500 text-white font-bold' 
                     : 'border-transparent hover:border-green-200 hover:text-white'
@@ -180,7 +180,7 @@ export default function Navigation() {
               <div className="relative" ref={toolsDropdownRef}>
                 <button
                   onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-xs font-semibold uppercase tracking-wider ${
+                  className={`flex items-center px-3 border-b-2 text-xs font-semibold uppercase tracking-wider ${
                     pathname.startsWith('/pricing-calculator') || pathname.startsWith('/preview-sow')
                       ? 'border-green-500 text-white font-bold'
                       : 'border-transparent hover:border-green-200 hover:text-white'
@@ -230,7 +230,7 @@ export default function Navigation() {
               </div>
               <Link 
                 href="/help" 
-                className={`inline-flex items-center px-1 pt-1 border-b-2 text-xs font-semibold uppercase tracking-wider ${
+                className={`flex items-center px-3 border-b-2 text-xs font-semibold uppercase tracking-wider ${
                   pathname.startsWith('/help') 
                     ? 'border-green-500 text-white font-bold' 
                     : 'border-transparent hover:border-green-200 hover:text-white'
@@ -242,7 +242,7 @@ export default function Navigation() {
               {(isPMO || isAdmin) && (
                 <Link 
                   href="/pmo" 
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-xs font-semibold uppercase tracking-wider ${
+                  className={`flex items-center px-3 border-b-2 text-xs font-semibold uppercase tracking-wider ${
                     pathname.startsWith('/pmo') 
                       ? 'border-green-500 text-white font-bold' 
                       : 'border-transparent hover:border-green-200 hover:text-white'
@@ -255,7 +255,7 @@ export default function Navigation() {
               {isManager && (
                 <Link 
                   href="/manager" 
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-xs font-semibold uppercase tracking-wider ${
+                  className={`flex items-center px-3 border-b-2 text-xs font-semibold uppercase tracking-wider ${
                     pathname.startsWith('/manager') 
                       ? 'border-green-500 text-white font-bold' 
                       : 'border-transparent hover:border-green-200 hover:text-white'
