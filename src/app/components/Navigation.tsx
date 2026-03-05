@@ -69,8 +69,8 @@ export default function Navigation() {
               <Image
                 src="/leandata-logo.svg"
                 alt="LeanData"
-                width={84}
-                height={15}
+                width={70}
+                height={12}
                 priority
               />
             </div>
@@ -93,8 +93,8 @@ export default function Navigation() {
               <Image
                 src="/leandata-logo.svg"
                 alt="LeanData"
-                width={84}
-                height={15}
+                width={70}
+                height={12}
                 priority
               />
             </div>
