@@ -66,13 +66,9 @@ export default function Navigation() {
         <div className="container mx-auto px-4">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <Image
-                src="https://tlxeqgk0yr1ztnva.public.blob.vercel-storage.com/rte-images/1758909456734-katoxspoked.png"
-                alt="LeanData Logo"
-                width={80}
-                height={40}
-                className="h-8 w-auto"
-              />
+              <span className="font-bold text-xl tracking-tight select-none">
+                <span style={{color: '#26D07C'}}>Lean</span><span style={{color: 'white'}}>Data</span>
+              </span>
             </div>
             <div className="flex items-center">
               <div className="animate-pulse bg-white/30 h-8 w-8 rounded-full"></div>
@@ -90,13 +86,9 @@ export default function Navigation() {
         <div className="container mx-auto px-4">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <Image
-                src="https://tlxeqgk0yr1ztnva.public.blob.vercel-storage.com/rte-images/1758909456734-katoxspoked.png"
-                alt="LeanData Logo"
-                width={80}
-                height={40}
-                className="h-8 w-auto"
-              />
+              <span className="font-bold text-xl tracking-tight select-none">
+                <span style={{color: '#26D07C'}}>Lean</span><span style={{color: 'white'}}>Data</span>
+              </span>
             </div>
             <div className="flex items-center">
               <button
@@ -131,13 +123,9 @@ export default function Navigation() {
         <div className="flex justify-between h-16">
           {/* Logo on the far left */}
           <div className="flex items-center">
-            <Image
-              src="https://tlxeqgk0yr1ztnva.public.blob.vercel-storage.com/rte-images/1758909456734-katoxspoked.png"
-              alt="LeanData Logo"
-              width={80}
-              height={40}
-              className="h-8 w-auto"
-            />
+            <span className="font-bold text-xl tracking-tight select-none">
+              <span style={{color: '#26D07C'}}>Lean</span><span style={{color: 'white'}}>Data</span>
+            </span>
           </div>
           
           {/* Desktop Navigation - Hidden on mobile */}
@@ -145,7 +133,7 @@ export default function Navigation() {
             <div className="flex space-x-8">
               <Link 
                 href="/dashboard" 
-                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                className={`inline-flex items-center px-1 pt-1 border-b-2 text-xs font-semibold uppercase tracking-wider ${
                   pathname === '/dashboard' 
                     ? 'border-green-500 text-white font-bold' 
                     : 'border-transparent hover:border-green-200 hover:text-white'
@@ -156,7 +144,7 @@ export default function Navigation() {
               </Link>
               <Link 
                 href="/sow" 
-                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                className={`inline-flex items-center px-1 pt-1 border-b-2 text-xs font-semibold uppercase tracking-wider ${
                   pathname.startsWith('/sow') 
                     ? 'border-green-500 text-white font-bold' 
                     : 'border-transparent hover:border-green-200 hover:text-white'
@@ -167,7 +155,7 @@ export default function Navigation() {
               </Link>
               <Link 
                 href="/change-orders" 
-                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                className={`inline-flex items-center px-1 pt-1 border-b-2 text-xs font-semibold uppercase tracking-wider ${
                   pathname.startsWith('/change-orders') 
                     ? 'border-green-500 text-white font-bold' 
                     : 'border-transparent hover:border-green-200 hover:text-white'
@@ -180,7 +168,7 @@ export default function Navigation() {
               <div className="relative" ref={toolsDropdownRef}>
                 <button
                   onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-xs font-semibold uppercase tracking-wider ${
                     pathname.startsWith('/pricing-calculator') || pathname.startsWith('/preview-sow')
                       ? 'border-green-500 text-white font-bold'
                       : 'border-transparent hover:border-green-200 hover:text-white'
@@ -230,7 +218,7 @@ export default function Navigation() {
               </div>
               <Link 
                 href="/help" 
-                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                className={`inline-flex items-center px-1 pt-1 border-b-2 text-xs font-semibold uppercase tracking-wider ${
                   pathname.startsWith('/help') 
                     ? 'border-green-500 text-white font-bold' 
                     : 'border-transparent hover:border-green-200 hover:text-white'
@@ -242,7 +230,7 @@ export default function Navigation() {
               {(isPMO || isAdmin) && (
                 <Link 
                   href="/pmo" 
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-xs font-semibold uppercase tracking-wider ${
                     pathname.startsWith('/pmo') 
                       ? 'border-green-500 text-white font-bold' 
                       : 'border-transparent hover:border-green-200 hover:text-white'
@@ -255,7 +243,7 @@ export default function Navigation() {
               {isManager && (
                 <Link 
                   href="/manager" 
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-xs font-semibold uppercase tracking-wider ${
                     pathname.startsWith('/manager') 
                       ? 'border-green-500 text-white font-bold' 
                       : 'border-transparent hover:border-green-200 hover:text-white'
