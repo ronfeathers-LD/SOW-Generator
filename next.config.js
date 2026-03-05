@@ -16,6 +16,16 @@ const nextConfig = {
       },
     ],
   },
+  experimental: {
+    // Tree-shake barrel-file packages to reduce bundle size
+    optimizePackageImports: [
+      '@tiptap/react',
+      '@tiptap/core',
+      '@tiptap/starter-kit',
+      '@tiptap/extension-text-align',
+      '@tiptap/extension-underline',
+    ],
+  },
 }
 
-module.exports = nextConfig 
+module.exports = nextConfig

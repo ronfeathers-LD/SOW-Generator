@@ -451,7 +451,20 @@ export default function SOWDisplay({
           return;
         }
 
-        const response = await fetch(`/api/sow/${sowId}`);
+        // Fetch SOW and products in parallel
+        const [response, productsResponse] = await Promise.all([
+          fetch(`/api/sow/${sowId}`),
+          fetch('/api/products'),
+        ]);
+
+        // Handle products result eagerly so it's ready by the time SOW renders
+        if (productsResponse.ok) {
+          const productsData = await productsResponse.json();
+          setProducts(productsData || []);
+        } else {
+          console.error('Error fetching products:', productsResponse.status);
+        }
+
         if (!response.ok) {
           if (response.status === 404) {
             throw new Error('SOW not found');
@@ -609,23 +622,6 @@ export default function SOWDisplay({
       document.title = 'View SOW';
     }
   }, [sow, loading, error]);
-
-  // Fetch products once
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await fetch('/api/products');
-        if (response.ok) {
-          const data = await response.json();
-          setProducts(data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching products:', error);
-      }
-    };
-
-    fetchProducts();
-  }, []);
 
   const isEditable = useMemo(() => {
     if (!sow) return false;

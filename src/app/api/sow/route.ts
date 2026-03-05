@@ -278,7 +278,16 @@ export async function GET(request: Request) {
     let query = supabaseApi
       .from('sows')
       .select(`
-        *,
+        id,
+        client_name,
+        sow_title,
+        status,
+        created_at,
+        updated_at,
+        start_date,
+        version,
+        is_latest,
+        parent_id,
         author:users!sows_author_id_fkey(name)
       `);
 
@@ -301,10 +310,16 @@ export async function GET(request: Request) {
       );
     }
 
-    // Return snake_case data directly
+    // Return only the fields needed by the list view
     const transformedSows = sows.map(sow => ({
-      ...sow,
-      author: sow.author?.name || 'Unknown',
+      id: sow.id,
+      client_name: sow.client_name,
+      sow_title: sow.sow_title,
+      status: sow.status,
+      version: sow.version,
+      is_latest: sow.is_latest,
+      parent_id: sow.parent_id,
+      author: sow.author?.[0]?.name || 'Unknown',
       created_at: sow.created_at ? new Date(sow.created_at).toISOString() : new Date().toISOString(),
       updated_at: sow.updated_at ? new Date(sow.updated_at).toISOString() : new Date().toISOString(),
       start_date: sow.start_date && sow.start_date !== '1970-01-01T00:00:00.000Z' ? new Date(sow.start_date).toISOString() : null,
