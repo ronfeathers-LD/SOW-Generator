@@ -64,7 +64,7 @@ export default function Navigation() {
     return (
       <nav style={{backgroundColor: '#2a2a2a'}}>
         <div className="container mx-auto px-4">
-          <div className="flex justify-between h-24">
+          <div className="flex justify-between h-[106px]">
             <div className="flex items-center">
               <Image
                 src="/leandata-logo.svg"
@@ -88,7 +88,7 @@ export default function Navigation() {
     return (
       <nav style={{backgroundColor: '#2a2a2a'}}>
         <div className="container mx-auto px-4">
-          <div className="flex justify-between h-24">
+          <div className="flex justify-between h-[106px]">
             <div className="flex items-center">
               <Image
                 src="/leandata-logo.svg"
@@ -128,7 +128,7 @@ export default function Navigation() {
   return (
     <nav style={{backgroundColor: '#2a2a2a'}}>
       <div className="container mx-auto px-4">
-        <div className="flex justify-between h-24">
+        <div className="flex justify-between h-[106px]">
           {/* Logo on the far left */}
           <div className="flex items-center">
             <Image
