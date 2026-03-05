@@ -32,7 +32,7 @@ export async function PUT(
     const supabase = await createServerSupabaseClient();
     
     const body = await request.json();
-    const { name, email, title, isActive } = body;
+    const { name, email, title, isActive, isDefault } = body;
 
     if (!name || !email || !title) {
       return NextResponse.json(
@@ -56,13 +56,22 @@ export async function PUT(
       );
     }
 
+    // If setting as default, clear other defaults first
+    if (isDefault) {
+      await supabase
+        .from('lean_data_signatories')
+        .update({ is_default: false })
+        .eq('is_default', true);
+    }
+
     const { data: signatory } = await supabase
       .from('lean_data_signatories')
       .update({
         name,
         email,
         title,
-        is_active: isActive !== undefined ? isActive : true
+        is_active: isActive !== undefined ? isActive : true,
+        is_default: isDefault !== undefined ? isDefault : false
       })
       .eq('id', (await params).id)
       .select()

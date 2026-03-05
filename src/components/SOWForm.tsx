@@ -19,6 +19,7 @@ interface LeanDataSignatory {
   email: string;
   title: string;
   is_active: boolean;
+  is_default?: boolean;
 }
 
 declare global {
@@ -546,20 +547,21 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
           }
         }
       } else {
-        // For new SOWs, automatically select the first active signatory
-        const firstActiveSignatory = leanDataSignatories.find(signatory => signatory.is_active);
-        if (firstActiveSignatory) {
-          setSelectedLeanDataSignatory(firstActiveSignatory.id);
+        // For new SOWs, automatically select the default signatory (or first active if no default)
+        const defaultSignatory = leanDataSignatories.find(signatory => signatory.is_default)
+          || leanDataSignatories.find(signatory => signatory.is_active);
+        if (defaultSignatory) {
+          setSelectedLeanDataSignatory(defaultSignatory.id);
           // Update form data with the selected signatory
           setFormData(prevData => ({
             ...prevData,
             template: {
               ...prevData.template!,
-              lean_data_name: firstActiveSignatory.name,
-              lean_data_title: firstActiveSignatory.title,
-              lean_data_email: firstActiveSignatory.email,
-              lean_data_signature_name: firstActiveSignatory.name,
-              lean_data_signature: firstActiveSignatory.title
+              lean_data_name: defaultSignatory.name,
+              lean_data_title: defaultSignatory.title,
+              lean_data_email: defaultSignatory.email,
+              lean_data_signature_name: defaultSignatory.name,
+              lean_data_signature: defaultSignatory.title
             }
           }));
         }

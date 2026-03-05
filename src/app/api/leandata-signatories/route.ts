@@ -8,8 +8,9 @@ export async function GET() {
     
     const { data: signatories } = await supabase
       .from('lean_data_signatories')
-      .select('id, name, email, title')
+      .select('id, name, email, title, is_default')
       .eq('is_active', true)
+      .order('is_default', { ascending: false })
       .order('name', { ascending: true });
 
     return NextResponse.json(signatories);

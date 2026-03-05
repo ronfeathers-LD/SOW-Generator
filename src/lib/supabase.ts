@@ -85,6 +85,7 @@ export interface LeanDataSignatory {
   email: string;
   title: string;
   is_active: boolean;
+  is_default: boolean;
 }
 
 export interface AvomaConfig {

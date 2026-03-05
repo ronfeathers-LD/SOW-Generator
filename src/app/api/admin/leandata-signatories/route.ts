@@ -31,6 +31,7 @@ export async function GET() {
     const { data: signatories } = await supabase
       .from('lean_data_signatories')
       .select('*')
+      .order('is_default', { ascending: false })
       .order('name', { ascending: true });
 
     return NextResponse.json(signatories);
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createServerSupabaseClient();
     
     const body = await request.json();
-    const { name, email, title } = body;
+    const { name, email, title, isActive = true, isDefault = false } = body;
 
     if (!name || !email || !title) {
       return NextResponse.json(
@@ -77,12 +78,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // If setting as default, clear other defaults first
+    if (isDefault) {
+      await supabase
+        .from('lean_data_signatories')
+        .update({ is_default: false })
+        .eq('is_default', true);
+    }
+
     const { data: signatory } = await supabase
       .from('lean_data_signatories')
       .insert({
         name,
         email,
-        title
+        title,
+        is_active: isActive,
+        is_default: isDefault
       })
       .select()
       .single();

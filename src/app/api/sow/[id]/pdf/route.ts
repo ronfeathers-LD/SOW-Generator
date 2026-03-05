@@ -214,6 +214,27 @@ export async function POST(
       pm_hours_requirement_disabled: sowData.pm_hours_requirement_disabled || false
     };
 
+    // If the SOW doesn't have custom Out of Scope content, fall back to the
+    // active default template from `sow_content_templates` so the PDF matches
+    // what the UI shows (which loads templates when custom content is empty).
+    if (!transformedData.custom_out_of_scope_content || transformedData.custom_out_of_scope_content.trim() === '') {
+      try {
+        const { data: tpl, error: tplError } = await supabase
+          .from('sow_content_templates')
+          .select('default_content')
+          .eq('is_active', true)
+          .eq('section_name', 'out-of-scope')
+          .single();
+
+        if (!tplError && tpl && (tpl as any).default_content) {
+          transformedData.custom_out_of_scope_content = (tpl as any).default_content;
+          console.log('ℹ️ Using default Out of Scope template for PDF generation');
+        }
+      } catch (err) {
+        console.warn('⚠️ Failed to load Out of Scope template for PDF fallback:', err);
+      }
+    }
+
     // Use the working PDFGenerator class
     const pdfGenerator = new PDFGenerator();
     
