@@ -1,9 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 export default function DebugAccountSegmentPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [accountId, setAccountId] = useState('');
+
+  useEffect(() => {
+    if (status === 'loading') return;
+    if (!session || (session.user as { role?: string })?.role !== 'admin') {
+      router.replace('/dashboard');
+    }
+  }, [session, status, router]);
+
+  if (status === 'loading' || !session || (session.user as { role?: string })?.role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">Checking permissions...</p>
+      </div>
+    );
+  }
   const [result, setResult] = useState<{
     account?: {
       id: string;

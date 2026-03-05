@@ -319,7 +319,7 @@ export async function GET(request: Request) {
       version: sow.version,
       is_latest: sow.is_latest,
       parent_id: sow.parent_id,
-      author: sow.author?.[0]?.name || 'Unknown',
+      author: (sow.author as unknown as { name: string } | null)?.name || 'Unknown',
       created_at: sow.created_at ? new Date(sow.created_at).toISOString() : new Date().toISOString(),
       updated_at: sow.updated_at ? new Date(sow.updated_at).toISOString() : new Date().toISOString(),
       start_date: sow.start_date && sow.start_date !== '1970-01-01T00:00:00.000Z' ? new Date(sow.start_date).toISOString() : null,

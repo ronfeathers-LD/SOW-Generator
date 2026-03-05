@@ -1,6 +1,14 @@
+import { getServerSession } from 'next-auth';
+import { redirect } from 'next/navigation';
+import { authOptions } from '@/lib/auth';
 import GoogleDriveSearch from '@/components/GoogleDriveSearch';
 
-export default function GoogleDriveDemoPage() {
+export default async function GoogleDriveDemoPage() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user || (session.user as { role?: string })?.role !== 'admin') {
+    redirect('/dashboard');
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white shadow-sm border-b">

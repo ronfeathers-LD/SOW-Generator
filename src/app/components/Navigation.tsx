@@ -176,18 +176,18 @@ export default function Navigation() {
               >
                 Change Orders
               </Link>
-              {/* Tools Dropdown */}
+              {/* Utilities Dropdown */}
               <div className="relative" ref={toolsDropdownRef}>
                 <button
                   onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
                   className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
                     pathname.startsWith('/pricing-calculator') || pathname.startsWith('/preview-sow')
-                      ? 'border-green-500 text-white font-bold' 
+                      ? 'border-green-500 text-white font-bold'
                       : 'border-transparent hover:border-green-200 hover:text-white'
                   }`}
                   style={{color: 'white'}}
                 >
-                  Tools
+                  Utilities
                   <svg
                     className={`ml-1 w-4 h-4 transition-transform ${isToolsDropdownOpen ? 'rotate-180' : ''}`}
                     fill="none"

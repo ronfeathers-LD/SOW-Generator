@@ -9,7 +9,7 @@ async function getDashboardStats(session: Session) {
   try {
     const supabase = await createServerSupabaseClient();
 
-    // Run all queries in parallel — user lookup + stats counts + recent SOWs + pending approvals
+    // Round 1: user lookup + stats counts + pending approvals (all parallel, no user ID dependency)
     const [
       userResult,
       totalCount,
@@ -18,7 +18,6 @@ async function getDashboardStats(session: Session) {
       approvedCount,
       rejectedCount,
       recalledCount,
-      recentSOWsResult,
       pendingApprovalsResult,
     ] = await Promise.all([
       // Verify user exists
@@ -36,23 +35,7 @@ async function getDashboardStats(session: Session) {
       supabase.from('sows').select('*', { count: 'exact', head: true }).eq('is_hidden', false).eq('status', 'rejected'),
       supabase.from('sows').select('*', { count: 'exact', head: true }).eq('is_hidden', false).eq('status', 'recalled'),
 
-      // Recent SOWs
-      supabase
-        .from('sows')
-        .select(`
-          id,
-          client_name,
-          sow_title,
-          status,
-          created_at,
-          author:users!sows_author_id_fkey(name),
-          products:sow_products(product:products(name))
-        `)
-        .eq('is_hidden', false)
-        .order('created_at', { ascending: false })
-        .limit(10),
-
-      // Pending approvals (SOWs in review)
+      // Pending approvals — no user ID dependency
       supabase
         .from('sows')
         .select('id, client_name, sow_title, status, created_at')
@@ -69,6 +52,23 @@ async function getDashboardStats(session: Session) {
         pendingApprovals: [],
       };
     }
+
+    // Round 2: Recent SOWs filtered to current user (requires user ID from round 1)
+    const recentSOWsResult = await supabase
+      .from('sows')
+      .select(`
+        id,
+        client_name,
+        sow_title,
+        status,
+        created_at,
+        author:users!sows_author_id_fkey(name),
+        products:sow_products(product:products(name))
+      `)
+      .eq('is_hidden', false)
+      .eq('author_id', userResult.data.id)
+      .order('created_at', { ascending: false })
+      .limit(10);
 
     const stats = {
       total: totalCount.count || 0,
@@ -92,8 +92,12 @@ async function getDashboardStats(session: Session) {
       sow_title: sow.sow_title,
       status: sow.status,
       created_at: sow.created_at,
-      author: sow.author?.[0] ? { name: sow.author[0].name } : undefined,
-      products: sow.products?.map(p => ({ product: { name: p.product?.[0]?.name || '' } })) || [],
+      author: (sow.author as unknown as { name: string } | null)?.name
+        ? { name: (sow.author as unknown as { name: string }).name }
+        : undefined,
+      products: sow.products?.map(p => ({
+        product: { name: (p.product as unknown as { name: string } | null)?.name || '' }
+      })) || [],
     })) || [];
 
     return {

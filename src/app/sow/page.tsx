@@ -578,7 +578,7 @@ function SOWListContent() {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              Hidden SOWs ({sows.length})
+              Hidden SOWs{showHidden ? ` (${sows.length})` : ''}
             </Link>
           )}
         </div>
