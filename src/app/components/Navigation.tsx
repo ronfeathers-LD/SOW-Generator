@@ -143,51 +143,55 @@ export default function Navigation() {
           {/* Desktop Navigation - Hidden on mobile */}
           <div className="hidden md:flex items-center">
             <div className="flex items-center space-x-8">
-              <Link 
-                href="/dashboard" 
-                className={`flex items-center px-3 border-b-4 text-xs font-semibold uppercase tracking-wider ${
-                  pathname === '/dashboard' 
-                    ? 'border-green-500 text-white font-bold' 
-                    : 'border-transparent hover:border-green-200 hover:text-white'
+              <Link
+                href="/dashboard"
+                className={`group flex items-center px-3 text-xs font-semibold uppercase tracking-wider ${
+                  pathname === '/dashboard' ? 'text-white font-bold' : 'hover:text-white'
                 }`}
                 style={{color: 'white'}}
               >
-                Dashboard
+                <span className={`border-b-4 ${
+                  pathname === '/dashboard' ? 'border-green-500' : 'border-transparent group-hover:border-green-200'
+                }`}>Dashboard</span>
               </Link>
-              <Link 
-                href="/sow" 
-                className={`flex items-center px-3 border-b-4 text-xs font-semibold uppercase tracking-wider ${
-                  pathname.startsWith('/sow') 
-                    ? 'border-green-500 text-white font-bold' 
-                    : 'border-transparent hover:border-green-200 hover:text-white'
+              <Link
+                href="/sow"
+                className={`group flex items-center px-3 text-xs font-semibold uppercase tracking-wider ${
+                  pathname.startsWith('/sow') ? 'text-white font-bold' : 'hover:text-white'
                 }`}
                 style={{color: 'white'}}
               >
-                SOWs
+                <span className={`border-b-4 ${
+                  pathname.startsWith('/sow') ? 'border-green-500' : 'border-transparent group-hover:border-green-200'
+                }`}>SOWs</span>
               </Link>
-              <Link 
-                href="/change-orders" 
-                className={`flex items-center px-3 border-b-4 text-xs font-semibold uppercase tracking-wider ${
-                  pathname.startsWith('/change-orders') 
-                    ? 'border-green-500 text-white font-bold' 
-                    : 'border-transparent hover:border-green-200 hover:text-white'
+              <Link
+                href="/change-orders"
+                className={`group flex items-center px-3 text-xs font-semibold uppercase tracking-wider ${
+                  pathname.startsWith('/change-orders') ? 'text-white font-bold' : 'hover:text-white'
                 }`}
                 style={{color: 'white'}}
               >
-                Change Orders
+                <span className={`border-b-4 ${
+                  pathname.startsWith('/change-orders') ? 'border-green-500' : 'border-transparent group-hover:border-green-200'
+                }`}>Change Orders</span>
               </Link>
               {/* Utilities Dropdown */}
               <div className="relative" ref={toolsDropdownRef}>
                 <button
                   onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
-                  className={`flex items-center px-3 border-b-4 text-xs font-semibold uppercase tracking-wider ${
+                  className={`group flex items-center px-3 text-xs font-semibold uppercase tracking-wider ${
                     pathname.startsWith('/pricing-calculator') || pathname.startsWith('/preview-sow')
-                      ? 'border-green-500 text-white font-bold'
-                      : 'border-transparent hover:border-green-200 hover:text-white'
+                      ? 'text-white font-bold'
+                      : 'hover:text-white'
                   }`}
                   style={{color: 'white'}}
                 >
-                  Utilities
+                  <span className={`border-b-4 ${
+                    pathname.startsWith('/pricing-calculator') || pathname.startsWith('/preview-sow')
+                      ? 'border-green-500'
+                      : 'border-transparent group-hover:border-green-200'
+                  }`}>Utilities</span>
                   <svg
                     className={`ml-1 w-4 h-4 transition-transform ${isToolsDropdownOpen ? 'rotate-180' : ''}`}
                     fill="none"
@@ -228,41 +232,41 @@ export default function Navigation() {
                   </div>
                 )}
               </div>
-              <Link 
-                href="/help" 
-                className={`flex items-center px-3 border-b-4 text-xs font-semibold uppercase tracking-wider ${
-                  pathname.startsWith('/help') 
-                    ? 'border-green-500 text-white font-bold' 
-                    : 'border-transparent hover:border-green-200 hover:text-white'
+              <Link
+                href="/help"
+                className={`group flex items-center px-3 text-xs font-semibold uppercase tracking-wider ${
+                  pathname.startsWith('/help') ? 'text-white font-bold' : 'hover:text-white'
                 }`}
                 style={{color: 'white'}}
               >
-                Help
+                <span className={`border-b-4 ${
+                  pathname.startsWith('/help') ? 'border-green-500' : 'border-transparent group-hover:border-green-200'
+                }`}>Help</span>
               </Link>
               {(isPMO || isAdmin) && (
-                <Link 
-                  href="/pmo" 
-                  className={`flex items-center px-3 border-b-4 text-xs font-semibold uppercase tracking-wider ${
-                    pathname.startsWith('/pmo') 
-                      ? 'border-green-500 text-white font-bold' 
-                      : 'border-transparent hover:border-green-200 hover:text-white'
+                <Link
+                  href="/pmo"
+                  className={`group flex items-center px-3 text-xs font-semibold uppercase tracking-wider ${
+                    pathname.startsWith('/pmo') ? 'text-white font-bold' : 'hover:text-white'
                   }`}
                   style={{color: 'white'}}
                 >
-                  PMO
+                  <span className={`border-b-4 ${
+                    pathname.startsWith('/pmo') ? 'border-green-500' : 'border-transparent group-hover:border-green-200'
+                  }`}>PMO</span>
                 </Link>
               )}
               {isManager && (
-                <Link 
-                  href="/manager" 
-                  className={`flex items-center px-3 border-b-4 text-xs font-semibold uppercase tracking-wider ${
-                    pathname.startsWith('/manager') 
-                      ? 'border-green-500 text-white font-bold' 
-                      : 'border-transparent hover:border-green-200 hover:text-white'
+                <Link
+                  href="/manager"
+                  className={`group flex items-center px-3 text-xs font-semibold uppercase tracking-wider ${
+                    pathname.startsWith('/manager') ? 'text-white font-bold' : 'hover:text-white'
                   }`}
                   style={{color: 'white'}}
                 >
-                  Manager
+                  <span className={`border-b-4 ${
+                    pathname.startsWith('/manager') ? 'border-green-500' : 'border-transparent group-hover:border-green-200'
+                  }`}>Manager</span>
                 </Link>
               )}
             </div>
