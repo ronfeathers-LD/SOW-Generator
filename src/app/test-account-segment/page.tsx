@@ -8,21 +8,6 @@ export default function TestAccountSegmentPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [accountId, setAccountId] = useState('');
-
-  useEffect(() => {
-    if (status === 'loading') return;
-    if (!session || (session.user as { role?: string })?.role !== 'admin') {
-      router.replace('/dashboard');
-    }
-  }, [session, status, router]);
-
-  if (status === 'loading' || !session || (session.user as { role?: string })?.role !== 'admin') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Checking permissions...</p>
-      </div>
-    );
-  }
   const [result, setResult] = useState<{
     success: boolean;
     account: {
@@ -40,6 +25,21 @@ export default function TestAccountSegmentPage() {
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (status === 'loading') return;
+    if (!session || (session.user as { role?: string })?.role !== 'admin') {
+      router.replace('/dashboard');
+    }
+  }, [session, status, router]);
+
+  if (status === 'loading' || !session || (session.user as { role?: string })?.role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">Checking permissions...</p>
+      </div>
+    );
+  }
 
   const handleTest = async () => {
     if (!accountId.trim()) {

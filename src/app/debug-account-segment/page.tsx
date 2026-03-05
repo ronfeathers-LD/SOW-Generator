@@ -8,6 +8,16 @@ export default function DebugAccountSegmentPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [accountId, setAccountId] = useState('');
+  const [result, setResult] = useState<{
+    account?: {
+      id: string;
+      name: string;
+      Employee_Band__c?: string;
+      NumberOfEmployees?: number;
+    };
+    error?: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -23,16 +33,6 @@ export default function DebugAccountSegmentPage() {
       </div>
     );
   }
-  const [result, setResult] = useState<{
-    account?: {
-      id: string;
-      name: string;
-      Employee_Band__c?: string;
-      NumberOfEmployees?: number;
-    };
-    error?: string;
-  } | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const testAccountSegment = async () => {
     if (!accountId.trim()) return;
