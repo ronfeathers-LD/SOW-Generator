@@ -145,7 +145,7 @@ export default function Navigation() {
             <div className="flex items-stretch space-x-8">
               <Link 
                 href="/dashboard" 
-                className={`flex items-center px-3 border-b-2 text-xs font-semibold uppercase tracking-wider ${
+                className={`flex items-center px-3 border-b-4 text-xs font-semibold uppercase tracking-wider ${
                   pathname === '/dashboard' 
                     ? 'border-green-500 text-white font-bold' 
                     : 'border-transparent hover:border-green-200 hover:text-white'
@@ -156,7 +156,7 @@ export default function Navigation() {
               </Link>
               <Link 
                 href="/sow" 
-                className={`flex items-center px-3 border-b-2 text-xs font-semibold uppercase tracking-wider ${
+                className={`flex items-center px-3 border-b-4 text-xs font-semibold uppercase tracking-wider ${
                   pathname.startsWith('/sow') 
                     ? 'border-green-500 text-white font-bold' 
                     : 'border-transparent hover:border-green-200 hover:text-white'
@@ -167,7 +167,7 @@ export default function Navigation() {
               </Link>
               <Link 
                 href="/change-orders" 
-                className={`flex items-center px-3 border-b-2 text-xs font-semibold uppercase tracking-wider ${
+                className={`flex items-center px-3 border-b-4 text-xs font-semibold uppercase tracking-wider ${
                   pathname.startsWith('/change-orders') 
                     ? 'border-green-500 text-white font-bold' 
                     : 'border-transparent hover:border-green-200 hover:text-white'
@@ -180,7 +180,7 @@ export default function Navigation() {
               <div className="relative" ref={toolsDropdownRef}>
                 <button
                   onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
-                  className={`flex items-center px-3 border-b-2 text-xs font-semibold uppercase tracking-wider ${
+                  className={`flex items-center px-3 border-b-4 text-xs font-semibold uppercase tracking-wider ${
                     pathname.startsWith('/pricing-calculator') || pathname.startsWith('/preview-sow')
                       ? 'border-green-500 text-white font-bold'
                       : 'border-transparent hover:border-green-200 hover:text-white'
@@ -230,7 +230,7 @@ export default function Navigation() {
               </div>
               <Link 
                 href="/help" 
-                className={`flex items-center px-3 border-b-2 text-xs font-semibold uppercase tracking-wider ${
+                className={`flex items-center px-3 border-b-4 text-xs font-semibold uppercase tracking-wider ${
                   pathname.startsWith('/help') 
                     ? 'border-green-500 text-white font-bold' 
                     : 'border-transparent hover:border-green-200 hover:text-white'
@@ -242,7 +242,7 @@ export default function Navigation() {
               {(isPMO || isAdmin) && (
                 <Link 
                   href="/pmo" 
-                  className={`flex items-center px-3 border-b-2 text-xs font-semibold uppercase tracking-wider ${
+                  className={`flex items-center px-3 border-b-4 text-xs font-semibold uppercase tracking-wider ${
                     pathname.startsWith('/pmo') 
                       ? 'border-green-500 text-white font-bold' 
                       : 'border-transparent hover:border-green-200 hover:text-white'
@@ -255,7 +255,7 @@ export default function Navigation() {
               {isManager && (
                 <Link 
                   href="/manager" 
-                  className={`flex items-center px-3 border-b-2 text-xs font-semibold uppercase tracking-wider ${
+                  className={`flex items-center px-3 border-b-4 text-xs font-semibold uppercase tracking-wider ${
                     pathname.startsWith('/manager') 
                       ? 'border-green-500 text-white font-bold' 
                       : 'border-transparent hover:border-green-200 hover:text-white'
