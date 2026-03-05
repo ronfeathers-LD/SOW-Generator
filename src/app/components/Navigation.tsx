@@ -64,7 +64,7 @@ export default function Navigation() {
     return (
       <nav style={{backgroundColor: '#2a2a2a'}}>
         <div className="container mx-auto px-4">
-          <div className="flex justify-between h-16">
+          <div className="flex justify-between h-20">
             <div className="flex items-center">
               <Image
                 src="/leandata-logo.svg"
@@ -88,7 +88,7 @@ export default function Navigation() {
     return (
       <nav style={{backgroundColor: '#2a2a2a'}}>
         <div className="container mx-auto px-4">
-          <div className="flex justify-between h-16">
+          <div className="flex justify-between h-20">
             <div className="flex items-center">
               <Image
                 src="/leandata-logo.svg"
@@ -128,21 +128,21 @@ export default function Navigation() {
   return (
     <nav style={{backgroundColor: '#2a2a2a'}}>
       <div className="container mx-auto px-4">
-        <div className="flex justify-between h-16">
+        <div className="flex justify-between h-20">
           {/* Logo on the far left */}
           <div className="flex items-center">
             <Image
               src="/leandata-logo.svg"
               alt="LeanData"
-              width={84}
-              height={15}
+              width={70}
+              height={12}
               priority
             />
           </div>
-          
+
           {/* Desktop Navigation - Hidden on mobile */}
-          <div className="hidden md:flex items-stretch">
-            <div className="flex items-stretch space-x-8">
+          <div className="hidden md:flex items-center">
+            <div className="flex items-center space-x-8">
               <Link 
                 href="/dashboard" 
                 className={`flex items-center px-3 border-b-4 text-xs font-semibold uppercase tracking-wider ${
