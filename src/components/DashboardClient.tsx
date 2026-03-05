@@ -106,91 +106,34 @@ export default function DashboardClient({ stats, recentSOWs, pendingApprovals }:
       </div>
 
         <div className="space-y-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-            <Link href="/sow" className="bg-white shadow rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer group">
-              <div className="flex items-center">
-                <div className="p-1.5 bg-blue-100 rounded group-hover:bg-blue-200 transition-colors shrink-0">
-                  <svg className="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <div className="ml-2 min-w-0">
-                  <p className="text-xs font-medium text-gray-500 truncate">Total SOWs</p>
-                  <p className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight">{stats.total}</p>
-                </div>
-              </div>
-            </Link>
-
-            <Link href="/sow?status=draft" className="bg-white shadow rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer group">
-              <div className="flex items-center">
-                <div className="p-1.5 bg-gray-100 rounded group-hover:bg-gray-200 transition-colors shrink-0">
-                  <svg className="h-4 w-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="ml-2 min-w-0">
-                  <p className="text-xs font-medium text-gray-500 truncate">Draft</p>
-                  <p className="text-lg font-semibold text-gray-900 group-hover:text-gray-600 transition-colors leading-tight">{stats.draft}</p>
-                </div>
-              </div>
-            </Link>
-
-            <Link href="/sow?status=in_review" className="bg-white shadow rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer group">
-              <div className="flex items-center">
-                <div className="p-1.5 bg-blue-100 rounded group-hover:bg-blue-200 transition-colors shrink-0">
-                  <svg className="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                </div>
-                <div className="ml-2 min-w-0">
-                  <p className="text-xs font-medium text-gray-500 truncate">In Review</p>
-                  <p className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight">{stats.in_review}</p>
-                </div>
-              </div>
-            </Link>
-
-            <Link href="/sow?status=approved" className="bg-white shadow rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer group">
-              <div className="flex items-center">
-                <div className="p-1.5 bg-green-100 rounded group-hover:bg-green-200 transition-colors shrink-0">
-                  <svg className="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="ml-2 min-w-0">
-                  <p className="text-xs font-medium text-gray-500 truncate">Approved</p>
-                  <p className="text-lg font-semibold text-gray-900 group-hover:text-green-600 transition-colors leading-tight">{stats.approved}</p>
-                </div>
-              </div>
-            </Link>
-
-            <Link href="/sow?status=rejected" className="bg-white shadow rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer group">
-              <div className="flex items-center">
-                <div className="p-1.5 bg-red-100 rounded group-hover:bg-red-200 transition-colors shrink-0">
-                  <svg className="h-4 w-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="ml-2 min-w-0">
-                  <p className="text-xs font-medium text-gray-500 truncate">Rejected</p>
-                  <p className="text-lg font-semibold text-gray-900 group-hover:text-red-600 transition-colors leading-tight">{stats.rejected}</p>
-                </div>
-              </div>
-            </Link>
-
-            <Link href="/sow?status=recalled" className="bg-white shadow rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer group">
-              <div className="flex items-center">
-                <div className="p-1.5 bg-purple-100 rounded group-hover:bg-purple-200 transition-colors shrink-0">
-                  <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h11a1 1 0 01.707.293l6 6a1 1 0 01-1.414 1.414L13 11.414V21a1 1 0 11-2 0v-9.586L4.707 16.707A1 1 0 013.293 15.293l6-6A1 1 0 0110 9h11" />
-                  </svg>
-                </div>
-                <div className="ml-2 min-w-0">
-                  <p className="text-xs font-medium text-gray-500 truncate">Recalled</p>
-                  <p className="text-lg font-semibold text-gray-900 group-hover:text-purple-600 transition-colors leading-tight">{stats.recalled}</p>
-                </div>
-              </div>
-            </Link>
+          {/* Stats Strip */}
+          <div className="bg-white shadow rounded-lg">
+            <div className="flex divide-x divide-gray-200">
+              <Link href="/sow" className="flex-1 flex flex-col items-center py-3 hover:bg-gray-50 transition-colors group rounded-l-lg">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total</span>
+                <span className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{stats.total}</span>
+              </Link>
+              <Link href="/sow?status=draft" className="flex-1 flex flex-col items-center py-3 hover:bg-gray-50 transition-colors group">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Draft</span>
+                <span className="text-xl font-bold text-gray-900 group-hover:text-gray-600 transition-colors">{stats.draft}</span>
+              </Link>
+              <Link href="/sow?status=in_review" className="flex-1 flex flex-col items-center py-3 hover:bg-gray-50 transition-colors group">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">In Review</span>
+                <span className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{stats.in_review}</span>
+              </Link>
+              <Link href="/sow?status=approved" className="flex-1 flex flex-col items-center py-3 hover:bg-gray-50 transition-colors group">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Approved</span>
+                <span className="text-xl font-bold text-green-600 group-hover:text-green-700 transition-colors">{stats.approved}</span>
+              </Link>
+              <Link href="/sow?status=rejected" className="flex-1 flex flex-col items-center py-3 hover:bg-gray-50 transition-colors group">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Rejected</span>
+                <span className="text-xl font-bold text-red-600 group-hover:text-red-700 transition-colors">{stats.rejected}</span>
+              </Link>
+              <Link href="/sow?status=recalled" className="flex-1 flex flex-col items-center py-3 hover:bg-gray-50 transition-colors group rounded-r-lg">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Recalled</span>
+                <span className="text-xl font-bold text-purple-600 group-hover:text-purple-700 transition-colors">{stats.recalled}</span>
+              </Link>
+            </div>
           </div>
 
           {/* Pending Approvals */}
