@@ -66,9 +66,13 @@ export default function Navigation() {
         <div className="container mx-auto px-4">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <span className="font-bold text-xl tracking-tight select-none">
-                <span style={{color: '#26D07C'}}>Lean</span><span style={{color: 'white'}}>Data</span>
-              </span>
+              <Image
+                src="/leandata-logo.svg"
+                alt="LeanData"
+                width={140}
+                height={25}
+                priority
+              />
             </div>
             <div className="flex items-center">
               <div className="animate-pulse bg-white/30 h-8 w-8 rounded-full"></div>
@@ -86,9 +90,13 @@ export default function Navigation() {
         <div className="container mx-auto px-4">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <span className="font-bold text-xl tracking-tight select-none">
-                <span style={{color: '#26D07C'}}>Lean</span><span style={{color: 'white'}}>Data</span>
-              </span>
+              <Image
+                src="/leandata-logo.svg"
+                alt="LeanData"
+                width={140}
+                height={25}
+                priority
+              />
             </div>
             <div className="flex items-center">
               <button
@@ -123,9 +131,13 @@ export default function Navigation() {
         <div className="flex justify-between h-16">
           {/* Logo on the far left */}
           <div className="flex items-center">
-            <span className="font-bold text-xl tracking-tight select-none">
-              <span style={{color: '#26D07C'}}>Lean</span><span style={{color: 'white'}}>Data</span>
-            </span>
+            <Image
+              src="/leandata-logo.svg"
+              alt="LeanData"
+              width={140}
+              height={25}
+              priority
+            />
           </div>
           
           {/* Desktop Navigation - Hidden on mobile */}
