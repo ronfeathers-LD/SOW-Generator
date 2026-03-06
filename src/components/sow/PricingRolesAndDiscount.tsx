@@ -429,9 +429,20 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     }, 0);
   };
 
-  // Get current calculations using role distribution
-  const totalHours = roleDistribution.totalProjectHours;
-  
+  // Calculate total hours from actual role table values (not just formula)
+  // This ensures manually added/adjusted role hours are reflected in the summary
+  const totalHours = pricingRoles.length > 0
+    ? pricingRoles.reduce((sum, role) => {
+        if (role.role === 'Project Manager' && approvedPMHoursRequest) {
+          return sum;
+        }
+        return sum + role.totalHours;
+      }, 0)
+    : roleDistribution.totalProjectHours;
+
+  // Additional hours = difference between actual role table hours and formula-calculated hours
+  const additionalHours = totalHours - roleDistribution.totalProjectHours;
+
   // Get account segment from formData or selectedAccount (unused variable removed)
 
   return (
@@ -627,6 +638,13 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
               </div>
             )}
 
+
+            {additionalHours > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-blue-700">Additional hours (added in roles table):</span>
+                <span className="font-semibold text-blue-700">+{additionalHours} hours</span>
+              </div>
+            )}
 
             <div className="flex justify-between items-center border-t pt-3">
               <span className="font-semibold text-lg text-gray-900">Total Hours:</span>
