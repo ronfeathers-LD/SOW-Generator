@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { createServiceRoleClient } from '@/lib/supabase-server';
 
 // Helper function to check admin access
 async function checkAdminAccess() {
@@ -26,15 +26,22 @@ export async function GET() {
   }
 
   try {
-    const supabase = await createServerSupabaseClient();
+    const supabase = createServiceRoleClient();
     
-    const { data: signatories } = await supabase
+    const { data: signatories, error: dbError } = await supabase
       .from('lean_data_signatories')
       .select('*')
-      .order('is_default', { ascending: false })
       .order('name', { ascending: true });
 
-    return NextResponse.json(signatories);
+    if (dbError) {
+      console.error('Supabase error fetching signatories:', dbError);
+      return NextResponse.json(
+        { error: 'Database error fetching signatories' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(signatories ?? []);
   } catch (error) {
     console.error('Error fetching LeanData signatories:', error);
     return NextResponse.json(
@@ -52,10 +59,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const supabase = await createServerSupabaseClient();
+    const supabase = createServiceRoleClient();
     
     const body = await request.json();
-    const { name, email, title, isActive = true, isDefault = false } = body;
+    const { name, email, title, isActive = true } = body;
 
     if (!name || !email || !title) {
       return NextResponse.json(
@@ -78,22 +85,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If setting as default, clear other defaults first
-    if (isDefault) {
-      await supabase
-        .from('lean_data_signatories')
-        .update({ is_default: false })
-        .eq('is_default', true);
-    }
-
     const { data: signatory } = await supabase
       .from('lean_data_signatories')
       .insert({
         name,
         email,
         title,
-        is_active: isActive,
-        is_default: isDefault
+        is_active: isActive
       })
       .select()
       .single();

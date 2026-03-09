@@ -10,12 +10,10 @@ interface LeanDataSignatory {
   email: string;
   title: string;
   isActive: boolean;
-  isDefault: boolean;
   createdAt: string;
   updatedAt: string;
   // Database field names (snake_case)
   is_active: boolean;
-  is_default: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -34,8 +32,7 @@ export default function LeanDataSignatoriesPage() {
     name: '',
     email: '',
     title: '',
-    isActive: true,
-    isDefault: false
+    isActive: true
   });
 
   // Check admin access
@@ -65,7 +62,7 @@ export default function LeanDataSignatoriesPage() {
       }
 
       const data = await response.json();
-      setSignatories(data);
+      setSignatories(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching signatories:', error);
       setError('Failed to load signatories');
@@ -79,8 +76,7 @@ export default function LeanDataSignatoriesPage() {
       name: '',
       email: '',
       title: '',
-      isActive: true,
-      isDefault: false
+      isActive: true
     });
     setEditingId(null);
   };
@@ -127,8 +123,7 @@ export default function LeanDataSignatoriesPage() {
       name: signatory.name,
       email: signatory.email,
       title: signatory.title,
-      isActive: signatory.is_active,
-      isDefault: signatory.is_default || false
+      isActive: signatory.is_active
     });
     setEditingId(signatory.id);
   };
@@ -236,11 +231,6 @@ export default function LeanDataSignatoriesPage() {
                               <p className="text-sm text-gray-500">{signatory.title}</p>
                             </div>
                             <div className="flex items-center space-x-2">
-                              {signatory.is_default && (
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                  Default
-                                </span>
-                              )}
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                 signatory.is_active
                                   ? 'bg-green-100 text-green-800'
@@ -343,18 +333,6 @@ export default function LeanDataSignatoriesPage() {
                   />
                   <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
                     Active
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="isDefault"
-                    checked={formData.isDefault}
-                    onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="isDefault" className="ml-2 block text-sm text-gray-900">
-                    Default for new SOWs
                   </label>
                 </div>
               </div>

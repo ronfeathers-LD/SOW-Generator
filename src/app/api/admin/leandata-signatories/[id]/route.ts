@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { createServiceRoleClient } from '@/lib/supabase-server';
 
 // Helper function to check admin access
 async function checkAdminAccess() {
@@ -29,10 +29,10 @@ export async function PUT(
   }
 
   try {
-    const supabase = await createServerSupabaseClient();
+    const supabase = createServiceRoleClient();
     
     const body = await request.json();
-    const { name, email, title, isActive, isDefault } = body;
+    const { name, email, title, isActive } = body;
 
     if (!name || !email || !title) {
       return NextResponse.json(
@@ -56,22 +56,13 @@ export async function PUT(
       );
     }
 
-    // If setting as default, clear other defaults first
-    if (isDefault) {
-      await supabase
-        .from('lean_data_signatories')
-        .update({ is_default: false })
-        .eq('is_default', true);
-    }
-
     const { data: signatory } = await supabase
       .from('lean_data_signatories')
       .update({
         name,
         email,
         title,
-        is_active: isActive !== undefined ? isActive : true,
-        is_default: isDefault !== undefined ? isDefault : false
+        is_active: isActive !== undefined ? isActive : true
       })
       .eq('id', (await params).id)
       .select()
@@ -98,7 +89,7 @@ export async function DELETE(
   }
 
   try {
-    const supabase = await createServerSupabaseClient();
+    const supabase = createServiceRoleClient();
     
     await supabase
       .from('lean_data_signatories')
