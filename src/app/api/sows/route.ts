@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Look up submitter names (submitted_by has no FK constraint)
-    const submitterIds = [...new Set(sows.map(s => s.submitted_by).filter(Boolean))];
+    const submitterIds = Array.from(new Set(sows.map(s => s.submitted_by).filter(Boolean)));
     const submitterMap = new Map<string, string>();
     if (submitterIds.length > 0) {
       const { data: users } = await supabase
