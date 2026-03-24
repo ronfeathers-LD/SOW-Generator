@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       submitted_date: sow.submitted_at
         ? new Date(sow.submitted_at).toISOString().split('T')[0]
         : null,
-      author: (sow.author as { name: string; email: string } | null)?.name || null,
+      author: (sow.author as unknown as { name: string; email: string } | null)?.name || null,
       submitted_by: sow.submitted_by ? submitterMap.get(sow.submitted_by) || null : null,
       status: sow.status,
     }));
