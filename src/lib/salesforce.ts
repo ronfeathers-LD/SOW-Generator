@@ -314,7 +314,18 @@ class SalesforceClient {
       `;
       
       const result = await this.conn.query(query);
-      
+
+      // Sort results: exact matches first, then starts-with, then contains
+      const searchLower = escapedSearchTerm.toLowerCase();
+      result.records.sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
+        const aName = (a.Name as string || '').toLowerCase();
+        const bName = (b.Name as string || '').toLowerCase();
+        const aExact = aName === searchLower ? 0 : aName.startsWith(searchLower) ? 1 : 2;
+        const bExact = bName === searchLower ? 0 : bName.startsWith(searchLower) ? 1 : 2;
+        if (aExact !== bExact) return aExact - bExact;
+        return aName.localeCompare(bName);
+      });
+
       // Use the actual Employee_Band__c field from Salesforce, fallback to calculation if not available
       result.records.forEach((record: Record<string, unknown>) => {
         const numberOfEmployees = record.NumberOfEmployees as number;
