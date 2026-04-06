@@ -310,7 +310,7 @@ class SalesforceClient {
            OR BillingState LIKE '%${escapedSearchTerm}%'
            OR Industry LIKE '%${escapedSearchTerm}%'
         ORDER BY Name 
-        LIMIT 20
+        LIMIT 50
       `;
       
       const result = await this.conn.query(query);
