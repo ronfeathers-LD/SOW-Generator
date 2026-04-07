@@ -20,6 +20,7 @@ import CreateRevisionButton from '@/components/sow/CreateRevisionButton';
 import SOWRevisionHistory from '@/components/sow/SOWRevisionHistory';
 import { useSession } from 'next-auth/react';
 import { parseObjectives } from '@/lib/utils/parse-objectives';
+import PreSubmitChecklistModal from '@/components/sow/PreSubmitChecklistModal';
 
 function getFixLinkForMessage(message: string, sowId: string): { href: string; text: string } | null {
   const lower = message.toLowerCase();
@@ -52,13 +53,14 @@ function ValidationSubmitButton({ sow }: { sow: SOW }) {
     errors: string[];
   } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showChecklist, setShowChecklist] = useState(false);
 
   const checkValidation = useCallback(async () => {
     try {
       // Use the client-safe validation utility
       const { validateSOWForApproval } = await import('@/lib/validation-utils');
       const validationResult = validateSOWForApproval(sow as unknown as Record<string, unknown>);
-      
+
       setValidation(validationResult);
       return validationResult.isValid;
     } catch (error) {
@@ -76,15 +78,25 @@ function ValidationSubmitButton({ sow }: { sow: SOW }) {
         return;
       }
 
+      // Validation passed — show the pre-submission checklist
+      setShowChecklist(true);
+    } catch (error) {
+      console.error('Error validating for review:', error);
+    }
+  };
+
+  const handleConfirmSubmit = async () => {
+    try {
+      setShowChecklist(false);
       setSubmitting(true);
-      
+
       // Simply update the SOW status to 'in_review'
       const response = await fetch(`/api/sow/${sow.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           status: 'in_review',
           updated_at: new Date().toISOString()
         }),
@@ -206,6 +218,13 @@ function ValidationSubmitButton({ sow }: { sow: SOW }) {
           </p>
         </div>
       )}
+
+      <PreSubmitChecklistModal
+        isOpen={showChecklist}
+        onClose={() => setShowChecklist(false)}
+        onConfirm={handleConfirmSubmit}
+        sow={sow}
+      />
     </div>
   );
 }
