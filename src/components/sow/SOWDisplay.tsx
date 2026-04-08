@@ -499,11 +499,12 @@ export default function SOWDisplay({
           projectDescription: data.objectives?.description || '',
           keyObjectives: parseObjectives(data.objectives?.key_objectives),
           clientRoles: Array.isArray(data.roles?.client_roles) ? data.roles.client_roles.map((role: unknown) => {
-            const roleObj = role as { role?: string; name?: string; email?: string; responsibilities?: string };
+            const roleObj = role as { role?: string; name?: string; email?: string; responsibilities?: string; contact_title?: string };
             return {
               role: roleObj.role || '',
               name: roleObj.name || '',
               email: roleObj.email || '',
+              contact_title: roleObj.contact_title || '',
               responsibilities: roleObj.responsibilities || ''
             };
           }) : [],
