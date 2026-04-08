@@ -173,6 +173,10 @@ export async function GET(
       deliverables_content_edited: sow.deliverables_content_edited || false,
       objective_overview_content_edited: sow.objective_overview_content_edited || false,
       key_objectives_content_edited: sow.key_objectives_content_edited || false,
+      // AI-generated content baselines for edit detection
+      ai_generated_objective_overview_content: sow.ai_generated_objective_overview_content || null,
+      ai_generated_key_objectives_content: sow.ai_generated_key_objectives_content || null,
+      ai_generated_deliverables_content: sow.ai_generated_deliverables_content || null,
       // Include submission tracking
       submitted_by: sow.submitted_by || null,
       submitted_at: sow.submitted_at || null,

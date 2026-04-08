@@ -29,8 +29,9 @@ export interface ChecklistSOWData {
   }>;
   clientEmail?: string;
   salesforce_tenants?: string;
-  scope_content_edited?: boolean;
+  objective_overview_content_edited?: boolean;
   key_objectives_content_edited?: boolean;
+  deliverables_content_edited?: boolean;
   version?: number;
   template?: {
     customer_email?: string;
@@ -123,30 +124,45 @@ const automatedChecks: ChecklistItem[] = [
     },
   },
   {
-    id: 'scope-reviewed',
+    id: 'objective-overview-reviewed',
     type: 'automated',
-    label: 'Scope content should be edited from the generated template',
+    label: 'Objective overview should be edited from the AI-generated content',
     check: (sow) => {
-      if (!sow.scope_content_edited) {
+      if (!sow.objective_overview_content_edited) {
         return {
           passed: false,
           detail:
-            'The scope has not been modified from the generated template. Open the Content Editing tab and make any needed adjustments before submitting.',
+            'The objective overview has not been modified from the AI-generated content. Review and edit it on the Objectives tab before submitting.',
         };
       }
       return { passed: true };
     },
   },
   {
-    id: 'objectives-reviewed',
+    id: 'key-objectives-reviewed',
     type: 'automated',
-    label: 'Key objectives should be edited from the generated template',
+    label: 'Key objectives should be edited from the AI-generated content',
     check: (sow) => {
       if (!sow.key_objectives_content_edited) {
         return {
           passed: false,
           detail:
-            'The key objectives have not been modified from the generated template. Open the Content Editing tab and make any needed adjustments before submitting.',
+            'The key objectives have not been modified from the AI-generated content. Review and edit them on the Objectives tab before submitting.',
+        };
+      }
+      return { passed: true };
+    },
+  },
+  {
+    id: 'deliverables-reviewed',
+    type: 'automated',
+    label: 'Deliverables should be edited from the AI-generated content',
+    check: (sow) => {
+      if (!sow.deliverables_content_edited) {
+        return {
+          passed: false,
+          detail:
+            'The deliverables have not been modified from the AI-generated content. Review and edit them on the Objectives tab before submitting.',
         };
       }
       return { passed: true };

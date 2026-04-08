@@ -126,12 +126,16 @@ const ObjectivesWizard = React.memo(function ObjectivesWizard({
     }
     
     if (updates.generatedObjectives) {
+      // Store AI output as both current content and baseline for edit detection
       updatedFormData.custom_objective_overview_content = updates.generatedObjectives.overview;
-      updatedFormData.objective_overview_content_edited = true;
+      updatedFormData.ai_generated_objective_overview_content = updates.generatedObjectives.overview;
+      updatedFormData.objective_overview_content_edited = false;
       updatedFormData.custom_key_objectives_content = updates.generatedObjectives.keyObjectivesHtml || '';
-      updatedFormData.key_objectives_content_edited = true;
+      updatedFormData.ai_generated_key_objectives_content = updates.generatedObjectives.keyObjectivesHtml || '';
+      updatedFormData.key_objectives_content_edited = false;
       updatedFormData.custom_deliverables_content = updates.generatedObjectives.deliverablesHtml || '';
-      updatedFormData.deliverables_content_edited = true;
+      updatedFormData.ai_generated_deliverables_content = updates.generatedObjectives.deliverablesHtml || '';
+      updatedFormData.deliverables_content_edited = false;
       updatedFormData.objectives = {
         ...(formDataRef.current.objectives || {}),
         description: updates.generatedObjectives.overview,

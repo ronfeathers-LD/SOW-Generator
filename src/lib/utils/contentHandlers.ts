@@ -5,6 +5,8 @@ interface ContentHandlerConfig {
   templateKey: string;
   contentKey: keyof SOWData;
   editedKey: keyof SOWData;
+  /** Optional key into formData for AI-generated baseline. When present and non-empty, compare against this instead of the default template. */
+  aiBaselineKey?: keyof SOWData;
 }
 
 interface ContentHandlerContext {
@@ -22,26 +24,31 @@ export const createContentHandler = (
   context: ContentHandlerContext
 ) => {
   return (content: string) => {
-    const { sectionName, templateKey, contentKey, editedKey } = config;
+    const { sectionName, templateKey, contentKey, editedKey, aiBaselineKey } = config;
     const { initializing, initializedSections, templates, formData, setFormData, normalizeContent, checkUnsavedChanges } = context;
 
     // Don't process changes during initialization or if section hasn't been initialized yet
     if (initializing || !initializedSections.has(sectionName)) {
       return;
     }
-    
-    // Check if content has been edited from the original template
+
+    // Determine the baseline to compare against:
+    // 1. AI-generated baseline if available (for AI-generated sections)
+    // 2. Default template (for template-based sections)
+    const aiBaseline = aiBaselineKey ? (formData[aiBaselineKey] as string) : undefined;
+    const baseline = aiBaseline || templates[templateKey];
+
     const normalizedCurrent = normalizeContent(content);
-    const normalizedTemplate = normalizeContent(templates[templateKey]);
-    const isEdited = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
-    
+    const normalizedBaseline = normalizeContent(baseline);
+    const isEdited = normalizedCurrent !== normalizedBaseline && normalizedCurrent !== '';
+
     setFormData({
       ...formData,
       [contentKey]: content,
       [editedKey]: isEdited
     });
-    
-    checkUnsavedChanges(sectionName, content, templates[templateKey]);
+
+    checkUnsavedChanges(sectionName, content, baseline);
   };
 };
 
@@ -58,7 +65,7 @@ export const createResetHandler = (
       [contentKey]: templates[templateKey],
       [editedKey]: false
     });
-    
+
     // After resetting, check if there are still unsaved changes
     if (checkUnsavedChanges) {
       checkUnsavedChanges(sectionName, templates[templateKey], templates[templateKey]);
@@ -115,9 +122,9 @@ export const createAllContentHandlers = (context: ContentHandlerContext) => {
     const sectionName = config.sectionName;
     // Convert kebab-case to camelCase properly
     const camelCaseName = sectionName.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
-    handlers[`handle${camelCaseName.charAt(0).toUpperCase() + camelCaseName.slice(1)}ContentChange`] = 
+    handlers[`handle${camelCaseName.charAt(0).toUpperCase() + camelCaseName.slice(1)}ContentChange`] =
       createContentHandler(config, context);
-    resetHandlers[`reset${camelCaseName.charAt(0).toUpperCase() + camelCaseName.slice(1)}Content`] = 
+    resetHandlers[`reset${camelCaseName.charAt(0).toUpperCase() + camelCaseName.slice(1)}Content`] =
       createResetHandler(config, context);
   });
 

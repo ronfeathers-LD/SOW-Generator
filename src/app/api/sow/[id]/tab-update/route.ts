@@ -196,6 +196,10 @@ export async function PUT(
         if (data.scope_content_edited !== undefined) updateData.scope_content_edited = data.scope_content_edited;
         // Handle preview content (for Content Preview step)
         if (data.preview_content !== undefined) updateData.preview_content = data.preview_content;
+        // Handle AI-generated content baselines (stored at generation time for edit detection)
+        if (data.ai_generated_objective_overview_content !== undefined) updateData.ai_generated_objective_overview_content = data.ai_generated_objective_overview_content;
+        if (data.ai_generated_key_objectives_content !== undefined) updateData.ai_generated_key_objectives_content = data.ai_generated_key_objectives_content;
+        if (data.ai_generated_deliverables_content !== undefined) updateData.ai_generated_deliverables_content = data.ai_generated_deliverables_content;
         break;
 
       case 'Signers & Roles':

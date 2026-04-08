@@ -254,6 +254,11 @@ export interface SOWData {
   custom_billing_content?: string;
   custom_terms_content?: string;
   
+  // AI-generated content baselines (stored at generation time for edit detection)
+  ai_generated_objective_overview_content?: string;
+  ai_generated_key_objectives_content?: string;
+  ai_generated_deliverables_content?: string;
+
   // Content editing flags
   intro_content_edited?: boolean;
   scope_content_edited?: boolean;

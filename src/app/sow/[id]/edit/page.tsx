@@ -154,6 +154,10 @@ export default function EditSOWPage() {
             deliverables_content_edited: data.deliverables_content_edited || false,
             objective_overview_content_edited: data.objective_overview_content_edited || false,
             key_objectives_content_edited: data.key_objectives_content_edited || false,
+            // AI-generated content baselines for edit detection
+            ai_generated_objective_overview_content: data.ai_generated_objective_overview_content || null,
+            ai_generated_key_objectives_content: data.ai_generated_key_objectives_content || null,
+            ai_generated_deliverables_content: data.ai_generated_deliverables_content || null,
           };
 
 

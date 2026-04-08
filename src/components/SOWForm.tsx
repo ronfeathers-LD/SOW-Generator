@@ -967,6 +967,10 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
             key_objectives_content_edited: formData.key_objectives_content_edited,
             selected_documents: formData.selected_documents,
             selected_meetings: formData.selected_meetings,
+            // AI-generated content baselines
+            ai_generated_objective_overview_content: formData.ai_generated_objective_overview_content,
+            ai_generated_key_objectives_content: formData.ai_generated_key_objectives_content,
+            ai_generated_deliverables_content: formData.ai_generated_deliverables_content,
           };
           break;
 

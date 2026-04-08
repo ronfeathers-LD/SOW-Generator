@@ -464,6 +464,14 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
 
 
 
+  // Helper to check if content has been edited from the AI-generated baseline
+  const isEditedFromAIBaseline = (content: string, aiBaselineKey: keyof SOWData): boolean => {
+    const aiBaseline = formData[aiBaselineKey] as string | undefined;
+    if (!aiBaseline) return true; // No baseline means content wasn't AI-generated, treat as edited
+    const normalize = (s: string) => (s || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    return normalize(content) !== normalize(aiBaseline) && normalize(content) !== '';
+  };
+
   const handleCustomDeliverablesChange = (content: string) => {
     setFormData({
       ...formData,
@@ -472,7 +480,7 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
         deliverables: content
       },
       custom_deliverables_content: content,
-      deliverables_content_edited: true
+      deliverables_content_edited: isEditedFromAIBaseline(content, 'ai_generated_deliverables_content')
     });
   };
 
@@ -484,7 +492,7 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
         description: content
       },
       custom_objective_overview_content: content,
-      objective_overview_content_edited: true
+      objective_overview_content_edited: isEditedFromAIBaseline(content, 'ai_generated_objective_overview_content')
     });
   };
 
@@ -496,7 +504,7 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
         key_objectives: [content] // Save as single item for now, will be converted by onChange
       },
       custom_key_objectives_content: content,
-      key_objectives_content_edited: true
+      key_objectives_content_edited: isEditedFromAIBaseline(content, 'ai_generated_key_objectives_content')
     });
   };
 
