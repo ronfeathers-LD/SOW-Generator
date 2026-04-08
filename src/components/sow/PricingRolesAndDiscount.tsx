@@ -362,15 +362,6 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
           updatedRole.totalCost = updatedRole.ratePerHour * updatedRole.totalHours;
         }
         
-        // Special handling for Onboarding Specialist when PM hours are removed
-        // Only apply this logic if the user is not manually editing the hours
-        if (role.role === 'Onboarding Specialist' && field === 'totalHours' && approvedPMHoursRequest) {
-          // When PM hours are removed, Onboarding Specialist should get full base hours
-          const baseHours = baseProjectHours;
-          updatedRole.totalHours = baseHours;
-          updatedRole.totalCost = baseHours * updatedRole.ratePerHour;
-        }
-        
         return updatedRole;
       }
       return role;
