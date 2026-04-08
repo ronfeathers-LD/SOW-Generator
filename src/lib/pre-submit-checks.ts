@@ -125,7 +125,7 @@ const automatedChecks: ChecklistItem[] = [
   {
     id: 'scope-reviewed',
     type: 'automated',
-    label: 'Scope content has been edited from the generated template',
+    label: 'Scope content should be edited from the generated template',
     check: (sow) => {
       if (!sow.scope_content_edited) {
         return {
@@ -140,7 +140,7 @@ const automatedChecks: ChecklistItem[] = [
   {
     id: 'objectives-reviewed',
     type: 'automated',
-    label: 'Key objectives have been edited from the generated template',
+    label: 'Key objectives should be edited from the generated template',
     check: (sow) => {
       if (!sow.key_objectives_content_edited) {
         return {
