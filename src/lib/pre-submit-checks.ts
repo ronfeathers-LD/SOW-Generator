@@ -125,13 +125,13 @@ const automatedChecks: ChecklistItem[] = [
   {
     id: 'scope-reviewed',
     type: 'automated',
-    label: 'Scope content has been manually reviewed',
+    label: 'Scope content has been edited from the generated template',
     check: (sow) => {
       if (!sow.scope_content_edited) {
         return {
           passed: false,
           detail:
-            'The scope appears to be unedited AI-generated content. Please review and trim redundant sections before submitting.',
+            'The scope has not been modified from the generated template. Open the Content Editing tab and make any needed adjustments before submitting.',
         };
       }
       return { passed: true };
@@ -140,13 +140,13 @@ const automatedChecks: ChecklistItem[] = [
   {
     id: 'objectives-reviewed',
     type: 'automated',
-    label: 'Key objectives have been manually reviewed',
+    label: 'Key objectives have been edited from the generated template',
     check: (sow) => {
       if (!sow.key_objectives_content_edited) {
         return {
           passed: false,
           detail:
-            'The key objectives appear to be unedited AI-generated content. Please review for accuracy before submitting.',
+            'The key objectives have not been modified from the generated template. Open the Content Editing tab and make any needed adjustments before submitting.',
         };
       }
       return { passed: true };
