@@ -307,63 +307,11 @@ export class PDFGenerator {
           
           const browserStartTime = Date.now();
           this.browser = await puppeteerCore.launch({
-            args: [
-              ...chromium.args,
-              // Core serverless flags
-              '--no-sandbox',
-              '--disable-setuid-sandbox',
-              '--disable-dev-shm-usage',
-              '--disable-gpu',
-              '--no-first-run',
-              '--no-zygote',
-              '--single-process',
-              // Memory optimization
-              '--max_old_space_size=128',
-              '--memory-pressure-off',
-              '--disable-background-timer-throttling',
-              '--disable-backgrounding-occluded-windows',
-              '--disable-renderer-backgrounding',
-              // Disable unnecessary features
-              '--disable-extensions',
-              '--disable-plugins',
-              '--disable-default-apps',
-              '--disable-javascript',
-              '--disable-images',
-              '--disable-web-security',
-              '--disable-features=VizDisplayCompositor,TranslateUI',
-              '--disable-ipc-flooding-protection',
-              '--disable-hang-monitor',
-              '--disable-prompt-on-repost',
-              '--disable-domain-reliability',
-              '--disable-component-extensions-with-background-pages',
-              '--disable-background-networking',
-              '--disable-sync',
-              '--disable-translate',
-              '--mute-audio',
-              '--no-default-browser-check',
-              '--no-pings',
-              '--disable-logging',
-              '--disable-permissions-api',
-              // Additional memory savings
-              '--disable-client-side-phishing-detection',
-              '--disable-component-update',
-              '--disable-extensions-file-access-check',
-              '--disable-extensions-http-throttling',
-              '--disable-features=BlinkGenPropertyTrees',
-              '--disable-field-trial-config',
-              '--disable-back-forward-cache',
-              '--force-color-profile=srgb',
-              '--metrics-recording-only',
-              '--use-mock-keychain'
-            ],
+            args: chromium.args,
             defaultViewport: { width: 800, height: 1000 },
             executablePath: executablePath,
-            headless: true,
+            headless: "shell" as "shell",
             timeout: 30000,
-            ignoreDefaultArgs: ['--disable-extensions'],
-            handleSIGINT: false,
-            handleSIGTERM: false,
-            handleSIGHUP: false
           });
           
           const browserTime = Date.now() - browserStartTime;
