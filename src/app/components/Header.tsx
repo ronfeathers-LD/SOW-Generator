@@ -2,7 +2,7 @@
 
 export default function Header() {
   return (
-    <div className="bg-white border-b border-gray-200">
+    <div className="bg-white border-b border-gray-200 print-sow-hide">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-center py-2.5">
           <span className="text-sm font-bold tracking-widest uppercase text-gray-900">
