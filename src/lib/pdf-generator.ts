@@ -310,7 +310,7 @@ export class PDFGenerator {
             args: chromium.args,
             defaultViewport: { width: 800, height: 1000 },
             executablePath: executablePath,
-            headless: "shell" as "shell",
+            headless: "shell" as const,
             timeout: 30000,
           });
           
