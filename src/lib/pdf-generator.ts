@@ -515,8 +515,18 @@ export class PDFGenerator {
     
 
     
-    // Parse client roles
-    let clientRoles = this.parseJSONField(sowData.client_roles, []) as ClientRole[];
+    // Parse client roles - handle both direct array and nested { roles: [...] } structure
+    let clientRoles: ClientRole[] = [];
+    if (sowData.client_roles) {
+      if (Array.isArray(sowData.client_roles)) {
+        clientRoles = sowData.client_roles;
+      } else if (typeof sowData.client_roles === 'object' && sowData.client_roles && 'roles' in sowData.client_roles && Array.isArray((sowData.client_roles as { roles?: ClientRole[] }).roles)) {
+        clientRoles = (sowData.client_roles as { roles: ClientRole[] }).roles;
+      } else {
+        const parsed = this.parseJSONField(sowData.client_roles, []);
+        clientRoles = Array.isArray(parsed) ? parsed : [];
+      }
+    }
     // Parse pricing roles - handle both direct array and nested structure
     let pricingRoles: PricingRole[] = [];
     if (sowData.pricing_roles) {
@@ -525,7 +535,8 @@ export class PDFGenerator {
       } else if (typeof sowData.pricing_roles === 'object' && sowData.pricing_roles && 'roles' in sowData.pricing_roles && Array.isArray(sowData.pricing_roles.roles)) {
         pricingRoles = sowData.pricing_roles.roles;
       } else {
-        pricingRoles = this.parseJSONField(sowData.pricing_roles, []);
+        const parsed = this.parseJSONField(sowData.pricing_roles, []);
+        pricingRoles = Array.isArray(parsed) ? parsed : [];
       }
     }
     
