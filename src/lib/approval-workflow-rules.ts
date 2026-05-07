@@ -14,43 +14,48 @@ export interface ApprovalStageConfig {
 
 /**
  * Check if an SOW requires PM approval
- * PM approval is required when: 3+ products OR 100+ total units
- * EXCEPTION: If PM hours have been removed (pm_hours_requirement_disabled = true), 
- * then PM approval is NOT required
+ * PM approval is required when the SOW has any Project Manager hours.
+ * EXCEPTION: If PM hours have been waived (pm_hours_requirement_disabled = true),
+ * PM approval is NOT required.
  */
-interface PricingRole {
-  units?: number | string;
+interface PricingRoleEntry {
+  role?: string;
+  totalHours?: number | string;
+}
+
+type PricingRolesField =
+  | Array<PricingRoleEntry>
+  | { roles?: Array<PricingRoleEntry> }
+  | null
+  | undefined;
+
+function extractPricingRolesArray(field: PricingRolesField): PricingRoleEntry[] {
+  if (!field) return [];
+  if (Array.isArray(field)) return field;
+  if (Array.isArray(field.roles)) return field.roles;
+  return [];
 }
 
 export function requiresPMApproval(sow: {
-  products: string[];
-  pricing_roles?: Array<PricingRole>;
+  products?: string[];
+  pricing_roles?: PricingRolesField;
   pm_hours_requirement_disabled?: boolean;
 }): boolean {
-  // If PM hours have been removed, PM approval is not required
+  // If PM hours have been waived, PM approval is not required
   if (sow.pm_hours_requirement_disabled === true) {
     return false;
   }
-  
-  // Check if SOW would have PM hours based on business rules
-  const products = sow.products || [];
-  const filteredProducts = products.filter((p: string) => p !== '511f28fa-6cc4-41f9-9234-dc45056aa2d2'); // Exclude BookIt Links
-  
-  const has3OrMoreProducts = filteredProducts.length >= 3;
-  
-  // Calculate total units for all pricing roles
-  const pricingRoles = sow.pricing_roles || [];
-  let totalUnits = 0;
-  if (Array.isArray(pricingRoles)) {
-    totalUnits = pricingRoles.reduce((sum: number, role: PricingRole) => {
-      const units = typeof role.units === 'number' ? role.units : 0;
-      return sum + units;
-    }, 0);
-  }
-  
-  const has100OrMoreUnits = totalUnits >= 100;
-  
-  return has3OrMoreProducts || has100OrMoreUnits;
+
+  const roles = extractPricingRolesArray(sow.pricing_roles);
+  const pmRole = roles.find(r => r.role === 'Project Manager');
+  const pmHoursRaw = pmRole?.totalHours;
+  const pmHours = typeof pmHoursRaw === 'number'
+    ? pmHoursRaw
+    : typeof pmHoursRaw === 'string'
+      ? parseFloat(pmHoursRaw) || 0
+      : 0;
+
+  return pmHours > 0;
 }
 
 /**
@@ -58,32 +63,32 @@ export function requiresPMApproval(sow: {
  * Returns array of stage configurations in order
  */
 export async function getRequiredApprovalStages(sow: {
-  products: string[];
-  pricing_roles?: Array<PricingRole>;
+  products?: string[];
+  pricing_roles?: PricingRolesField;
   pm_hours_requirement_disabled?: boolean;
 }): Promise<ApprovalStageConfig[]> {
   const stages: ApprovalStageConfig[] = [];
-  
+
   // Stage 1: Professional Services (ALWAYS REQUIRED)
   stages.push({
     stage_id: 'professional-services', // Will match the actual stage ID from DB
     name: 'Professional Services',
     required: true,
   });
-  
-  // Stage 2: Project Management (CONDITIONAL - only if PM hours exist and haven't been removed)
+
+  // Stage 2: Project Management (CONDITIONAL - only if PM hours exist and haven't been waived)
   const needsPMApproval = requiresPMApproval(sow);
   if (needsPMApproval) {
     stages.push({
       stage_id: 'project-management',
       name: 'Project Management',
       required: true,
-      reason: 'SOW meets PM hour designation (3+ products or 100+ units)',
+      reason: 'SOW includes Project Manager hours',
     });
   } else {
     const reason = sow.pm_hours_requirement_disabled
-      ? 'PM hours have been removed from this SOW'
-      : 'SOW does not meet PM hour designation';
+      ? 'PM hours have been waived for this SOW'
+      : 'SOW has no Project Manager hours';
     stages.push({
       stage_id: 'project-management',
       name: 'Project Management',
@@ -91,14 +96,14 @@ export async function getRequiredApprovalStages(sow: {
       reason: reason,
     });
   }
-  
+
   // Stage 3: Sr. Leadership (ALWAYS REQUIRED)
   stages.push({
     stage_id: 'sr-leadership',
     name: 'Sr. Leadership',
     required: true,
   });
-  
+
   return stages;
 }
 
@@ -108,8 +113,8 @@ export async function getRequiredApprovalStages(sow: {
 export function shouldIncludeStage(
   stageName: string,
   sow: {
-    products: string[];
-    pricing_roles?: Array<PricingRole>;
+    products?: string[];
+    pricing_roles?: PricingRolesField;
     pm_hours_requirement_disabled?: boolean;
   }
 ): boolean {
