@@ -53,6 +53,9 @@ export default function EditSOWPage() {
             salesforce_contact_id: data.salesforce_contact_id,
             // Include account segment
             account_segment: data.account_segment,
+            // Include PM hours removal state so hour recalculation reflects an approved removal
+            pm_hours_requirement_disabled: data.pm_hours_requirement_disabled || false,
+            pm_hours_removed: data.pm_hours_removed || 0,
             // Use the template data from the API response, merging with top-level fields
             template: {
               ...data.template,

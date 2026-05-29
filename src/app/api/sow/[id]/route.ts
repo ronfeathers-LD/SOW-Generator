@@ -156,6 +156,10 @@ export async function GET(
       leandata_signatory_id: sow.leandata_signatory_id || null,
       // Include account segment
       account_segment: sow.account_segment || null,
+      // Include PM hours removal state so the editor recalculates hours correctly
+      pm_hours_requirement_disabled: sow.pm_hours_requirement_disabled || false,
+      pm_hours_removed: sow.pm_hours_removed || 0,
+      pm_hours_removal_approved: sow.pm_hours_removal_approved || false,
       // Include custom content fields
       custom_intro_content: sow.custom_intro_content || null,
       custom_scope_content: sow.custom_scope_content || null,

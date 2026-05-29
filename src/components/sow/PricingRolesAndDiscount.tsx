@@ -120,6 +120,18 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   );
   const { productHours, userGroupHours, accountSegmentHours, baseProjectHours, pmHours, totalUnits, shouldAddProjectManager } = hoursResult;
 
+  // Resolve the account segment from form data first, then the selected account.
+  const accountSegmentValue =
+    (typeof formData.account_segment === 'string' && formData.account_segment) ||
+    selectedAccount?.Employee_Band__c ||
+    '';
+  // Enterprise segments (EE/LE) allow direct PM removal; every other segment
+  // (EC, MM, and any unknown/blank value) must go through the PMO approval flow.
+  // Defaulting unknown segments to "requires approval" prevents PM hours from being
+  // silently dropped without sign-off.
+  const isEnterpriseSegment = accountSegmentValue === 'EE' || accountSegmentValue === 'LE';
+  const pmRemovalRequiresApproval = !isEnterpriseSegment;
+
   // Debug logging removed to prevent console spam
 
   // Helper function to get units for a specific product
@@ -234,14 +246,14 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   */
 
   // Calculate role hours distribution - memoized to prevent recalculation
-  const roleDistribution = useMemo(() => 
+  const roleDistribution = useMemo(() =>
     calculateRoleHoursDistribution(
       baseProjectHours,
       pmHours,
       shouldAddProjectManager,
-      !!approvedPMHoursRequest
+      !!approvedPMHoursRequest || !!formData.pm_hours_requirement_disabled
     ),
-    [baseProjectHours, pmHours, shouldAddProjectManager, approvedPMHoursRequest]
+    [baseProjectHours, pmHours, shouldAddProjectManager, approvedPMHoursRequest, formData.pm_hours_requirement_disabled]
   );
 
   // Auto-sync role hours based on calculated distribution
@@ -388,20 +400,15 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     const roleToRemove = pricingRoles.find(role => role.id === id);
     
     if (roleToRemove?.role === 'Project Manager') {
-      // Get account segment from formData or selectedAccount
-      const accountSegment = formData.account_segment || selectedAccount?.Employee_Band__c;
-      
       // For Project Manager, handle different account segments differently
-      if (accountSegment === 'EC' || accountSegment === 'MM') {
-        // EC and MM accounts: trigger PM Hours Removal flow (approval required)
-        setShowPMHoursRemovalModal(true);
-      } else if (accountSegment === 'EE' || accountSegment === 'LE') {
+      if (isEnterpriseSegment) {
         // EE and LE accounts: show confirmation modal and remove directly
         setPmRoleToRemove(id);
         setShowEnterprisePMRemovalModal(true);
       } else {
-        // Other account segments: remove directly
-        setPricingRoles(pricingRoles.filter(role => role.id !== id));
+        // EC, MM, and any other/unknown segment: trigger PM Hours Removal approval flow.
+        // Never silently remove PM hours without sign-off.
+        setShowPMHoursRemovalModal(true);
       }
     } else {
       // For other roles, just remove them from the table
@@ -565,7 +572,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-gray-900">Project Manager (45%):</span>
-                    {(selectedAccount?.Employee_Band__c === 'EC' || selectedAccount?.Employee_Band__c === 'MM' || !selectedAccount?.Employee_Band__c) && (
+                    {pmRemovalRequiresApproval && (
                       pendingPMHoursRequest ? (
                         <button
                           onClick={() => setShowPMHoursApprovalOverlay(true)}
