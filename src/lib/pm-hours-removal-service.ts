@@ -10,6 +10,163 @@ const fallbackSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+interface PricingRoleRow {
+  role?: string;
+  totalHours?: number | string;
+  ratePerHour?: number | string;
+  defaultRate?: number;
+  description?: string;
+}
+
+const toNum = (v: unknown): number =>
+  typeof v === 'number' ? v : typeof v === 'string' ? parseFloat(v) || 0 : 0;
+
+/**
+ * Authoritatively remove the Project Manager role from a SOW's pricing_roles and
+ * redistribute its hours back to the Onboarding Specialist, then recompute totals.
+ *
+ * This is the inverse of calculateRoleHoursDistribution: when a PM is present the
+ * Onboarding Specialist is reduced by half the PM hours, so removing the PM restores
+ * those hours (OS += pmHours / 2) and drops the PM role entirely.
+ *
+ * Handles both pricing_roles shapes: a bare array (legacy) or an object
+ * { roles: [...], subtotal, discount_*, total_amount, ... }. Returns the updated
+ * value in the same shape plus the number of PM hours that were removed.
+ */
+function stripProjectManagerFromPricing(pricingRoles: unknown): {
+  updated: unknown;
+  pmHoursRemoved: number;
+} {
+  const isObjectForm =
+    !!pricingRoles && typeof pricingRoles === 'object' && !Array.isArray(pricingRoles);
+  const container = isObjectForm ? (pricingRoles as Record<string, unknown>) : null;
+  const rolesArray: PricingRoleRow[] = Array.isArray(pricingRoles)
+    ? (pricingRoles as PricingRoleRow[])
+    : Array.isArray(container?.roles)
+      ? (container!.roles as PricingRoleRow[])
+      : [];
+
+  const pmRole = rolesArray.find(r => r.role === 'Project Manager');
+  const pmHoursRemoved = pmRole ? toNum(pmRole.totalHours) : 0;
+
+  // Nothing to do if there is no Project Manager role.
+  if (!pmRole) {
+    return { updated: pricingRoles, pmHoursRemoved: 0 };
+  }
+
+  const newRoles = rolesArray
+    .filter(r => r.role !== 'Project Manager')
+    .map(r =>
+      r.role === 'Onboarding Specialist'
+        ? { ...r, totalHours: toNum(r.totalHours) + pmHoursRemoved / 2 }
+        : r
+    );
+
+  const subtotal = newRoles.reduce(
+    (sum, r) => sum + toNum(r.totalHours) * toNum(r.ratePerHour),
+    0
+  );
+
+  if (!isObjectForm) {
+    return { updated: newRoles, pmHoursRemoved };
+  }
+
+  const discountType = (container!.discount_type as string) || 'none';
+  let discountTotal = 0;
+  if (discountType === 'fixed') {
+    discountTotal = toNum(container!.discount_amount);
+  } else if (discountType === 'percentage') {
+    discountTotal = subtotal * (toNum(container!.discount_percentage) / 100);
+  }
+
+  return {
+    updated: {
+      ...container,
+      roles: newRoles,
+      subtotal,
+      discount_total: discountTotal,
+      total_amount: subtotal - discountTotal,
+      last_calculated: new Date().toISOString(),
+    },
+    pmHoursRemoved,
+  };
+}
+
+const DEFAULT_PM_RATE = 250;
+const DEFAULT_PM_DESCRIPTION =
+  'Manage timelines, project risk and communications, track and resolve issues';
+
+/**
+ * Inverse of stripProjectManagerFromPricing: re-add a Project Manager role with the
+ * given hours and re-apply the half-PM deduction to the Onboarding Specialist, then
+ * recompute totals. Used when an admin reverses an approved removal. No-op if a PM
+ * role already exists or there are no hours to restore.
+ */
+function restoreProjectManagerToPricing(pricingRoles: unknown, pmHours: number): unknown {
+  if (!pmHours || pmHours <= 0) {
+    return pricingRoles;
+  }
+
+  const isObjectForm =
+    !!pricingRoles && typeof pricingRoles === 'object' && !Array.isArray(pricingRoles);
+  const container = isObjectForm ? (pricingRoles as Record<string, unknown>) : null;
+  const rolesArray: PricingRoleRow[] = Array.isArray(pricingRoles)
+    ? (pricingRoles as PricingRoleRow[])
+    : Array.isArray(container?.roles)
+      ? (container!.roles as PricingRoleRow[])
+      : [];
+
+  // Already has a PM role - nothing to restore.
+  if (rolesArray.some(r => r.role === 'Project Manager')) {
+    return pricingRoles;
+  }
+
+  const withDeduction = rolesArray.map(r =>
+    r.role === 'Onboarding Specialist'
+      ? { ...r, totalHours: Math.max(0, toNum(r.totalHours) - pmHours / 2) }
+      : r
+  );
+  const pmRole: PricingRoleRow = {
+    role: 'Project Manager',
+    totalHours: pmHours,
+    ratePerHour: DEFAULT_PM_RATE,
+    defaultRate: DEFAULT_PM_RATE,
+    description: DEFAULT_PM_DESCRIPTION,
+  };
+  // Insert the PM role after the Onboarding Specialist when possible.
+  const osIndex = withDeduction.findIndex(r => r.role === 'Onboarding Specialist');
+  const newRoles =
+    osIndex >= 0
+      ? [...withDeduction.slice(0, osIndex + 1), pmRole, ...withDeduction.slice(osIndex + 1)]
+      : [...withDeduction, pmRole];
+
+  const subtotal = newRoles.reduce(
+    (sum, r) => sum + toNum(r.totalHours) * toNum(r.ratePerHour),
+    0
+  );
+
+  if (!isObjectForm) {
+    return newRoles;
+  }
+
+  const discountType = (container!.discount_type as string) || 'none';
+  let discountTotal = 0;
+  if (discountType === 'fixed') {
+    discountTotal = toNum(container!.discount_amount);
+  } else if (discountType === 'percentage') {
+    discountTotal = subtotal * (toNum(container!.discount_percentage) / 100);
+  }
+
+  return {
+    ...container,
+    roles: newRoles,
+    subtotal,
+    discount_total: discountTotal,
+    total_amount: subtotal - discountTotal,
+    last_calculated: new Date().toISOString(),
+  };
+}
+
 export class PMHoursRemovalService {
   /**
    * Create a new PM hours requirement disable request
@@ -277,6 +434,22 @@ export class PMHoursRemovalService {
         return { success: false, error: 'Failed to approve request' };
       }
 
+      // Authoritatively strip the Project Manager role from the SOW's pricing so the
+      // hours are actually removed at approval time, regardless of whether anyone
+      // re-opens the SOW in the editor to trigger a front-end recalculation.
+      const { data: sowRow } = await client
+        .from('sows')
+        .select('pricing_roles')
+        .eq('id', request.sow_id)
+        .single();
+
+      const { updated: updatedPricing, pmHoursRemoved } = stripProjectManagerFromPricing(
+        sowRow?.pricing_roles
+      );
+      // currentPMHours has historically been passed as 0; prefer the hours actually
+      // found in pricing_roles so pm_hours_removed reflects reality.
+      const hoursRemoved = pmHoursRemoved || currentPMHours;
+
       // Update the SOW to disable PM hours requirement
       const { error: sowUpdateError } = await client
         .from('sows')
@@ -284,9 +457,11 @@ export class PMHoursRemovalService {
           pm_hours_requirement_disabled: true,
           pm_hours_requirement_disabled_date: new Date().toISOString(),
           pm_hours_requirement_disabled_approver_id: approverId,
-          pm_hours_removed: currentPMHours,
+          pm_hours_removed: hoursRemoved,
           pm_hours_removal_approved: true,
-          pm_hours_removal_date: new Date().toISOString()
+          pm_hours_removal_date: new Date().toISOString(),
+          // Only overwrite pricing_roles when the SOW actually had pricing to update.
+          ...(sowRow?.pricing_roles ? { pricing_roles: updatedPricing } : {})
         })
         .eq('id', request.sow_id);
 
@@ -301,10 +476,10 @@ export class PMHoursRemovalService {
         requestId,
         approverId,
         'request_approved',
-        currentPMHours,
+        hoursRemoved,
         0, // PM hours requirement is now disabled
         `PM hours requirement disable approved: ${comments || 'No comments'}`,
-        { hours_removed: currentPMHours, requirement_disabled: true },
+        { hours_removed: hoursRemoved, requirement_disabled: true },
         client
       );
 
@@ -814,6 +989,19 @@ export class PMHoursRemovalService {
 
       // If the request was approved, we need to revert the SOW changes
       if (request.status === 'approved') {
+        // Restore the Project Manager role to pricing that the approval stripped out.
+        const { data: sowRow } = await client
+          .from('sows')
+          .select('pricing_roles, pm_hours_removed')
+          .eq('id', request.sow_id)
+          .single();
+
+        const hoursToRestore = sowRow?.pm_hours_removed || request.current_pm_hours || 0;
+        const restoredPricing = restoreProjectManagerToPricing(
+          sowRow?.pricing_roles,
+          hoursToRestore
+        );
+
         const { error: sowUpdateError } = await client
           .from('sows')
           .update({
@@ -822,7 +1010,8 @@ export class PMHoursRemovalService {
             pm_hours_requirement_disabled_approver_id: null,
             pm_hours_removed: 0,
             pm_hours_removal_approved: false,
-            pm_hours_removal_date: null
+            pm_hours_removal_date: null,
+            ...(sowRow?.pricing_roles ? { pricing_roles: restoredPricing } : {})
           })
           .eq('id', request.sow_id);
 
