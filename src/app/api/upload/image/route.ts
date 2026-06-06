@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
 import { getServerSession } from 'next-auth';
+import { createServiceRoleClient } from '@/lib/supabase-server';
+
+// Supabase Storage bucket that holds rich-text-editor images (public read).
+const BUCKET = 'rte-images';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,17 +35,35 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
     const fileExtension = file.name.split('.').pop() || 'jpg';
-    const fileName = `rte-images/${timestamp}-${randomString}.${fileExtension}`;
+    const fileName = `${timestamp}-${randomString}.${fileExtension}`;
 
-    // Upload to Vercel Blob
-    const blob = await put(fileName, file, {
-      access: 'public',
-      contentType: file.type,
-    });
+    // Upload to Supabase Storage
+    const supabase = createServiceRoleClient();
+    const arrayBuffer = await file.arrayBuffer();
+
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET)
+      .upload(fileName, Buffer.from(arrayBuffer), {
+        contentType: file.type,
+        cacheControl: '31536000',
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error('Error uploading image to Supabase Storage:', uploadError);
+      return NextResponse.json(
+        { error: 'Failed to upload image' },
+        { status: 500 }
+      );
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from(BUCKET)
+      .getPublicUrl(fileName);
 
     return NextResponse.json({
       success: true,
-      url: blob.url,
+      url: publicUrlData.publicUrl,
       filename: fileName,
       size: file.size,
       type: file.type,

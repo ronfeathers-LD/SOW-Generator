@@ -8,8 +8,9 @@
  * Priority order:
  * 1. NEXT_PUBLIC_APP_URL (for client-side and server-side)
  * 2. NEXTAUTH_URL (fallback for server-side)
- * 3. VERCEL_URL (automatically set by Vercel)
- * 4. localhost fallback for development
+ * 3. RAILWAY_PUBLIC_DOMAIN (automatically set by Railway)
+ * 4. VERCEL_URL (legacy — automatically set by Vercel)
+ * 5. localhost fallback for development
  */
 export function getAppBaseUrl(): string {
   // Check NEXT_PUBLIC_APP_URL first (most reliable)
@@ -22,7 +23,12 @@ export function getAppBaseUrl(): string {
     return process.env.NEXTAUTH_URL;
   }
 
-  // Check VERCEL_URL (automatically set by Vercel)
+  // Check RAILWAY_PUBLIC_DOMAIN (automatically set by Railway)
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+    return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+  }
+
+  // Check VERCEL_URL (legacy — automatically set by Vercel)
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
@@ -56,6 +62,7 @@ export function logUrlConfiguration(): void {
   console.log(`  Base URL: ${baseUrl}`);
   console.log(`  NEXT_PUBLIC_APP_URL: ${process.env.NEXT_PUBLIC_APP_URL || 'not set'}`);
   console.log(`  NEXTAUTH_URL: ${process.env.NEXTAUTH_URL || 'not set'}`);
+  console.log(`  RAILWAY_PUBLIC_DOMAIN: ${process.env.RAILWAY_PUBLIC_DOMAIN || 'not set'}`);
   console.log(`  VERCEL_URL: ${process.env.VERCEL_URL || 'not set'}`);
   console.log(`  NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
 }

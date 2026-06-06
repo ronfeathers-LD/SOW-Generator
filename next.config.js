@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ['@sparticuz/chromium', 'puppeteer-core'],
+  serverExternalPackages: ['puppeteer-core', 'puppeteer'],
   images: {
     remotePatterns: [
       {
@@ -10,10 +10,18 @@ const nextConfig = {
         pathname: '/**',
       },
       {
+        // Legacy: images previously uploaded to Vercel Blob
         protocol: 'https',
         hostname: 'tlxeqgk0yr1ztnva.public.blob.vercel-storage.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        // Supabase Storage public objects (rte-images bucket)
+        protocol: 'https',
+        hostname: '*.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/**',
       },
     ],
   },

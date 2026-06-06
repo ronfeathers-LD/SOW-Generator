@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "puppeteer browsers install chrome || puppeteer browsers install chromium || echo 'Warning: Failed to install browsers. PDF generation may not work.'",
+    "postinstall": "node -e \"process.exit(process.env.PUPPETEER_SKIP_DOWNLOAD === 'true' ? 0 : 1)\" || puppeteer browsers install chrome || puppeteer browsers install chromium || echo 'Warning: Failed to install browsers. PDF generation may not work.'",
     "install-chrome": "puppeteer browsers install chrome",
     "install-chromium": "puppeteer browsers install chromium",
     "install-browsers": "puppeteer browsers install chrome && puppeteer browsers install chromium"
@@ -27,7 +27,6 @@
   "dependencies": {
     "@google/generative-ai": "^0.2.1",
     "@react-pdf/renderer": "^4.3.0",
-    "@sparticuz/chromium": "^138.0.2",
     "@supabase/supabase-js": "^2.53.0",
     "@tiptap/extension-image": "^3.4.2",
     "@tiptap/extension-table": "^3.0.9",
@@ -42,7 +41,6 @@
     "@types/pg": "^8.15.5",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "@vercel/blob": "^1.1.1",
     "dotenv": "^17.2.1",
     "eslint": "latest",
     "eslint-config-next": "latest",
