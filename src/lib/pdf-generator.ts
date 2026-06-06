@@ -1,6 +1,5 @@
 import puppeteer, { Browser } from 'puppeteer';
 import puppeteerCore from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
 import { parseObjectives } from './utils/parse-objectives';
 import { sortProducts, resolveProductNames } from './utils/productSorting';
 import { processContent } from './text-to-html';
@@ -271,10 +270,15 @@ export class PDFGenerator {
     };
 
     try {
-      // Check if chromium is available
-      diagnostics.chromiumPath = await chromium.executablePath();
-      diagnostics.chromiumAvailable = true;
-      console.log('✅ Chromium is available at:', diagnostics.chromiumPath);
+      // Check if the system Chromium is available at the expected path
+      const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
+      diagnostics.chromiumPath = executablePath;
+      diagnostics.chromiumAvailable = fs.existsSync(executablePath);
+      if (diagnostics.chromiumAvailable) {
+        console.log('✅ Chromium is available at:', executablePath);
+      } else {
+        console.warn('⚠️ Chromium not found at:', executablePath);
+      }
     } catch (error) {
       console.warn('⚠️ Chromium not available:', error);
     }
@@ -298,25 +302,30 @@ export class PDFGenerator {
       
       try {
         if (process.env.NODE_ENV === 'production') {
-          // Use Vercel-optimized approach for production
-          console.log('🚀 Launching Vercel-optimized Chromium...');
-          console.log('📋 Using chromium args:', chromium.args);
-          
-          const executablePath = await chromium.executablePath();
+          // Use the Chromium installed in the container image (see Dockerfile).
+          // PUPPETEER_EXECUTABLE_PATH is set in the runtime image; fall back to
+          // the standard Debian Chromium path.
+          const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
+          console.log('🚀 Launching system Chromium for production...');
           console.log('📁 Chromium executable path:', executablePath);
-          
+
           const browserStartTime = Date.now();
           this.browser = await puppeteerCore.launch({
-            args: chromium.args,
+            args: [
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage',
+              '--disable-gpu',
+            ],
             defaultViewport: { width: 800, height: 1000 },
             executablePath: executablePath,
-            headless: "shell" as const,
+            headless: true,
             timeout: 30000,
           });
-          
+
           const browserTime = Date.now() - browserStartTime;
           const totalTime = Date.now() - initStartTime;
-          console.log(`✅ Vercel-optimized Chromium launched successfully in ${browserTime}ms (total: ${totalTime}ms)`);
+          console.log(`✅ System Chromium launched successfully in ${browserTime}ms (total: ${totalTime}ms)`);
           console.log(`💾 Memory after browser launch: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
           
           // Add browser event listeners for debugging

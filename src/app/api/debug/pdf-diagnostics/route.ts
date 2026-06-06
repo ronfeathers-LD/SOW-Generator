@@ -32,7 +32,7 @@ function generateRecommendations(diagnostics: Record<string, unknown>): string[]
   const recommendations: string[] = [];
   
   if (!diagnostics.chromiumAvailable) {
-    recommendations.push('Chromium not available - check @sparticuz/chromium installation');
+    recommendations.push('Chromium not available - ensure the container installs Chromium and PUPPETEER_EXECUTABLE_PATH points to it');
   }
   
   if (!diagnostics.puppeteerAvailable) {
