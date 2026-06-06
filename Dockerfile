@@ -12,6 +12,17 @@ WORKDIR /app
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Build-time variables. `next build` evaluates module-level code (including the
+# Supabase clients, which read these and throw if missing) and inlines all
+# NEXT_PUBLIC_* values into the client bundle. Railway passes service variables
+# into the Docker build as build args when they are declared as ARG here.
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+
 # Install dependencies first for better layer caching
 COPY package.json package-lock.json ./
 RUN npm ci
