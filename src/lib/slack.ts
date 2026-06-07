@@ -59,6 +59,10 @@ class SlackService {
         body: JSON.stringify(payload),
       });
 
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        console.error(`Slack sendMessage failed: ${response.status} ${response.statusText} ${body}`.trim());
+      }
       return response.ok;
     } catch (error) {
       console.error('Error sending Slack message:', error);
@@ -589,11 +593,12 @@ class SlackService {
   }
 }
 
-// Create a singleton instance
-let slackService: SlackService | null = null;
-
 export async function getSlackService(): Promise<SlackService | null> {
-  if (!slackService) {
+  // Build fresh each call (re-reading config) so admin config changes take
+  // effect immediately. Previously a process-lifetime singleton cached stale
+  // config until restart. (audit #101)
+  let slackService: SlackService | null = null;
+  {
     try {
       // Try to get config from database first
       const { createServiceRoleClient } = await import('./supabase-server');

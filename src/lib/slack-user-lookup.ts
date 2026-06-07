@@ -263,28 +263,41 @@ export class SlackUserLookupService {
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}/users.list`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.botToken}`,
-        },
-      });
+      // Paginate users.list — without following next_cursor, workspaces with
+      // more than one page of users would silently miss everyone past page 1.
+      const members: SlackUser[] = [];
+      let cursor: string | undefined;
+      do {
+        const url = new URL(`${this.baseUrl}/users.list`);
+        url.searchParams.set('limit', '200');
+        if (cursor) url.searchParams.set('cursor', cursor);
 
-      const data = await response.json();
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${this.botToken}`,
+          },
+        });
 
-      if (data.ok && data.members) {
-        // Filter out bots and deleted users
-        const filteredUsers = data.members.filter((user: SlackUser) => 
-          !user.is_bot && !user.deleted
-        );
-        
-        // Cache the filtered users
-        this.setCache(filteredUsers);
-        
-        return filteredUsers;
-      } else {
-        throw new Error(data.error || 'Failed to fetch users');
-      }
+        const data = await response.json();
+        if (!data.ok) {
+          throw new Error(data.error || 'Failed to fetch users');
+        }
+        if (Array.isArray(data.members)) {
+          members.push(...data.members);
+        }
+        cursor = data.response_metadata?.next_cursor || undefined;
+      } while (cursor);
+
+      // Filter out bots and deleted users
+      const filteredUsers = members.filter((user: SlackUser) =>
+        !user.is_bot && !user.deleted
+      );
+
+      // Cache the filtered users
+      this.setCache(filteredUsers);
+
+      return filteredUsers;
     } catch (error) {
       console.error('Error fetching all users:', error);
       throw error;
