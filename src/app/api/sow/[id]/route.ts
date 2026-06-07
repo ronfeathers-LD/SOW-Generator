@@ -604,8 +604,9 @@ export async function PUT(
       }
     }
 
-    // Send notifications when SOW is rejected
-    if (data.rejected_at) {
+    // Send notifications when SOW is rejected. Trigger on the actual status
+    // transition, not a caller-supplied rejected_at field. (audit #57)
+    if (data.status === 'rejected') {
       try {
         // Get SOW details for the notification
         const { data: sowDetails } = await supabase
