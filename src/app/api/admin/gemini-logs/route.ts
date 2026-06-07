@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { GeminiLoggingService } from '@/lib/gemini-logging';
+import { requireAuth } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
   try {
-    // Check if user is authenticated
-    const session = await getServerSession();
-    if (!session?.user) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
+    // Admin only — logs can contain sensitive prompt/customer content.
+    const auth = await requireAuth(['admin']);
+    if ('error' in auth) return auth.error;
 
-    // TODO: Add admin role check here
-    // For now, allow any authenticated user to access logs
-    
     const { searchParams } = new URL(request.url);
     
     // Parse query parameters
@@ -58,16 +53,12 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Check if user is authenticated
-    const session = await getServerSession();
-    if (!session?.user) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
+    // Admin only — bulk-deletes logs.
+    const auth = await requireAuth(['admin']);
+    if ('error' in auth) return auth.error;
 
-    // TODO: Add admin role check here
-    
     const { searchParams } = new URL(request.url);
-    const daysToKeep = searchParams.get('daysToKeep') ? 
+    const daysToKeep = searchParams.get('daysToKeep') ?
       parseInt(searchParams.get('daysToKeep')!) : 30;
 
     // Clean up old logs
