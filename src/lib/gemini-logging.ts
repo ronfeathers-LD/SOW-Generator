@@ -46,8 +46,10 @@ export class GeminiLoggingService {
         method,
         customer_name: customerName,
         transcript_length: transcript.length,
-        prompt_content: promptContent,
-        full_transcript: transcript, // Store the complete transcript
+        // Sensitive customer call content is no longer persisted: store only
+        // lengths/metadata, not the full prompt or transcript bodies. (audit #81)
+        prompt_content: `[redacted: ${promptContent.length} chars]`,
+        full_transcript: undefined,
         gemini_response: geminiResponse,
         parsed_result: parsedResult,
         error_message: error?.message,
@@ -56,8 +58,8 @@ export class GeminiLoggingService {
         processing_time_ms: processingTimeMs,
         success: !error,
         metadata: {
-          // Show transcript info without cluttering logs
-          transcript_info: `[TRANSCRIPT: ${transcript.length} characters] - Full transcript stored in full_transcript field`,
+          // Length only — the transcript body is intentionally not stored.
+          transcript_info: `[TRANSCRIPT: ${transcript.length} characters] (body not stored)`,
           // Show response info
           response_length: geminiResponse.length,
           // Show parsing result info
