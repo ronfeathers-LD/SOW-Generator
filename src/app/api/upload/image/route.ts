@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { createServiceRoleClient } from '@/lib/supabase-server';
 
 // Supabase Storage bucket that holds rich-text-editor images (public read).
@@ -26,7 +27,7 @@ function detectImageType(buf: Buffer): { type: string; ext: string } | null {
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
