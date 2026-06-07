@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { salesforceClient } from '@/lib/salesforce';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { requireAuth } from '@/lib/api-auth';
+
+const SF_ID = /^[a-zA-Z0-9]{15,18}$/;
 
 export async function GET(request: NextRequest) {
   return POST(request);
@@ -8,8 +11,19 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { opportunityId = '006PL00000TTafOYAT' } = await request.json();
-    
+    // Debug/introspection endpoint that hits the live CRM — admin only.
+    const auth = await requireAuth(['admin']);
+    if ('error' in auth) return auth.error;
+
+    const { opportunityId } = await request.json().catch(() => ({ opportunityId: undefined }));
+
+    if (!opportunityId || !SF_ID.test(opportunityId)) {
+      return NextResponse.json(
+        { error: 'A valid Opportunity ID is required' },
+        { status: 400 }
+      );
+    }
+
     console.log('🔐 Getting Salesforce configuration...');
     
     // Get Salesforce config from database

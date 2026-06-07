@@ -1,10 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { requireAuth } from '@/lib/api-auth';
+
+// Secret fields that must never be returned to the client.
+const SECRET_FIELDS = ['client_secret', 'access_token', 'refresh_token'];
+
+function stripSecrets(config: Record<string, unknown> | null) {
+  if (!config) return null;
+  const safe: Record<string, unknown> = { ...config };
+  for (const field of SECRET_FIELDS) {
+    // Replace the secret value with a boolean indicating whether it is set.
+    safe[`has_${field}`] = !!safe[field];
+    delete safe[field];
+  }
+  return safe;
+}
 
 export async function GET() {
   try {
+    const auth = await requireAuth(['admin']);
+    if ('error' in auth) return auth.error;
+
     const supabase = await createServerSupabaseClient();
-    
+
     const { data, error } = await supabase
       .from('google_drive_configs')
       .select('*')
@@ -18,7 +36,7 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(data || null);
+    return NextResponse.json(stripSecrets(data));
   } catch (error) {
     console.error('Error fetching Google Drive config:', error);
     return NextResponse.json(
@@ -30,6 +48,9 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth(['admin']);
+    if ('error' in auth) return auth.error;
+
     const supabase = await createServerSupabaseClient();
     const configData = await request.json();
 
@@ -70,7 +91,7 @@ export async function POST(request: NextRequest) {
       result = data;
     }
 
-    return NextResponse.json(result);
+    return NextResponse.json(stripSecrets(result));
   } catch (error) {
     console.error('Error saving Google Drive config:', error);
     return NextResponse.json(

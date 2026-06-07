@@ -1,14 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { salesforceClient } from '@/lib/salesforce';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { requireAuth } from '@/lib/api-auth';
+
+const SF_ID = /^[a-zA-Z0-9]{15,18}$/;
 
 export async function POST(request: NextRequest) {
   try {
+    // This route authenticates to the live Salesforce org with stored
+    // credentials — it must never be reachable unauthenticated.
+    const auth = await requireAuth();
+    if ('error' in auth) return auth.error;
+
     const { opportunityId } = await request.json();
-    
-    if (!opportunityId) {
+
+    if (!opportunityId || !SF_ID.test(opportunityId)) {
       return NextResponse.json(
-        { error: 'Opportunity ID is required' },
+        { error: 'A valid Opportunity ID is required' },
         { status: 400 }
       );
     }
@@ -63,7 +71,7 @@ export async function POST(request: NextRequest) {
     let partnerAccountInfo = null;
     const partnerAccountId = opportunity.ISV_Partner_Account__c || opportunity.Partner_Account__c;
     
-    if (partnerAccountId) {
+    if (partnerAccountId && SF_ID.test(partnerAccountId)) {
       const partnerAccountQuery = `
         SELECT Id, Name, Type, Industry, Website, Phone, OwnerId, Owner.Name,
                Partner_Account_Status__c, Partner_Type__c, Partner_Tier__c,
@@ -126,8 +134,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-export async function GET(request: NextRequest) {
-  return POST(request);
 }
