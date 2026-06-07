@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { supabaseApi } from '@/lib/supabase-api';
 import { PDFGenerator } from '@/lib/pdf-generator';
 
@@ -12,7 +13,7 @@ export async function POST(
     const { id } = await params;
     
     // Check authentication
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
