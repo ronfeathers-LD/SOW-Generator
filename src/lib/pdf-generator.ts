@@ -81,7 +81,8 @@ export async function launchPuppeteerBrowser(): Promise<Browser> {
       '--disable-background-timer-throttling',
       '--disable-backgrounding-occluded-windows',
       '--disable-renderer-backgrounding',
-      '--disable-web-security',
+      // NOTE: --disable-web-security removed — it relaxed same-origin policy and,
+      // combined with rendering a user-controlled company_logo URL, enabled SSRF. (audit #107)
       '--disable-features=VizDisplayCompositor',
       '--disable-ipc-flooding-protection'
     ],
@@ -519,7 +520,14 @@ export class PDFGenerator {
   private generateSOWHTML(sowData: SOWData, sortedProducts: string[] = []): string {
     const title = sowData.sow_title || 'Untitled SOW';
     const clientName = sowData.client_name || 'Unknown Client';
-    const companyLogo = sowData.company_logo || '';
+    // Only allow an https URL or a base64 data:image for the company logo —
+    // anything else (http, file://, internal hosts, attribute-breaking chars)
+    // is dropped to prevent SSRF / injection via company_logo. (audit #107)
+    const rawCompanyLogo = sowData.company_logo || '';
+    const companyLogo = (/^https:\/\/[^\s"'<>]+$/i.test(rawCompanyLogo)
+      || /^data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=]+$/i.test(rawCompanyLogo))
+      ? rawCompanyLogo
+      : '';
     const leanDataLogoUrl = getLeanDataLogoUrl();
     
 
