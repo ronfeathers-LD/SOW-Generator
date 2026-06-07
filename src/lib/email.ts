@@ -108,16 +108,27 @@ class EmailService {
         return false;
       }
 
-      // Replace variables in template
+      // Replace variables in template. Values are HTML-escaped before going
+      // into htmlContent so a value can't inject markup/script (audit #75).
+      const escapeHtml = (v: unknown) =>
+        String(v ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
       let subject = template.subject;
       let htmlContent = template.htmlContent;
       let textContent = template.textContent || '';
 
       Object.entries(variables).forEach(([key, value]) => {
-        const regex = new RegExp(`{{${key}}}`, 'g');
-        subject = subject.replace(regex, value);
-        htmlContent = htmlContent.replace(regex, value);
-        textContent = textContent.replace(regex, value);
+        const regex = new RegExp(`{{${escapeRegExp(key)}}}`, 'g');
+        const raw = String(value ?? '');
+        subject = subject.replace(regex, raw);
+        htmlContent = htmlContent.replace(regex, escapeHtml(value));
+        textContent = textContent.replace(regex, raw);
       });
 
       const mailOptions: {
