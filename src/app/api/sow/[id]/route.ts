@@ -243,17 +243,10 @@ export async function GET(
     if (!sow.account_segment && sow.salesforce_account_id) {
       try {
         console.log('🔧 FIX: Fetching missing account segment from Salesforce...');
-        const salesforceClient = await import('@/lib/salesforce').then(m => m.default);
-        
-        // Get Salesforce config
-        const { data: config } = await supabase
-          .from('salesforce_configs')
-          .select('*')
-          .eq('is_active', true)
-          .single();
+        const { getAuthenticatedSalesforceClient } = await import('@/lib/salesforce-server');
+        const salesforceClient = await getAuthenticatedSalesforceClient(supabase);
 
-        if (config) {
-          await salesforceClient.authenticate(config.username, config.password, config.security_token || undefined, config.login_url);
+        if (salesforceClient) {
           const account = await salesforceClient.getAccount(sow.salesforce_account_id);
           
           if (account.Employee_Band__c) {

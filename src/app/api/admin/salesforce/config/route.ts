@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { encryptSecret } from '@/lib/crypto-utils';
 
 // Helper function to check admin access
 async function checkAdminAccess() {
@@ -80,13 +81,14 @@ export async function POST(request: NextRequest) {
       .update({ is_active: false })
       .eq('is_active', true);
 
-    // Create new configuration
+    // Create new configuration. Secrets are encrypted at rest (audit #92);
+    // getActiveSalesforceConfig transparently decrypts them on read.
     const { data: config } = await supabase
       .from('salesforce_configs')
       .insert({
         username,
-        password,
-        security_token: securityToken || null,
+        password: encryptSecret(password),
+        security_token: securityToken ? encryptSecret(securityToken) : null,
         login_url: loginUrl || 'https://login.salesforce.com',
         is_active: isActive !== false, // Default to true
       })
