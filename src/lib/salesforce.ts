@@ -94,6 +94,25 @@ export interface SalesforceOpportunity {
   Date_of_Partner_Engagement__c?: string;
 }
 
+/**
+ * Salesforce record IDs are strictly 15- or 18-character alphanumeric strings.
+ * Validate before interpolating into SOQL to prevent injection. Throws on bad input.
+ */
+export function assertValidSalesforceId(id: string, label = 'Salesforce ID'): string {
+  if (typeof id !== 'string' || !/^[a-zA-Z0-9]{15,18}$/.test(id)) {
+    throw new Error(`Invalid ${label}`);
+  }
+  return id;
+}
+
+/**
+ * Escape a user-supplied string for safe inclusion as a SOQL string literal.
+ * Order matters: escape backslashes first, then single quotes.
+ */
+export function escapeSOQL(value: string): string {
+  return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
 class SalesforceClient {
   private conn: jsforce.Connection;
 
@@ -298,10 +317,10 @@ class SalesforceClient {
    */
   async searchAccounts(searchTerm: string): Promise<SalesforceAccount[]> {
     try {
-      const escapedSearchTerm = searchTerm.replace(/'/g, "\\'");
-      
+      const escapedSearchTerm = escapeSOQL(searchTerm);
+
       const query = `
-        SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
+        SELECT Id, Name, BillingStreet, BillingCity, BillingState,
                BillingPostalCode, BillingCountry, Industry, NumberOfEmployees,
                Employee_Band__c, Owner.Name, Owner.Email
         FROM Account 
@@ -375,10 +394,10 @@ class SalesforceClient {
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
                BillingPostalCode, BillingCountry, Employee_Band__c,
                Owner.Name, Owner.Email
-        FROM Account 
-        WHERE Id = '${accountId}'
+        FROM Account
+        WHERE Id = '${assertValidSalesforceId(accountId, 'account ID')}'
       `;
-      
+
       const result = await this.conn.query(query);
       if (result.records.length === 0) {
         throw new Error('Account not found');
@@ -390,7 +409,7 @@ class SalesforceClient {
       if (!account.Employee_Band__c) {
         try {
           // Get NumberOfEmployees to calculate segment if Employee_Band__c is not available
-          const employeeQuery = `SELECT NumberOfEmployees FROM Account WHERE Id = '${accountId}'`;
+          const employeeQuery = `SELECT NumberOfEmployees FROM Account WHERE Id = '${assertValidSalesforceId(accountId, 'account ID')}'`;
           const employeeResult = await this.conn.query(employeeQuery);
           
           if (employeeResult.records.length > 0) {
@@ -448,8 +467,8 @@ class SalesforceClient {
       const query = `
         SELECT Id, FirstName, LastName, Email, Phone, Title, AccountId,
                Account.Name
-        FROM Contact 
-        WHERE AccountId = '${accountId}' 
+        FROM Contact
+        WHERE AccountId = '${assertValidSalesforceId(accountId, 'account ID')}'
         ORDER BY FirstName, LastName
       `;
       
@@ -479,8 +498,8 @@ class SalesforceClient {
                Partner_Account__c, Partner_Account__r.Name,
                Implementation_Partner__c, Channel_Partner_Contract_Amount__c,
                Date_of_Partner_Engagement__c
-        FROM Opportunity 
-        WHERE AccountId = '${accountId}' 
+        FROM Opportunity
+        WHERE AccountId = '${assertValidSalesforceId(accountId, 'account ID')}'
           AND StageName != 'Closed Lost'
           AND StageName != 'Closed Won'
           AND StageName != 'Disqualified'
@@ -500,13 +519,14 @@ class SalesforceClient {
    */
   async searchContacts(searchTerm: string): Promise<SalesforceContact[]> {
     try {
+      const escapedSearchTerm = escapeSOQL(searchTerm);
       const query = `
         SELECT Id, FirstName, LastName, Email, Phone, Title, AccountId,
                Account.Name
-        FROM Contact 
-        WHERE FirstName LIKE '%${searchTerm}%' 
-           OR LastName LIKE '%${searchTerm}%' 
-           OR Email LIKE '%${searchTerm}%'
+        FROM Contact
+        WHERE FirstName LIKE '%${escapedSearchTerm}%'
+           OR LastName LIKE '%${escapedSearchTerm}%'
+           OR Email LIKE '%${escapedSearchTerm}%'
         ORDER BY FirstName, LastName 
         LIMIT 10
       `;

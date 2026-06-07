@@ -3,42 +3,49 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 export async function middleware(request: NextRequest) {
-  const token = await getToken({ 
+  const { pathname } = request.nextUrl;
+  const token = await getToken({
     req: request,
-    secret: process.env.NEXTAUTH_SECRET 
+    secret: process.env.NEXTAUTH_SECRET,
   });
-  
-  const isAdmin = token?.role === "admin";
-  const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
-  const isGeminiAdminRoute = request.nextUrl.pathname.startsWith("/api/admin/gemini");
-  
-  // Only allow these routes without authentication
-  const isPublicRoute = request.nextUrl.pathname === "/" || 
-                       request.nextUrl.pathname.startsWith("/api/auth") ||
-                       request.nextUrl.pathname.startsWith("/_next") ||
-                       request.nextUrl.pathname === "/favicon.ico" ||
-                       request.nextUrl.pathname.startsWith("/public") ||
-                       request.nextUrl.pathname.startsWith("/images") ||
-                       request.nextUrl.pathname.startsWith("/api/public") ||
-                       request.nextUrl.pathname.startsWith("/api/sow-content-templates") ||
-                       request.nextUrl.pathname.startsWith("/salesforce-fields-explorer") ||
-                       request.nextUrl.pathname.startsWith("/api/salesforce/fields-explorer") ||
-                       request.nextUrl.pathname.startsWith("/api/salesforce/partner-info");
 
-  // Allow access to public routes
+  const isAdmin = token?.role === "admin";
+  const isApi = pathname.startsWith("/api");
+  // Admin pages AND all admin APIs must be admin-gated (previously only
+  // /api/admin/gemini was, leaving every other /api/admin/* route open to any
+  // authenticated user).
+  const isAdminArea = pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
+
+  // Only allow these routes without authentication. NOTE: the Salesforce
+  // partner-info / fields-explorer routes were previously public — they
+  // authenticate to the live CRM with stored credentials, so they now require
+  // a session like everything else.
+  const isPublicRoute =
+    pathname === "/" ||
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/_next") ||
+    pathname === "/favicon.ico" ||
+    pathname.startsWith("/public") ||
+    pathname.startsWith("/images") ||
+    pathname.startsWith("/api/public");
+
   if (isPublicRoute) {
     return NextResponse.next();
   }
 
-  // Require authentication for all other routes
+  // Require authentication for everything else.
   if (!token) {
+    if (isApi) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-
-
-  // Redirect non-admin users trying to access admin routes
-  if ((isAdminRoute || isGeminiAdminRoute) && !isAdmin) {
+  // Require admin role for admin pages and admin APIs.
+  if (isAdminArea && !isAdmin) {
+    if (isApi) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

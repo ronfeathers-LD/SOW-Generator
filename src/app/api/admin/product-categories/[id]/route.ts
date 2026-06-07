@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { requireAuth } from '@/lib/api-auth';
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAuth(['admin']);
+    if ('error' in auth) return auth.error;
+
     const supabase = await createServerSupabaseClient();
     const { id } = await params;
     const body = await request.json();
@@ -34,9 +38,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAuth(['admin']);
+    if ('error' in auth) return auth.error;
+
     const supabase = await createServerSupabaseClient();
     const { id } = await params;
-    
+
     // Check if any products are using this category
     const { data: products, error: productsError } = await supabase
       .from('products')

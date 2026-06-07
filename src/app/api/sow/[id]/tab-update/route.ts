@@ -42,6 +42,18 @@ export async function PUT(
       return NextResponse.json({ error: 'SOW not found' }, { status: 404 });
     }
 
+    // Authorization: only the SOW author or an elevated role may edit this SOW.
+    // (The service-role client bypasses RLS, so this object-level check is the
+    // only thing preventing any authenticated user from editing any SOW by id.)
+    const elevatedRoles = ['admin', 'manager', 'pmo'];
+    const isOwner = existingSOW.author_id === user.id;
+    if (!isOwner && !elevatedRoles.includes(user.role)) {
+      return NextResponse.json(
+        { error: 'You do not have permission to edit this SOW' },
+        { status: 403 }
+      );
+    }
+
     // Check if SOW is in approval status and restrict edits (except for admins editing pricing)
     const isAdmin = user.role === 'admin';
     const isInReview = existingSOW.status === 'in_review';

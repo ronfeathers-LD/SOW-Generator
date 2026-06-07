@@ -54,3 +54,7 @@ next-env.d.ts
 # Database backups (sensitive data)
 /backups/
 *.sql.info
+
+# Local agent/session artifacts
+.claude/
+.beads.bak/
