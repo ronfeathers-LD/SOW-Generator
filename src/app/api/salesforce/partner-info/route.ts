@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { salesforceClient } from '@/lib/salesforce';
+import { getAuthenticatedSalesforceClient } from '@/lib/salesforce-server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { requireAuth } from '@/lib/api-auth';
 
@@ -38,12 +38,7 @@ export async function POST(request: NextRequest) {
 
 
     // Initialize Salesforce client
-    await salesforceClient.authenticate(
-      config.username, 
-      config.password, 
-      config.security_token || undefined, 
-      config.login_url
-    );
+    const salesforceClient = await getAuthenticatedSalesforceClient(supabase);
 
 
     // Get opportunity with partner information

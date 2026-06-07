@@ -113,7 +113,7 @@ export function escapeSOQL(value: string): string {
   return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
-class SalesforceClient {
+export class SalesforceClient {
   private conn: jsforce.Connection;
 
   constructor(loginUrl?: string) {
@@ -643,8 +643,19 @@ class SalesforceClient {
   }
 }
 
-// Create a singleton instance
+/**
+ * Create a fresh SalesforceClient instance. Prefer this (via
+ * getAuthenticatedSalesforceClient in salesforce-server.ts) over the shared
+ * singleton: concurrent requests must not share one mutable connection, or they
+ * race on this.conn and can leak each other's authenticated session. (audit #65/82/89)
+ */
+export function createSalesforceClient(loginUrl?: string): SalesforceClient {
+  return new SalesforceClient(loginUrl);
+}
+
+// Legacy shared singleton — retained for backwards compatibility. New code
+// should use createSalesforceClient / getAuthenticatedSalesforceClient instead.
 const salesforceClient = new SalesforceClient();
 
 export { salesforceClient };
-export default salesforceClient; 
+export default salesforceClient;
