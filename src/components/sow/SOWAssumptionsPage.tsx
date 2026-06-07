@@ -1,6 +1,7 @@
 'use client';
 
 import { useSOWContent } from '@/lib/hooks/useSOWContent';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 import { DetailedSkeleton } from '@/components/ui/LoadingSkeletons';
 
 interface SOWAssumptionsPageProps {
@@ -34,14 +35,14 @@ export default function SOWAssumptionsPage({
           <div 
             id="sow-content-assumptions"
             className="text-base leading-relaxed sow-content"
-            dangerouslySetInnerHTML={{ __html: content }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
           />
         </div>
       ) : (
         <div 
           id="sow-content-assumptions"
           className="text-base leading-relaxed sow-content"
-          dangerouslySetInnerHTML={{ __html: content }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
         />
       )}
     </div>

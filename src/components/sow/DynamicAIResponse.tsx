@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 
 interface DynamicAIResponseProps {
   aiResponse: Record<string, unknown>; // Accept any response format
@@ -45,7 +46,7 @@ export default function DynamicAIResponse({ aiResponse, customerName }: DynamicA
             {value.map((item, index) => (
               <li key={`ai-response-item-${index}-${String(item).slice(0, 20)}`} className="text-gray-700">
                 {typeof item === 'string' && item.includes('<') ? (
-                  <span dangerouslySetInnerHTML={{ __html: cleanNestedUlTags(item) }} />
+                  <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(cleanNestedUlTags(item)) }} />
                 ) : (
                   item
                 )}
@@ -81,7 +82,7 @@ export default function DynamicAIResponse({ aiResponse, customerName }: DynamicA
             </h4>
             <div 
               className="text-gray-700"
-              dangerouslySetInnerHTML={{ __html: cleanNestedUlTags(value) }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(cleanNestedUlTags(value)) }}
             />
           </div>
         );

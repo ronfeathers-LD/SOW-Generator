@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 
 interface ChangeDiff {
   field_name: string;
@@ -428,18 +429,18 @@ function ChangeItem({ change }: { change: ChangeDiff }) {
                 canShowDiff && showDiffHighlight ? (
                   <div 
                     className="prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: textDiff.prevHtml }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(textDiff.prevHtml) }}
                   />
                 ) : (
                   <div 
                     className="prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: prevParsed.content }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(prevParsed.content) }}
                   />
                 )
               ) : canShowDiff && showDiffHighlight ? (
                 <div 
                   className="whitespace-pre-wrap"
-                  dangerouslySetInnerHTML={{ __html: textDiff.prevHtml }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(textDiff.prevHtml) }}
                 />
               ) : (
                 <div className="whitespace-pre-wrap">{prevParsed.content}</div>
@@ -471,18 +472,18 @@ function ChangeItem({ change }: { change: ChangeDiff }) {
                 canShowDiff && showDiffHighlight ? (
                   <div 
                     className="prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: textDiff.nextHtml }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(textDiff.nextHtml) }}
                   />
                 ) : (
                   <div 
                     className="prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: newParsed.content }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(newParsed.content) }}
                   />
                 )
               ) : canShowDiff && showDiffHighlight ? (
                 <div 
                   className="whitespace-pre-wrap"
-                  dangerouslySetInnerHTML={{ __html: textDiff.nextHtml }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(textDiff.nextHtml) }}
                 />
               ) : (
                 <div className="whitespace-pre-wrap">{newParsed.content}</div>

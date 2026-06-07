@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
 import { WizardStepData } from '../ObjectivesWizard';
@@ -118,7 +119,7 @@ const AIGenerationStep: React.FC<AIGenerationStepProps> = ({
               {wizardData.generatedObjectives.deliverablesHtml ? (
                 <div 
                   className="text-green-800 text-sm prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: wizardData.generatedObjectives.deliverablesHtml }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(wizardData.generatedObjectives.deliverablesHtml) }}
                 />
               ) : (
                 <div className="text-green-800 text-sm space-y-1">
