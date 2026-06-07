@@ -1,4 +1,7 @@
-import { supabase } from './supabase';
+// Audit logging runs server-side. Use the service-role client so writes/reads
+// are not silently dropped by RLS (the previous browser anon client was the
+// likely cause of "swallowed" audit failures). (audit #77/#78)
+import { supabaseApi as supabase } from './supabase-api';
 
 export interface AuditLogEntry {
   id: string;
