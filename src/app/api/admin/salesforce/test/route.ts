@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import salesforceClient from '@/lib/salesforce';
 import { requireAuth } from '@/lib/api-auth';
+import { decryptSecret } from '@/lib/crypto-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,8 +49,8 @@ export async function POST(request: NextRequest) {
       }
 
       username = config.username;
-      password = config.password; // Stored encrypted/securely per app conventions
-      securityToken = config.security_token || undefined;
+      password = decryptSecret(config.password); // decrypt stored secret (audit #92)
+      securityToken = config.security_token ? decryptSecret(config.security_token) : undefined;
       loginUrl = config.login_url || undefined;
     }
 
