@@ -5,6 +5,24 @@ import { createServiceRoleClient } from '@/lib/supabase-server';
 // Supabase Storage bucket that holds rich-text-editor images (public read).
 const BUCKET = 'rte-images';
 
+// Detect a real raster image from its magic bytes (don't trust the client's
+// content-type or filename extension). SVG is intentionally excluded.
+function detectImageType(buf: Buffer): { type: string; ext: string } | null {
+  if (buf.length >= 4 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
+    return { type: 'image/png', ext: 'png' };
+  }
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
+    return { type: 'image/jpeg', ext: 'jpg' };
+  }
+  if (buf.length >= 4 && buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38) {
+    return { type: 'image/gif', ext: 'gif' };
+  }
+  if (buf.length >= 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') {
+    return { type: 'image/webp', ext: 'webp' };
+  }
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
@@ -20,31 +38,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'File must be an image' }, { status: 400 });
-    }
-
-    // Validate file size (5MB limit)
+    // Validate file size (5MB limit) before reading the whole buffer
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
       return NextResponse.json({ error: 'File size must be less than 5MB' }, { status: 400 });
     }
 
-    // Generate unique filename
+    // Validate the actual bytes, not the client-supplied content-type/extension.
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const detected = detectImageType(buffer);
+    if (!detected) {
+      return NextResponse.json(
+        { error: 'File must be a PNG, JPEG, GIF, or WebP image' },
+        { status: 400 }
+      );
+    }
+
+    // Generate a unique filename using the DETECTED extension.
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
-    const fileExtension = file.name.split('.').pop() || 'jpg';
-    const fileName = `${timestamp}-${randomString}.${fileExtension}`;
+    const fileName = `${timestamp}-${randomString}.${detected.ext}`;
 
-    // Upload to Supabase Storage
+    // Upload to Supabase Storage with the validated content-type.
     const supabase = createServiceRoleClient();
-    const arrayBuffer = await file.arrayBuffer();
 
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)
-      .upload(fileName, Buffer.from(arrayBuffer), {
-        contentType: file.type,
+      .upload(fileName, buffer, {
+        contentType: detected.type,
         cacheControl: '31536000',
         upsert: false,
       });
@@ -66,7 +88,7 @@ export async function POST(request: NextRequest) {
       url: publicUrlData.publicUrl,
       filename: fileName,
       size: file.size,
-      type: file.type,
+      type: detected.type,
     });
 
   } catch (error) {

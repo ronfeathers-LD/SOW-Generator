@@ -149,15 +149,25 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
         painPoints = result.overcomingActions;
       }
 
+      // Escape AI-generated text before interpolating into HTML — the model
+      // output is derived from untrusted transcripts/docs. (audit #79)
+      const esc = (s: unknown) =>
+        String(s ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+
       // Convert solutions object to HTML format for proper rendering
       let deliverablesHtml = '';
       if (result.solutions && typeof result.solutions === 'object') {
         Object.entries(result.solutions).forEach(([category, items]) => {
           if (Array.isArray(items)) {
-            deliverablesHtml += `<h3 class="text-lg font-semibold mb-3 mt-4">${category}</h3>`;
+            deliverablesHtml += `<h3 class="text-lg font-semibold mb-3 mt-4">${esc(category)}</h3>`;
             deliverablesHtml += '<ul class="list-disc pl-6 mb-4">';
             items.forEach((item: string) => {
-              deliverablesHtml += `<li class="mb-1">${item}</li>`;
+              deliverablesHtml += `<li class="mb-1">${esc(item)}</li>`;
             });
             deliverablesHtml += '</ul>';
           }
@@ -178,8 +188,8 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
       }
 
       // Convert key objectives to HTML format for proper rendering
-      const keyObjectivesHtml = painPoints.length > 0 ? 
-        `<ul class="list-disc pl-6 mb-4">${painPoints.map(obj => `<li class="mb-1">${obj}</li>`).join('')}</ul>` : '';
+      const keyObjectivesHtml = painPoints.length > 0 ?
+        `<ul class="list-disc pl-6 mb-4">${painPoints.map(obj => `<li class="mb-1">${esc(obj)}</li>`).join('')}</ul>` : '';
 
       // Call the success callback with generated content
       onSuccess({

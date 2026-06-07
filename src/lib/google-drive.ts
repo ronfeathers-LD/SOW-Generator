@@ -666,15 +666,16 @@ Please provide:
             mimeType: 'text/plain'
           });
           content = exportResponse.data as string;
-        } else if (mimeType === 'text/plain' || mimeType === 'text/csv' || mimeType === 'application/pdf') {
-          // Plain text, CSV, or PDF files - download content
+        } else if (mimeType === 'text/plain' || mimeType === 'text/csv') {
+          // Plain text / CSV - safe to download as a string.
           const downloadResponse = await this.drive.files.get({
             fileId: documentId,
             alt: 'media'
           });
           content = downloadResponse.data as string;
         } else {
-          // For other file types, return a placeholder
+          // Binary formats (e.g. application/pdf) can't be cast to a string —
+          // doing so previously produced garbage rather than real text. (audit #73)
           content = `[Content extraction not supported for ${mimeType} files]`;
         }
       } catch (exportError) {
