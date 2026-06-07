@@ -419,6 +419,17 @@ export class PMHoursRemovalService {
         return { success: false, error: 'Request is not pending approval' };
       }
 
+      // Re-validate the SOW status: do not strip PM hours (a pricing change)
+      // from a SOW that is already approved. (audit #84)
+      const { data: sowStatusRow } = await client
+        .from('sows')
+        .select('status')
+        .eq('id', request.sow_id)
+        .single();
+      if (sowStatusRow?.status === 'approved') {
+        return { success: false, error: 'Cannot remove PM hours from an already-approved SOW' };
+      }
+
       // Update the request status
       const { error: updateError } = await client
         .from('pm_hours_removal_requests')
