@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
@@ -96,7 +96,34 @@ export default function CustomerInformationTab({
   onLogoChange,
   onLogoRemove,
 }: CustomerInformationTabProps) {
-  const [currentStep, setCurrentStep] = useState<SelectionStep>('account');
+  // Determine whether an account / opportunity is already chosen. On the edit
+  // page these arrive from a SOW that already completed the wizard, so we should
+  // not re-prompt for them.
+  const hasOpportunity = !!(
+    selectedOpportunity ||
+    initialData?.opportunity_id ||
+    initialData?.template?.opportunity_id
+  );
+
+  // Land on the first INCOMPLETE step instead of always opening "Select Account":
+  // no account → account, account but no opp → opportunity, both done → no panel.
+  const computeInitialStep = (): SelectionStep => {
+    if (!selectedAccount) return 'account';
+    if (!hasOpportunity) return 'opportunity';
+    return null;
+  };
+
+  const [currentStep, setCurrentStep] = useState<SelectionStep>(computeInitialStep);
+
+  // selectedAccount/selectedOpportunity hydrate asynchronously on the edit page.
+  // Re-evaluate the default step once they load, but never override a step the
+  // user explicitly navigated to via the left-hand cards.
+  const hasUserNavigated = useRef(false);
+  useEffect(() => {
+    if (hasUserNavigated.current) return;
+    setCurrentStep(computeInitialStep());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAccount, selectedOpportunity, initialData?.opportunity_id, initialData?.template?.opportunity_id]);
 
 
   // Helper function to get account owner information
@@ -110,6 +137,7 @@ export default function CustomerInformationTab({
   };
 
   const handleStepButtonClick = async (step: SelectionStep) => {
+    hasUserNavigated.current = true;
     setCurrentStep(step);
     
     // Load opportunities if we're going to the opportunity step and we have a selected account with a valid ID
@@ -215,6 +243,7 @@ export default function CustomerInformationTab({
     
     onCustomerSelectedFromSalesforce(customerData);
     // Automatically proceed to opportunity selection since we already have the opportunities
+    hasUserNavigated.current = true;
     setCurrentStep('opportunity');
   };
 
@@ -234,6 +263,7 @@ export default function CustomerInformationTab({
   } | null) => {
     onOpportunitySelectedFromSalesforce(opportunity);
     if (opportunity) {
+      hasUserNavigated.current = true;
       setCurrentStep('logo');
     }
   };
@@ -682,12 +712,28 @@ export default function CustomerInformationTab({
              )}
 
             {!currentStep && (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                <h4 className="text-lg font-semibold mb-4 text-gray-800">Selection Instructions</h4>
-                <p className="text-gray-600">
-                  Click on any of the cards on the left to begin the selection process. You&apos;ll need to select an account first, then an opportunity.
-                </p>
-              </div>
+              selectedAccount && hasOpportunity ? (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                  <div className="flex items-start">
+                    <svg className="h-6 w-6 text-green-500 flex-shrink-0 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <div>
+                      <h4 className="text-lg font-semibold mb-1 text-green-800">Account &amp; opportunity selected</h4>
+                      <p className="text-sm text-green-700">
+                        Everything required here is set and verified in Salesforce. To change the account or opportunity, click its card on the left — otherwise continue to the next tab.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                  <h4 className="text-lg font-semibold mb-4 text-gray-800">Selection Instructions</h4>
+                  <p className="text-gray-600">
+                    Click on any of the cards on the left to begin the selection process. You&apos;ll need to select an account first, then an opportunity.
+                  </p>
+                </div>
+              )
             )}
           </div>
         </div>
