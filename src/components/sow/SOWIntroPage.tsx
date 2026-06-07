@@ -1,6 +1,7 @@
 'use client';
 
 import { useSOWContent } from '@/lib/hooks/useSOWContent';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 import { ContentSkeleton } from '@/components/ui/LoadingSkeletons';
 import { processContent } from '@/lib/text-to-html';
 
@@ -46,14 +47,14 @@ export default function SOWIntroPage({ clientName, customContent, isEdited }: SO
           <div 
             id="sow-content-intro"
             className="text-base leading-relaxed sow-content"
-            dangerouslySetInnerHTML={{ __html: content }} 
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }} 
           />
         </div>
       ) : (
         <div 
           id="sow-content-intro"
           className="text-base leading-relaxed sow-content"
-          dangerouslySetInnerHTML={{ __html: content }} 
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }} 
         />
       )}
     </div>

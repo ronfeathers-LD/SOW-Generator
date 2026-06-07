@@ -1,6 +1,7 @@
 'use client';
 
 import { useSOWContent } from '@/lib/hooks/useSOWContent';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 
 interface SOWScopePageProps {
   customContent?: string;
@@ -43,19 +44,19 @@ export default function SOWScopePage({
           </div>
           
           <div id="sow-content-scope" className="text-base leading-relaxed">
-            <div dangerouslySetInnerHTML={{ __html: content }} />
+            <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }} />
           </div>
         </div>
       ) : (
         <div id="sow-content-scope" className="text-base leading-relaxed">
-          <div dangerouslySetInnerHTML={{ __html: content }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }} />
         </div>
       )}
       
       {/* Deliverables Content */}
       {customDeliverablesContent && (
         <div id="sow-content-deliverables" className="mt-6 text-base leading-relaxed">
-          <div dangerouslySetInnerHTML={{ __html: customDeliverablesContent }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(customDeliverablesContent) }} />
         </div>
       )}
     </div>

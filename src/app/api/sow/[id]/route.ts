@@ -324,6 +324,17 @@ export async function GET(
   }
 }
 
+// Legal SOW status transitions. A status change not listed here is rejected,
+// so e.g. a manager cannot jump a draft straight to 'approved', re-approve an
+// already-approved SOW, or approve/reject something that isn't in review.
+const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
+  draft: ['in_review'],
+  in_review: ['approved', 'rejected', 'recalled', 'draft'],
+  rejected: ['in_review', 'draft'],
+  recalled: ['in_review', 'draft'],
+  approved: [], // terminal via this endpoint (revisions go through their own route)
+};
+
 // PUT - Update SOW (including status changes)
 export async function PUT(
   request: Request,
@@ -359,8 +370,31 @@ export async function PUT(
       return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
     }
 
-    // Prepare update data - only allow specific fields to be updated
-    const allowedFields = ['status', 'salesforce_account_id', 'salesforce_account_owner_name', 'salesforce_account_owner_email', 'account_segment', 'rejected_at', 'approved_at', 'approval_comments'];
+    // Fetch the current SOW and validate any requested status transition.
+    const { data: currentSOW, error: currentErr } = await supabase
+      .from('sows')
+      .select('status, author_id, salesforce_account_owner_name, salesforce_account_owner_email')
+      .eq('id', id)
+      .single();
+
+    if (currentErr || !currentSOW) {
+      return NextResponse.json({ error: 'SOW not found' }, { status: 404 });
+    }
+
+    if (data.status && data.status !== currentSOW.status) {
+      const allowed = ALLOWED_STATUS_TRANSITIONS[currentSOW.status] || [];
+      if (!allowed.includes(data.status)) {
+        return NextResponse.json(
+          { error: `Cannot change status from '${currentSOW.status}' to '${data.status}'` },
+          { status: 409 }
+        );
+      }
+    }
+
+    // Prepare update data - only allow specific fields to be updated.
+    // approved_at / rejected_at are intentionally NOT caller-settable; they are
+    // stamped server-side below so timestamps can't be spoofed.
+    const allowedFields = ['status', 'salesforce_account_id', 'salesforce_account_owner_name', 'salesforce_account_owner_email', 'account_segment', 'approval_comments'];
     const updateData: Record<string, unknown> = {};
     
     // Only include fields that are allowed and provided
@@ -377,14 +411,8 @@ export async function PUT(
 
     // Anyone can submit for review (draft → in_review)
     if (data.status === 'in_review') {
-      // Check if account owner information is available before allowing submission
-      const { data: currentSOW } = await supabase
-        .from('sows')
-        .select('salesforce_account_owner_name, salesforce_account_owner_email')
-        .eq('id', id)
-        .single();
-      
-      if (!currentSOW?.salesforce_account_owner_name || !currentSOW?.salesforce_account_owner_email) {
+      // Account owner information must be present before submission.
+      if (!currentSOW.salesforce_account_owner_name || !currentSOW.salesforce_account_owner_email) {
         return NextResponse.json(
           { error: 'Cannot submit for review: Account owner information is missing. Please re-select the account to capture owner details.' },
           { status: 400 }
@@ -401,9 +429,8 @@ export async function PUT(
     // If rejecting, keep status as rejected and set rejection tracking
     if (data.status === 'rejected') {
       updateData.status = 'rejected';
-      // Ensure rejected_at is set
-      updateData.rejected_at = data.rejected_at || new Date().toISOString();
-      console.log('SOW Rejection: Set rejected_at to:', updateData.rejected_at);
+      // Server-stamped, not caller-supplied.
+      updateData.rejected_at = new Date().toISOString();
     }
 
     // Add approval tracking

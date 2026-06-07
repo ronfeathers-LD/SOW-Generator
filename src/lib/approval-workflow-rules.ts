@@ -13,10 +13,16 @@ export interface ApprovalStageConfig {
 }
 
 /**
- * Check if an SOW requires PM approval
- * PM approval is required when the SOW has any Project Manager hours.
- * EXCEPTION: If PM hours have been waived (pm_hours_requirement_disabled = true),
- * PM approval is NOT required.
+ * Check if an SOW requires PM approval.
+ *
+ * PM approval is required whenever the SOW currently has Project Manager hours
+ * (> 0). This is authoritative on the actual pricing_roles — it deliberately
+ * does NOT short-circuit on the pm_hours_requirement_disabled waiver flag.
+ *
+ * The waiver flag is only legitimately set when PM hours were actually removed
+ * (hours stripped to 0, which already yields false here). A *stale* waiver left
+ * over after PM hours are re-added must not silently skip the PM approval stage
+ * (audit #48 — the flag was sticky and only ever cleared by reverseRequest).
  */
 interface PricingRoleEntry {
   role?: string;
@@ -41,11 +47,6 @@ export function requiresPMApproval(sow: {
   pricing_roles?: PricingRolesField;
   pm_hours_requirement_disabled?: boolean;
 }): boolean {
-  // If PM hours have been waived, PM approval is not required
-  if (sow.pm_hours_requirement_disabled === true) {
-    return false;
-  }
-
   const roles = extractPricingRolesArray(sow.pricing_roles);
   const pmRole = roles.find(r => r.role === 'Project Manager');
   const pmHoursRaw = pmRole?.totalHours;
@@ -55,6 +56,7 @@ export function requiresPMApproval(sow: {
       ? parseFloat(pmHoursRaw) || 0
       : 0;
 
+  // Authoritative on actual PM hours — a stale waiver flag must not skip this.
   return pmHours > 0;
 }
 

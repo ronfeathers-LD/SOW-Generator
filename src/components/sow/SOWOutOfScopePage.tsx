@@ -1,6 +1,7 @@
 'use client';
 
 import { useSOWContent } from '@/lib/hooks/useSOWContent';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 
 interface SOWOutOfScopePageProps {
   customContent?: string;
@@ -42,13 +43,13 @@ export default function SOWOutOfScopePage({
           
           <div id="sow-content-out-of-scope" className="text-base leading-relaxed">
             <h2 className="text-2xl font-bold mb-6 mt-6">OUT OF SCOPE</h2>
-            <div dangerouslySetInnerHTML={{ __html: content }} />
+            <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }} />
           </div>
         </div>
       ) : (
         <div id="sow-content-out-of-scope" className="text-base leading-relaxed">
           <h2 className="text-2xl font-bold mb-6 mt-6">OUT OF SCOPE</h2>
-          <div dangerouslySetInnerHTML={{ __html: content }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }} />
         </div>
       )}
     </div>

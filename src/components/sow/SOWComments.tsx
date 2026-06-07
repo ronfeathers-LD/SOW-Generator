@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { hasMentions, formatCommentWithMentions } from '@/lib/mention-utils';
 import MentionAutocomplete from '@/components/ui/MentionAutocomplete';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 
 interface Comment {
   id: string;
@@ -130,8 +131,8 @@ export default function SOWComments({ sowId }: SOWCommentsProps) {
       
       <div 
         className="text-gray-700 mb-3"
-        dangerouslySetInnerHTML={{ 
-          __html: formatCommentWithMentions(comment.comment) 
+        dangerouslySetInnerHTML={{
+          __html: sanitizeHtml(formatCommentWithMentions(comment.comment))
         }}
       />
       

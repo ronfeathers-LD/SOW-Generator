@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import TipTapEditor from '@/components/TipTapEditor';
@@ -251,7 +252,7 @@ export default function AIPromptsAdminPage() {
                   <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
                     <div 
                       className="wysiwyg-content prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: prompt.prompt_content }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(prompt.prompt_content) }}
                     />
                   </div>
                   <p className="mt-2 text-xs text-gray-500">
@@ -330,7 +331,7 @@ export default function AIPromptsAdminPage() {
                         <h5 className="text-sm font-medium text-gray-700 mb-2">Content:</h5>
                         <div 
                           className="wysiwyg-content prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: version.prompt_content }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(version.prompt_content) }}
                         />
                       </div>
                     </div>

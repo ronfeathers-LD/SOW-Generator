@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 import { getContentTemplate } from '@/lib/sow-content';
 import { processContent } from '@/lib/text-to-html';
 import { Product } from '@/lib/constants/products';
@@ -110,7 +111,7 @@ export default function SOWObjectivesPage({
           <h3 className="text-lg font-semibold mb-4">Objective:</h3>
           <div 
             className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: projectDescription }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(projectDescription) }}
           />
         </div>
       )}
@@ -122,7 +123,7 @@ export default function SOWObjectivesPage({
           {customKeyObjectivesContent ? (
             <div 
               className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: processContent(customKeyObjectivesContent) }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(processContent(customKeyObjectivesContent)) }}
             />
           ) : (
             <ul className="text-gray-700 leading-relaxed list-disc pl-6 space-y-2">
@@ -258,7 +259,7 @@ export default function SOWObjectivesPage({
           ) : (
             <div 
               className="text-base leading-relaxed sow-content"
-              dangerouslySetInnerHTML={{ __html: objectivesDisclosureContent }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(objectivesDisclosureContent) }}
             />
           )}
         </div>
@@ -272,7 +273,7 @@ export default function SOWObjectivesPage({
           ) : (
             <div 
               className="text-base leading-relaxed sow-content"
-              dangerouslySetInnerHTML={{ __html: objectivesDisclosureContent }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(objectivesDisclosureContent) }}
             />
           )}
         </>
