@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function GET() {
   try {
+    const __auth = await requireAuth();
+    if ('error' in __auth) return __auth.error;
     const supabase = await createServerSupabaseClient();
     
     const { data: config } = await supabase

@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { GoogleDriveService } from '@/lib/google-drive';
 
 export async function POST(request: NextRequest) {
   try {
+    const __auth = await requireAuth();
+    if ('error' in __auth) return __auth.error;
     const supabase = await createServerSupabaseClient();
     
     // Get Google Drive configuration

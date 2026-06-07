@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 import salesforceClient from '@/lib/salesforce';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import salesforceCache from '@/lib/salesforce-cache';
 
 export async function POST(request: NextRequest) {
   try {
+    const __auth = await requireAuth();
+    if ('error' in __auth) return __auth.error;
     const supabase = await createServerSupabaseClient();
     
     const { accountId, forceRefresh = false } = await request.json();

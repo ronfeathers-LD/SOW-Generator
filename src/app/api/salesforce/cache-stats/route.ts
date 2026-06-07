@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 import salesforceCache from '@/lib/salesforce-cache';
 
 // GET: Retrieve cache statistics
 export async function GET() {
   try {
+    const __auth = await requireAuth();
+    if ('error' in __auth) return __auth.error;
     const stats = salesforceCache.getCacheStats();
     
     return NextResponse.json({
@@ -23,6 +26,8 @@ export async function GET() {
 // POST: Clear cache
 export async function POST(request: NextRequest) {
   try {
+    const __auth = await requireAuth();
+    if ('error' in __auth) return __auth.error;
     const { action, accountId } = await request.json();
 
     if (action === 'clearAll') {
