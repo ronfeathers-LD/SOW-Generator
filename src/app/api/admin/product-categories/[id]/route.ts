@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { requireAuth } from '@/lib/api-auth';
+import { pickCategoryFields } from '../fields';
 
 export async function PUT(
   request: NextRequest,
@@ -13,10 +14,10 @@ export async function PUT(
     const supabase = await createServerSupabaseClient();
     const { id } = await params;
     const body = await request.json();
-    
+
     const { data, error } = await supabase
       .from('product_categories')
-      .update(body)
+      .update(pickCategoryFields(body))
       .eq('id', id)
       .select()
       .single();

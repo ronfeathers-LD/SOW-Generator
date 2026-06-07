@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import salesforceClient from '@/lib/salesforce';
+import { requireAuth } from '@/lib/api-auth';
 
 export async function POST(request: NextRequest) {
   try {
+    // Admin only — performs Salesforce login attempts with stored/arbitrary creds.
+    const auth = await requireAuth(['admin']);
+    if ('error' in auth) return auth.error;
+
     const supabase = await createServerSupabaseClient();
 
     let username: string | undefined;

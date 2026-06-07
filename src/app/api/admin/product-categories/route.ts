@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { requireAuth } from '@/lib/api-auth';
+import { pickCategoryFields } from './fields';
 
 export async function GET() {
   try {
@@ -31,10 +32,13 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createServerSupabaseClient();
     const body = await request.json();
-    
+
+    // Allowlist writable columns (no mass-assignment of arbitrary fields).
+    const insert = pickCategoryFields(body);
+
     const { data, error } = await supabase
       .from('product_categories')
-      .insert([body])
+      .insert([insert])
       .select()
       .single();
 
