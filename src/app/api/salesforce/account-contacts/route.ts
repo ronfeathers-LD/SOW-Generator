@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedSalesforceClient } from '@/lib/salesforce-server';
 import { requireAuth } from '@/lib/api-auth';
-import salesforceClient from '@/lib/salesforce';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import salesforceCache from '@/lib/salesforce-cache';
 
@@ -75,32 +75,14 @@ export async function POST(request: NextRequest) {
 
 
 
-    // Authenticate with Salesforce using stored credentials (graceful retry)
-    const attemptAuthenticate = async () => {
-      await salesforceClient.authenticate(
-        config.username,
-        config.password,
-        config.security_token || undefined,
-        config.login_url
-      );
-      if (!salesforceClient.isAuthenticated()) {
-        // Small delay and one more attempt
-        await new Promise((r) => setTimeout(r, 250));
-        await salesforceClient.authenticate(
-          config.username,
-          config.password,
-          config.security_token || undefined,
-          config.login_url
-        );
-      }
-    };
-
+    // Get a fresh authenticated Salesforce client for this request.
+    let salesforceClient;
     try {
-      await attemptAuthenticate();
+      salesforceClient = await getAuthenticatedSalesforceClient(supabase);
     } catch (authError) {
       console.error('Salesforce authentication error:', authError);
       return NextResponse.json(
-        { 
+        {
           error: 'Salesforce authentication failed',
           details: authError instanceof Error ? authError.message : 'Unknown authentication error'
         },

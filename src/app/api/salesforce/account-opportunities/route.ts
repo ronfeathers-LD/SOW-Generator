@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedSalesforceClient } from '@/lib/salesforce-server';
 import { requireAuth } from '@/lib/api-auth';
-import salesforceClient from '@/lib/salesforce';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import salesforceCache from '@/lib/salesforce-cache';
 
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Authenticate with Salesforce using stored credentials
 
-    await salesforceClient.authenticate(config.username, config.password, config.security_token || undefined, config.login_url);
+    const salesforceClient = await getAuthenticatedSalesforceClient(supabase);
 
     // Get opportunities for the account
 
