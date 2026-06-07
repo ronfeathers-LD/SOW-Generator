@@ -255,8 +255,13 @@ export async function PUT(
           if (billingTemplateData.billing_contact_name !== undefined || billingTemplateData.billing_email !== undefined ||
               billingTemplateData.billing_company_name !== undefined || billingTemplateData.billing_address !== undefined ||
               billingTemplateData.purchase_order_number !== undefined) {
-            // Get existing billing_info or create new object
-            const existingBillingInfo = updateData.billing_info || {};
+            // Merge onto the SOW's CURRENT billing_info so fields not included in
+            // this update aren't dropped (updateData.billing_info is empty here,
+            // so the old merge started from {}). (audit #103)
+            const rawExistingBilling = existingSOW.billing_info;
+            const existingBillingInfo = (typeof rawExistingBilling === 'string'
+              ? (() => { try { return JSON.parse(rawExistingBilling); } catch { return {}; } })()
+              : rawExistingBilling) || {};
             updateData.billing_info = {
               ...existingBillingInfo,
               billing_contact: billingTemplateData.billing_contact_name !== undefined ? 
@@ -273,7 +278,8 @@ export async function PUT(
           }
         }
         
-        if (data.pricing?.billing !== undefined) updateData.pricing_roles = data.pricing.billing;
+        // (Removed: the Billing tab must never write the pricing_roles column —
+        // it was overwriting pricing data with billing data. audit #102)
         break;
 
       case 'Pricing':
@@ -307,6 +313,24 @@ export async function PUT(
             last_calculated: data.pricing.last_calculated,
           };
           
+          // Recompute monetary totals server-side from roles + discount config —
+          // never trust client-supplied subtotal/discount_total/total_amount.
+          // (audit #88) Formula matches PricingRolesAndDiscount.tsx.
+          const roleList = pricingData.roles || [];
+          const subtotal = roleList.reduce(
+            (sum, r) => sum + (Number(r.ratePerHour) || 0) * (Number(r.totalHours) || 0),
+            0
+          );
+          let discountTotal = 0;
+          if (pricingData.discount_type === 'fixed') {
+            discountTotal = Math.min(subtotal, Number(pricingData.discount_amount) || 0);
+          } else if (pricingData.discount_type === 'percentage') {
+            discountTotal = subtotal * ((Number(pricingData.discount_percentage) || 0) / 100);
+          }
+          pricingData.subtotal = subtotal;
+          pricingData.discount_total = discountTotal;
+          pricingData.total_amount = Math.max(0, subtotal - discountTotal);
+
           // Save the structured pricing data
           updateData.pricing_roles = pricingData;
         }
