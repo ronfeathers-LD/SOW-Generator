@@ -297,11 +297,23 @@ export class ApprovalWorkflowService {
         return { success: false, error: 'Approval record not found' };
       }
 
+      // The SOW must currently be in review to act on its approval stages —
+      // otherwise a draft/recalled/rejected/already-approved SOW could have a
+      // stage approved out of band.
+      const { data: sowRow } = await supabase
+        .from('sows')
+        .select('status')
+        .eq('id', sowId)
+        .single();
+      if (!sowRow || sowRow.status !== 'in_review') {
+        return { success: false, error: 'SOW is not in review; its approval stages cannot be approved' };
+      }
+
       // Validate permission if user role is provided
       if (userRole && !canApproveStage(approval.stage.name, userRole)) {
-        return { 
-          success: false, 
-          error: 'You do not have permission to approve this stage' 
+        return {
+          success: false,
+          error: 'You do not have permission to approve this stage'
         };
       }
 
@@ -387,11 +399,21 @@ export class ApprovalWorkflowService {
         return { success: false, error: 'Approval record not found' };
       }
 
+      // The SOW must currently be in review to act on its approval stages.
+      const { data: sowRow } = await supabase
+        .from('sows')
+        .select('status')
+        .eq('id', sowId)
+        .single();
+      if (!sowRow || sowRow.status !== 'in_review') {
+        return { success: false, error: 'SOW is not in review; its approval stages cannot be rejected' };
+      }
+
       // Validate permission if user role is provided
       if (userRole && !canApproveStage(approval.stage.name, userRole)) {
-        return { 
-          success: false, 
-          error: 'You do not have permission to reject this stage' 
+        return {
+          success: false,
+          error: 'You do not have permission to reject this stage'
         };
       }
 
