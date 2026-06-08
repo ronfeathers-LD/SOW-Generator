@@ -4,7 +4,7 @@ import PMHoursRemovalModal from './PMHoursRemovalModal';
 import PMHoursRemovalApprovalOverlay from './PMHoursRemovalApprovalOverlay';
 import { calculateAllHours, calculateRoleHoursDistribution, HOURS_CALCULATION_RULES, calculateProductHoursForProduct } from '@/lib/hours-calculation-utils';
 import { getDefaultRateForRole } from '@/lib/pricing-roles-config';
-import { Card, Field, Select, Input, SectionHeader } from '@/components/ui/form';
+import { Card, Field, Select, Input, SectionHeader, Button } from '@/components/ui/form';
 
 interface Product {
   id: string;
@@ -448,25 +448,17 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     <div className="space-y-6">
       {/* Calculate Hours Button */}
       <div className="bg-green-50 p-4 rounded-lg">
-        <button
+        <Button
           type="button"
+          variant="primary"
           onClick={handleRecalculateHours}
           disabled={getProducts().length === 0 || isAutoCalculating}
-          className="w-full px-4 py-2 btn-secondary-cta rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          loading={isAutoCalculating}
+          className="w-full"
         >
-          {isAutoCalculating ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Calculating Hours...
-            </>
-          ) : (
-            'Reset Role Hours'
-          )}
-        </button>
-        
+          {isAutoCalculating ? 'Calculating Hours...' : 'Reset Role Hours'}
+        </Button>
+
         {(!formData.template?.products || formData.template.products.length === 0) && (
           <p className="text-sm text-blue-600 text-center mt-2">
             💡 Tip: Go to the Project Overview tab to select products and set units (users/endpoints)
@@ -1174,20 +1166,12 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
 
               {/* Action Buttons */}
               <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={handleEnterprisePMRemovalCancel}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
+                <Button type="button" variant="secondary" onClick={handleEnterprisePMRemovalCancel}>
                   Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleEnterprisePMRemovalConfirm}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                >
+                </Button>
+                <Button type="button" variant="danger" onClick={handleEnterprisePMRemovalConfirm}>
                   Remove PM Hours
-                </button>
+                </Button>
               </div>
             </div>
           </div>
