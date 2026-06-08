@@ -14,6 +14,8 @@ import ContentEditingTab from './sow/ContentEditingTab';
 import { createSalesforceAccountData, createSalesforceOpportunityData } from '@/types/salesforce';
 import { SOW_TAB_KEYS, SowTabKey } from '@/lib/sow/tab-payloads';
 import { saveAllTabs } from '@/lib/sow/save-all';
+import { getSectionStatus } from '@/lib/sow/section-status';
+import { Stepper, Step, Button } from '@/components/ui/form';
 
 interface LeanDataSignatory {
   id: string;
@@ -951,6 +953,25 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
     return allTabs;
   }, [pricingOnly]);
 
+  // Wizard steps: each section with its at-a-glance completion status (#24).
+  const steps = useMemo<Step[]>(
+    () =>
+      tabs.map((tab) => ({
+        key: tab.key,
+        label: tab.label,
+        status: getSectionStatus(tab.key as SowTabKey, formData),
+      })),
+    [tabs, formData],
+  );
+
+  // Next/Back navigation through the wizard sections.
+  const currentStepIndex = tabs.findIndex((tab) => tab.key === activeTab);
+  const goToStep = (index: number) => {
+    if (index >= 0 && index < tabs.length) {
+      handleTabChange(tabs[index].key);
+    }
+  };
+
 
 
   // Tab navigation with URL hash persistence
@@ -1150,29 +1171,16 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
         </div>
       )}
 
-      {/* Tab Navigation */}
-      <div className="mb-8 border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-          {tabs.map((tab) => (
-            <a
-              key={tab.key}
-              href={`#${tab.key.toLowerCase().replace(/\s+/g, '-')}`}
-              onClick={(e) => {
-                e.preventDefault();
-                handleTabChange(tab.key);
-              }}
-              className={
-                (activeTab === tab.key
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300') +
-                ' py-4 px-1 border-b-2 font-medium text-sm focus:outline-none cursor-pointer'
-              }
-            >
-              {tab.label}
-            </a>
-          ))}
-        </nav>
-              </div>
+      {/* Wizard: progress-stepper sidebar + the active section. The stepper
+          shows per-section completion status and doubles as section nav. */}
+      <div className="flex flex-col gap-8 lg:flex-row">
+        <aside className="lg:w-64 lg:flex-shrink-0">
+          <div className="lg:sticky lg:top-6">
+            <Stepper steps={steps} activeKey={activeTab} onStepClick={handleTabChange} />
+          </div>
+        </aside>
+
+        <div className="min-w-0 flex-1 space-y-8">
 
       {/* Project Overview Section */}
       {activeTab === 'Project Overview' && (
@@ -1270,6 +1278,40 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
           onUnsavedChanges={setHasUnsavedChanges}
         />
       )}
+
+      {/* Back / Next section navigation */}
+      {!pricingOnly && (
+        <div className="flex items-center justify-between border-t border-gray-200 pt-6">
+          <Button
+            variant="secondary"
+            onClick={() => goToStep(currentStepIndex - 1)}
+            disabled={currentStepIndex <= 0}
+            leftIcon={
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            }
+          >
+            Back
+          </Button>
+          <span className="text-xs text-gray-400">
+            Step {currentStepIndex + 1} of {tabs.length}
+          </span>
+          <Button
+            variant="primary"
+            onClick={() => goToStep(currentStepIndex + 1)}
+            disabled={currentStepIndex >= tabs.length - 1}
+          >
+            Next
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Button>
+        </div>
+      )}
+
+        </div>{/* end content column */}
+      </div>{/* end wizard flex */}
 
       {/* Floating Save control — persists every section (save-all), with a
           status indicator so the user knows whether work is saved (#21). */}
