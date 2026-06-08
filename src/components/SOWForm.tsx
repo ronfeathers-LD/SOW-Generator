@@ -15,7 +15,11 @@ import { createSalesforceAccountData, createSalesforceOpportunityData } from '@/
 import { SOW_TAB_KEYS, SowTabKey } from '@/lib/sow/tab-payloads';
 import { saveAllTabs } from '@/lib/sow/save-all';
 import { getSectionStatus } from '@/lib/sow/section-status';
+import { reviewSOW } from '@/lib/sow/review';
+import ReviewSubmitTab from './sow/ReviewSubmitTab';
 import { Stepper, Step, Button } from '@/components/ui/form';
+
+const REVIEW_STEP_KEY = 'Review & Submit';
 
 interface LeanDataSignatory {
   id: string;
@@ -953,22 +957,38 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
     return allTabs;
   }, [pricingOnly]);
 
+  // The wizard adds a final Review & Submit step after the editable sections
+  // (skipped in pricing-only mode, which is a single-section edit).
+  const wizardKeys = useMemo(
+    () => (pricingOnly ? tabs.map((t) => t.key) : [...tabs.map((t) => t.key), REVIEW_STEP_KEY]),
+    [tabs, pricingOnly],
+  );
+
+  // Whether the SOW passes the strict submit-gating validation — drives the
+  // Review step's stepper status.
+  const reviewValid = useMemo(() => reviewSOW(formData).result.isValid, [formData]);
+
   // Wizard steps: each section with its at-a-glance completion status (#24).
   const steps = useMemo<Step[]>(
     () =>
-      tabs.map((tab) => ({
-        key: tab.key,
-        label: tab.label,
-        status: getSectionStatus(tab.key as SowTabKey, formData),
+      wizardKeys.map((key) => ({
+        key,
+        label: key === REVIEW_STEP_KEY ? key : tabs.find((t) => t.key === key)?.label ?? key,
+        status:
+          key === REVIEW_STEP_KEY
+            ? reviewValid
+              ? 'complete'
+              : 'attention'
+            : getSectionStatus(key as SowTabKey, formData),
       })),
-    [tabs, formData],
+    [wizardKeys, tabs, formData, reviewValid],
   );
 
   // Next/Back navigation through the wizard sections.
-  const currentStepIndex = tabs.findIndex((tab) => tab.key === activeTab);
+  const currentStepIndex = wizardKeys.findIndex((key) => key === activeTab);
   const goToStep = (index: number) => {
-    if (index >= 0 && index < tabs.length) {
-      handleTabChange(tabs[index].key);
+    if (index >= 0 && index < wizardKeys.length) {
+      handleTabChange(wizardKeys[index]);
     }
   };
 
@@ -1279,6 +1299,17 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
         />
       )}
 
+      {/* Review & Submit Section */}
+      {activeTab === REVIEW_STEP_KEY && (
+        <ReviewSubmitTab
+          formData={formData}
+          sowId={initialData?.id}
+          onGoToSection={(tab) => handleTabChange(tab)}
+          onSaveAll={handleSaveAll}
+          isSaving={isSaving}
+        />
+      )}
+
       {/* Back / Next section navigation */}
       {!pricingOnly && (
         <div className="flex items-center justify-between border-t border-gray-200 pt-6">
@@ -1295,12 +1326,12 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
             Back
           </Button>
           <span className="text-xs text-gray-400">
-            Step {currentStepIndex + 1} of {tabs.length}
+            Step {currentStepIndex + 1} of {wizardKeys.length}
           </span>
           <Button
             variant="primary"
             onClick={() => goToStep(currentStepIndex + 1)}
-            disabled={currentStepIndex >= tabs.length - 1}
+            disabled={currentStepIndex >= wizardKeys.length - 1}
           >
             Next
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
