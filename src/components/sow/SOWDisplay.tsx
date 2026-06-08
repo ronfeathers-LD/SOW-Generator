@@ -20,9 +20,9 @@ import CreateRevisionButton from '@/components/sow/CreateRevisionButton';
 import SOWRevisionHistory from '@/components/sow/SOWRevisionHistory';
 import { useSession } from 'next-auth/react';
 import PreSubmitChecklistModal from '@/components/sow/PreSubmitChecklistModal';
-import { DisplaySOW, Product, SalesforceData } from '@/types/sow-display';
-import { mapApiResponseToDisplaySOW } from '@/lib/sow/map-api-response-to-display';
+import { DisplaySOW, SalesforceData } from '@/types/sow-display';
 import { getFixLinkForMessage } from '@/lib/sow/fix-links';
+import { useSow } from '@/components/sow/hooks/useSow';
 
 export type SOWDisplayMode = 'full' | 'print';
 
@@ -265,11 +265,7 @@ export default function SOWDisplay({
 }: SOWDisplayProps) {
   // const params = useParams(); // Not used in this component
   // const router = useRouter(); // Not used in this component
-  const [sow, setSOW] = useState<DisplaySOW | null>(null);
-  const [salesforceData, setSalesforceData] = useState<SalesforceData | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { sow, salesforceData, products, loading, error } = useSow(sowId);
   const [downloadingPDF, setDownloadingPDF] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [downloadStatus, setDownloadStatus] = useState<'idle' | 'generating' | 'downloading' | 'success' | 'error'>('idle');
@@ -281,81 +277,6 @@ export default function SOWDisplay({
   const isManager = session?.user?.role === 'manager';
   const canApprove = isAdmin || isManager;
   const router = useRouter();
-
-  // Data fetching logic (shared between modes)
-  useEffect(() => {
-    const fetchSOW = async () => {
-      try {
-        if (!sowId) {
-          setError('SOW ID is required');
-          setLoading(false);
-          return;
-        }
-
-        // Fetch SOW and products in parallel
-        const [response, productsResponse] = await Promise.all([
-          fetch(`/api/sow/${sowId}`),
-          fetch('/api/products'),
-        ]);
-
-        // Handle products result eagerly so it's ready by the time SOW renders
-        if (productsResponse.ok) {
-          const productsData = await productsResponse.json();
-          setProducts(productsData || []);
-        } else {
-          console.error('Error fetching products:', productsResponse.status);
-        }
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('SOW not found');
-          }
-          throw new Error(`Failed to fetch SOW: ${response.status}`);
-        }
-        const data = await response.json();
-
-        // Map the API response into the display view-model (single seam).
-        const parsedData = mapApiResponseToDisplaySOW(data);
-
-        setSOW(parsedData);
-        
-        // Fetch Salesforce data if available
-        if (parsedData.salesforceAccountId) {
-          try {
-            const salesforceResponse = await fetch(`/api/sow/${sowId}/salesforce-data`);
-            if (salesforceResponse.ok) {
-              const salesforceResult = await salesforceResponse.json();
-              if (salesforceResult.success && salesforceResult.data) {
-                setSalesforceData(salesforceResult.data);
-              }
-            }
-          } catch (salesforceError) {
-            console.warn('Failed to fetch Salesforce data:', salesforceError);
-          }
-        }
-
-      } catch (err) {
-        console.error('Error fetching SOW:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSOW();
-  }, [sowId, showVersionHistory]);
-
-  // Update document title when SOW is loaded
-  useEffect(() => {
-    if (sow) {
-      const clientName = sow.clientName || '';
-      const title = sow.sowTitle || 'Untitled SOW';
-      document.title = clientName ? `${clientName} - ${title}` : title;
-    } else if (!loading && !error) {
-      // Reset to default when SOW is not available
-      document.title = 'View SOW';
-    }
-  }, [sow, loading, error]);
 
   const isEditable = useMemo(() => {
     if (!sow) return false;
