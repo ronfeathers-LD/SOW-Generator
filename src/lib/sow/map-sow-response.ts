@@ -3,8 +3,8 @@
  *
  * The raw `sows` table row stores most fields as flat snake_case columns plus a
  * couple of JSONB blobs (`billing_info`, `pricing_roles`). The app, however,
- * consumes a nested shape (`template` / `header` / `client_signature` /
- * `objectives` / `scope` / `pricing` …). That row→shape mapping was hand-rolled
+ * consumes a nested shape (`template` / `header` / `objectives` / `scope` /
+ * `pricing` …). That row→shape mapping was hand-rolled
  * and duplicated across the GET route, the edit page, SOWForm, SOWDisplay and
  * SOWDataLoader — so any schema change had to be chased through all of them and
  * the copies had already drifted.
@@ -142,12 +142,6 @@ export function mapSowRowToResponse(sow: SowRow, extras: MapSowExtras = {}): Sow
       company_logo: sow.company_logo || '',
       client_name: sow.client_name || '',
       sow_title: sow.sow_title || '',
-    },
-    client_signature: {
-      name: sow.client_signer_name || '',
-      title: sow.client_title || '',
-      email: sow.client_email || '',
-      signature_date: sow.signature_date ? new Date(sow.signature_date) : new Date(),
     },
     client_signer_name: sow.client_signer_name || '',
     // Explicitly include salesforce_account_id

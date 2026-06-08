@@ -62,11 +62,11 @@ export async function POST(request: Request) {
         company_logo: data.header?.company_logo || '',
         client_name: data.template?.client_name || data.header?.client_name || '',
         
-        // Client Signature Information
-        client_title: data.client_signature?.title || '',
-        client_email: data.client_signature?.email || '',
-        client_signer_name: data.client_signer_name || '',
-        signature_date: data.client_signature?.signature_date ? new Date(data.client_signature.signature_date).toISOString() : new Date().toISOString(),
+        // Client Signature Information (sourced from the single `template` shape)
+        client_title: data.template?.customer_signature || '',
+        client_email: data.template?.customer_email || '',
+        client_signer_name: data.client_signer_name || data.template?.customer_signature_name || '',
+        signature_date: data.template?.customer_signature_date ? new Date(data.template.customer_signature_date).toISOString() : new Date().toISOString(),
         
         // Project Scope
         deliverables: data.scope?.deliverables || '',

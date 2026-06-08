@@ -186,17 +186,11 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
             opportunity_close_date: '',
           },
           
-          // Legacy fields (keeping for backward compatibility)
+          // Legacy field (keeping for backward compatibility)
           header: {
             company_logo: '',
             client_name: '',
             sow_title: '',
-          },
-          client_signature: {
-            name: '',
-            title: '',
-            email: '',
-            signature_date: new Date(),
           },
           objectives: {
             description: '',
@@ -441,11 +435,10 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
       
       // Set selected contact if contact information exists
       
-      // Check if we have any contact information (either from template or legacy fields)
-      const hasContactInfo = initialData.template?.customer_signature_name || 
-                           initialData.client_signer_name || 
-                           initialData.template?.customer_email ||
-                           initialData.client_signature?.email;
+      // Check if we have any contact information
+      const hasContactInfo = initialData.template?.customer_signature_name ||
+                           initialData.client_signer_name ||
+                           initialData.template?.customer_email;
       
       if (hasContactInfo) {
         const fullName = initialData.template?.customer_signature_name || initialData.client_signer_name || '';
@@ -457,8 +450,8 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
           Id: initialData.salesforce_contact_id || '', // Use the stored Salesforce contact ID
           FirstName: firstName,
           LastName: lastName,
-          Email: initialData.template?.customer_email || initialData.client_signature?.email || '',
-          Title: initialData.template?.customer_signature || initialData.client_signature?.title || '',
+          Email: initialData.template?.customer_email || '',
+          Title: initialData.template?.customer_signature || '',
           AccountId: initialData.salesforce_account_id || '',
           Account: { Name: initialData.template?.client_name || initialData.header?.client_name || '' }
         };
