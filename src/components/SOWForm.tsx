@@ -12,6 +12,8 @@ import BillingPaymentTab from './sow/BillingPaymentTab';
 import ContentEditingTab from './sow/ContentEditingTab';
 
 import { createSalesforceAccountData, createSalesforceOpportunityData } from '@/types/salesforce';
+import { SOW_TAB_KEYS, SowTabKey } from '@/lib/sow/tab-payloads';
+import { saveAllTabs } from '@/lib/sow/save-all';
 
 interface LeanDataSignatory {
   id: string;
@@ -252,16 +254,18 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
   const [activeTab, setActiveTab] = useState(pricingOnly ? 'Pricing' : 'Customer Information');
 
   const handleTabChange = (tabKey: string) => {
-    // Check for unsaved changes when switching from Content Editing tab
-    if (activeTab === 'Content Editing' && hasUnsavedChanges) {
+    // Warn before leaving any tab with unsaved edits. Switching tabs keeps the
+    // in-memory formData, but a reload would lose anything not yet saved — so
+    // nudge the user to Save first.
+    if (hasUnsavedChanges) {
       const confirmed = window.confirm(
-        'You have unsaved changes in the Content Editing tab. Are you sure you want to switch tabs? Your changes will be lost.'
+        'You have unsaved changes. Switch sections anyway? Use "Save" first to keep your edits.'
       );
       if (!confirmed) {
         return;
       }
     }
-    
+
     setActiveTab(tabKey);
     // Update URL hash
     const hash = tabKey.toLowerCase().replace(/\s+/g, '-');
@@ -300,15 +304,19 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   
   // Ref to get current pricing data from BillingPaymentTab
   const pricingRef = useRef<{ getCurrentPricingData?: () => PricingData }>(null);
   const [salesforceInstanceUrl, setSalesforceInstanceUrl] = useState<string>('https://na1.salesforce.com');
   const [hasLoadedSalesforceData, setHasLoadedSalesforceData] = useState<boolean>(false);
 
-  // Wrapper function to update form data
+  // Wrapper function to update form data. Any tab editing through this marks the
+  // whole form dirty so the unsaved-changes guard covers every tab, not just the
+  // active one (the gap behind the #109 data-loss bug).
   const updateFormData = (newData: Partial<SOWData>) => {
     setFormData(newData);
+    setHasUnsavedChanges(true);
   };
 
   // Fetch LeanData signatories and Salesforce instance URL on component mount
@@ -500,32 +508,21 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
     }
   }, [initialData, hasLoadedSalesforceData, selectedOpportunity]); // Added hasLoadedSalesforceData to prevent multiple loads
   
-  // Navigation blocking for unsaved changes
+  // Warn on full-page unload (reload / close / external navigation) when there
+  // are unsaved edits. The in-app tab switch is guarded separately in
+  // handleTabChange; we intentionally no longer hijack Tab/Escape keystrokes,
+  // which broke keyboard navigation and accessibility.
   useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-        return 'You have unsaved changes. Are you sure you want to leave?';
-      }
+      e.preventDefault();
+      e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+      return 'You have unsaved changes. Are you sure you want to leave?';
     };
-    
-    const handleTabChange = (e: KeyboardEvent) => {
-      if (hasUnsavedChanges && (e.key === 'Tab' || e.key === 'Escape')) {
-        e.preventDefault();
-        alert('Please save your changes before navigating away from the Pricing tab.');
-      }
-    };
-    
-    if (hasUnsavedChanges) {
-      window.addEventListener('beforeunload', handleBeforeUnload);
-      document.addEventListener('keydown', handleTabChange);
-      
-      return () => {
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-        document.removeEventListener('keydown', handleTabChange);
-      };
-    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
     // Initialize selected LeanData signatory when signatories are loaded and we have initial data
@@ -883,8 +880,12 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
 
 
 
-  const handleTabSave = async () => {
-    
+  // Save every visible section in one action, not just the active tab. This is
+  // the fix for #109: edits made on a tab that wasn't active at save time used
+  // to be silently dropped on reload. Each section is persisted through the same
+  // per-tab endpoint (reusing all its server-side validation), and a failure on
+  // any one section is surfaced rather than swallowed.
+  const handleSaveAll = async () => {
     if (!initialData?.id) {
       setNotification({
         type: 'error',
@@ -894,225 +895,56 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
       return;
     }
 
+    // Pricing edits live in the Pricing component's own state and only reach
+    // formData via the ref. Persist Pricing only when that component is mounted
+    // and can hand us its current values; otherwise we'd overwrite live pricing
+    // with a stale snapshot. (All other tabs write straight to formData, so they
+    // are always safe to save from anywhere.)
+    const livePricing = pricingRef.current?.getCurrentPricingData?.() ?? null;
 
+    // In pricing-only mode the other sections are read-only (and would be
+    // rejected on an in-review SOW), so persist Pricing alone.
+    let tabKeys: SowTabKey[] = pricingOnly ? ['Pricing'] : [...SOW_TAB_KEYS];
+    if (!livePricing) {
+      tabKeys = tabKeys.filter(tab => tab !== 'Pricing');
+    }
 
-          try {
-        setIsSaving(true);
-        const url = `/api/sow/${initialData.id}/tab-update`;
-        
-        
-        // Prepare tab-specific data
-        let tabData: Record<string, unknown> = {};
-      
-      
-      switch (activeTab) {
-        case 'Project Overview':
-          tabData = {
-            template: {
-              sow_title: formData.template?.sow_title,
-              products: formData.template?.products || [],
-              regions: formData.template?.regions,
-              salesforce_tenants: formData.template?.salesforce_tenants,
-              timeline_weeks: formData.template?.timeline_weeks,
-              units_consumption: formData.template?.units_consumption,
-              // BookIt Family Units
-              orchestration_units: formData.template?.orchestration_units,
-              bookit_forms_units: formData.template?.bookit_forms_units,
-              bookit_links_units: formData.template?.bookit_links_units,
-              bookit_handoff_units: formData.template?.bookit_handoff_units,
-              other_products_units: formData.template?.other_products_units,
-            }
-          };
-          break;
+    if (tabKeys.length === 0) {
+      setNotification({ type: 'warning', message: 'Open the Pricing section to save pricing changes.' });
+      setTimeout(() => setNotification(null), 5000);
+      return;
+    }
 
-        case 'Customer Information':
-          tabData = {
-            template: {
-              client_name: formData.template?.client_name,
-              customer_signature_name: formData.template?.customer_signature_name,
-              customer_email: formData.template?.customer_email,
-              lean_data_name: formData.template?.lean_data_name,
-              lean_data_title: formData.template?.lean_data_title,
-              lean_data_email: formData.template?.lean_data_email,
-              opportunity_id: formData.template?.opportunity_id,
-              opportunity_name: formData.template?.opportunity_name,
-              opportunity_amount: formData.template?.opportunity_amount,
-              opportunity_stage: formData.template?.opportunity_stage,
-              opportunity_close_date: formData.template?.opportunity_close_date,
-            },
-            header: {
-              company_logo: formData.header?.company_logo,
-            },
-            client_signature: {
-              name: formData.template?.customer_signature_name,
-              title: formData.template?.customer_signature,
-              email: formData.template?.customer_email,
-              signature_date: formData.template?.customer_signature_date,
-            }
-          };
-          break;
-
-        case 'Objectives':
-          tabData = {
-            objectives_description: formData.objectives?.description,
-            objectives_key_objectives: formData.objectives?.key_objectives,
-            objectives_avoma_transcription: formData.objectives?.avoma_transcription,
-            objectives_avoma_url: formData.objectives?.avoma_url,
-            deliverables: formData.scope?.deliverables,
-            custom_deliverables_content: formData.custom_deliverables_content,
-            deliverables_content_edited: formData.deliverables_content_edited,
-            custom_objective_overview_content: formData.custom_objective_overview_content,
-            objective_overview_content_edited: formData.objective_overview_content_edited,
-            custom_key_objectives_content: formData.custom_key_objectives_content,
-            key_objectives_content_edited: formData.key_objectives_content_edited,
-            selected_documents: formData.selected_documents,
-            selected_meetings: formData.selected_meetings,
-            // AI-generated content baselines
-            ai_generated_objective_overview_content: formData.ai_generated_objective_overview_content,
-            ai_generated_key_objectives_content: formData.ai_generated_key_objectives_content,
-            ai_generated_deliverables_content: formData.ai_generated_deliverables_content,
-          };
-          break;
-
-        case 'Signers & Roles':
-          tabData = {
-            roles: {
-              client_roles: formData.roles?.client_roles,
-            },
-            // Save signer information
-            template: {
-              customer_signature_name: formData.template?.customer_signature_name,
-              customer_email: formData.template?.customer_email,
-              customer_signature: formData.template?.customer_signature,
-              // Second signer information
-              customer_signature_name_2: formData.template?.customer_signature_name_2,
-              customer_signature_2: formData.template?.customer_signature_2,
-              customer_email_2: formData.template?.customer_email_2,
-              // LeanData signatory information
-              lean_data_name: formData.template?.lean_data_name,
-              lean_data_title: formData.template?.lean_data_title,
-              lean_data_email: formData.template?.lean_data_email,
-            },
-            // Save Salesforce contact ID
-            salesforce_contact_id: selectedContact?.Id || null,
-            // Save LeanData signatory ID
-            leandata_signatory_id: selectedLeanDataSignatory || null,
-          };
-          break;
-
-        case 'Billing Information':
-          tabData = {
-            template: {
-              billing_contact_name: formData.template?.billing_contact_name,
-              billing_email: formData.template?.billing_email,
-              billing_company_name: formData.template?.billing_company_name,
-              billing_address: formData.template?.billing_address,
-              purchase_order_number: formData.template?.purchase_order_number,
-            },
-            // Save billing information
-            pricing: {
-              billing: formData.pricing?.billing
-            }
-          };
-          break;
-
-        case 'Pricing':
-          // For Pricing tab, we need to get the current data from the component state
-          // Use the ref to get the most up-to-date pricing data
-          const currentPricingData = pricingRef.current?.getCurrentPricingData?.();
-          tabData = {
-            pricing: {
-              roles: currentPricingData?.roles || formData.pricing?.roles || [],
-              discount_type: currentPricingData?.discount_type || formData.pricing?.discount_type || 'none',
-              discount_amount: currentPricingData?.discount_amount || formData.pricing?.discount_amount || 0,
-              discount_percentage: currentPricingData?.discount_percentage || formData.pricing?.discount_percentage || 0,
-              subtotal: currentPricingData?.subtotal || formData.pricing?.subtotal || 0,
-              discount_total: currentPricingData?.discount_total || formData.pricing?.discount_total || 0,
-              total_amount: currentPricingData?.total_amount || formData.pricing?.total_amount || 0,
-              // Auto-save tracking fields
-              auto_calculated: formData.pricing?.auto_calculated || false,
-              last_calculated: formData.pricing?.last_calculated || new Date().toISOString(),
-            }
-          };
-          
-          
-          // Reset unsaved changes for Pricing tab
-          setHasUnsavedChanges(false);
-          break;
-
-        case 'Content Editing':
-          tabData = {
-            custom_intro_content: formData.custom_intro_content,
-            custom_scope_content: formData.custom_scope_content,
-            custom_objectives_disclosure_content: formData.custom_objectives_disclosure_content,
-            custom_assumptions_content: formData.custom_assumptions_content,
-            custom_project_phases_content: formData.custom_project_phases_content,
-            custom_deliverables_content: formData.custom_deliverables_content,
-            custom_objective_overview_content: formData.custom_objective_overview_content,
-            intro_content_edited: formData.intro_content_edited,
-            scope_content_edited: formData.scope_content_edited,
-            objectives_disclosure_content_edited: formData.objectives_disclosure_content_edited,
-            assumptions_content_edited: formData.assumptions_content_edited,
-            project_phases_content_edited: formData.project_phases_content_edited,
-            deliverables_content_edited: formData.deliverables_content_edited,
-            objective_overview_content_edited: formData.objective_overview_content_edited,
-            custom_key_objectives_content: formData.custom_key_objectives_content,
-            key_objectives_content_edited: formData.key_objectives_content_edited,
-          };
-          
-
-          break;
-
-        default:
-          setNotification({
-            type: 'error',
-            message: 'Unknown tab. Please try again.'
-          });
-          setTimeout(() => setNotification(null), 5000);
-          return;
-      }
-
-
-      
-      
-      const response = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tab: activeTab,
-          data: tabData
-        }),
+    try {
+      setIsSaving(true);
+      const result = await saveAllTabs(initialData.id, tabKeys, formData, {
+        pricingData: livePricing,
+        selectedContactId: selectedContact?.Id ?? null,
+        selectedLeanDataSignatoryId: selectedLeanDataSignatory || null,
+        nowIso: new Date().toISOString(),
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save tab data');
+
+      if (result.ok) {
+        setHasUnsavedChanges(false);
+        setLastSavedAt(new Date());
+        setNotification({
+          type: 'success',
+          message: 'All changes saved successfully!'
+        });
+      } else {
+        const failedTabs = result.failed.map(f => f.tab).join(', ');
+        setNotification({
+          type: 'error',
+          message: `Some sections could not be saved: ${failedTabs}. Please try again.`
+        });
       }
-      
-      const result = await response.json();
-      
-      // Show success notification
-      setNotification({
-        type: 'success',
-        message: result.message || `${activeTab} saved successfully!`
-      });
-      
-      // Don't reload the page - just show success message
-      
-      // Clear notification after 5 seconds
       setTimeout(() => setNotification(null), 5000);
     } catch (error) {
-      console.error(`Error saving ${activeTab}:`, error);
-      
-      // Show error notification
+      console.error('Error saving SOW:', error);
       setNotification({
         type: 'error',
-        message: `Failed to save ${activeTab}. Please try again.`
+        message: 'Failed to save. Please try again.'
       });
-      
-      // Clear notification after 5 seconds
       setTimeout(() => setNotification(null), 5000);
     } finally {
       setIsSaving(false);
@@ -1458,28 +1290,45 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
         />
       )}
 
-      {/* Floating Save Button - Always visible for all tabs */}
-      <div className="fixed bottom-6 right-6 z-50">
+      {/* Floating Save control — persists every section (save-all), with a
+          status indicator so the user knows whether work is saved (#21). */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+        <div
+          className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium shadow ring-1 ring-gray-200 backdrop-blur"
+          aria-live="polite"
+        >
+          {isSaving ? (
+            <span className="text-gray-600">Saving…</span>
+          ) : hasUnsavedChanges ? (
+            <span className="text-yellow-700">Unsaved changes</span>
+          ) : lastSavedAt ? (
+            <span className="text-gray-500">
+              Last saved at {lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+            </span>
+          ) : (
+            <span className="text-gray-400">All changes saved</span>
+          )}
+        </div>
         <button
           type="button"
-          onClick={handleTabSave}
+          onClick={handleSaveAll}
           disabled={isSaving}
-          className="inline-flex items-center px-6 py-3 border border-transparent shadow-lg text-sm font-medium rounded-full text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-xl"
+          className="inline-flex items-center px-6 py-3 border border-transparent shadow-lg text-sm font-semibold rounded-full text-[#2a2a2a] bg-[#26D07C] hover:bg-[#1fb86d] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#26D07C] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-xl"
         >
           {isSaving ? (
             <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Saving...
+              Saving…
             </>
           ) : (
             <>
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-              Save {activeTab}
+              {pricingOnly ? 'Save Pricing' : 'Save all changes'}
             </>
           )}
         </button>
