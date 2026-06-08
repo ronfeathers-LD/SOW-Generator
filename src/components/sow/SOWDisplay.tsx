@@ -533,8 +533,8 @@ export default function SOWDisplay({
             last_calculated: data.pricing?.last_calculated || null,
           },
           pricingRoles: data.pricingRoles || [],
-          companyLogo: data.header?.company_logo || data.companyLogo || '',
-          clientName: data.template?.client_name || data.client_name || data.header?.client_name || '',
+          companyLogo: data.template?.company_logo || data.company_logo || data.companyLogo || '',
+          clientName: data.template?.client_name || data.client_name || '',
           sowTitle: data.sow_title || data.title || 'Untitled SOW',
           clientSignature: data.template?.customer_signature_name ? {
             name: data.template.customer_signature_name,

@@ -136,8 +136,7 @@ export async function GET(
         // Update the transformed data to reflect the change
         transformedSow.client_name = salesforceData.account_data.name;
         transformedSow.template.client_name = salesforceData.account_data.name;
-        transformedSow.header.client_name = salesforceData.account_data.name;
-        
+
         console.log(`✅ Synced client_name from Salesforce: "${salesforceData.account_data.name}"`);
       } catch (syncError) {
         console.error('Error syncing client_name from Salesforce:', syncError);

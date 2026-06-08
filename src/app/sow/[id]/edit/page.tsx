@@ -60,8 +60,8 @@ export default function EditSOWPage() {
   // Update document title when SOW is loaded
   useEffect(() => {
     if (sow) {
-      const clientName = sow.header?.client_name || sow.template?.client_name || '';
-      const title = sow.header?.sow_title || sow.template?.sow_title || 'Untitled SOW';
+      const clientName = sow.template?.client_name || '';
+      const title = sow.template?.sow_title || 'Untitled SOW';
       document.title = clientName ? `${clientName} - ${title}` : title;
     } else if (!loading) {
       // Reset to default when SOW is not available

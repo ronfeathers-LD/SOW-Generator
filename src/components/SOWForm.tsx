@@ -186,12 +186,6 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
             opportunity_close_date: '',
           },
           
-          // Legacy field (keeping for backward compatibility)
-          header: {
-            company_logo: '',
-            client_name: '',
-            sow_title: '',
-          },
           objectives: {
             description: '',
             key_objectives: [''],
@@ -411,11 +405,11 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
       // Set selected account if available from initialData or if customer name exists
       if (initialData.selectedAccount) {
         setSelectedAccount(initialData.selectedAccount);
-      } else if (initialData.template?.client_name || initialData.header?.client_name) {
+      } else if (initialData.template?.client_name) {
         const accountId = initialData.salesforce_account_id || '';
         const reconstructedAccount = {
           Id: accountId, // Use the Salesforce account ID if available
-          Name: initialData.template?.client_name || initialData.header?.client_name || '',
+          Name: initialData.template?.client_name || '',
           // Include account segment from stored data
           Employee_Band__c: initialData.account_segment || '',
           // Include account owner information if available
@@ -453,7 +447,7 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
           Email: initialData.template?.customer_email || '',
           Title: initialData.template?.customer_signature || '',
           AccountId: initialData.salesforce_account_id || '',
-          Account: { Name: initialData.template?.client_name || initialData.header?.client_name || '' }
+          Account: { Name: initialData.template?.client_name || '' }
         };
         
         setSelectedContact(contactData);
@@ -623,7 +617,6 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
         setFormData({
           ...formData,
           template: { ...formData.template!, company_logo: base64String },
-          header: { ...formData.header!, company_logo: base64String }
         });
       };
       reader.readAsDataURL(file);
@@ -634,7 +627,6 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
     setFormData({
       ...formData,
       template: { ...formData.template!, company_logo: '' },
-      header: { ...formData.header!, company_logo: '' }
     });
   };
 
@@ -722,16 +714,12 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
       ...formData,
       template: {
         ...formData.template,
-        customer_name: accountObj.Name,
+        client_name: accountObj.Name,
         // Don't auto-populate contact details until POC is selected
         customer_email: '',
         customer_signature_name: '',
         customer_signature: '',
       } as SOWTemplate,
-      header: {
-        ...formData.header,
-        client_name: accountObj.Name,
-      } as { company_logo: string; client_name: string; sow_title: string },
     });
 
     // Save Salesforce data to database if we have a SOW ID
