@@ -109,8 +109,8 @@ const ObjectivesTab = React.memo(function ObjectivesTab({
 
   // Get customer name from selected account or form data - memoized to prevent recalculation
   const customerName = useMemo(() => 
-    selectedAccount?.Name || formData.template?.client_name || formData.header?.client_name || '',
-    [selectedAccount?.Name, formData.template?.client_name, formData.header?.client_name]
+    selectedAccount?.Name || formData.template?.client_name || '',
+    [selectedAccount?.Name, formData.template?.client_name]
   );
 
   // Clever messages for the analysis process

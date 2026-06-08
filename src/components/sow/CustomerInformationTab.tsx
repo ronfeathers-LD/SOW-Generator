@@ -519,7 +519,7 @@ export default function CustomerInformationTab({
                 onClick={() => handleStepButtonClick('logo')}
               >
                 <div className="flex-shrink-0 mr-3 mt-1">
-                  {(formData.template?.company_logo || formData.header?.company_logo) ? (
+                  {formData.template?.company_logo ? (
                     <svg className="h-6 w-6 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
@@ -532,9 +532,9 @@ export default function CustomerInformationTab({
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">Company Logo</p>
                   <p className="text-xs text-gray-500 mb-2">
-                    {(formData.template?.company_logo || formData.header?.company_logo) ? 'Logo uploaded' : 'Optional - upload company logo'}
+                    {formData.template?.company_logo ? 'Logo uploaded' : 'Optional - upload company logo'}
                   </p>
-                  {(formData.template?.company_logo || formData.header?.company_logo) && (
+                  {formData.template?.company_logo && (
                     <div className="text-xs text-gray-600 space-y-1">
                       <div className="flex items-center">
                         <svg className="h-3 w-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20">
@@ -670,7 +670,7 @@ export default function CustomerInformationTab({
                    </div>
                    
                    {/* Logo Preview */}
-                   {(formData.template?.company_logo || formData.header?.company_logo) && (
+                   {formData.template?.company_logo && (
                      <div className="bg-white border border-gray-200 rounded-md p-4">
                        <div className="flex justify-between items-center mb-2">
                          <h5 className="text-sm font-medium text-gray-900">Logo Preview</h5>
@@ -683,7 +683,7 @@ export default function CustomerInformationTab({
                          </button>
                        </div>
                        <Image
-                         src={formData.template?.company_logo || formData.header?.company_logo || ''}
+                         src={formData.template?.company_logo || ''}
                          alt="Company Logo"
                          width={128}
                          height={128}

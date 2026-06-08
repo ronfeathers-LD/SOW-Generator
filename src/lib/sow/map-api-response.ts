@@ -6,9 +6,8 @@
  * to turn that into the `SOWData` the form drives off. That response→form-state
  * mapping was inlined in the edit page (~120 lines) and is the client-side twin
  * of the duplication we removed on the server. Centralizing it here gives one
- * seam where the form's initial state — including the legacy `header`
- * compatibility shape and the form-only defaults the API does not supply — is
- * produced.
+ * seam where the form's initial state — including the form-only defaults the
+ * API does not supply — is produced.
  *
  * Behavior-preserving: this reproduces exactly what the edit page used to build,
  * including its form-only defaults (`'None Selected'` signatories, an empty
@@ -42,6 +41,8 @@ export function mapApiResponseToSOWData(data: SowApiResponse): SOWData {
     // Use the template data from the API response, merging with top-level fields
     template: {
       ...data.template,
+      // company_logo is the single home for the logo (was the legacy `header`)
+      company_logo: data.company_logo || data.template?.company_logo || '',
       // Ensure client_name is available
       client_name: data.client_name || data.template?.client_name || '',
       // Include other template fields
@@ -49,12 +50,6 @@ export function mapApiResponseToSOWData(data: SowApiResponse): SOWData {
       lean_data_name: data.leandata_name || data.template?.lean_data_name || 'None Selected',
       lean_data_title: data.leandata_title || data.template?.lean_data_title || 'None Selected',
       lean_data_email: data.leandata_email || data.template?.lean_data_email || 'None Selected',
-    },
-    // Required properties for SOWData interface
-    header: {
-      company_logo: data.company_logo || '',
-      client_name: data.client_name || data.template?.client_name || '',
-      sow_title: data.sow_title || data.template?.sow_title || '',
     },
     objectives: {
       description: data.objectives?.description || '',

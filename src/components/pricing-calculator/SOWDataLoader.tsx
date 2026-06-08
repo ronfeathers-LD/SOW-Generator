@@ -152,11 +152,6 @@ export default function SOWDataLoader({ isOpen, onClose, onDataLoad }: SOWDataLo
           Employee_Band__c: selectedSOW.selectedAccount.Employee_Band__c,
         } : undefined,
         pm_hours_requirement_disabled: false, // Default to false for calculator
-        header: {
-          company_logo: '',
-          client_name: selectedSOW.client_name || '',
-          sow_title: selectedSOW.sow_title || '',
-        },
         objectives: {
           description: '',
           key_objectives: [],

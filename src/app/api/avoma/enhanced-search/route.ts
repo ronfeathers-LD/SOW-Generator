@@ -153,9 +153,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine search parameters with priority order
-    const searchAccountName = accountName || 
-                             salesforceData?.account_data?.name || 
-                             sowData?.header?.client_name || 
+    const searchAccountName = accountName ||
+                             salesforceData?.account_data?.name ||
+                             sowData?.template?.client_name ||
                              'Unknown Account';
     
     const searchOpportunityName = opportunityName || 

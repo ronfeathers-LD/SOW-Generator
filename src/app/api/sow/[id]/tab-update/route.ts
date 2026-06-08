@@ -120,8 +120,8 @@ export async function PUT(
           if (data.template.opportunity_stage !== undefined) updateData.opportunity_stage = data.template.opportunity_stage || null;
           if (data.template.opportunity_close_date !== undefined) updateData.opportunity_close_date = data.template.opportunity_close_date ? new Date(data.template.opportunity_close_date).toISOString() : null;
         }
-        if (data.header) {
-          if (data.header.company_logo !== undefined) updateData.company_logo = data.header.company_logo;
+        if (data.template?.company_logo !== undefined) {
+          updateData.company_logo = data.template.company_logo;
         }
         break;
 

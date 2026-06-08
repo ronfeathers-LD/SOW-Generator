@@ -66,6 +66,7 @@ export function buildTabPayload(
     case 'Customer Information':
       return {
         template: {
+          company_logo: template?.company_logo,
           client_name: template?.client_name,
           customer_signature_name: template?.customer_signature_name,
           customer_email: template?.customer_email,
@@ -77,9 +78,6 @@ export function buildTabPayload(
           opportunity_amount: template?.opportunity_amount,
           opportunity_stage: template?.opportunity_stage,
           opportunity_close_date: template?.opportunity_close_date,
-        },
-        header: {
-          company_logo: formData.header?.company_logo,
         },
       };
 

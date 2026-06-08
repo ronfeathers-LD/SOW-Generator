@@ -91,13 +91,6 @@ export interface SOWData {
   
   // Template Variables
   template?: SOWTemplate;
-  
-  // Header Information
-  header: {
-    company_logo: string;
-    client_name: string;
-    sow_title: string;
-  };
 
   // Project Objectives
   objectives: {

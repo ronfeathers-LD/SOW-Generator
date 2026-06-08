@@ -55,12 +55,12 @@ export async function POST(request: Request) {
       .from('sows')
       .insert({
         // Required fields
-        sow_title: data.template?.sow_title || data.header?.sow_title || 'Untitled SOW',
+        sow_title: data.template?.sow_title || 'Untitled SOW',
         status: 'draft',
-        
-        // Header Information
-        company_logo: data.header?.company_logo || '',
-        client_name: data.template?.client_name || data.header?.client_name || '',
+
+        // Header Information (sourced from the single `template` shape)
+        company_logo: data.template?.company_logo || '',
+        client_name: data.template?.client_name || '',
         
         // Client Signature Information (sourced from the single `template` shape)
         client_title: data.template?.customer_signature || '',
