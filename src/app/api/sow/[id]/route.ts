@@ -5,6 +5,7 @@ import { getSlackService } from '@/lib/slack';
 import { getEmailService } from '@/lib/email';
 import { getSOWUrl } from '@/lib/utils/app-url';
 import { authOptions } from '@/lib/auth';
+import { mapSowRowToResponse } from '@/lib/sow/map-sow-response';
 
 export async function GET(
   request: Request,
@@ -28,9 +29,6 @@ export async function GET(
 
 
 
-
-    // Get products from JSONB field
-    const productNames = Array.isArray(sow.products) ? sow.products : [];
 
     // Fetch LeanData signatory if one is selected
     let leanDataSignatory = null;
@@ -72,171 +70,14 @@ export async function GET(
       }
     }
 
-    // Transform recordings to match frontend format
-    const transformedRecordings = (avomaRecordings || []).map(recording => ({
-      id: recording.id,
-      url: recording.url,
-      transcription: recording.transcription || '',
-      title: recording.title || '',
-      date: recording.date || recording.created_at,
-      status: recording.status || 'pending'
-    }));
-
-    // Return snake_case data directly with nested structure
-    const transformedSow = {
-      ...sow,
-      objectives: {
-        description: sow.objectives_description || '',
-        key_objectives: sow.objectives_key_objectives || [],
-        avoma_transcription: sow.avoma_transcription || '',
-        avoma_url: sow.avoma_url || '',
-        avoma_recordings: transformedRecordings,
-      },
-      scope: {
-
-        deliverables: sow.deliverables || '',
-        timeline: {
-          duration: sow.duration || '',
-        },
-      },
-      template: {
-        client_name: sow.client_name || '',
-        customer_signature_name: sow.client_signer_name || '',
-        customer_email: sow.client_email || '',
-        customer_signature: sow.client_title || '', // Add this missing mapping!
-        lean_data_name: leanDataSignatory?.name || sow.leandata_name || '',
-        lean_data_title: leanDataSignatory?.title || sow.leandata_title || '',
-        lean_data_email: leanDataSignatory?.email || sow.leandata_email || '',
-        products: productNames,
-        regions: sow.regions || '999',
-        salesforce_tenants: sow.salesforce_tenants || '999',
-        timeline_weeks: sow.timeline_weeks || '999',
-        units_consumption: sow.units_consumption || 'All units immediately',
-        // BookIt Family Units
-        orchestration_units: sow.orchestration_units || '',
-        bookit_forms_units: sow.bookit_forms_units || '',
-        bookit_links_units: sow.bookit_links_units || '',
-        bookit_handoff_units: sow.bookit_handoff_units || '',
-        other_products_units: sow.other_products_units || '',
-        opportunity_id: sow.opportunity_id || '',
-        opportunity_name: sow.opportunity_name || '',
-        opportunity_amount: sow.opportunity_amount || undefined,
-        opportunity_stage: sow.opportunity_stage || '',
-        opportunity_close_date: sow.opportunity_close_date || undefined,
-        // Second signer information
-        customer_signature_name_2: sow.customer_signature_name_2 || '',
-        customer_signature_2: sow.customer_signature_2 || '',
-        customer_email_2: sow.customer_email_2 || '',
-
-        // Billing information - map from billing_info JSONB field
-        billing_company_name: (sow.billing_info as Record<string, unknown>)?.company_name || '',
-        billing_contact_name: (sow.billing_info as Record<string, unknown>)?.billing_contact || '',
-        billing_address: (sow.billing_info as Record<string, unknown>)?.billing_address || '',
-        billing_email: (sow.billing_info as Record<string, unknown>)?.billing_email || '',
-        purchase_order_number: (sow.billing_info as Record<string, unknown>)?.po_number || '',
-      },
-      header: {
-        company_logo: sow.company_logo || '',
-        client_name: sow.client_name || '',
-        sow_title: sow.sow_title || '',
-      },
-      client_signature: {
-        name: sow.client_signer_name || '',
-        title: sow.client_title || '',
-        email: sow.client_email || '',
-        signature_date: sow.signature_date ? new Date(sow.signature_date) : new Date(),
-      },
-      client_signer_name: sow.client_signer_name || '',
-      // Explicitly include salesforce_account_id
-      salesforce_account_id: sow.salesforce_account_id || null,
-      // Include Salesforce account owner information
-      salesforce_account_owner_name: sow.salesforce_account_owner_name || null,
-      salesforce_account_owner_email: sow.salesforce_account_owner_email || null,
-      // Include LeanData signatory ID
-      leandata_signatory_id: sow.leandata_signatory_id || null,
-      // Include account segment
-      account_segment: sow.account_segment || null,
-      // Include PM hours removal state so the editor recalculates hours correctly
-      pm_hours_requirement_disabled: sow.pm_hours_requirement_disabled || false,
-      pm_hours_removed: sow.pm_hours_removed || 0,
-      pm_hours_removal_approved: sow.pm_hours_removal_approved || false,
-      // Include custom content fields
-      custom_intro_content: sow.custom_intro_content || null,
-      custom_scope_content: sow.custom_scope_content || null,
-      custom_objectives_disclosure_content: sow.custom_objectives_disclosure_content || null,
-      custom_assumptions_content: sow.custom_assumptions_content || null,
-      custom_project_phases_content: sow.custom_project_phases_content || null,
-      custom_deliverables_content: sow.custom_deliverables_content || null,
-      custom_objective_overview_content: sow.custom_objective_overview_content || null,
-      custom_key_objectives_content: sow.custom_key_objectives_content || null,
-      intro_content_edited: sow.intro_content_edited || false,
-      scope_content_edited: sow.scope_content_edited || false,
-      objectives_disclosure_content_edited: sow.objectives_disclosure_content_edited || false,
-      assumptions_content_edited: sow.assumptions_content_edited || false,
-      project_phases_content_edited: sow.project_phases_content_edited || false,
-      deliverables_content_edited: sow.deliverables_content_edited || false,
-      objective_overview_content_edited: sow.objective_overview_content_edited || false,
-      key_objectives_content_edited: sow.key_objectives_content_edited || false,
-      // AI-generated content baselines for edit detection
-      ai_generated_objective_overview_content: sow.ai_generated_objective_overview_content || null,
-      ai_generated_key_objectives_content: sow.ai_generated_key_objectives_content || null,
-      ai_generated_deliverables_content: sow.ai_generated_deliverables_content || null,
-      // Include submission tracking
-      submitted_by: sow.submitted_by || null,
-      submitted_at: sow.submitted_at || null,
-      submitted_by_name: submittedByName,
-      // Include approval/rejection tracking
-      approval_comments: sow.approval_comments || null,
-      approved_at: sow.approved_at || null,
-      rejected_at: sow.rejected_at || null,
-      approved_by: sow.approved_by || null,
-      rejected_by: sow.rejected_by || null,
-      // Include client roles
-      roles: {
-        client_roles: sow.client_roles || []
-      },
-      // Include pricing data - handle mixed structure where pricing_roles contains both roles and config
-      pricingRoles: (() => {
-        if (Array.isArray(sow.pricing_roles)) {
-          // If it's an array, return it directly (old format)
-          return sow.pricing_roles;
-        } else if (sow.pricing_roles && typeof sow.pricing_roles === 'object' && sow.pricing_roles.roles) {
-          // If it's an object with a roles property, return the roles array
-          return sow.pricing_roles.roles;
-        } else {
-          // Otherwise return empty array
-          return [];
-        }
-      })(),
-      billingInfo: sow.billing_info || {},
-      // Include pricing configuration from JSONB fields
-      pricing: {
-        roles: (() => {
-          // If pricing_roles is an object with a roles property, use that
-          if (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles) && sow.pricing_roles.roles) {
-            return sow.pricing_roles.roles;
-          }
-          // If pricing_roles is an array, use it directly
-          if (Array.isArray(sow.pricing_roles)) {
-            return sow.pricing_roles;
-          }
-          // Otherwise return empty array
-          return [];
-        })(),
-        project_management_included: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.project_management_included || false : false,
-        project_management_hours: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.project_management_hours || 40 : 40,
-        project_management_rate: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.project_management_rate || 225 : 225,
-        base_hourly_rate: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.base_hourly_rate || 200 : 200,
-        discount_type: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.discount_type || 'none' : 'none',
-        discount_amount: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.discount_amount || 0 : 0,
-        discount_percentage: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.discount_percentage || 0 : 0,
-        subtotal: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.subtotal || 0 : 0,
-        discount_total: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.discount_total || 0 : 0,
-        total_amount: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.total_amount || 0 : 0,
-        auto_calculated: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.auto_calculated || false : false,
-        last_calculated: (sow.pricing_roles && typeof sow.pricing_roles === 'object' && !Array.isArray(sow.pricing_roles)) ? sow.pricing_roles.last_calculated || null : null,
-      },
-    };
+    // Map the raw row into the nested response shape via the single canonical
+    // serializer (see src/lib/sow/map-sow-response.ts). Post-mapping mutations
+    // (account-segment backfill, Salesforce client_name sync) still happen below.
+    const transformedSow = mapSowRowToResponse(sow, {
+      leanDataSignatory,
+      avomaRecordings,
+      submittedByName,
+    });
 
 
     // 🔧 FIX: If account_segment is missing but we have salesforce_account_id, fetch it
