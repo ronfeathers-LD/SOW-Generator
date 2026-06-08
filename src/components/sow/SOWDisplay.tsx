@@ -19,8 +19,9 @@ import LoadingModal from '@/components/ui/LoadingModal';
 import CreateRevisionButton from '@/components/sow/CreateRevisionButton';
 import SOWRevisionHistory from '@/components/sow/SOWRevisionHistory';
 import { useSession } from 'next-auth/react';
-import { parseObjectives } from '@/lib/utils/parse-objectives';
 import PreSubmitChecklistModal from '@/components/sow/PreSubmitChecklistModal';
+import { DisplaySOW, Product, SalesforceData } from '@/types/sow-display';
+import { mapApiResponseToDisplaySOW } from '@/lib/sow/map-api-response-to-display';
 
 function getFixLinkForMessage(message: string, sowId: string): { href: string; text: string } | null {
   const lower = message.toLowerCase();
@@ -46,7 +47,7 @@ function getFixLinkForMessage(message: string, sowId: string): { href: string; t
 export type SOWDisplayMode = 'full' | 'print';
 
 // Validation Submit Button Component
-function ValidationSubmitButton({ sow }: { sow: SOW }) {
+function ValidationSubmitButton({ sow }: { sow: DisplaySOW }) {
   const [validation, setValidation] = useState<{
     isValid: boolean;
     missingFields: string[];
@@ -241,165 +242,6 @@ interface SOWDisplayProps {
   className?: string;
 }
 
-// Import the SOW interface from the main view
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  is_active: boolean;
-  sort_order: number;
-}
-
-interface ClientRole {
-  role: string;
-  responsibilities: string;
-  name: string;
-  email: string;
-  salesforce_contact_id?: string;
-  contact_title?: string;
-}
-
-interface SOW {
-  id: string;
-  clientName: string;
-  sowTitle: string;
-  clientTitle: string;
-  clientEmail: string;
-  signatureDate: string;
-  deliverables: string[];
-  projectDescription: string;
-  keyObjectives: string[];
-  startDate: string;
-  duration: string;
-  clientRoles: ClientRole[];
-  pricingRoles?: Array<{
-    role: string;
-    rate_per_hour: number;
-    default_rate?: number;
-    total_hours: number;
-    totalCost: number;
-  }>;
-  status: 'draft' | 'in_review' | 'approved' | 'rejected' | 'recalled';
-  submitted_by?: string;
-  submitted_at?: string;
-  submitted_by_name?: string;
-  pricing: {
-    roles: Array<{
-      role: string;
-      ratePerHour: number;
-      totalHours: number;
-    }>;
-    billing: {
-      companyName: string;
-      billingContact: string;
-      billingAddress: string;
-      billingEmail: string;
-      poNumber: string;
-      paymentTerms: string;
-      currency: string;
-      taxRate?: number;
-      shipping?: number;
-    };
-    project_management_included?: boolean;
-    project_management_hours?: number;
-    project_management_rate?: number;
-    base_hourly_rate?: number;
-    discount_type?: 'none' | 'fixed' | 'percentage';
-    discount_amount?: number;
-    discount_percentage?: number;
-    subtotal?: number;
-    discount_total?: number;
-    total_amount?: number;
-    auto_calculated?: boolean;
-    last_calculated?: string | null;
-  };
-  accessRequirements: string;
-  travelRequirements: string;
-  workingHours: string;
-  testingResponsibilities: string;
-  version: number;
-  companyLogo: string;
-  clientSignature?: {
-    name: string;
-    title: string;
-    email: string;
-    date: string;
-  };
-  clientSignerName?: string;
-  salesforceAccountId?: string;
-  customer_signature_name_2?: string;
-  customer_signature_2?: string;
-  customer_email_2?: string;
-  products?: string[];
-  number_of_units?: string;
-  regions?: string;
-  salesforce_tenants?: string;
-  timeline_weeks?: string;
-  units_consumption?: string;
-  orchestration_units?: string;
-  bookit_forms_units?: string;
-  bookit_links_units?: string;
-  bookit_handoff_units?: string;
-  custom_intro_content?: string;
-  custom_scope_content?: string;
-  custom_out_of_scope_content?: string;
-  custom_objectives_disclosure_content?: string;
-  custom_assumptions_content?: string;
-  custom_project_phases_content?: string;
-  custom_roles_content?: string;
-  custom_deliverables_content?: string;
-  custom_objective_overview_content?: string;
-  custom_key_objectives_content?: string;
-  intro_content_edited?: boolean;
-  scope_content_edited?: boolean;
-  out_of_scope_content_edited?: boolean;
-  objectives_disclosure_content_edited?: boolean;
-  assumptions_content_edited?: boolean;
-  project_phases_content_edited?: boolean;
-  roles_content_edited?: boolean;
-  deliverables_content_edited?: boolean;
-  objective_overview_content_edited?: boolean;
-  key_objectives_content_edited?: boolean;
-  template?: {
-    billing_company_name?: string;
-    billing_contact_name?: string;
-    billing_address?: string;
-    billing_email?: string;
-    purchase_order_number?: string;
-    customer_signature_name?: string;
-    customer_signature?: string;
-    customer_email?: string;
-    lean_data_name?: string;
-    lean_data_title?: string;
-    lean_data_email?: string;
-  };
-  approved_at?: string;
-  rejected_at?: string;
-  approval_comments?: string;
-  pm_hours_requirement_disabled?: boolean;
-  pm_hours_requirement_disabled_date?: string;
-  pm_hours_requirement_disabled_requester_id?: string;
-  pm_hours_requirement_disabled_approver_id?: string;
-  author_id?: string | null;
-  is_latest?: boolean;
-}
-
-interface SalesforceData {
-  account_data?: {
-    name: string;
-    id: string;
-  };
-  contacts_data?: Array<{
-    first_name?: string;
-    last_name: string;
-    email?: string;
-    title?: string;
-    role: string;
-  }>;
-  opportunity_data?: unknown;
-}
-
 // Helper function to find the appropriate signatory from Salesforce contacts
 function findSignatory(contacts: SalesforceData['contacts_data']): { name: string; title: string; email: string } | null {
   if (!contacts || contacts.length === 0) return null;
@@ -443,7 +285,7 @@ export default function SOWDisplay({
 }: SOWDisplayProps) {
   // const params = useParams(); // Not used in this component
   // const router = useRouter(); // Not used in this component
-  const [sow, setSOW] = useState<SOW | null>(null);
+  const [sow, setSOW] = useState<DisplaySOW | null>(null);
   const [salesforceData, setSalesforceData] = useState<SalesforceData | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -491,118 +333,10 @@ export default function SOWDisplay({
           throw new Error(`Failed to fetch SOW: ${response.status}`);
         }
         const data = await response.json();
-        
-        // Parse JSON fields with safe defaults (same logic as main view)
-        const parsedData = {
-          ...data,
-          deliverables: data.deliverables ? data.deliverables.split('\n').filter(Boolean) : [],
-          projectDescription: data.objectives?.description || '',
-          keyObjectives: parseObjectives(data.objectives?.key_objectives),
-          clientRoles: Array.isArray(data.roles?.client_roles) ? data.roles.client_roles.map((role: unknown) => {
-            const roleObj = role as { role?: string; name?: string; email?: string; responsibilities?: string; contact_title?: string };
-            return {
-              role: roleObj.role || '',
-              name: roleObj.name || '',
-              email: roleObj.email || '',
-              contact_title: roleObj.contact_title || '',
-              responsibilities: roleObj.responsibilities || ''
-            };
-          }) : [],
-          pricing: {
-            roles: [],
-            billing: data.billingInfo || {
-              companyName: '',
-              billingContact: '',
-              billingAddress: '',
-              billingEmail: '',
-              poNumber: '',
-              paymentTerms: '',
-              currency: '',
-            },
-            project_management_included: data.pricing?.project_management_included || false,
-            project_management_hours: data.pricing?.project_management_hours || 40,
-            project_management_rate: data.pricing?.project_management_rate || 225,
-            base_hourly_rate: data.pricing?.base_hourly_rate || 200,
-            discount_type: data.pricing?.discount_type || 'none',
-            discount_amount: data.pricing?.discount_amount || null,
-            discount_percentage: data.pricing?.discount_percentage || null,
-            subtotal: data.pricing?.subtotal || 0,
-            discount_total: data.pricing?.discount_total || 0,
-            total_amount: data.pricing?.total_amount || 0,
-            auto_calculated: data.pricing?.auto_calculated || false,
-            last_calculated: data.pricing?.last_calculated || null,
-          },
-          pricingRoles: data.pricingRoles || [],
-          companyLogo: data.template?.company_logo || data.company_logo || data.companyLogo || '',
-          clientName: data.template?.client_name || data.client_name || '',
-          sowTitle: data.sow_title || data.title || 'Untitled SOW',
-          clientSignature: data.template?.customer_signature_name ? {
-            name: data.template.customer_signature_name,
-            title: data.template.customer_signature || data.client_title || '',
-            email: data.template.customer_email || data.client_email || '',
-            date: data.signature_date || new Date().toISOString()
-          } : undefined,
-          clientSignerName: data.template?.customer_signature_name || data.client_signer_name || undefined,
-          clientTitle: data.template?.customer_signature || data.client_title || '',
-          clientEmail: data.template?.customer_email || data.client_email || '',
-          customer_signature_name_2: data.template?.customer_signature_name_2 || undefined,
-          customer_signature_2: data.template?.customer_signature_2 || undefined,
-          customer_email_2: data.template?.customer_email_2 || undefined,
-          salesforceAccountId: data.salesforce_account_id || undefined,
-          template: {
-            billing_company_name: data.template?.billing_company_name || (data.billing_info as Record<string, unknown>)?.company_name || '',
-            billing_contact_name: data.template?.billing_contact_name || (data.billing_info as Record<string, unknown>)?.billing_contact || '',
-            billing_address: data.template?.billing_address || (data.billing_info as Record<string, unknown>)?.billing_address || '',
-            billing_email: data.template?.billing_email || (data.billing_info as Record<string, unknown>)?.billing_email || '',
-            purchase_order_number: data.template?.purchase_order_number || (data.billing_info as Record<string, unknown>)?.po_number || '',
-            customer_signature_name: data.template?.customer_signature_name || data.client_signer_name || '',
-            customer_signature: data.template?.customer_signature || data.client_title || '',
-            customer_email: data.template?.customer_email || data.client_email || '',
-            lean_data_name: data.template?.lean_data_name || '',
-            lean_data_title: data.template?.lean_data_title || '',
-            lean_data_email: data.template?.lean_data_email || '',
-          },
-          custom_intro_content: data.custom_intro_content || undefined,
-          custom_scope_content: data.custom_scope_content || undefined,
-          custom_out_of_scope_content: data.custom_out_of_scope_content || undefined,
-          custom_objectives_disclosure_content: data.custom_objectives_disclosure_content || undefined,
-          custom_assumptions_content: data.custom_assumptions_content || undefined,
-          custom_project_phases_content: data.custom_project_phases_content || undefined,
-          custom_roles_content: data.custom_roles_content || undefined,
-          custom_deliverables_content: data.custom_deliverables_content || undefined,
-          custom_objective_overview_content: data.custom_objective_overview_content || undefined,
-          custom_key_objectives_content: data.custom_key_objectives_content || undefined,
-          products: data.template?.products || [],
-          number_of_units: data.template?.number_of_units || data.number_of_units || '',
-          regions: data.template?.regions || data.regions || '',
-          salesforce_tenants: data.template?.salesforce_tenants || data.salesforce_tenants || '',
-          timeline_weeks: data.template?.timeline_weeks || data.timeline_weeks || '',
-          units_consumption: data.template?.units_consumption || data.units_consumption || '',
-          orchestration_units: data.template?.orchestration_units || data.orchestration_units || data.template?.number_of_units || '',
-          bookit_forms_units: data.template?.bookit_forms_units || data.bookit_forms_units || '',
-          bookit_links_units: data.template?.bookit_links_units || data.bookit_links_units || '',
-          bookit_handoff_units: data.template?.bookit_handoff_units || data.bookit_handoff_units || '',
-          leandata_name: data.template?.lean_data_name || data.leandata_name || '',
-          leandata_title: data.template?.lean_data_title || data.leandata_title || '',
-          leandata_email: data.template?.lean_data_email || data.leandata_email || '',
-          intro_content_edited: data.intro_content_edited || false,
-          scope_content_edited: data.scope_content_edited || false,
-          out_of_scope_content_edited: data.out_of_scope_content_edited || false,
-          objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false,
-          assumptions_content_edited: data.assumptions_content_edited || false,
-          project_phases_content_edited: data.project_phases_content_edited || false,
-          roles_content_edited: data.roles_content_edited || false,
-          deliverables_content_edited: data.deliverables_content_edited || false,
-          objective_overview_content_edited: data.objective_overview_content_edited || false,
-          key_objectives_content_edited: data.key_objectives_content_edited || false,
-          approved_at: data.approved_at || undefined,
-          rejected_at: data.rejected_at || undefined,
-          approval_comments: data.approval_comments || undefined,
-          author_id: data.author_id || null,
-          is_latest: data.is_latest ?? true,
-          version: data.version || 1,
-        } as SOW;
-        
+
+        // Map the API response into the display view-model (single seam).
+        const parsedData = mapApiResponseToDisplaySOW(data);
+
         setSOW(parsedData);
         
         // Fetch Salesforce data if available
