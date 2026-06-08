@@ -4,7 +4,7 @@ import PMHoursRemovalModal from './PMHoursRemovalModal';
 import PMHoursRemovalApprovalOverlay from './PMHoursRemovalApprovalOverlay';
 import { calculateAllHours, calculateRoleHoursDistribution, HOURS_CALCULATION_RULES, calculateProductHoursForProduct } from '@/lib/hours-calculation-utils';
 import { getDefaultRateForRole } from '@/lib/pricing-roles-config';
-import { Card, Field, Select, Input, SectionHeader, Button } from '@/components/ui/form';
+import { Card, Field, Select, Input, Textarea, SectionHeader, Button } from '@/components/ui/form';
 
 interface Product {
   id: string;
@@ -819,13 +819,11 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                       </td>
                       <td>
                         <div className="flex items-center space-x-2">
-                          <input
+                          <Input
                             type="number"
                             value={role.ratePerHour}
                             onChange={(e) => updateRole(role.id, 'ratePerHour', parseFloat(e.target.value) || 0)}
-                            className={`block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
-                              isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
-                            }`}
+                            className={isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''}
                             disabled={!!isPMRemoved || !!isPMPending}
                             placeholder="Enter overridden rate"
                           />
@@ -842,13 +840,11 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                         </div>
                       </td>
                       <td>
-                        <input
+                        <Input
                           type="number"
                           value={role.totalHours}
                           onChange={(e) => updateRole(role.id, 'totalHours', parseFloat(e.target.value) || 0)}
-                          className={`block w-full border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
-                            isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
-                          }`}
+                          className={isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''}
                           disabled={!!isPMRemoved || !!isPMPending}
                         />
                       </td>
@@ -882,12 +878,10 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                         Role Description:
                       </td>
                       <td colSpan={5}>
-                        <textarea
+                        <Textarea
                           value={role.description || ''}
                           onChange={(e) => updateRole(role.id, 'description', e.target.value)}
-                          className={`block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 resize-none ${
-                            isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
-                          }`}
+                          className={`resize-none ${isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''}`}
                           disabled={!!isPMRemoved || !!isPMPending}
                           placeholder="Role description..."
                           rows={2}
@@ -903,29 +897,32 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
           
           {/* Add Role Button */}
           <div className="mt-4">
-            <button
+            <Button
               type="button"
+              variant="primary"
               onClick={addRole}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm"
+              leftIcon={
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+              }
             >
-              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-              </svg>
               Add Role
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Recalculate Button */}
         <div className="flex justify-end">
-                      <button
-              type="button"
-              onClick={handleRecalculateHours}
-              disabled={!formData.template?.products || formData.template.products.length === 0 || isAutoCalculating}
-              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Reset Role Hours
-            </button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleRecalculateHours}
+            disabled={!formData.template?.products || formData.template.products.length === 0 || isAutoCalculating}
+            loading={isAutoCalculating}
+          >
+            Reset Role Hours
+          </Button>
         </div>
 
         {/* Info Note */}
