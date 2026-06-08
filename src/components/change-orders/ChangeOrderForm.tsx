@@ -111,8 +111,7 @@ export default function ChangeOrderForm({
         ...prev,
         sow_id: sowData.id || '',
         // Pre-fill change requestor with SOW author or client contact
-        change_requestor: sowData.template?.customer_signature_name || 
-                        sowData.client_signature?.name || 
+        change_requestor: sowData.template?.customer_signature_name ||
                         sowData.client_signer_name || '',
         // Pre-fill associated PO from SOW
         associated_po: sowData.template?.purchase_order_number || 'N/A'

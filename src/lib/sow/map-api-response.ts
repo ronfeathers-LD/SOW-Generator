@@ -6,10 +6,9 @@
  * to turn that into the `SOWData` the form drives off. That response→form-state
  * mapping was inlined in the edit page (~120 lines) and is the client-side twin
  * of the duplication we removed on the server. Centralizing it here gives one
- * seam where the form's initial state — including the legacy `header` /
- * `client_signature` compatibility shapes and the form-only defaults the API
- * does not supply — is produced. Retiring the triplicated shapes later becomes
- * an edit to this one function plus its readers.
+ * seam where the form's initial state — including the legacy `header`
+ * compatibility shape and the form-only defaults the API does not supply — is
+ * produced.
  *
  * Behavior-preserving: this reproduces exactly what the edit page used to build,
  * including its form-only defaults (`'None Selected'` signatories, an empty
@@ -56,12 +55,6 @@ export function mapApiResponseToSOWData(data: SowApiResponse): SOWData {
       company_logo: data.company_logo || '',
       client_name: data.client_name || data.template?.client_name || '',
       sow_title: data.sow_title || data.template?.sow_title || '',
-    },
-    client_signature: {
-      name: data.client_name || data.template?.client_name || '',
-      title: data.client_title || '',
-      email: data.client_email || '',
-      signature_date: data.signature_date ? new Date(data.signature_date) : new Date(),
     },
     objectives: {
       description: data.objectives?.description || '',

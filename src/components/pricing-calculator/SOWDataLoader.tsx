@@ -157,12 +157,6 @@ export default function SOWDataLoader({ isOpen, onClose, onDataLoad }: SOWDataLo
           client_name: selectedSOW.client_name || '',
           sow_title: selectedSOW.sow_title || '',
         },
-        client_signature: {
-          name: '',
-          title: '',
-          email: '',
-          signature_date: new Date(),
-        },
         objectives: {
           description: '',
           key_objectives: [],

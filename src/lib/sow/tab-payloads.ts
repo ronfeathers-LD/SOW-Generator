@@ -81,12 +81,6 @@ export function buildTabPayload(
         header: {
           company_logo: formData.header?.company_logo,
         },
-        client_signature: {
-          name: template?.customer_signature_name,
-          title: template?.customer_signature,
-          email: template?.customer_email,
-          signature_date: template?.customer_signature_date,
-        },
       };
 
     case 'Project Overview':

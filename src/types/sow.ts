@@ -99,14 +99,6 @@ export interface SOWData {
     sow_title: string;
   };
 
-  // Client Signature Information
-  client_signature: {
-    name: string;
-    title: string;
-    email: string;
-    signature_date: Date;
-  };
-
   // Project Objectives
   objectives: {
     description: string;
