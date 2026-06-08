@@ -3,6 +3,7 @@ import puppeteerCore from 'puppeteer-core';
 import { parseObjectives } from './utils/parse-objectives';
 import { sortProducts, resolveProductNames } from './utils/productSorting';
 import { processContent } from './text-to-html';
+import { sanitizeHtml } from './sanitize-html';
 import fs from 'fs';
 import path from 'path';
 
@@ -580,7 +581,11 @@ export class PDFGenerator {
     
     // Process content with nested UL cleanup and placeholder replacement
     const processContentWithPlaceholders = (content: string) => {
-      return replacePlaceholders(processContent(content));
+      // Sanitize at this single chokepoint — every rich-text content field
+      // rendered into the PDF passes through here, so stored XSS can't reach the
+      // PDF HTML even though it's built outside the (already-sanitized) React
+      // render path. (audit #106)
+      return sanitizeHtml(replacePlaceholders(processContent(content)));
     };
     
     // Use custom content fields when available, fallback to basic fields
