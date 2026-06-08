@@ -750,7 +750,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                         <div className="flex items-center space-x-2">
                           <div className="relative w-full role-dropdown-container">
                             <div className="relative">
-                              <input
+                              <Input
                                 type="text"
                                 value={role.role}
                                 onChange={(e) => {
@@ -775,9 +775,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                                   setRoleBeingEdited(role.id);
                                   setShowRoleSelectModal(true);
                                 }}
-                                className={`block w-full px-4 py-3 pr-10 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
-                                  isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''
-                                }`}
+                                className={`pr-10 ${isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''}`}
                                 disabled={!!isPMRemoved || !!isPMPending}
                                 placeholder={_pricingRolesConfig.length === 0 ? "Loading roles..." : "Enter role name or click to select"}
                               />
