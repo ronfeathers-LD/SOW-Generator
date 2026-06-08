@@ -4,6 +4,7 @@ import PMHoursRemovalModal from './PMHoursRemovalModal';
 import PMHoursRemovalApprovalOverlay from './PMHoursRemovalApprovalOverlay';
 import { calculateAllHours, calculateRoleHoursDistribution, HOURS_CALCULATION_RULES, calculateProductHoursForProduct } from '@/lib/hours-calculation-utils';
 import { getDefaultRateForRole } from '@/lib/pricing-roles-config';
+import { Card, Field, Select, Input, SectionHeader } from '@/components/ui/form';
 
 interface Product {
   id: string;
@@ -689,28 +690,25 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
           </div>
 
           {/* Discount Configuration - Takes 1 column */}
-          <div className="lg:col-span-1 ">
-            <h2 className="font-medium text-gray-900 mb-4">Discount Configuration</h2>
-            <div className="space-y-4 shadow-md p-4 rounded-md">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Discount Type</label>
-                <select
+          <div className="lg:col-span-1">
+            <SectionHeader as="h3" title="Discount Configuration" className="mb-4" />
+            <Card padding="sm" className="space-y-4 shadow-md">
+              <Field label="Discount Type">
+                <Select
                   value={discountConfig?.type || 'none'}
                   onChange={(e) => setDiscountConfig({ ...discountConfig, type: e.target.value as 'none' | 'fixed' | 'percentage' })}
-                  className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500"
                 >
                   <option value="none">No Discount</option>
                   <option value="fixed">Fixed Amount</option>
                   <option value="percentage">Percentage</option>
-                </select>
-              </div>
-              
+                </Select>
+              </Field>
+
               {(discountConfig?.type === 'fixed' || discountConfig?.type === 'percentage') && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {discountConfig.type === 'fixed' ? 'Discount Amount ($)' : 'Discount Percentage (%)'}
-                  </label>
-                  <input
+                <Field
+                  label={discountConfig.type === 'fixed' ? 'Discount Amount ($)' : 'Discount Percentage (%)'}
+                >
+                  <Input
                     type="number"
                     value={discountConfig.type === 'fixed' ? (discountConfig?.amount || '') : (discountConfig?.percentage || '')}
                     onChange={(e) => {
@@ -721,13 +719,12 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                         setDiscountConfig({ ...discountConfig, percentage: value });
                       }
                     }}
-                    className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500"
                     placeholder={discountConfig.type === 'fixed' ? '0.00' : '0'}
                     step={discountConfig.type === 'fixed' ? '0.01' : '0.1'}
                   />
-                </div>
+                </Field>
               )}
-            </div>
+            </Card>
           </div>
         </div>
 
