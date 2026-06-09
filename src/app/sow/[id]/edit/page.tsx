@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import SOWForm from '@/components/SOWForm';
 import { SOWData } from '@/types/sow';
 import { mapApiResponseToSOWData } from '@/lib/sow/map-api-response';
+import { Skeleton } from '@/components/ui/form';
 
 export default function EditSOWPage() {
   const params = useParams();
@@ -71,10 +72,32 @@ export default function EditSOWPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading SOW...</p>
+      <div className="min-h-screen bg-gray-50 py-8 dark:bg-dark-bg">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          {/* Title placeholder */}
+          <Skeleton className="h-8 w-2/3" />
+          <Skeleton className="mt-2 h-4 w-1/3" />
+
+          {/* Phase progress bar placeholder */}
+          <div className="mt-8 flex items-center gap-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex flex-1 items-center gap-3">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <Skeleton className="hidden h-4 flex-1 sm:block" />
+              </div>
+            ))}
+          </div>
+
+          {/* Section card placeholder */}
+          <div className="mt-8 space-y-4 rounded-lg border border-gray-200 bg-white p-6 dark:border-dark-border dark:bg-dark-surface">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-2/3" />
+          </div>
+
+          <p className="mt-6 text-center text-sm text-gray-500 dark:text-dark-text-muted">Loading SOW…</p>
         </div>
       </div>
     );

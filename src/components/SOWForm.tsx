@@ -1270,7 +1270,10 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
                       </button>
                     </li>
                     {i < PHASES.length - 1 && (
-                      <li aria-hidden className="mx-2 h-px flex-1 bg-gray-200 dark:bg-dark-border md:mx-4" />
+                      <li
+                        aria-hidden
+                        className={`mx-2 h-px flex-1 transition-colors duration-500 md:mx-4 ${done ? 'bg-[#26D07C]' : 'bg-gray-200 dark:bg-dark-border'}`}
+                      />
                     )}
                   </React.Fragment>
                 );
@@ -1301,7 +1304,7 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
         </>
       )}
 
-      <div className="min-w-0 space-y-8">
+      <div key={activeTab} className="min-w-0 space-y-8 motion-safe:animate-fade-in-up">
 
       {/* Project Overview Section */}
       {activeTab === 'Project Overview' && (

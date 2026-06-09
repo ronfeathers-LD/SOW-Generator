@@ -23,11 +23,11 @@ export default function SectionHeader({
   return (
     <div className={cx('flex items-start justify-between gap-4', className)}>
       <div>
-        <Heading className={cx(titleSize, 'font-semibold text-gray-900')}>
+        <Heading className={cx(titleSize, 'font-semibold text-gray-900 dark:text-dark-text')}>
           {title}
         </Heading>
         {description && (
-          <p className="mt-1 text-sm text-gray-600">{description}</p>
+          <p className="mt-1 text-sm text-gray-600 dark:text-dark-text-muted">{description}</p>
         )}
       </div>
       {action && <div className="flex-shrink-0">{action}</div>}
