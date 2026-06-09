@@ -277,16 +277,14 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
   const [activeTab, setActiveTab] = useState(pricingOnly ? 'Pricing' : 'Customer Information');
 
   const handleTabChange = (tabKey: string) => {
-    // Warn before leaving any tab with unsaved edits. Switching tabs keeps the
-    // in-memory formData, but a reload would lose anything not yet saved — so
-    // nudge the user to Save first.
+    // Auto-save on navigation instead of nagging with a confirm dialog. Switching
+    // sections keeps the in-memory formData either way, so navigation is never
+    // blocked; we just kick off a save-all in the background so the work is also
+    // persisted to the DB. (handleSaveAll snapshots live pricing synchronously
+    // before the active section unmounts, and reports its own status/errors via
+    // the footer indicator.) The beforeunload guard still covers a hard reload.
     if (hasUnsavedChanges) {
-      const confirmed = window.confirm(
-        'You have unsaved changes. Switch sections anyway? Use "Save" first to keep your edits.'
-      );
-      if (!confirmed) {
-        return;
-      }
+      void handleSaveAll();
     }
 
     setActiveTab(tabKey);
@@ -1420,92 +1418,75 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
           status={status}
           hasUnsavedChanges={hasUnsavedChanges}
           onGoToSection={(tab) => handleTabChange(tab)}
-          onSaveAll={handleSaveAll}
-          isSaving={isSaving}
         />
       )}
 
-      {/* Back / Next navigation — labels reflect the next phase when crossing one. */}
-      {!pricingOnly && (() => {
-        const nextKey = currentStepIndex < wizardKeys.length - 1 ? wizardKeys[currentStepIndex + 1] : null;
+      {/* Unified footer: Back · save status · Save all · Next — a single bottom
+          bar that replaces the old separate nav row + floating save control.
+          The top 4-phase bar is the sole progress indicator (no "Step N of M"). */}
+      {(() => {
+        const nextKey = !pricingOnly && currentStepIndex < wizardKeys.length - 1 ? wizardKeys[currentStepIndex + 1] : null;
         const nextPhase = nextKey ? PHASES.find((p) => p.sections.includes(nextKey)) : null;
         const nextLabel = !nextKey
           ? 'Next'
           : nextPhase && nextPhase.key !== activePhase.key
             ? `Continue to ${nextPhase.title}`
             : `Next: ${SECTION_LABELS[nextKey] ?? nextKey}`;
+        const saveIcon = (
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+        );
         return (
-          <div className="flex items-center justify-between gap-4 border-t border-gray-200 pt-6 dark:border-dark-border">
-            <Button
-              variant="secondary"
-              onClick={() => goToStep(currentStepIndex - 1)}
-              disabled={currentStepIndex <= 0}
-              leftIcon={
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              }
-            >
-              Back
-            </Button>
-            <span className="hidden text-xs text-gray-400 dark:text-dark-text-subtle sm:block">
-              Step {currentStepIndex + 1} of {wizardKeys.length}
-            </span>
-            <Button variant="primary" onClick={() => goToStep(currentStepIndex + 1)} disabled={!nextKey}>
-              {nextLabel}
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Button>
+          <div className="mt-2 flex items-center justify-between gap-4 border-t border-gray-200 pt-6 dark:border-dark-border">
+            {!pricingOnly ? (
+              <Button
+                variant="secondary"
+                onClick={() => goToStep(currentStepIndex - 1)}
+                disabled={currentStepIndex <= 0}
+                leftIcon={
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                }
+              >
+                Back
+              </Button>
+            ) : (
+              <span />
+            )}
+
+            <div className="flex items-center gap-3">
+              <span className="hidden text-xs sm:block" aria-live="polite">
+                {isSaving ? (
+                  <span className="text-gray-500 dark:text-dark-text-subtle">Saving…</span>
+                ) : hasUnsavedChanges ? (
+                  <span className="font-medium text-yellow-700 dark:text-amber-300">Unsaved changes</span>
+                ) : lastSavedAt ? (
+                  <span className="text-gray-500 dark:text-dark-text-subtle">
+                    Saved at {lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                ) : (
+                  <span className="text-gray-400 dark:text-dark-text-subtle">All changes saved</span>
+                )}
+              </span>
+              <Button variant="secondary" onClick={handleSaveAll} loading={isSaving} leftIcon={saveIcon}>
+                {pricingOnly ? 'Save Pricing' : 'Save all changes'}
+              </Button>
+              {!pricingOnly && (
+                <Button variant="primary" onClick={() => goToStep(currentStepIndex + 1)} disabled={!nextKey}>
+                  {nextLabel}
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Button>
+              )}
+            </div>
           </div>
         );
       })()}
 
       </div>{/* end wizard content */}
-
-      {/* Floating Save control — persists every section (save-all), with a
-          status indicator so the user knows whether work is saved (#21). */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
-        <div
-          className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium shadow ring-1 ring-gray-200 backdrop-blur"
-          aria-live="polite"
-        >
-          {isSaving ? (
-            <span className="text-gray-600">Saving…</span>
-          ) : hasUnsavedChanges ? (
-            <span className="text-yellow-700">Unsaved changes</span>
-          ) : lastSavedAt ? (
-            <span className="text-gray-500">
-              Last saved at {lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-            </span>
-          ) : (
-            <span className="text-gray-400">All changes saved</span>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={handleSaveAll}
-          disabled={isSaving}
-          className="inline-flex items-center px-6 py-3 border border-transparent shadow-lg text-sm font-semibold rounded-full text-[#2a2a2a] bg-[#26D07C] hover:bg-[#1fb86d] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#26D07C] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-xl"
-        >
-          {isSaving ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Saving…
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              {pricingOnly ? 'Save Pricing' : 'Save all changes'}
-            </>
-          )}
-        </button>
-      </div>
     </div>
     </div>
   );

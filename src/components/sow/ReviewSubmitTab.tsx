@@ -16,9 +16,6 @@ interface ReviewSubmitTabProps {
   hasUnsavedChanges: boolean;
   /** Jump the wizard to a section (so the user can fix an issue in place). */
   onGoToSection: (tab: SowTabKey) => void;
-  /** Persist all sections (save-all). */
-  onSaveAll: () => void;
-  isSaving: boolean;
 }
 
 /**
@@ -34,8 +31,6 @@ export default function ReviewSubmitTab({
   status,
   hasUnsavedChanges,
   onGoToSection,
-  onSaveAll,
-  isSaving,
 }: ReviewSubmitTabProps) {
   const { result, bySection } = useMemo(() => reviewSOW(formData), [formData]);
   const checklistSow = useMemo(() => buildChecklistInput(formData), [formData]);
@@ -142,26 +137,22 @@ export default function ReviewSubmitTab({
 
       <div className="flex flex-wrap items-center gap-3 border-t border-gray-200 pt-6">
         {isDraft ? (
-          <>
-            <Button variant="primary" onClick={onSaveAll} loading={isSaving} disabled={submitting}>
-              Save all changes
-            </Button>
-            <Button
-              variant="brand"
-              onClick={() => setShowChecklist(true)}
-              disabled={!canSubmit}
-              loading={submitting}
-              title={
-                !result.isValid
-                  ? 'Complete all required fields before submitting'
-                  : hasUnsavedChanges
-                    ? 'Save your changes before submitting'
-                    : 'Submit this SOW for review'
-              }
-            >
-              {submitting ? 'Submitting…' : 'Submit for Review'}
-            </Button>
-          </>
+          // Save lives in the wizard footer; this step only owns the submit action.
+          <Button
+            variant="brand"
+            onClick={() => setShowChecklist(true)}
+            disabled={!canSubmit}
+            loading={submitting}
+            title={
+              !result.isValid
+                ? 'Complete all required fields before submitting'
+                : hasUnsavedChanges
+                  ? 'Save your changes before submitting'
+                  : 'Submit this SOW for review'
+            }
+          >
+            {submitting ? 'Submitting…' : 'Submit for Review'}
+          </Button>
         ) : (
           sowId && (
             <a
