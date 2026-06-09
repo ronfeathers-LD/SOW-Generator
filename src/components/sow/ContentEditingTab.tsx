@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { SOWData } from '@/types/sow';
+import { Button } from '@/components/ui/form';
 import { getContentTemplate } from '@/lib/sow-content';
 import { createAllContentHandlers } from '@/lib/utils/contentHandlers';
 import TipTapEditor from '../TipTapEditor';
@@ -317,14 +318,14 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                     Unsaved Changes
                   </span>
                 )}
-                <button
+                <Button
                   type="button"
+                  variant="primary"
                   onClick={() => saveSection('intro')}
-                  disabled={saving === 'intro'}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  loading={saving === 'intro'}
                 >
                   {saving === 'intro' ? 'Saving...' : 'Save'}
-                </button>
+                </Button>
                 {saveStatus.intro === 'success' && (
                   <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
                 )}
@@ -379,14 +380,14 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                     Unsaved Changes
                   </span>
                 )}
-                <button
+                <Button
                   type="button"
+                  variant="primary"
                   onClick={() => saveSection('scope')}
-                  disabled={saving === 'scope'}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  loading={saving === 'scope'}
                 >
                   {saving === 'scope' ? 'Saving...' : 'Save'}
-                </button>
+                </Button>
                 {saveStatus.scope === 'success' && (
                   <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
                 )}
@@ -447,14 +448,14 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                     Unsaved Changes
                   </span>
                 )}
-                <button
+                <Button
                   type="button"
+                  variant="primary"
                   onClick={() => saveSection('out-of-scope')}
-                  disabled={saving === 'out-of-scope'}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  loading={saving === 'out-of-scope'}
                 >
                   {saving === 'out-of-scope' ? 'Saving...' : 'Save'}
-                </button>
+                </Button>
                 {saveStatus['out-of-scope'] === 'success' && (
                   <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
                 )}
@@ -510,14 +511,14 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                     Unsaved Changes
                   </span>
                 )}
-                <button
+                <Button
                   type="button"
+                  variant="primary"
                   onClick={() => saveSection('objectives-disclosure')}
-                  disabled={saving === 'objectives-disclosure'}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  loading={saving === 'objectives-disclosure'}
                 >
                   {saving === 'objectives-disclosure' ? 'Saving...' : 'Save'}
-                </button>
+                </Button>
                 {saveStatus['objectives-disclosure'] === 'success' && (
                   <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
                 )}
@@ -572,14 +573,14 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                     Unsaved Changes
                   </span>
                 )}
-                <button
+                <Button
                   type="button"
+                  variant="primary"
                   onClick={() => saveSection('assumptions')}
-                  disabled={saving === 'assumptions'}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  loading={saving === 'assumptions'}
                 >
                   {saving === 'assumptions' ? 'Saving...' : 'Save'}
-                </button>
+                </Button>
                 {saveStatus.assumptions === 'success' && (
                   <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
                 )}
@@ -634,14 +635,14 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                     Unsaved Changes
                   </span>
                 )}
-                <button
+                <Button
                   type="button"
+                  variant="primary"
                   onClick={() => saveSection('project-phases')}
-                  disabled={saving === 'project-phases'}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  loading={saving === 'project-phases'}
                 >
                   {saving === 'project-phases' ? 'Saving...' : 'Save'}
-                </button>
+                </Button>
                 {saveStatus['project-phases'] === 'success' && (
                   <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
                 )}
