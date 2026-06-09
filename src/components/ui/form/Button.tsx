@@ -1,7 +1,7 @@
 import React, { forwardRef } from 'react';
 import { cx } from './cx';
 
-type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
+type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'brand';
 type Size = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps
@@ -24,6 +24,11 @@ const VARIANTS: Record<Variant, string> = {
     'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 border border-transparent shadow-sm',
   ghost:
     'bg-transparent text-gray-600 hover:bg-gray-100 focus:ring-[#26D07C] border border-transparent',
+  // Dark brand CTA: charcoal with a green border that flips to bright green on
+  // hover. Replaces the hand-rolled inline-style + onMouseEnter/Leave buttons
+  // scattered across the app (Submit for Review, Search Meetings, etc.).
+  brand:
+    'bg-[#2a2a2a] text-white border border-[#26D07C] hover:bg-[#01eb1d] hover:text-[#2a2a2a] focus:ring-[#26D07C] shadow-sm',
 };
 
 const SIZES: Record<Size, string> = {
