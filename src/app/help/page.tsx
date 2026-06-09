@@ -344,22 +344,9 @@ export default function HelpPage() {
           {/* Footer */}
           <div className="border-t border-gray-200 pt-8 mt-12">
             <div className="text-center">
-              <Link 
-                href="/dashboard" 
-                className="inline-flex items-center px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
-                style={{
-                  backgroundColor: '#2a2a2a',
-                  color: 'white',
-                  border: '1px solid #26D07C'
-                }}
-                onMouseEnter={(e) => {
-                  (e.target as HTMLElement).style.backgroundColor = '#01eb1d';
-                  (e.target as HTMLElement).style.color = '#2a2a2a';
-                }}
-                onMouseLeave={(e) => {
-                  (e.target as HTMLElement).style.backgroundColor = '#2a2a2a';
-                  (e.target as HTMLElement).style.color = 'white';
-                }}
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#26D07C] transition-colors bg-[#2a2a2a] text-white border border-[#26D07C] hover:bg-[#01eb1d] hover:text-[#2a2a2a]"
               >
                 ← Back to Dashboard
               </Link>

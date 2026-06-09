@@ -1,6 +1,7 @@
 "use client";
 import Link from 'next/link';
 import Image from 'next/image';
+import { Button } from '@/components/ui/form';
 import { usePathname } from 'next/navigation';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useState, useEffect, useRef } from 'react';
@@ -99,25 +100,9 @@ export default function Navigation() {
               />
             </div>
             <div className="flex items-center">
-              <button
-                onClick={() => signIn('google')}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md shadow-sm transition-colors"
-                style={{
-                  backgroundColor: '#2a2a2a',
-                  color: 'white',
-                  border: '1px solid #26D07C'
-                }}
-                onMouseEnter={(e) => {
-                  (e.target as HTMLButtonElement).style.backgroundColor = '#01eb1d';
-                  (e.target as HTMLButtonElement).style.color = '#2a2a2a';
-                }}
-                onMouseLeave={(e) => {
-                  (e.target as HTMLButtonElement).style.backgroundColor = '#2a2a2a';
-                  (e.target as HTMLButtonElement).style.color = 'white';
-                }}
-              >
+              <Button variant="brand" onClick={() => signIn('google')}>
                 Sign in
-              </button>
+              </Button>
             </div>
           </div>
         </div>

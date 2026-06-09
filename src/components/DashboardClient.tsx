@@ -81,21 +81,7 @@ export default function DashboardClient({ stats, recentSOWs, pendingApprovals }:
           </div>
           <Link
             href="/sow/new"
-            className="inline-flex items-center px-6 py-3 transition-colors"
-            style={{
-              backgroundColor: '#2a2a2a',
-              color: 'white',
-              border: '1px solid #26D07C',
-              borderRadius: '8px'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = '#01eb1d';
-              (e.target as HTMLElement).style.color = '#2a2a2a';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = '#2a2a2a';
-              (e.target as HTMLElement).style.color = 'white';
-            }}
+            className="inline-flex items-center px-6 py-3 rounded-lg transition-colors bg-[#2a2a2a] text-white border border-[#26D07C] hover:bg-[#01eb1d] hover:text-[#2a2a2a]"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
