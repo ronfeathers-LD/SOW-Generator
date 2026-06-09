@@ -398,6 +398,39 @@ export default function ProjectOverviewTab({
     }
   };
 
+  // The unit-count fields a product group needs, given the current selection —
+  // rendered inline beneath that group's chips. Several values are SHARED across
+  // products (one orchestration count for all FlowBuilder products, one handoff
+  // count for both handoff products, one count across all Other products), so a
+  // shared field appears once per group rather than once per chip.
+  const unitFieldsForGroup = (
+    groupKey: string,
+  ): Array<{ key: string; label: string; placeholder: string }> => {
+    const some = (pred: (p: Product) => boolean) =>
+      selectedProducts.some((identifier) => {
+        const product = findProductByIdOrName(products, identifier);
+        return !!product && pred(product);
+      });
+    const fields: Array<{ key: string; label: string; placeholder: string }> = [];
+    if (groupKey === 'FlowBuilder') {
+      if (some((p) => isRoutingProductById(p.id) || isLeadToAccountProductById(p.id))) {
+        fields.push({ key: 'orchestration_units', label: 'Orchestration units', placeholder: 'Enter number of units' });
+      }
+      if (isMultiGraphSelected) {
+        fields.push({ key: 'regions', label: 'Number of regions (MultiGraph)', placeholder: 'Enter number of regions' });
+      }
+    } else if (groupKey === 'BookIt' && isAnyBookItProductSelectedCallback()) {
+      if (isFormsProductSelectedCallback()) fields.push({ key: 'bookit_forms_units', label: 'BookIt for Forms units', placeholder: 'Enter number of units' });
+      if (some((p) => isLinksProductById(p.id))) fields.push({ key: 'bookit_links_units', label: 'BookIt Links units', placeholder: 'Enter number of units' });
+      if (some((p) => isHandoffProductById(p.id))) fields.push({ key: 'bookit_handoff_units', label: 'BookIt Handoff units', placeholder: 'Enter number of units' });
+    } else if (groupKey === 'Other') {
+      if (some((p) => productRequiresUnits(p) && isOtherProduct(p))) {
+        fields.push({ key: 'other_products_units', label: 'Other products units', placeholder: 'Enter number of units' });
+      }
+    }
+    return fields;
+  };
+
   return (
     <section className="space-y-6">
       <h2 className="text-2xl font-bold">Project Overview</h2>
@@ -603,162 +636,39 @@ export default function ProjectOverviewTab({
                           })}
                         </div>
                         
-                        {/* Unit Fields for this Group */}
-                        {groupKey === 'FlowBuilder' && isAnyProductRequiringUnitsSelectedCallback() && (
-                          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {/* Legacy Number of Units (for Orchestration) */}
-                              <div>
-                                <label className="block text-sm font-medium text-blue-700 mb-2">
-                                  <span className="inline-flex items-center">
-                                    <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                    </svg>
-                                    Number of Units: Orchestration
-                                    <span className="text-red-500 ml-1">*</span>
-                                  </span>
-                                </label>
-                                <input
-                                  type="text"
-                                  value={formData.template?.orchestration_units || ''}
-                                  onChange={(e) => handleUnitFieldChange('orchestration_units', e.target.value)}
-                                  className={`block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
-                                    validationErrors.orchestration_units 
-                                      ? 'border-red-300' 
-                                      : 'border-gray-300'
-                                  }`}
-                                  placeholder="Enter number of units"
-                                />
-                                {validationErrors.orchestration_units && (
-                                  <p className="mt-1 text-sm text-red-600">{validationErrors.orchestration_units}</p>
-                                )}
-                              </div>
-                              
-                              {/* MultiGraph Regions Field */}
-                              {isMultiGraphSelected && (
-                                <div>
-                                  <label className="block text-sm font-medium text-blue-700 mb-2">
-                                    <span className="inline-flex items-center">
-                                      <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                      </svg>
-                                      Number of Regions (MultiGraph)
-                                      <span className="text-red-500 ml-1">*</span>
-                                    </span>
+                        {/* Required unit counts for this group — shown inline,
+                            attached beneath the group's product chips. */}
+                        {(() => {
+                          const unitFields = unitFieldsForGroup(groupKey);
+                          if (unitFields.length === 0) return null;
+                          const rail =
+                            group.color === 'green'
+                              ? 'border-green-400 dark:border-green-700'
+                              : group.color === 'gray'
+                                ? 'border-gray-400 dark:border-dark-border'
+                                : 'border-blue-400 dark:border-blue-700';
+                          return (
+                            <div className={`ml-1 mt-1 space-y-3 border-l-2 ${rail} pl-4`}>
+                              {unitFields.map((f) => (
+                                <div key={f.key} className="max-w-xs">
+                                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-dark-text">
+                                    {f.label} <span className="text-red-500">*</span>
                                   </label>
-                                  <input
+                                  <Input
                                     type="text"
-                                    value={formData.template?.regions || ''}
-                                    onChange={(e) => setFormData({
-                                      ...formData,
-                                      template: { ...formData.template!, regions: e.target.value || '' }
-                                    })}
-                                    className={`block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
-                                      validationErrors.regions 
-                                        ? 'border-red-300' 
-                                        : 'border-gray-300'
-                                    }`}
-                                    placeholder="Enter number of regions"
+                                    value={(formData.template as Record<string, string | undefined> | undefined)?.[f.key] || ''}
+                                    onChange={(e) => handleUnitFieldChange(f.key, e.target.value)}
+                                    error={!!validationErrors[f.key]}
+                                    placeholder={f.placeholder}
                                   />
-                                  {validationErrors.regions && (
-                                    <p className="mt-1 text-sm text-red-600">{validationErrors.regions}</p>
+                                  {validationErrors[f.key] && (
+                                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{validationErrors[f.key]}</p>
                                   )}
                                 </div>
-                              )}
+                              ))}
                             </div>
-                          </div>
-                        )}
-                        
-                        {groupKey === 'BookIt' && isAnyBookItProductSelectedCallback() && (
-                          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {isFormsProductSelectedCallback() && (
-                                <div>
-                                  <label className="block text-sm font-medium text-green-700 mb-2">
-                                    <span className="inline-flex items-center">
-                                      <svg className="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                      </svg>
-                                      BookIt for Forms Units
-                                      <span className="text-red-500 ml-1">*</span>
-                                    </span>
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={formData.template?.bookit_forms_units || ''}
-                                    onChange={(e) => handleUnitFieldChange('bookit_forms_units', e.target.value)}
-                                    className={`block w-full rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 ${
-                                      validationErrors.bookit_forms_units 
-                                        ? 'border-red-300' 
-                                        : 'border-gray-300'
-                                    }`}
-                                    placeholder="Enter number of units"
-                                  />
-                                  {validationErrors.bookit_forms_units && (
-                                    <p className="mt-1 text-sm text-red-600">{validationErrors.bookit_forms_units}</p>
-                                  )}
-                                </div>
-                              )}
-                              
-                              {isProductSelected('dbe57330-23a9-42bc-bef2-5bbfbcef4e09') && (
-                                <div>
-                                  <label className="block text-sm font-medium text-green-700 mb-2">
-                                    <span className="inline-flex items-center">
-                                      <svg className="w-4 h-4 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                      </svg>
-                                      BookIt Links Units
-                                      <span className="text-red-500 ml-1">*</span>
-                                    </span>
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={formData.template?.bookit_links_units || ''}
-                                    onChange={(e) => handleUnitFieldChange('bookit_links_units', e.target.value)}
-                                    className={`block w-full rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 ${
-                                      validationErrors.bookit_links_units 
-                                        ? 'border-red-300' 
-                                        : 'border-gray-300'
-                                    }`}
-                                    placeholder="Enter number of units"
-                                  />
-                                  {validationErrors.bookit_links_units && (
-                                    <p className="mt-1 text-sm text-red-600">{validationErrors.bookit_links_units}</p>
-                                  )}
-                                </div>
-                              )}
-                              
-                              {isHandoffProductSelected(products, selectedProducts) && (
-                                <div>
-                                  <label className="block text-sm font-medium text-green-700 mb-2">
-                                    <span className="inline-flex items-center">
-                                      <svg className="w-4 h-4 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                                      </svg>
-                                      BookIt Handoff Units
-                                      <span className="text-red-500 ml-1">*</span>
-                                    </span>
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={formData.template?.bookit_handoff_units || ''}
-                                    onChange={(e) => handleUnitFieldChange('bookit_handoff_units', e.target.value)}
-                                    className={`block w-full rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 ${
-                                      validationErrors.bookit_handoff_units 
-                                        ? 'border-red-300' 
-                                        : 'border-gray-300'
-                                    }`}
-                                    placeholder="Enter number of units"
-                                  />
-                                  {validationErrors.bookit_handoff_units && (
-                                    <p className="mt-1 text-sm text-red-600">{validationErrors.bookit_handoff_units}</p>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
                     ))
                   )}
@@ -767,50 +677,6 @@ export default function ProjectOverviewTab({
             </div>
           </div>
         </div>
-        
-        {/* Other Products Unit Fields */}
-        {(() => {
-          // Check if any "other" products are selected
-          const otherProducts = selectedProducts.filter(identifier => {
-            const product = findProductByIdOrName(products, identifier);
-            return product ? product.category === 'other' : false;
-          });
-          return otherProducts.length > 0;
-        })() && (
-          <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h4 className="text-lg font-medium text-gray-900 mb-4">
-              <span className="inline-flex items-center">
-                <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                Other Products Configuration
-              </span>
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <span className="inline-flex items-center">
-                    <svg className="w-4 h-4 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                    Other Products Units
-                    <span className="text-red-500 ml-1">*</span>
-                  </span>
-                </label>
-                <Input
-                  type="text"
-                  value={formData.template?.other_products_units || ''}
-                  onChange={(e) => handleUnitFieldChange('other_products_units', e.target.value)}
-                  error={!!validationErrors.other_products_units}
-                  placeholder="Enter number of units"
-                />
-                {validationErrors.other_products_units && (
-                  <p className="mt-1 text-sm text-red-600">{validationErrors.other_products_units}</p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
       </div>
 
