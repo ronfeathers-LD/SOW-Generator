@@ -773,3 +773,62 @@ body[style*="--print-sow-active: true"] .min-h-screen.bg-gray-50 {
 .dark .text-amber-700, .dark .text-amber-800 { color: #e8d27a; }
 .dark .text-red-700, .dark .text-red-800 { color: #f5a3a3; }
 .dark .text-purple-700, .dark .text-purple-800 { color: #c4a3f5; }
+
+/* ============================================================================
+   SOW document = always light ("paper"), even when the app UI is dark.
+   The rendered SOW is a printable artifact: the print/PDF route never gets
+   `.dark` at all, and the document preview embedded in the /sow/[id] view
+   (#sow-content-to-export) must match it. Dark mode is for the SOW Generator
+   UI (nav, tabs, forms, dashboard) — NOT the document output.
+
+   These selectors are scoped under `.dark #sow-content-to-export` so they win
+   over the baseline shim above (higher specificity + later in source), undoing
+   it inside the document only. Light mode and the rest of the app are untouched.
+   ============================================================================ */
+.dark #sow-content-to-export {
+  background-color: #ffffff;
+  color: #111827;
+}
+/* Surfaces */
+.dark #sow-content-to-export .bg-white { background-color: #ffffff; }
+.dark #sow-content-to-export .bg-gray-50 { background-color: #f9fafb; }
+.dark #sow-content-to-export .bg-gray-100 { background-color: #f3f4f6; }
+.dark #sow-content-to-export .bg-gray-200 { background-color: #e5e7eb; }
+.dark #sow-content-to-export .bg-\[\#e9faf2\] { background-color: #e9faf2; }
+/* Text */
+.dark #sow-content-to-export .text-gray-900 { color: #111827; }
+.dark #sow-content-to-export .text-gray-800 { color: #1f2937; }
+.dark #sow-content-to-export .text-gray-700 { color: #374151; }
+.dark #sow-content-to-export .text-gray-600 { color: #4b5563; }
+.dark #sow-content-to-export .text-gray-500 { color: #6b7280; }
+.dark #sow-content-to-export .text-gray-400 { color: #9ca3af; }
+.dark #sow-content-to-export .text-black { color: #000000; }
+/* Borders / dividers */
+.dark #sow-content-to-export .border-gray-100 { border-color: #f3f4f6; }
+.dark #sow-content-to-export .border-gray-200 { border-color: #e5e7eb; }
+.dark #sow-content-to-export .border-gray-300 { border-color: #d1d5db; }
+.dark #sow-content-to-export .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: #e5e7eb; }
+/* Links */
+.dark #sow-content-to-export .text-blue-600 { color: #2563eb; }
+.dark #sow-content-to-export .text-blue-700 { color: #1d4ed8; }
+.dark #sow-content-to-export .text-blue-800 { color: #1e40af; }
+/* Tinted status panels + their text */
+.dark #sow-content-to-export .bg-blue-50 { background-color: #eff6ff; }
+.dark #sow-content-to-export .bg-green-50 { background-color: #f0fdf4; }
+.dark #sow-content-to-export .bg-yellow-50 { background-color: #fefce8; }
+.dark #sow-content-to-export .bg-amber-50 { background-color: #fffbeb; }
+.dark #sow-content-to-export .bg-red-50 { background-color: #fef2f2; }
+.dark #sow-content-to-export .bg-purple-50 { background-color: #faf5ff; }
+.dark #sow-content-to-export .bg-indigo-50 { background-color: #eef2ff; }
+.dark #sow-content-to-export .bg-orange-50 { background-color: #fff7ed; }
+.dark #sow-content-to-export .border-blue-200 { border-color: #bfdbfe; }
+.dark #sow-content-to-export .border-green-200 { border-color: #bbf7d0; }
+.dark #sow-content-to-export .border-yellow-200 { border-color: #fef08a; }
+.dark #sow-content-to-export .border-amber-200 { border-color: #fde68a; }
+.dark #sow-content-to-export .border-red-200 { border-color: #fecaca; }
+.dark #sow-content-to-export .border-purple-200 { border-color: #e9d5ff; }
+.dark #sow-content-to-export .text-green-700, .dark #sow-content-to-export .text-green-800 { color: #15803d; }
+.dark #sow-content-to-export .text-yellow-700, .dark #sow-content-to-export .text-yellow-800 { color: #a16207; }
+.dark #sow-content-to-export .text-amber-700, .dark #sow-content-to-export .text-amber-800 { color: #b45309; }
+.dark #sow-content-to-export .text-red-700, .dark #sow-content-to-export .text-red-800 { color: #b91c1c; }
+.dark #sow-content-to-export .text-purple-700, .dark #sow-content-to-export .text-purple-800 { color: #7e22ce; }
