@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { GeminiBulletPoint } from '@/lib/gemini';
+import { Button } from '@/components/ui/form';
 
 interface AvomaIntegrationProps {
   onBulletPointsGenerated: (bulletPoints: GeminiBulletPoint[]) => void;
@@ -417,29 +418,15 @@ export default function AvomaIntegration({
           </div>
         </div>
 
-        <button
+        <Button
+          variant="brand"
           onClick={handleSearch}
           disabled={isSearching || (!customer_name.trim() && !accountName) || !fromDate || !toDate}
-          className="w-full text-white py-2 px-4 rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed"
-          style={{
-            backgroundColor: '#2a2a2a',
-            border: '1px solid #26D07C'
-          }}
-          onMouseEnter={(e) => {
-            if (!e.currentTarget.disabled) {
-              (e.target as HTMLButtonElement).style.backgroundColor = '#01eb1d';
-              (e.target as HTMLButtonElement).style.color = '#2a2a2a';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!e.currentTarget.disabled) {
-              (e.target as HTMLButtonElement).style.backgroundColor = '#2a2a2a';
-              (e.target as HTMLButtonElement).style.color = 'white';
-            }
-          }}
+          loading={isSearching}
+          className="w-full"
         >
           {isSearching ? 'Searching Avoma...' : 'Find Avoma Calls'}
-        </button>
+        </Button>
 
         {error && (
           <div className="text-red-600 text-sm p-3 bg-red-50 rounded-md">

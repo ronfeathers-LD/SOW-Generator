@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeOrderWithSOW } from '@/types/sow';
+import { Button } from '@/components/ui/form';
 
 interface ChangeOrderListProps {
   sowId?: string;
@@ -122,24 +123,9 @@ export default function ChangeOrderList({
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Change Orders</h3>
           <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={fetchChangeOrders}
-            className="px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
-            style={{
-              backgroundColor: '#2a2a2a',
-              border: '1px solid #26D07C'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = '#01eb1d';
-              (e.target as HTMLElement).style.color = '#2a2a2a';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = '#2a2a2a';
-              (e.target as HTMLElement).style.color = 'white';
-            }}
-          >
+          <Button variant="brand" onClick={fetchChangeOrders}>
             Try Again
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -157,25 +143,9 @@ export default function ChangeOrderList({
           </p>
         </div>
         {onCreateNew && (
-          <button
-            onClick={onCreateNew}
-            className="px-4 py-2 text-sm font-medium border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
-            style={{
-              backgroundColor: '#2a2a2a',
-              color: 'white',
-              border: '1px solid #26D07C'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = '#01eb1d';
-              (e.target as HTMLElement).style.color = '#2a2a2a';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = '#2a2a2a';
-              (e.target as HTMLElement).style.color = 'white';
-            }}
-          >
+          <Button variant="brand" onClick={onCreateNew}>
             Create New Change Order
-          </button>
+          </Button>
         )}
       </div>
 
