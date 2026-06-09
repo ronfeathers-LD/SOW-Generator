@@ -788,6 +788,22 @@ body[style*="--print-sow-active: true"] .min-h-screen.bg-gray-50 {
 .dark .text-red-700, .dark .text-red-800 { color: #f5a3a3; }
 .dark .text-purple-700, .dark .text-purple-800 { color: #c4a3f5; }
 
+/* Stronger -100 tints — used for badges and selected/active states (e.g. the
+   active item in a section list, "N selected" pills, status chips). The shim
+   handled -50 panels but left these light, so they read as light-on-dark. */
+.dark .bg-blue-100 { background-color: #17345c; }
+.dark .bg-green-100 { background-color: #123d29; }
+.dark .bg-yellow-100 { background-color: #3a3214; }
+.dark .bg-amber-100 { background-color: #3a3214; }
+.dark .bg-red-100 { background-color: #3a1b1b; }
+.dark .bg-purple-100 { background-color: #2c1f47; }
+.dark .bg-indigo-100 { background-color: #232554; }
+.dark .bg-orange-100 { background-color: #3a2615; }
+/* Indigo text (the shim covered blue/green/etc. but not indigo) */
+.dark .text-indigo-600 { color: #818cf8; }
+.dark .text-indigo-700 { color: #a5b4fc; }
+.dark .text-indigo-800 { color: #c7d2fe; }
+
 /* ============================================================================
    SOW document = always light ("paper"), even when the app UI is dark.
    The rendered SOW is a printable artifact: the print/PDF route never gets

@@ -116,7 +116,7 @@ export default function TipTapEditor({ value, onChange = () => {}, placeholder, 
     },
     editorProps: {
       attributes: {
-        class: 'w-full min-h-[250px] p-3 focus:outline-none prose prose-sm max-w-none',
+        class: 'w-full min-h-[250px] p-3 focus:outline-none prose prose-sm max-w-none dark:prose-invert',
         placeholder: placeholder || '',
       },
       // Disable automatic HTML cleaning and normalization

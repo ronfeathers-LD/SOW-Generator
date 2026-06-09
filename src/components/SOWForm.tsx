@@ -1270,7 +1270,7 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
                     {i < PHASES.length - 1 && (
                       <li
                         aria-hidden
-                        className={`mx-2 h-px flex-1 transition-colors duration-500 md:mx-4 ${done ? 'bg-[#26D07C]' : 'bg-gray-200 dark:bg-dark-border'}`}
+                        className={`mx-3 h-px min-w-[1.5rem] flex-1 transition-colors duration-500 ${done ? 'bg-[#26D07C]' : 'bg-gray-200 dark:bg-dark-border'}`}
                       />
                     )}
                   </React.Fragment>
