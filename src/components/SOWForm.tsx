@@ -17,9 +17,36 @@ import { saveAllTabs } from '@/lib/sow/save-all';
 import { getSectionStatus } from '@/lib/sow/section-status';
 import { reviewSOW } from '@/lib/sow/review';
 import ReviewSubmitTab from './sow/ReviewSubmitTab';
-import { Stepper, Step, Button } from '@/components/ui/form';
+import { Button } from '@/components/ui/form';
+import type { StepStatus } from '@/components/ui/form';
 
 const REVIEW_STEP_KEY = 'Review & Submit';
+
+/**
+ * The rebuilt creation flow groups the editable sections into four phases that
+ * match how a SOW is actually built: who & what → what we'll deliver → what it
+ * costs → who signs. Each phase hosts one or more of the existing sections.
+ */
+const PHASES: { key: string; title: string; sections: string[] }[] = [
+  { key: 'account', title: 'Account & Project', sections: ['Customer Information', 'Project Overview'] },
+  { key: 'scope', title: 'Scope & Content', sections: ['Objectives', 'Content Editing'] },
+  { key: 'commercials', title: 'Commercials', sections: ['Billing Information', 'Pricing'] },
+  { key: 'signoff', title: 'Sign-off', sections: ['Signers & Roles', REVIEW_STEP_KEY] },
+];
+
+/** Short labels for the per-phase sub-navigation pills. */
+const SECTION_LABELS: Record<string, string> = {
+  'Customer Information': 'Customer',
+  'Project Overview': 'Project',
+  Objectives: 'Objectives',
+  'Content Editing': 'Content',
+  'Billing Information': 'Billing',
+  Pricing: 'Pricing & Roles',
+  'Signers & Roles': 'Signers',
+  [REVIEW_STEP_KEY]: 'Review & Submit',
+};
+
+type PhaseRollup = 'complete' | 'attention' | 'partial' | 'empty';
 
 interface LeanDataSignatory {
   id: string;
@@ -957,32 +984,36 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
     return allTabs;
   }, [pricingOnly]);
 
-  // The wizard adds a final Review & Submit step after the editable sections
-  // (skipped in pricing-only mode, which is a single-section edit).
+  // Flat, ordered section list for Back/Next, in phase order with Review last.
+  // Pricing-only mode stays a single-section edit (no phases).
   const wizardKeys = useMemo(
-    () => (pricingOnly ? tabs.map((t) => t.key) : [...tabs.map((t) => t.key), REVIEW_STEP_KEY]),
+    () => (pricingOnly ? tabs.map((t) => t.key) : PHASES.flatMap((p) => p.sections)),
     [tabs, pricingOnly],
   );
 
   // Whether the SOW passes the strict submit-gating validation — drives the
-  // Review step's stepper status.
+  // Review phase status.
   const reviewValid = useMemo(() => reviewSOW(formData).result.isValid, [formData]);
 
-  // Wizard steps: each section with its at-a-glance completion status (#24).
-  const steps = useMemo<Step[]>(
-    () =>
-      wizardKeys.map((key) => ({
-        key,
-        label: key === REVIEW_STEP_KEY ? key : tabs.find((t) => t.key === key)?.label ?? key,
-        status:
-          key === REVIEW_STEP_KEY
-            ? reviewValid
-              ? 'complete'
-              : 'attention'
-            : getSectionStatus(key as SowTabKey, formData),
-      })),
-    [wizardKeys, tabs, formData, reviewValid],
-  );
+  // At-a-glance completion status for a section (#24); Review uses strict validation.
+  const sectionStatus = (key: string): StepStatus =>
+    key === REVIEW_STEP_KEY
+      ? reviewValid
+        ? 'complete'
+        : 'attention'
+      : getSectionStatus(key as SowTabKey, formData);
+
+  // A phase rolls up the statuses of its sections for the top progress bar.
+  const phaseRollup = (sections: string[]): PhaseRollup => {
+    const statuses = sections.map(sectionStatus);
+    if (statuses.some((s) => s === 'attention')) return 'attention';
+    if (statuses.every((s) => s === 'complete')) return 'complete';
+    if (statuses.some((s) => s === 'complete')) return 'partial';
+    return 'empty';
+  };
+
+  const activePhaseIndex = Math.max(0, PHASES.findIndex((p) => p.sections.includes(activeTab)));
+  const activePhase = PHASES[activePhaseIndex] ?? PHASES[0];
 
   // Next/Back navigation through the wizard sections.
   const currentStepIndex = wizardKeys.findIndex((key) => key === activeTab);
@@ -1191,16 +1222,79 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
         </div>
       )}
 
-      {/* Wizard: progress-stepper sidebar + the active section. The stepper
-          shows per-section completion status and doubles as section nav. */}
-      <div className="flex flex-col gap-8 lg:flex-row">
-        <aside className="lg:w-64 lg:flex-shrink-0">
-          <div className="lg:sticky lg:top-6">
-            <Stepper steps={steps} activeKey={activeTab} onStepClick={handleTabChange} />
-          </div>
-        </aside>
+      {/* 4-phase wizard: top progress bar + per-phase sub-nav + the active section. */}
+      {!pricingOnly && (
+        <>
+          <nav aria-label="Progress" className="mb-8">
+            <ol className="flex list-none items-center pl-0">
+              {PHASES.map((phase, i) => {
+                const roll = phaseRollup(phase.sections);
+                const isActive = i === activePhaseIndex;
+                const done = roll === 'complete';
+                const badge = isActive
+                  ? 'bg-[#26D07C] text-[#2a2a2a] ring-2 ring-[#26D07C] ring-offset-2 dark:ring-offset-dark-bg'
+                  : done
+                    ? 'bg-[#26D07C] text-[#2a2a2a]'
+                    : roll === 'attention'
+                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                      : roll === 'partial'
+                        ? 'bg-gray-200 text-gray-700 dark:bg-dark-surface dark:text-dark-text'
+                        : 'bg-gray-100 text-gray-400 dark:bg-dark-surface dark:text-dark-text-subtle';
+                return (
+                  <React.Fragment key={phase.key}>
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => handleTabChange(phase.sections[0])}
+                        className="group flex items-center gap-2.5"
+                      >
+                        <span className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-colors ${badge}`}>
+                          {done ? (
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            i + 1
+                          )}
+                        </span>
+                        <span className={`hidden whitespace-nowrap text-sm font-medium sm:block ${isActive ? 'text-gray-900 dark:text-dark-text' : 'text-gray-500 group-hover:text-gray-700 dark:text-dark-text-subtle'}`}>
+                          {phase.title}
+                        </span>
+                      </button>
+                    </li>
+                    {i < PHASES.length - 1 && (
+                      <li aria-hidden className="mx-2 h-px flex-1 bg-gray-200 dark:bg-dark-border md:mx-4" />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </ol>
+          </nav>
 
-        <div className="min-w-0 flex-1 space-y-8">
+          {activePhase.sections.length > 1 && (
+            <div className="mb-6 flex flex-wrap gap-2">
+              {activePhase.sections.map((sec) => {
+                const st = sectionStatus(sec);
+                const on = activeTab === sec;
+                return (
+                  <button
+                    key={sec}
+                    type="button"
+                    onClick={() => handleTabChange(sec)}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${on ? 'border border-[#26D07C] bg-[#2a2a2a] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-dark-surface dark:text-dark-text dark:hover:bg-dark-elevated'}`}
+                  >
+                    {SECTION_LABELS[sec] ?? sec}
+                    {st === 'complete' && <span className="text-[#26D07C]">✓</span>}
+                    {st === 'attention' && <span className={on ? 'text-amber-300' : 'text-amber-500'}>!</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      <div className="min-w-0 space-y-8">
 
       {/* Project Overview Section */}
       {activeTab === 'Project Overview' && (
@@ -1310,39 +1404,43 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
         />
       )}
 
-      {/* Back / Next section navigation */}
-      {!pricingOnly && (
-        <div className="flex items-center justify-between border-t border-gray-200 pt-6">
-          <Button
-            variant="secondary"
-            onClick={() => goToStep(currentStepIndex - 1)}
-            disabled={currentStepIndex <= 0}
-            leftIcon={
+      {/* Back / Next navigation — labels reflect the next phase when crossing one. */}
+      {!pricingOnly && (() => {
+        const nextKey = currentStepIndex < wizardKeys.length - 1 ? wizardKeys[currentStepIndex + 1] : null;
+        const nextPhase = nextKey ? PHASES.find((p) => p.sections.includes(nextKey)) : null;
+        const nextLabel = !nextKey
+          ? 'Next'
+          : nextPhase && nextPhase.key !== activePhase.key
+            ? `Continue to ${nextPhase.title}`
+            : `Next: ${SECTION_LABELS[nextKey] ?? nextKey}`;
+        return (
+          <div className="flex items-center justify-between gap-4 border-t border-gray-200 pt-6 dark:border-dark-border">
+            <Button
+              variant="secondary"
+              onClick={() => goToStep(currentStepIndex - 1)}
+              disabled={currentStepIndex <= 0}
+              leftIcon={
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              }
+            >
+              Back
+            </Button>
+            <span className="hidden text-xs text-gray-400 dark:text-dark-text-subtle sm:block">
+              Step {currentStepIndex + 1} of {wizardKeys.length}
+            </span>
+            <Button variant="primary" onClick={() => goToStep(currentStepIndex + 1)} disabled={!nextKey}>
+              {nextLabel}
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-            }
-          >
-            Back
-          </Button>
-          <span className="text-xs text-gray-400">
-            Step {currentStepIndex + 1} of {wizardKeys.length}
-          </span>
-          <Button
-            variant="primary"
-            onClick={() => goToStep(currentStepIndex + 1)}
-            disabled={currentStepIndex >= wizardKeys.length - 1}
-          >
-            Next
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Button>
-        </div>
-      )}
+            </Button>
+          </div>
+        );
+      })()}
 
-        </div>{/* end content column */}
-      </div>{/* end wizard flex */}
+      </div>{/* end wizard content */}
 
       {/* Floating Save control — persists every section (save-all), with a
           status indicator so the user knows whether work is saved (#21). */}
