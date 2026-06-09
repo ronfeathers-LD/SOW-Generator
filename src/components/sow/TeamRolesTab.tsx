@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
-import { Select, Textarea, Button } from '@/components/ui/form';
+import { Select, Textarea, Button, EmptyState } from '@/components/ui/form';
 import { SalesforceAccount, SalesforceContact } from '@/lib/salesforce';
 import LoadingModal from '@/components/ui/LoadingModal';
 
@@ -927,6 +927,13 @@ export default function TeamRolesTab({
            </div>
          </div>
        )}
+        {(formData.roles?.client_roles?.length ?? 0) === 0 && (
+          <EmptyState
+            className="mb-4"
+            title="No client roles yet"
+            description="Add the customer contacts and their responsibilities for this engagement."
+          />
+        )}
         {formData.roles?.client_roles?.map((role, index) => (
           <div key={`client-role-${index}-${role.role || 'role'}-${role.email || 'no-email'}`} className="border border-gray-200 rounded-md p-4 mb-4">
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">

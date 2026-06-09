@@ -4,11 +4,11 @@ import { cx } from './cx';
 type Tone = 'default' | 'muted' | 'info' | 'success' | 'warning';
 
 const TONES: Record<Tone, string> = {
-  default: 'bg-white border-gray-200 shadow-sm',
-  muted: 'bg-gray-50 border-gray-200',
-  info: 'bg-blue-50 border-blue-200',
-  success: 'bg-[#e9faf2] border-[#26D07C]/40',
-  warning: 'bg-yellow-50 border-yellow-200',
+  default: 'bg-white border-gray-200 shadow-sm dark:bg-dark-surface dark:border-dark-border',
+  muted: 'bg-gray-50 border-gray-200 dark:bg-dark-surface-alt dark:border-dark-border',
+  info: 'bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900',
+  success: 'bg-[#e9faf2] border-[#26D07C]/40 dark:bg-[#26D07C]/10 dark:border-[#26D07C]/30',
+  warning: 'bg-yellow-50 border-yellow-200 dark:bg-amber-950/40 dark:border-amber-900',
 };
 
 const PADDING = {
