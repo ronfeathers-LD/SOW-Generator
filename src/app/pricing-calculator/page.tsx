@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
+import { Button } from '@/components/ui/form';
 import PricingCalculatorForm from '@/components/pricing-calculator/PricingCalculatorForm';
 import PricingCalculatorResults from '@/components/pricing-calculator/PricingCalculatorResults';
 import SOWDataLoader from '@/components/pricing-calculator/SOWDataLoader';
@@ -151,28 +152,17 @@ export default function PricingCalculatorPage() {
 
         {/* Action Buttons */}
         <div className="mb-6 flex flex-wrap gap-4">
-          <button
+          <Button
+            variant="brand"
             onClick={() => setShowSOWLoader(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
-            style={{
-              backgroundColor: '#2a2a2a',
-              color: 'white',
-              border: '1px solid #26D07C'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = '#01eb1d';
-              (e.target as HTMLElement).style.color = '#2a2a2a';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = '#2a2a2a';
-              (e.target as HTMLElement).style.color = 'white';
-            }}
+            leftIcon={
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+              </svg>
+            }
           >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-            </svg>
             Load from SOW
-          </button>
+          </Button>
           
           <button
             onClick={handleCreateScenario}
