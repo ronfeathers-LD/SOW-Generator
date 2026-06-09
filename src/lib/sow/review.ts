@@ -8,6 +8,7 @@
  */
 import { SOWData } from '@/types/sow';
 import { validateSOWForApproval, SOWValidationResult } from '@/lib/validation-utils';
+import { ChecklistSOWData } from '@/lib/pre-submit-checks';
 import { SowTabKey } from './tab-payloads';
 
 /**
@@ -27,6 +28,30 @@ export function buildValidationInput(formData: Partial<SOWData>): Record<string,
     client_signer_name: formData.template?.customer_signature_name || formData.client_signer_name,
     client_roles: formData.roles?.client_roles,
     pricing_roles: formData.pricing?.roles,
+  };
+}
+
+/**
+ * Map the nested form state into the minimal shape the pre-submission checklist
+ * reads (`PreSubmitChecklistModal` → `runAutomatedChecks`). This is the wizard-side
+ * equivalent of the `DisplaySOW` the view-page submit button feeds the checklist.
+ */
+export function buildChecklistInput(formData: Partial<SOWData>): ChecklistSOWData {
+  return {
+    clientRoles: formData.roles?.client_roles?.map((r) => ({
+      name: r.name,
+      contact_title: r.contact_title,
+      responsibilities: r.responsibilities,
+    })),
+    clientEmail: formData.template?.customer_email,
+    salesforce_tenants: formData.template?.salesforce_tenants,
+    objective_overview_content_edited: formData.objective_overview_content_edited,
+    key_objectives_content_edited: formData.key_objectives_content_edited,
+    deliverables_content_edited: formData.deliverables_content_edited,
+    template: {
+      customer_email: formData.template?.customer_email,
+      billing_email: formData.template?.billing_email,
+    },
   };
 }
 

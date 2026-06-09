@@ -78,9 +78,11 @@ interface PricingData {
 interface SOWFormProps {
   initialData?: SOWData;
   pricingOnly?: boolean;
+  /** Current SOW status — gates Submit-for-Review in the Sign-off phase to drafts. */
+  status?: string;
 }
 
-export default function SOWForm({ initialData, pricingOnly = false }: SOWFormProps) {
+export default function SOWForm({ initialData, pricingOnly = false, status }: SOWFormProps) {
   const [formData, setFormData] = useState<Partial<SOWData>>(
     initialData
       ? {
@@ -1412,6 +1414,8 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
         <ReviewSubmitTab
           formData={formData}
           sowId={initialData?.id}
+          status={status}
+          hasUnsavedChanges={hasUnsavedChanges}
           onGoToSection={(tab) => handleTabChange(tab)}
           onSaveAll={handleSaveAll}
           isSaving={isSaving}
