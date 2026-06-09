@@ -93,5 +93,5 @@ export default function EditSOWPage() {
   // Determine if we're in pricing-only mode (admin editing approved SOW)
   const isPricingOnlyMode = pricingOnly && isAdmin && sowStatus === 'approved';
   
-  return <SOWForm initialData={sow} pricingOnly={isPricingOnlyMode} />;
+  return <SOWForm initialData={sow} pricingOnly={isPricingOnlyMode} status={sowStatus ?? undefined} />;
 } 
