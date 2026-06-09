@@ -21,6 +21,9 @@ interface SOW {
   clientSOWs?: SOW[]; // Add clientSOWs for client-based grouping
 }
 
+/** Default list view hides SOWs not touched within this window (unless active). */
+const RECENT_DAYS = 14;
+
 function SOWListContent() {
   const { data: session } = useSession();
   const [sows, setSows] = useState<SOW[]>([]);
@@ -39,6 +42,8 @@ function SOWListContent() {
   const searchParams = useSearchParams();
   const statusFilter = searchParams.get('status');
   const showHidden = searchParams.get('show_hidden') === 'true';
+  // Default view shows only recent/active SOWs; `?range=all` reveals everything.
+  const range = searchParams.get('range') === 'all' ? 'all' : 'recent';
   
   // Check if user is admin
   const isAdmin = session?.user?.role === 'admin';
@@ -194,22 +199,32 @@ function SOWListContent() {
     return clientGroups.sort((a, b) => a.client_name.localeCompare(b.client_name));
   }, []);
 
-  // Filter and sort SOWs based on status filter and sort config
+  // Filter and sort SOWs based on status filter, recency window, and sort config
   useEffect(() => {
     let filtered = sows;
-    
+
     if (statusFilter) {
+      // Drilling into a specific status shows all of that status, regardless of age.
       filtered = sows.filter(sow => sow.status === statusFilter);
+    } else if (!showHidden && range === 'recent') {
+      // Default view: recent OR still-active (so nothing needing action is hidden,
+      // but the long tail of old approved/rejected SOWs drops off).
+      const cutoff = Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000;
+      filtered = sows.filter(sow => {
+        const isActive = sow.status === 'draft' || sow.status === 'in_review';
+        const ts = new Date((sow.updated_at || sow.created_at) as string).getTime();
+        return isActive || (!isNaN(ts) && ts >= cutoff);
+      });
     }
-    
+
     // Group by client first
     const clientGroupedSOWs = groupSOWsByClient(filtered);
-    
+
     // Apply sorting to the grouped results
     const sortedGroupedSOWs = sortGroupedSOWs(clientGroupedSOWs);
-    
+
     setFilteredSows(sortedGroupedSOWs);
-  }, [sows, statusFilter, sortConfig, groupSOWsByClient, sortGroupedSOWs]);
+  }, [sows, statusFilter, range, showHidden, sortConfig, groupSOWsByClient, sortGroupedSOWs]);
 
   // Helper function to render a single SOW row
   const renderSOWRow = (sow: SOW, isClientSOW: boolean = false) => (
@@ -475,12 +490,25 @@ function SOWListContent() {
               )}
             </h1>
             <p className="mt-2 text-sm text-gray-700">
-              {showHidden 
-                ? 'A list of hidden Statements of Work (Admin only).'
-                : statusFilter 
-                  ? `Showing ${getStatusLabel(statusFilter)} SOWs`
-                  : 'A list of all Statements of Work in the system.'
-              }
+              {showHidden ? (
+                'A list of hidden Statements of Work (Admin only).'
+              ) : statusFilter ? (
+                `Showing ${getStatusLabel(statusFilter)} SOWs`
+              ) : range === 'recent' ? (
+                <>
+                  Showing recent &amp; active SOWs — updated in the last 2 weeks, plus all drafts &amp; in-review.{' '}
+                  <Link href="/sow?range=all" className="font-medium text-indigo-600 hover:text-indigo-900">
+                    Show all {sows.length} →
+                  </Link>
+                </>
+              ) : (
+                <>
+                  Showing all {sows.length} Statements of Work.{' '}
+                  <Link href="/sow" className="font-medium text-indigo-600 hover:text-indigo-900">
+                    Show recent &amp; active only →
+                  </Link>
+                </>
+              )}
             </p>
           </div>
           <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
