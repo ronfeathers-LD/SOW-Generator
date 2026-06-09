@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
+import { Button } from '@/components/ui/form';
 
 import SalesforceIntegration from '../SalesforceIntegration';
 
@@ -572,15 +573,18 @@ export default function CustomerInformationTab({
                        <p className="text-sm text-gray-600">
                          Found {availableOpportunities.length} opportunity{availableOpportunities.length !== 1 ? 'ies' : ''} for {selectedAccount.Name || selectedAccount.name}
                        </p>
-                       <button 
-                         onClick={refreshOpportunities} 
-                         className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                       <Button
+                         variant="secondary"
+                         size="sm"
+                         onClick={refreshOpportunities}
+                         leftIcon={
+                           <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                           </svg>
+                         }
                        >
-                         <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                         </svg>
                          Refresh
-                       </button>
+                       </Button>
                      </div>
                      <div className="space-y-2 max-h-60 overflow-y-auto">
                        {availableOpportunities.map((opportunity) => (
@@ -637,15 +641,19 @@ export default function CustomerInformationTab({
                      <p className="text-sm text-yellow-800">
                        No opportunities found for this account. You may need to create opportunities in Salesforce.
                      </p>
-                     <button 
-                       onClick={refreshOpportunities} 
-                       className="mt-2 px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                     <Button
+                       variant="secondary"
+                       size="sm"
+                       onClick={refreshOpportunities}
+                       className="mt-2"
+                       leftIcon={
+                         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                         </svg>
+                       }
                      >
-                       <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                       </svg>
                        Refresh
-                     </button>
+                     </Button>
                    </div>
                  )}
                </div>
