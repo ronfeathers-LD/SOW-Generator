@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
+import { Select, Textarea, Button } from '@/components/ui/form';
 import { SalesforceAccount, SalesforceContact } from '@/lib/salesforce';
 import LoadingModal from '@/components/ui/LoadingModal';
 
@@ -819,7 +820,7 @@ export default function TeamRolesTab({
                Select the LeanData representative who will sign this SOW
              </p>
              <div className="relative">
-               <select
+               <Select
                  value={selectedLeanDataSignatory}
                  onChange={async (e) => {
                    setIsSavingLeanDataSignatory(true);
@@ -836,12 +837,8 @@ export default function TeamRolesTab({
                    }
                  }}
                  disabled={isSavingLeanDataSignatory}
-                 className={`mt-1 block w-full rounded-md shadow-sm focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed ${
-                   !selectedLeanDataSignatory || 
-                   (formData.template?.lean_data_name && formData.template.lean_data_name.trim() === 'None Selected')
-                     ? 'border-red-300 focus:border-red-500' 
-                     : 'border-gray-300 focus:border-indigo-500'
-                 }`}
+                 error={!selectedLeanDataSignatory || formData.template?.lean_data_name?.trim() === 'None Selected'}
+                 className="mt-1"
                >
                  <option value="">Select a signatory</option>
                  {leanDataSignatories.map((signatory) => (
@@ -849,7 +846,7 @@ export default function TeamRolesTab({
                      {signatory.name} - {signatory.title}
                    </option>
                  ))}
-               </select>
+               </Select>
                {isSavingLeanDataSignatory && (
                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                    <svg className="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -1028,7 +1025,7 @@ export default function TeamRolesTab({
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Responsibilities</label>
                     <div className="relative">
-                      <textarea
+                      <Textarea
                         value={role.responsibilities}
                         onChange={(e) => {
                           // Update local state immediately for responsive UI
@@ -1043,7 +1040,7 @@ export default function TeamRolesTab({
                           debouncedSaveResponsibilities(index, e.target.value);
                         }}
                         rows={4}
-                        className="mt-1 block w-full px-4 py-3 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        className="mt-1"
                         placeholder="Describe the responsibilities for this role..."
                       />
                       {/* Quick fill options */}
@@ -1179,8 +1176,14 @@ export default function TeamRolesTab({
             </div>
           </div>
         ))}
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          leftIcon={
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+          }
           onClick={async () => {
             const newRoles = [...(formData.roles?.client_roles || []), {
               role: '',
@@ -1196,13 +1199,9 @@ export default function TeamRolesTab({
             // Save to database
             await saveClientRolesWithRoles(newRoles);
           }}
-          className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-background hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-          <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-          </svg>
           Add Client Role
-        </button>
+        </Button>
       </div>
 
       {/* Loading Modals */}
