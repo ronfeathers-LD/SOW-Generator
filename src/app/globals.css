@@ -17,18 +17,12 @@
   border-color: #01eb1d;
 }
 
-/* Global Shadow and Border Overrides */
+/* Global Shadow Override */
 .shadow-lg,
 .shadow-md,
 .shadow-sm,
 .shadow {
   box-shadow: none !important;
-}
-
-.rounded-lg:not([style*="border-color"]):not([style*="borderColor"]),
-.rounded-md:not([style*="border-color"]):not([style*="borderColor"]) {
-  border: 1px solid #8F8F8F !important;
-  border-radius: 8px !important;
 }
 
 /* Custom CSS variables */
