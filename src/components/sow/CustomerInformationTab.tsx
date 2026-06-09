@@ -86,6 +86,7 @@ type SelectionStep = 'account' | 'opportunity' | 'logo' | null;
 
 export default function CustomerInformationTab({
   formData,
+  setFormData,
   initialData,
   selectedAccount,
   selectedOpportunity,
@@ -125,6 +126,43 @@ export default function CustomerInformationTab({
     setCurrentStep(computeInitialStep());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAccount, selectedOpportunity, initialData?.opportunity_id, initialData?.template?.opportunity_id]);
+
+  // Reuse the company logo from a previous SOW for the same account. When this
+  // SOW has no logo yet, ask the server for the most recent prior logo and offer
+  // it as a one-click suggestion (the user decides whether to apply it).
+  const sowId = formData.id || initialData?.id;
+  const hasLogo = !!formData.template?.company_logo;
+  const [logoSuggestion, setLogoSuggestion] = useState<{ logo: string; sourceTitle: string | null } | null>(null);
+  const logoSuggestionFetched = useRef(false);
+
+  useEffect(() => {
+    if (!sowId || hasLogo || logoSuggestionFetched.current) return;
+    logoSuggestionFetched.current = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/sow/${sowId}/suggested-logo`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.logo) {
+          setLogoSuggestion({ logo: data.logo, sourceTitle: data.sourceTitle ?? null });
+        }
+      } catch {
+        // Non-critical — silently skip the suggestion.
+      }
+    })();
+  }, [sowId, hasLogo]);
+
+  const applyLogoSuggestion = () => {
+    if (!logoSuggestion || !setFormData) return;
+    setFormData({
+      ...formData,
+      template: { ...formData.template!, company_logo: logoSuggestion.logo },
+    });
+    setLogoSuggestion(null);
+  };
+
+  // Only offer the suggestion while this SOW still has no logo of its own.
+  const showLogoSuggestion = !!logoSuggestion && !hasLogo;
 
 
   // Helper function to get account owner information
@@ -533,7 +571,11 @@ export default function CustomerInformationTab({
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">Company Logo</p>
                   <p className="text-xs text-gray-500 mb-2">
-                    {formData.template?.company_logo ? 'Logo uploaded' : 'Optional - upload company logo'}
+                    {formData.template?.company_logo
+                      ? 'Logo uploaded'
+                      : showLogoSuggestion
+                        ? 'A logo from a previous SOW is available to reuse'
+                        : 'Optional - upload company logo'}
                   </p>
                   {formData.template?.company_logo && (
                     <div className="text-xs text-gray-600 space-y-1">
@@ -676,7 +718,35 @@ export default function CustomerInformationTab({
                        Supported formats: JPG, PNG, GIF. Maximum size: 5MB.
                      </p>
                    </div>
-                   
+
+                   {/* Reuse the logo from a previous SOW for this account */}
+                   {showLogoSuggestion && logoSuggestion && (
+                     <div className="rounded-md border border-[#26D07C]/40 bg-[#e9faf2] p-4 dark:border-[#26D07C]/30 dark:bg-[#26D07C]/10">
+                       <div className="flex items-center gap-4">
+                         <Image
+                           src={logoSuggestion.logo}
+                           alt="Logo from a previous SOW"
+                           width={64}
+                           height={64}
+                           className="max-h-16 max-w-[96px] flex-shrink-0 rounded border border-gray-200 bg-white object-contain p-1 dark:border-dark-border"
+                         />
+                         <div className="flex-1">
+                           <p className="text-sm font-medium text-gray-900 dark:text-dark-text">
+                             Found a logo from a previous SOW
+                           </p>
+                           {logoSuggestion.sourceTitle && (
+                             <p className="text-xs text-gray-600 dark:text-dark-text-muted">
+                               From “{logoSuggestion.sourceTitle}”
+                             </p>
+                           )}
+                         </div>
+                         <Button type="button" variant="primary" size="sm" onClick={applyLogoSuggestion}>
+                           Use this logo
+                         </Button>
+                       </div>
+                     </div>
+                   )}
+
                    {/* Logo Preview */}
                    {formData.template?.company_logo && (
                      <div className="bg-white border border-gray-200 rounded-md p-4">
