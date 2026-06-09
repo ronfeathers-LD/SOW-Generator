@@ -705,3 +705,79 @@ body[style*="--print-sow-active: true"] .min-h-screen.bg-gray-50 {
     print-color-adjust: exact !important;
   }
 }
+/* ============================================================================
+   Dark mode baseline (epic #280)
+   Applied when <html class="dark"> (set by ThemeProvider; never on /print-sow).
+   Retrofits the app's hardcoded light Tailwind utilities to dark equivalents so
+   every page/component gets a usable dark theme. Scoped under `.dark` so light
+   mode is untouched; component-level `dark:` utilities can still override.
+   ============================================================================ */
+.dark body {
+  background-color: #0f0f0f;
+  color: #f0f0f0;
+}
+
+/* Surfaces */
+.dark .bg-white { background-color: #1a1a1a; }
+.dark .bg-gray-50 { background-color: #141414; }
+.dark .bg-gray-100 { background-color: #1f1f1f; }
+.dark .bg-gray-200 { background-color: #262626; }
+.dark .bg-\[\#e9faf2\] { background-color: #0f2a1d; }  /* Card success tone */
+
+/* Text */
+.dark .text-gray-900 { color: #f0f0f0; }
+.dark .text-gray-800 { color: #e8e8e8; }
+.dark .text-gray-700 { color: #d4d4d4; }
+.dark .text-gray-600 { color: #b6b6b6; }
+.dark .text-gray-500 { color: #9a9a9a; }
+.dark .text-gray-400 { color: #808080; }
+.dark .text-black { color: #f0f0f0; }
+
+/* Borders / dividers */
+.dark .border-gray-100 { border-color: #2a2a2a; }
+.dark .border-gray-200 { border-color: #333333; }
+.dark .border-gray-300 { border-color: #3d3d3d; }
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: #333333; }
+
+/* Form controls (most have no bg class, so target the elements) */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.dark select,
+.dark textarea {
+  background-color: #242424;
+  color: #f0f0f0;
+  border-color: #3d3d3d;
+}
+.dark input::placeholder,
+.dark textarea::placeholder { color: #8a8a8a; }
+
+/* Common hover bands */
+.dark .hover\:bg-gray-50:hover { background-color: #242424; }
+.dark .hover\:bg-gray-100:hover { background-color: #262626; }
+
+/* Links */
+.dark .text-blue-600 { color: #60a5fa; }
+.dark .text-blue-700 { color: #7cb1fb; }
+.dark .text-blue-800 { color: #93c0fc; }
+
+/* Tinted status panels + their text */
+.dark .bg-blue-50 { background-color: #11233f; }
+.dark .bg-green-50 { background-color: #0f2a1d; }
+.dark .bg-yellow-50 { background-color: #2a2410; }
+.dark .bg-amber-50 { background-color: #2a2410; }
+.dark .bg-red-50 { background-color: #2a1414; }
+.dark .bg-purple-50 { background-color: #211633; }
+.dark .bg-indigo-50 { background-color: #1a1b3a; }
+.dark .bg-orange-50 { background-color: #2a1c10; }
+.dark .border-blue-200 { border-color: #1e3a5f; }
+.dark .border-green-200 { border-color: #1d4d34; }
+.dark .border-yellow-200 { border-color: #4d4318; }
+.dark .border-amber-200 { border-color: #4d4318; }
+.dark .border-red-200 { border-color: #4d2020; }
+.dark .border-purple-200 { border-color: #3a2a55; }
+.dark .text-blue-700 { color: #93c0fc; }
+.dark .text-blue-800 { color: #a8cefd; }
+.dark .text-green-700, .dark .text-green-800 { color: #6ee7a8; }
+.dark .text-yellow-700, .dark .text-yellow-800 { color: #e8d27a; }
+.dark .text-amber-700, .dark .text-amber-800 { color: #e8d27a; }
+.dark .text-red-700, .dark .text-red-800 { color: #f5a3a3; }
+.dark .text-purple-700, .dark .text-purple-800 { color: #c4a3f5; }

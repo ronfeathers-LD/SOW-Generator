@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/form';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 import { usePathname } from 'next/navigation';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useState, useEffect, useRef } from 'react';
@@ -258,7 +259,8 @@ export default function Navigation() {
           </div>
           
           {/* Desktop User Info - Hidden on mobile */}
-          <div className="hidden md:flex items-center">
+          <div className="hidden md:flex items-center gap-3">
+            <ThemeToggle />
             {session ? (
               <div className="relative" ref={dropdownRef}>
                 <button

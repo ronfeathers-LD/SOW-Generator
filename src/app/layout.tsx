@@ -21,8 +21,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Apply the persisted theme before paint to avoid a flash of the wrong
+            theme. Never darkens the print/PDF route. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{if(location.pathname.indexOf('/print-sow')===0)return;var t=localStorage.getItem('sow-theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();`,
+          }}
+        />
         <noscript>
           <style>{`
             body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
@@ -56,7 +63,7 @@ export default function RootLayout({
         <Providers>
           <JavaScriptRequired />
           
-          <div className="min-h-screen bg-gray-50 flex flex-col">
+          <div className="min-h-screen bg-gray-50 dark:bg-dark-bg flex flex-col transition-colors">
             <Header />
             <Navigation />
             
