@@ -526,8 +526,18 @@ function SOWListContent() {
           <Link
             href="/sow"
             className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-              !statusFilter && !showHidden
-                ? 'bg-indigo-100 text-indigo-800' 
+              !statusFilter && !showHidden && range === 'recent'
+                ? 'bg-indigo-100 text-indigo-800'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Recent
+          </Link>
+          <Link
+            href="/sow?range=all"
+            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+              !statusFilter && !showHidden && range === 'all'
+                ? 'bg-indigo-100 text-indigo-800'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
