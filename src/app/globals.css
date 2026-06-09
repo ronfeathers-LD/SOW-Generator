@@ -17,14 +17,6 @@
   border-color: #01eb1d;
 }
 
-/* Global Shadow Override */
-.shadow-lg,
-.shadow-md,
-.shadow-sm,
-.shadow {
-  box-shadow: none !important;
-}
-
 /* Custom CSS variables */
 :root {
   --foreground-rgb: 0, 0, 0;
