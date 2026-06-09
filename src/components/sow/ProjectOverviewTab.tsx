@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SOWData } from '@/types/sow';
+import { Card, SectionHeader, Input, Select } from '@/components/ui/form';
 import { isRoutingProductById, isLeadToAccountProductById, isFormsProductById, isLinksProductById, isHandoffProductById, isOtherProduct, productRequiresUnits } from '@/lib/constants/products';
 import { 
   findProductByIdOrName, 
@@ -402,8 +403,8 @@ export default function ProjectOverviewTab({
       <h2 className="text-2xl font-bold">Project Overview</h2>
       
       {/* SOW Title */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-4">SOW Title</h3>
+      <Card padding="md">
+        <SectionHeader as="h3" title="SOW Title" className="mb-4" />
         <div className="max-w-2xl">
             <label className="block text-sm font-medium text-gray-700 mb-2">
             <span className="inline-flex items-center">
@@ -413,25 +414,24 @@ export default function ProjectOverviewTab({
               Statement of Work Title
             </span>
             </label>
-            <input
+            <Input
               type="text"
             value={formData.template?.sow_title ?? getDefaultTitle()}
             onChange={(e) => setFormData({
                   ...formData,
               template: { ...formData.template!, sow_title: e.target.value }
             })}
-            className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             placeholder={getDefaultTitle()}
           />
           <p className="mt-2 text-sm text-gray-500">
             Customize the title for this Statement of Work. The default format is &quot;[Opportunity Name] - [Account Name]&quot;.
           </p>
         </div>
-      </div>
+      </Card>
 
       {/* Project Configuration */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-4">Project Configuration</h3>
+      <Card padding="md">
+        <SectionHeader as="h3" title="Project Configuration" className="mb-4" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -442,14 +442,13 @@ export default function ProjectOverviewTab({
               Salesforce Tenants
               </span>
             </label>
-            <input
+            <Input
               type="text"
               value={formData.template?.salesforce_tenants || ''}
               onChange={(e) => setFormData({
                 ...formData,
                 template: { ...formData.template!, salesforce_tenants: e.target.value || '' }
               })}
-              className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               placeholder="Enter number of Salesforce tenants"
             />
           </div>
@@ -462,7 +461,7 @@ export default function ProjectOverviewTab({
               Timeline (Weeks)
               </span>
             </label>
-            <input
+            <Input
               type="text"
               value={formData.template?.timeline_weeks || ''}
               onChange={(e) => {
@@ -472,7 +471,6 @@ export default function ProjectOverviewTab({
                   template: { ...formData.template!, timeline_weeks: weeks }
                 });
               }}
-              className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               placeholder="Enter timeline in weeks"
             />
           </div>
@@ -485,22 +483,21 @@ export default function ProjectOverviewTab({
               Units Consumption
               </span>
             </label>
-            <select
+            <Select
               value={formData.template?.units_consumption || ''}
               onChange={(e) => setFormData({
                 ...formData,
                 template: { ...formData.template!, units_consumption: e.target.value }
               })}
-              className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
               <option value="">Select consumption pattern</option>
               <option value="All units immediately">All units immediately</option>
               <option value="Gradual consumption over timeline">Gradual consumption over timeline</option>
               <option value="Custom consumption pattern">Custom consumption pattern</option>
-            </select>
+            </Select>
           </div>
         </div>
-      </div>
+      </Card>
       
       {/* Products */}
       <div className="bg-white shadow rounded-lg p-6">
@@ -800,15 +797,11 @@ export default function ProjectOverviewTab({
                     <span className="text-red-500 ml-1">*</span>
                   </span>
                 </label>
-                <input
+                <Input
                   type="text"
                   value={formData.template?.other_products_units || ''}
                   onChange={(e) => handleUnitFieldChange('other_products_units', e.target.value)}
-                  className={`block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-gray-500 focus:border-gray-500 ${
-                    validationErrors.other_products_units 
-                      ? 'border-red-300' 
-                      : 'border-gray-300'
-                  }`}
+                  error={!!validationErrors.other_products_units}
                   placeholder="Enter number of units"
                 />
                 {validationErrors.other_products_units && (
