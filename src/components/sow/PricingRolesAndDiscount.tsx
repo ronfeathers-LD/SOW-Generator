@@ -775,7 +775,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                                   setRoleBeingEdited(role.id);
                                   setShowRoleSelectModal(true);
                                 }}
-                                className={`pr-10 ${isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''}`}
+                                className={`pr-10 min-w-[13rem] ${isPMRemoved || isPMPending ? 'bg-gray-100 text-gray-500' : ''}`}
                                 disabled={!!isPMRemoved || !!isPMPending}
                                 placeholder={_pricingRolesConfig.length === 0 ? "Loading roles..." : "Enter role name or click to select"}
                               />
@@ -908,19 +908,6 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
               Add Role
             </Button>
           </div>
-        </div>
-
-        {/* Recalculate Button */}
-        <div className="flex justify-end">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={handleRecalculateHours}
-            disabled={!formData.template?.products || formData.template.products.length === 0 || isAutoCalculating}
-            loading={isAutoCalculating}
-          >
-            Reset Role Hours
-          </Button>
         </div>
 
         {/* Info Note */}

@@ -60,7 +60,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       type={type}
       disabled={disabled || loading}
       className={cx(
-        'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed',
+        // Disabled buttons render as a neutral grey rather than a faded version
+        // of their variant — a 50%-opacity primary washes out to near-invisible
+        // on tinted backgrounds (e.g. the green Pricing panel).
+        'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 disabled:border-gray-200 disabled:shadow-none disabled:hover:bg-gray-200',
         VARIANTS[variant],
         SIZES[size],
         className,
