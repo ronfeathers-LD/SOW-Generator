@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeOrderFormData, ChangeCategory, SOWData } from '@/types/sow';
+import { Button } from '@/components/ui/form';
 import { getPricingRolesConfig, PricingRoleConfig, getDefaultRateForRole } from '@/lib/pricing-roles-config';
 
 // Extended SOW interface for change orders
@@ -650,36 +651,15 @@ export default function ChangeOrderForm({
 
         {/* Action Buttons */}
         <div className="flex justify-end space-x-4 pt-6 border-t">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isLoading}
-          >
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={isLoading}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              backgroundColor: '#2a2a2a',
-              border: '1px solid #26D07C'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = '#01eb1d';
-              (e.target as HTMLElement).style.color = '#2a2a2a';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = '#2a2a2a';
-              (e.target as HTMLElement).style.color = 'white';
-            }}
-          >
-            {isLoading 
-              ? (initialData?.sow_id && initialData?.change_requestor ? 'Updating...' : 'Creating...') 
+          </Button>
+          <Button type="submit" variant="brand" disabled={isLoading} loading={isLoading}>
+            {isLoading
+              ? (initialData?.sow_id && initialData?.change_requestor ? 'Updating...' : 'Creating...')
               : (initialData?.sow_id && initialData?.change_requestor ? 'Update Change Order' : 'Create Change Order')
             }
-          </button>
+          </Button>
         </div>
       </form>
     </div>
