@@ -5,6 +5,7 @@ import Link from 'next/link';
 import PreSubmitChecklistModal from '@/components/sow/PreSubmitChecklistModal';
 import { getFixLinkForMessage } from '@/lib/sow/fix-links';
 import { DisplaySOW } from '@/types/sow-display';
+import { Button } from '@/components/ui/form';
 
 /**
  * Draft-status submit control for the SOW view: validates the SOW client-side,
@@ -94,31 +95,10 @@ export default function ValidationSubmitButton({ sow }: { sow: DisplaySOW }) {
 
   return (
     <div>
-      <button
+      <Button
+        variant="brand"
         onClick={handleSubmitForReview}
         disabled={submitting || (validation?.isValid === false)}
-        className={`px-4 py-2 rounded transition-colors ${
-          validation?.isValid === false
-            ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-            : ''
-        } disabled:opacity-50`}
-        style={validation?.isValid !== false ? {
-          backgroundColor: '#2a2a2a',
-          color: 'white',
-          border: '1px solid #26D07C'
-        } : {}}
-        onMouseEnter={(e) => {
-          if (validation?.isValid !== false) {
-            (e.target as HTMLElement).style.backgroundColor = '#01eb1d';
-            (e.target as HTMLElement).style.color = '#2a2a2a';
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (validation?.isValid !== false) {
-            (e.target as HTMLElement).style.backgroundColor = '#2a2a2a';
-            (e.target as HTMLElement).style.color = 'white';
-          }
-        }}
         title={
           validation?.isValid === false
             ? `Cannot submit: ${validation.missingFields.length} missing fields, ${validation.errors.length} validation errors`
@@ -126,7 +106,7 @@ export default function ValidationSubmitButton({ sow }: { sow: DisplaySOW }) {
         }
       >
         {submitting ? 'Submitting...' : 'Submit for Review'}
-      </button>
+      </Button>
 
       {/* Show validation errors if button is disabled */}
       {validation?.isValid === false && (

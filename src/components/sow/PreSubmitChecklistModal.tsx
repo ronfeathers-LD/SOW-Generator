@@ -8,6 +8,7 @@ import {
   CheckResult,
   ChecklistItem,
 } from '@/lib/pre-submit-checks';
+import { Button } from '@/components/ui/form';
 
 interface PreSubmitChecklistModalProps {
   isOpen: boolean;
@@ -118,32 +119,17 @@ export default function PreSubmitChecklistModal({
 
         {/* Footer */}
         <div className="flex gap-3 pt-4 border-t border-gray-200">
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
-          >
+          <Button variant="secondary" onClick={onClose} className="flex-1">
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="brand"
             onClick={onConfirm}
             disabled={!allManualChecked}
-            className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${
-              allManualChecked
-                ? 'text-white hover:opacity-90'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-            style={
-              allManualChecked
-                ? {
-                    backgroundColor: '#2a2a2a',
-                    color: 'white',
-                    border: '1px solid #26D07C',
-                  }
-                : undefined
-            }
+            className="flex-1"
           >
             Confirm &amp; Submit
-          </button>
+          </Button>
         </div>
       </div>
     </div>
