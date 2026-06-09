@@ -230,51 +230,64 @@ const ObjectivesWizard = React.memo(function ObjectivesWizard({
 
   return (
     <div className="space-y-6">
-      {/* Step Navigation */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">Objectives Wizard</h2>
-          <div className="flex items-center space-x-4">
-            {/* Partner Badge - Only show if there's partner data */}
+      {/* Compact, subordinate sub-stepper — a guided tool *within* the Scope
+          phase, intentionally lighter than the main 4-phase progress so it no
+          longer reads as a second top-level wizard. */}
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-dark-border dark:bg-dark-surface">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <svg className="h-4 w-4 flex-shrink-0 text-[#26D07C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M19 17v4m-2-2h4M13 3l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+            </svg>
+            <span className="text-sm font-semibold text-gray-700 dark:text-dark-text">Generate objectives with AI</span>
+          </div>
+          <div className="flex items-center gap-3">
             {formData.salesforce_data?.opportunity_data?.is_partner_sourced && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
-                <div className="flex items-center">
-                  <svg className="w-4 h-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                  <span className="text-blue-900 font-medium text-sm">
-                    Partner-Sourced
-                    {formData.salesforce_data?.opportunity_data?.isv_partner_account_name && 
-                      `: ${formData.salesforce_data.opportunity_data.isv_partner_account_name}`
-                    }
-                  </span>
-                </div>
-              </div>
+              <span className="hidden items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-900 sm:inline-flex dark:bg-blue-900/30 dark:text-blue-200">
+                Partner-Sourced
+                {formData.salesforce_data?.opportunity_data?.isv_partner_account_name &&
+                  `: ${formData.salesforce_data.opportunity_data.isv_partner_account_name}`}
+              </span>
             )}
-            <div className="text-sm text-gray-500">
+            <span className="whitespace-nowrap text-xs text-gray-400 dark:text-dark-text-subtle">
               Step {currentStep + 1} of {STEPS.length}
-            </div>
+            </span>
           </div>
         </div>
-        
-        <div className="flex space-x-4">
-          {STEPS.map((step, index) => (
-            <button
-              key={step.id}
-              onClick={() => goToStep(index)}
-              className={`flex-1 text-left p-3 rounded-lg border transition-colors ${
-                index === currentStep
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : index < currentStep
-                  ? 'border-green-500 bg-green-50 text-green-700 hover:bg-green-100'
-                  : 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100'
-              }`}
-            >
-              <div className="font-medium">{step.title}</div>
-              <div className="text-sm opacity-75">{step.description}</div>
-            </button>
-          ))}
-        </div>
+        <ol className="flex list-none items-center gap-1 pl-0">
+          {STEPS.map((step, index) => {
+            const done = index < currentStep;
+            const active = index === currentStep;
+            return (
+              <React.Fragment key={step.id}>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => goToStep(index)}
+                    className="group flex items-center gap-1.5"
+                    title={step.description}
+                  >
+                    <span className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+                      active
+                        ? 'bg-[#26D07C] text-[#2a2a2a]'
+                        : done
+                          ? 'bg-[#26D07C]/20 text-[#1fa968] dark:text-[#26D07C]'
+                          : 'bg-gray-200 text-gray-500 dark:bg-dark-elevated dark:text-dark-text-subtle'
+                    }`}>
+                      {done ? '✓' : index + 1}
+                    </span>
+                    <span className={`hidden whitespace-nowrap text-xs lg:inline ${active ? 'font-medium text-gray-900 dark:text-dark-text' : 'text-gray-500 dark:text-dark-text-subtle'}`}>
+                      {step.title}
+                    </span>
+                  </button>
+                </li>
+                {index < STEPS.length - 1 && (
+                  <li aria-hidden className="h-px flex-1 bg-gray-200 dark:bg-dark-border" />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </ol>
       </div>
 
       {/* Current Step Content */}
