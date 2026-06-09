@@ -987,7 +987,12 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
   // Flat, ordered section list for Back/Next, in phase order with Review last.
   // Pricing-only mode stays a single-section edit (no phases).
   const wizardKeys = useMemo(
-    () => (pricingOnly ? tabs.map((t) => t.key) : PHASES.flatMap((p) => p.sections)),
+    () =>
+      pricingOnly
+        ? tabs.map((t) => t.key)
+        : // Commercials renders Billing + Pricing stacked, so it's a single
+          // Back/Next stop (its first section).
+          PHASES.flatMap((p) => (p.key === 'commercials' ? [p.sections[0]] : p.sections)),
     [tabs, pricingOnly],
   );
 
@@ -1271,7 +1276,7 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
             </ol>
           </nav>
 
-          {activePhase.sections.length > 1 && (
+          {activePhase.sections.length > 1 && activePhase.key !== 'commercials' && (
             <div className="mb-6 flex flex-wrap gap-2">
               {activePhase.sections.map((sec) => {
                 const st = sectionStatus(sec);
@@ -1349,40 +1354,49 @@ export default function SOWForm({ initialData, pricingOnly = false }: SOWFormPro
       )}
 
       {/* Billing Information Section */}
-      {activeTab === 'Billing Information' && (
-        <BillingInformationTab
-          formData={formData}
-          setFormData={updateFormData}
-          selectedAccount={selectedAccount}
-        />
-      )}
-
-      {/* Pricing Section */}
-        {activeTab === 'Pricing' && (
-          <>
-            {/* Unsaved Changes Warning */}
-            {hasUnsavedChanges && (
-              <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div className="flex items-center">
-                  <svg className="w-5 h-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                  <div className="text-yellow-800">
-                    <p className="font-medium">Unsaved Changes</p>
-                    <p className="text-sm">You have unsaved pricing changes. Please save your changes before navigating away from this tab.</p>
-      </div>
+      {/* Commercials phase: billing details + pricing/roles, stacked as one view. */}
+      {!pricingOnly && activePhase.key === 'commercials' && (
+        <>
+          {hasUnsavedChanges && (
+            <div className="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-700/40">
+              <div className="flex items-center">
+                <svg className="mr-2 h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <div className="text-yellow-800 dark:text-yellow-300">
+                  <p className="font-medium">Unsaved Changes</p>
+                  <p className="text-sm">You have unsaved pricing changes. Save before navigating away.</p>
                 </div>
               </div>
-            )}
-            
+            </div>
+          )}
+
+          <BillingInformationTab
+            formData={formData}
+            setFormData={updateFormData}
+            selectedAccount={selectedAccount}
+          />
+
+          <div className="border-t border-gray-200 pt-8 dark:border-dark-border">
             <BillingPaymentTab
               formData={formData}
               setFormData={updateFormData}
               selectedAccount={selectedAccount}
               ref={pricingRef}
             />
-          </>
-        )}
+          </div>
+        </>
+      )}
+
+      {/* Pricing-only mode: just the pricing calculator. */}
+      {pricingOnly && activeTab === 'Pricing' && (
+        <BillingPaymentTab
+          formData={formData}
+          setFormData={updateFormData}
+          selectedAccount={selectedAccount}
+          ref={pricingRef}
+        />
+      )}
 
       {/* Content Editing Section */}
       {activeTab === 'Content Editing' && (
