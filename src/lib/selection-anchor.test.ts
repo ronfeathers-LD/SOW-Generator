@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   rangeToAnchor,
+  anchorToRange,
   findSectionContainer,
   type SelectionAnchor,
 } from './selection-anchor';
@@ -237,8 +238,8 @@ describe('rangeToAnchor — markup structures', () => {
 // For the same HTML, offsets produced by the client MUST index the server's
 // anchor text — this is what makes the API's validateAnchor return 'ok'.
 // ─────────────────────────────────────────────────────────────────────────────
-describe('client/server convention cross-check', () => {
-  const fixtures = [
+/** Hostile section-HTML fixtures shared by the cross-check and round-trip suites. */
+const fixtures = [
     '<p>Hello <strong>world</strong></p>',
     '<p>a</p><p>b</p>',
     '<p>Fish &amp; Chips &lt;tasty&gt;</p>',
@@ -251,8 +252,9 @@ describe('client/server convention cross-check', () => {
       '<blockquote>quoted &quot;wisdom&quot;</blockquote>',
     '<p>The quick brown fox jumps over the lazy dog. ' +
       'Pack my box with five dozen liquor jugs.</p><p>Sphinx of black quartz.</p>',
-  ];
+];
 
+describe('client/server convention cross-check', () => {
   it('container.textContent equals htmlToAnchorText for every fixture', () => {
     for (const html of fixtures) {
       const container = mountSection(html);
@@ -325,5 +327,151 @@ describe('client/server convention cross-check', () => {
         );
       }
     }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// anchorToRange (#350): the inverse mapping. Resolution must share
+// validateAnchor's precedence (exact offsets → unique quote → context
+// disambiguation) and return null — NEVER a guess — when the quote is gone.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('anchorToRange — round-trips', () => {
+  it('rangeToAnchor → anchorToRange returns an equivalent range across hostile fixtures', () => {
+    for (const html of fixtures) {
+      const container = mountSection(html);
+      const text = container.textContent ?? '';
+      if (text.length < 2) continue;
+      // several spans per fixture: head, middle, tail, full
+      const spans: Array<[number, number]> = [
+        [0, Math.max(1, Math.floor(text.length / 3))],
+        [Math.floor(text.length / 4), Math.max(Math.floor(text.length / 4) + 1, Math.floor((text.length * 3) / 4))],
+        [Math.max(0, text.length - 3), text.length],
+        [0, text.length],
+      ];
+      for (const [start, end] of spans) {
+        const anchor = rangeToAnchor(rangeAt(container, start, end), container)!;
+        expect(anchor).not.toBeNull();
+        const roundTripped = anchorToRange(anchor, container);
+        expect(roundTripped).not.toBeNull();
+        // toString equality: the range selects exactly the quoted text
+        expect(roundTripped!.toString()).toBe(anchor.quoted_text);
+        // boundary equivalence: mapping the range BACK yields the same anchor
+        expect(rangeToAnchor(roundTripped!, container)).toEqual(anchor);
+      }
+    }
+  });
+
+  it('round-trips element-boundary (triple-click style) selections', () => {
+    const container = mountSection('<p>one</p><p>two</p><p>three</p>');
+    const middle = container.querySelectorAll('p')[1];
+    const range = document.createRange();
+    range.setStart(middle, 0);
+    range.setEnd(middle, middle.childNodes.length);
+    const anchor = rangeToAnchor(range, container)!;
+    const roundTripped = anchorToRange(anchor, container)!;
+    expect(roundTripped.toString()).toBe('two');
+    expect(rangeToAnchor(roundTripped, container)).toEqual(anchor);
+  });
+});
+
+describe('anchorToRange — orphans (never mis-highlight)', () => {
+  it('returns null when the quoted text is gone entirely', () => {
+    const container = mountSection('<p>The quick brown fox</p>');
+    const anchor = rangeToAnchor(rangeAt(container, 4, 9), container)!; // "quick"
+    container.innerHTML = '<p>Something else entirely</p>';
+    expect(anchorToRange(anchor, container)).toBeNull();
+  });
+
+  it('returns null when the quoted text was edited (changed, not just moved)', () => {
+    const container = mountSection('<p>Deliverables include lead routing setup.</p>');
+    const text = container.textContent!;
+    const start = text.indexOf('lead routing');
+    const anchor = rangeToAnchor(
+      rangeAt(container, start, start + 'lead routing'.length),
+      container
+    )!;
+    container.innerHTML = '<p>Deliverables include lead-to-account routing setup.</p>';
+    expect(anchorToRange(anchor, container)).toBeNull();
+  });
+
+  it('returns null against an empty container', () => {
+    const container = mountSection('<p>hello</p>');
+    const anchor = rangeToAnchor(rangeAt(container, 0, 5), container)!;
+    container.innerHTML = '';
+    expect(anchorToRange(anchor, container)).toBeNull();
+  });
+});
+
+describe('anchorToRange — drift and disambiguation', () => {
+  it('finds a quote that drifted to new offsets (content inserted before it)', () => {
+    const container = mountSection('<p>The quick brown fox jumps.</p>');
+    const text = container.textContent!;
+    const start = text.indexOf('brown fox');
+    const anchor = rangeToAnchor(
+      rangeAt(container, start, start + 'brown fox'.length),
+      container
+    )!;
+    // Insert a paragraph BEFORE — anchor offsets are now stale.
+    container.innerHTML =
+      '<p>NEW INTRO SENTENCE ADDED LATER. </p><p>The quick brown fox jumps.</p>';
+    const range = anchorToRange(anchor, container)!;
+    expect(range).not.toBeNull();
+    expect(range.toString()).toBe('brown fox');
+    const newText = container.textContent!;
+    const remapped = rangeToAnchor(range, container)!;
+    expect(remapped.start_offset).toBe(newText.indexOf('brown fox'));
+  });
+
+  it('resolves a duplicated quote via context disambiguation', () => {
+    // Authored against the SECOND occurrence of "configure routing".
+    const container = mountSection(
+      '<p>First we configure routing for leads.</p><p>Then we configure routing for contacts.</p>'
+    );
+    const text = container.textContent!;
+    const start = text.indexOf('configure routing', text.indexOf('configure routing') + 1);
+    const anchor = rangeToAnchor(
+      rangeAt(container, start, start + 'configure routing'.length),
+      container
+    )!;
+    expect(anchor.context_suffix.startsWith(' for contacts.')).toBe(true);
+
+    // Content shifts (new sentence up front) → offsets stale, quote ambiguous;
+    // context must pick the contacts occurrence.
+    container.innerHTML =
+      '<p>Kickoff happens first.</p>' +
+      '<p>First we configure routing for leads.</p><p>Then we configure routing for contacts.</p>';
+    const range = anchorToRange(anchor, container)!;
+    expect(range).not.toBeNull();
+    expect(range.toString()).toBe('configure routing');
+    const newText = container.textContent!;
+    const remapped = rangeToAnchor(range, container)!;
+    // The chosen occurrence is the one followed by " for contacts."
+    expect(
+      newText.slice(remapped.end_offset, remapped.end_offset + ' for contacts.'.length)
+    ).toBe(' for contacts.');
+  });
+
+  it('exact stored offsets win over an earlier identical occurrence', () => {
+    const container = mountSection('<p>alpha beta alpha beta</p>');
+    const anchor: SelectionAnchor = {
+      quoted_text: 'alpha beta',
+      context_prefix: '',
+      context_suffix: '',
+      start_offset: 11,
+      end_offset: 21,
+    };
+    const range = anchorToRange(anchor, container)!;
+    const remapped = rangeToAnchor(range, container)!;
+    expect(remapped.start_offset).toBe(11); // not adjusted to 0
+  });
+
+  it('tolerates null context/offsets on legacy rows (unique quote still resolves)', () => {
+    const container = mountSection('<p>Hello <strong>world</strong> again</p>');
+    const range = anchorToRange(
+      { quoted_text: 'world', context_prefix: null, context_suffix: null, start_offset: null, end_offset: null },
+      container
+    )!;
+    expect(range).not.toBeNull();
+    expect(range.toString()).toBe('world');
   });
 });

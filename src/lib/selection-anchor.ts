@@ -1,10 +1,11 @@
 import {
   ANCHOR_CONTEXT_LENGTH,
   MAX_QUOTED_TEXT_LENGTH,
+  resolveAnchorInText,
 } from './comment-anchors';
 
 /**
- * Client-side Range → anchor mapping (#349, P4 of anchored comments).
+ * Client-side Range ↔ anchor mapping (#349 P4 / #350 P5 of anchored comments).
  *
  * Pure DOM, no React. Maps a user's text selection (a DOM `Range`) inside a
  * rendered SOW section container (the `[data-section-key]` element emitted by
@@ -104,4 +105,82 @@ export function rangeToAnchor(
     start_offset: start,
     end_offset: end,
   };
+}
+
+/**
+ * Stored anchor fields as they come back from the API — context/offsets may
+ * be null on rows predating the anchor columns; treated as "no hint".
+ */
+export interface StoredAnchor {
+  quoted_text: string;
+  context_prefix?: string | null;
+  context_suffix?: string | null;
+  start_offset?: number | null;
+  end_offset?: number | null;
+}
+
+/**
+ * Map a textContent offset to a DOM boundary point (text node + offset)
+ * inside `container`.
+ *
+ * When the offset falls exactly between two text nodes the two edges differ:
+ * a 'start' boundary belongs at the HEAD of the node that contains the first
+ * selected character (offset < consumed + len), an 'end' boundary at the TAIL
+ * of the node that contains the last one (offset <= consumed + len). This
+ * keeps round-tripped ranges hugging the quoted text rather than spilling
+ * onto empty neighbours.
+ */
+function textOffsetToBoundary(
+  container: HTMLElement,
+  offset: number,
+  edge: 'start' | 'end'
+): { node: Text; offset: number } | null {
+  const doc = container.ownerDocument ?? document;
+  const walker = doc.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  let consumed = 0;
+  let node: Text | null;
+  while ((node = walker.nextNode() as Text | null)) {
+    const len = node.data.length;
+    const within = edge === 'start' ? offset < consumed + len : offset <= consumed + len;
+    if (within && offset >= consumed) {
+      return { node, offset: offset - consumed };
+    }
+    consumed += len;
+  }
+  return null;
+}
+
+/**
+ * The inverse of `rangeToAnchor` (#350): resolve a STORED anchor against a
+ * live section container to a DOM Range, sharing `validateAnchor`'s exact
+ * resolution semantics via `resolveAnchorInText` (exact offsets → unique
+ * quote → context disambiguation).
+ *
+ * Returns null when the quote no longer occurs in the container's anchor
+ * text — the comment is ORPHANED and must not be highlighted (never guess).
+ *
+ * Guarantee on a non-null result: `range.toString() === anchor.quoted_text`
+ * (Range#toString IS the textContent coordinate space — see module header).
+ */
+export function anchorToRange(
+  anchor: StoredAnchor,
+  container: HTMLElement
+): Range | null {
+  const text = container.textContent ?? '';
+  const resolved = resolveAnchorInText(text, {
+    quoted_text: anchor.quoted_text,
+    context_prefix: anchor.context_prefix ?? '',
+    context_suffix: anchor.context_suffix ?? '',
+    start_offset: anchor.start_offset ?? -1,
+  });
+  if (!resolved) return null;
+
+  const start = textOffsetToBoundary(container, resolved.start_offset, 'start');
+  const end = textOffsetToBoundary(container, resolved.end_offset, 'end');
+  if (!start || !end) return null; // defensive: offsets come from `text` itself
+
+  const range = (container.ownerDocument ?? document).createRange();
+  range.setStart(start.node, start.offset);
+  range.setEnd(end.node, end.offset);
+  return range;
 }
