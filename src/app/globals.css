@@ -1023,3 +1023,18 @@ body[style*="--print-sow-active: true"] .min-h-screen.bg-gray-50 {
 .dark #sow-content-to-export .border-indigo-300 { border-color: #a5b4fc; }
 .dark #sow-content-to-export .border-gray-400 { border-color: #9ca3af; }
 .dark #sow-content-to-export .border-gray-500 { border-color: #6b7280; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Anchored comment highlights (#350) — CSS Custom Highlight API.
+   Registered by useAnchoredHighlights: 'sow-comment' paints every OPEN
+   anchored thread; 'sow-comment-active' overlays the clicked/focused one.
+   Browsers without the API never register these names (feature-detected),
+   so these rules are simply inert there.
+   ────────────────────────────────────────────────────────────────────────── */
+::highlight(sow-comment) {
+  background-color: rgba(253, 224, 71, 0.4); /* soft yellow (yellow-300) */
+}
+
+::highlight(sow-comment-active) {
+  background-color: rgba(245, 158, 11, 0.55); /* stronger amber (amber-500) */
+}
