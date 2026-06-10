@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Card } from '@/components/ui/form';
 
 interface DashboardClientProps {
   stats: {
@@ -29,23 +30,27 @@ interface DashboardClientProps {
   }>;
 }
 
+// Brand-green text link, legible in both themes (pure #26D07C is too low-contrast
+// as text on white, so use the green scale: darker in light, lighter in dark).
+const LINK = 'text-sm font-medium text-green-700 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300';
+
 export default function DashboardClient({ stats, recentSOWs, pendingApprovals }: DashboardClientProps) {
 
-  // Helper functions for status display
+  // Status pill colors, dark-safe (explicit dark variants — not the globals shim).
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-dark-surface-alt dark:text-dark-text-muted dark:border-dark-border';
       case 'in_review':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-900';
       case 'approved':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/50 dark:text-green-300 dark:border-green-900';
       case 'rejected':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-900';
       case 'recalled':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
+        return 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-900';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-dark-surface-alt dark:text-dark-text-muted dark:border-dark-border';
     }
   };
 
@@ -66,16 +71,28 @@ export default function DashboardClient({ stats, recentSOWs, pendingApprovals }:
     }
   };
 
+  const formatDate = (value?: string) =>
+    value
+      ? new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : 'Unknown date';
+
+  const stat = [
+    { label: 'Total', value: stats.total, href: '/sow', numberCls: 'text-gray-900 dark:text-dark-text group-hover:text-green-700 dark:group-hover:text-green-400', rounded: 'rounded-l-lg' },
+    { label: 'Draft', value: stats.draft, href: '/sow?status=draft', numberCls: 'text-gray-900 dark:text-dark-text group-hover:text-gray-600 dark:group-hover:text-dark-text-muted', rounded: '' },
+    { label: 'In Review', value: stats.in_review, href: '/sow?status=in_review', numberCls: 'text-blue-600 dark:text-blue-400 group-hover:text-blue-700', rounded: '' },
+    { label: 'Approved', value: stats.approved, href: '/sow?status=approved', numberCls: 'text-green-600 dark:text-green-400 group-hover:text-green-700', rounded: '' },
+    { label: 'Rejected', value: stats.rejected, href: '/sow?status=rejected', numberCls: 'text-red-600 dark:text-red-400 group-hover:text-red-700', rounded: '' },
+    { label: 'Recalled', value: stats.recalled, href: '/sow?status=recalled', numberCls: 'text-purple-600 dark:text-purple-400 group-hover:text-purple-700', rounded: 'rounded-r-lg' },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
-      <div className="bg-white p-6" style={{border: '1px solid #8F8F8F', borderRadius: '8px'}}>
-        <div className="flex items-center justify-between">
+      <Card>
+        <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Welcome back!
-            </h1>
-            <p className="mt-2 text-gray-600">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-dark-text">Welcome back!</h1>
+            <p className="mt-2 text-gray-600 dark:text-dark-text-muted">
               Here&apos;s what&apos;s happening with your SOWs today.
             </p>
           </div>
@@ -89,161 +106,108 @@ export default function DashboardClient({ stats, recentSOWs, pendingApprovals }:
             Create New SOW
           </Link>
         </div>
-      </div>
+      </Card>
 
-        <div className="space-y-6">
-          {/* Stats Strip */}
-          <div className="bg-white shadow rounded-lg">
-            <div className="flex divide-x divide-gray-200">
-              <Link href="/sow" className="flex-1 flex flex-col items-center py-3 hover:bg-gray-50 transition-colors group rounded-l-lg">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total</span>
-                <span className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{stats.total}</span>
-              </Link>
-              <Link href="/sow?status=draft" className="flex-1 flex flex-col items-center py-3 hover:bg-gray-50 transition-colors group">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Draft</span>
-                <span className="text-xl font-bold text-gray-900 group-hover:text-gray-600 transition-colors">{stats.draft}</span>
-              </Link>
-              <Link href="/sow?status=in_review" className="flex-1 flex flex-col items-center py-3 hover:bg-gray-50 transition-colors group">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">In Review</span>
-                <span className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{stats.in_review}</span>
-              </Link>
-              <Link href="/sow?status=approved" className="flex-1 flex flex-col items-center py-3 hover:bg-gray-50 transition-colors group">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Approved</span>
-                <span className="text-xl font-bold text-green-600 group-hover:text-green-700 transition-colors">{stats.approved}</span>
-              </Link>
-              <Link href="/sow?status=rejected" className="flex-1 flex flex-col items-center py-3 hover:bg-gray-50 transition-colors group">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Rejected</span>
-                <span className="text-xl font-bold text-red-600 group-hover:text-red-700 transition-colors">{stats.rejected}</span>
-              </Link>
-              <Link href="/sow?status=recalled" className="flex-1 flex flex-col items-center py-3 hover:bg-gray-50 transition-colors group rounded-r-lg">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Recalled</span>
-                <span className="text-xl font-bold text-purple-600 group-hover:text-purple-700 transition-colors">{stats.recalled}</span>
-              </Link>
+      {/* Stats Strip */}
+      <Card padding="none" className="overflow-hidden">
+        <div className="flex divide-x divide-gray-200 dark:divide-dark-border">
+          {stat.map((s) => (
+            <Link
+              key={s.label}
+              href={s.href}
+              className={`group flex flex-1 flex-col items-center py-3 transition-colors hover:bg-gray-50 dark:hover:bg-dark-surface-alt ${s.rounded}`}
+            >
+              <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-dark-text-muted">{s.label}</span>
+              <span className={`text-xl font-bold transition-colors ${s.numberCls}`}>{s.value}</span>
+            </Link>
+          ))}
+        </div>
+      </Card>
+
+      {/* Pending Approvals */}
+      {pendingApprovals.length > 0 && (
+        <Card padding="none">
+          <div className="border-b border-gray-200 px-6 py-4 dark:border-dark-border">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-text">Pending Approvals</h3>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              {pendingApprovals.slice(0, 3).map((sow) => (
+                <Card key={sow.id} tone="warning" padding="sm">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="mb-1 text-lg font-semibold text-gray-900 dark:text-dark-text">
+                        {sow.client_name || 'No client'}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-dark-text-muted">Created: {formatDate(sow.created_at)}</p>
+                    </div>
+                    <div className="ml-4 flex items-center space-x-3">
+                      <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${getStatusColor(sow.status)}`}>
+                        {getStatusLabel(sow.status)}
+                      </span>
+                      <Link href={`/sow/${sow.id}`} className={LINK}>Review</Link>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+            <div className="mt-4">
+              <Link href="/sow" className={LINK}>View all SOWs →</Link>
             </div>
           </div>
+        </Card>
+      )}
 
-          {/* Pending Approvals */}
-          {pendingApprovals.length > 0 && (
-            <div className="bg-white shadow rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Pending Approvals</h3>
-              </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  {pendingApprovals.slice(0, 3).map((sow) => (
-                    <div key={sow.id} className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900 text-lg mb-1">
-                            {sow.client_name || 'No client'}
-                          </h4>
-                          <p className="text-sm text-gray-600 mb-2">
-                            Created: {new Date(sow.created_at).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric'
-                            })}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-3 ml-4">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(sow.status)}`}>
-                            {getStatusLabel(sow.status)}
-                          </span>
-                          <Link
-                            href={`/sow/${sow.id}`}
-                            className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
-                          >
-                            Review
-                          </Link>
-                        </div>
+      {/* My Recent SOWs */}
+      <Card padding="none">
+        <div className="border-b border-gray-200 px-6 py-4 dark:border-dark-border">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-text">My Recent SOWs</h3>
+        </div>
+        <div className="p-6">
+          {recentSOWs.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {recentSOWs.slice(0, 3).map((sow) => {
+                const productNames = sow.products?.map((p) => p.product?.name).filter(Boolean) || [];
+                return (
+                  <Card key={sow.id} tone="muted" padding="sm">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="mb-1 text-lg font-semibold text-gray-900 dark:text-dark-text">
+                          {sow.client_name || 'No client'}
+                        </h4>
+                        <p className="mb-2 text-sm text-gray-600 dark:text-dark-text-muted">Created: {formatDate(sow.created_at)}</p>
+                        {productNames.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {productNames.map((productName, index) => (
+                              <span
+                                key={index}
+                                className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-950/50 dark:text-blue-300"
+                              >
+                                {productName}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="ml-4 flex items-center space-x-3">
+                        <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${getStatusColor(sow.status)}`}>
+                          {getStatusLabel(sow.status)}
+                        </span>
+                        <Link href={`/sow/${sow.id}`} className={LINK}>View</Link>
                       </div>
                     </div>
-                  ))}
-                </div>
-                <div className="mt-4">
-                  <Link
-                    href="/sow"
-                    className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
-                  >
-                    View all SOWs →
-                  </Link>
-                </div>
-              </div>
+                  </Card>
+                );
+              })}
             </div>
+          ) : (
+            <p className="py-4 text-center text-gray-500 dark:text-dark-text-muted">No SOWs found</p>
           )}
-
-          {/* My Recent SOWs */}
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">My Recent SOWs</h3>
-            </div>
-            <div className="p-6">
-              {recentSOWs.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {recentSOWs.slice(0, 3).map((sow) => {
-                    // Format the created date
-                    const createdDate = sow.created_at ? new Date(sow.created_at).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric'
-                    }) : 'Unknown date';
-                    
-                    // Extract product names
-                    const productNames = sow.products?.map((p: { product: { name: string } }) => p.product?.name).filter(Boolean) || [];
-                    
-                    return (
-                      <div key={sow.id} className="p-4 bg-gray-50 rounded-lg">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900 text-lg mb-1">
-                              {sow.client_name || 'No client'}
-                            </h4>
-                            <p className="text-sm text-gray-600 mb-2">
-                              Created: {createdDate}
-                            </p>
-                            {productNames.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
-                                {productNames.map((productName: string, index: number) => (
-                                  <span 
-                                    key={index}
-                                    className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full"
-                                  >
-                                    {productName}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center space-x-3 ml-4">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(sow.status)}`}>
-                              {getStatusLabel(sow.status)}
-                            </span>
-                            <Link
-                              href={`/sow/${sow.id}`}
-                              className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
-                            >
-                              View
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-4">No SOWs found</p>
-              )}
-              <div className="mt-4">
-                <Link
-                  href="/sow"
-                  className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
-                >
-                  View all SOWs →
-                </Link>
-              </div>
-            </div>
+          <div className="mt-4">
+            <Link href="/sow" className={LINK}>View all SOWs →</Link>
           </div>
         </div>
+      </Card>
     </div>
   );
 }
