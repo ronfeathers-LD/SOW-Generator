@@ -1448,6 +1448,10 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
         const nextBtnLabel = objNav?.onNext ? `Next: ${objNav.nextLabel ?? ''}` : nextLabel;
         const nextBtnDisabled = objNav?.onNext ? !!objNav.nextDisabled : !nextKey;
         const nextBtnLoading = objNav?.nextLoading ?? false;
+        // On the terminal step (Review & Submit) there's nowhere to go next —
+        // the action is the in-card "Submit for Review" — so hide the footer
+        // Next rather than show a dead, permanently-disabled button.
+        const showNextButton = !!nextKey || !!objNav?.onNext;
         const saveIcon = (
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
@@ -1489,7 +1493,7 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
               <Button variant="secondary" onClick={handleSaveAll} loading={isSaving} leftIcon={saveIcon}>
                 {pricingOnly ? 'Save Pricing' : 'Save all changes'}
               </Button>
-              {!pricingOnly && (
+              {!pricingOnly && showNextButton && (
                 <Button variant="primary" onClick={onNextClick} disabled={nextBtnDisabled} loading={nextBtnLoading}>
                   {nextBtnLabel}
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
