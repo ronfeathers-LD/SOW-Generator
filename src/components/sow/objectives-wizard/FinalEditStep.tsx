@@ -1,8 +1,8 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
 import TipTapEditor from '../../TipTapEditor';
-import { WizardStepData } from '../ObjectivesWizard';
+import { WizardStepData, ObjectivesStepNav } from '../ObjectivesWizard';
 
 interface FinalEditStepProps {
   wizardData: WizardStepData;
@@ -21,13 +21,21 @@ interface FinalEditStepProps {
   onNext: () => void;
   onPrev: () => void;
   onGoToStep: (step: number) => void;
+  setNav: (nav: ObjectivesStepNav | null) => void;
 }
 
 const FinalEditStep: React.FC<FinalEditStepProps> = ({
   wizardData,
   updateWizardData,
   onPrev,
+  setNav,
 }) => {
+
+  // Last sub-step: no in-tool "next", so the footer's button continues to the
+  // next wizard section (Content). Back returns to AI Generation.
+  useEffect(() => {
+    setNav({ onPrev });
+  }, [setNav, onPrev]);
 
   const handleObjectiveOverviewChange = useCallback((content: string) => {
     const updatedObjectives = {
@@ -143,17 +151,9 @@ const FinalEditStep: React.FC<FinalEditStepProps> = ({
         </div>
       </div>
 
-      {/* Navigation */}
-      <div className="flex justify-between pt-4 border-t border-gray-200">
-        <button
-          onClick={onPrev}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-        >
-          Previous: AI Generation
-        </button>
-        <div className="text-sm text-gray-500 self-center">
-          Use the floating &quot;Save Objectives&quot; button to save your changes
-        </div>
+      {/* Status (navigation lives in the wizard footer) */}
+      <div className="border-t border-gray-200 pt-4 text-sm text-gray-500 dark:border-dark-border dark:text-dark-text-muted">
+        Edits here are saved with the wizard&apos;s Save button.
       </div>
     </div>
   );

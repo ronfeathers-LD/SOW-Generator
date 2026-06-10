@@ -1,8 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { sanitizeHtml } from '@/lib/sanitize-html';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
-import { WizardStepData } from '../ObjectivesWizard';
+import { WizardStepData, ObjectivesStepNav } from '../ObjectivesWizard';
 import AIGenerationModal from './AIGenerationModal';
 
 interface AIGenerationStepProps {
@@ -22,6 +22,7 @@ interface AIGenerationStepProps {
   onNext: () => void;
   onPrev: () => void;
   onGoToStep: (step: number) => void;
+  setNav: (nav: ObjectivesStepNav | null) => void;
 }
 
 const AIGenerationStep: React.FC<AIGenerationStepProps> = ({
@@ -31,8 +32,17 @@ const AIGenerationStep: React.FC<AIGenerationStepProps> = ({
   selectedAccount,
   onNext,
   onPrev,
+  setNav,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Publish nav to the wizard footer (single Next button drives the sub-steps).
+  // The "Generate" action stays in-card; the footer Next advances to Final Edit
+  // once objectives exist.
+  const hasObjectives = !!wizardData.generatedObjectives.overview;
+  useEffect(() => {
+    setNav({ onNext, onPrev, nextLabel: 'Final Edit', nextDisabled: !hasObjectives });
+  }, [setNav, onNext, onPrev, hasObjectives]);
   
 
   const handleGenerationSuccess = useCallback((generatedObjectives: {
@@ -151,29 +161,12 @@ const AIGenerationStep: React.FC<AIGenerationStepProps> = ({
         </div>
       )}
 
-      {/* Navigation */}
-      <div className="flex justify-between pt-4 border-t border-gray-200">
-        <button
-          onClick={onPrev}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-        >
-          Previous: Content Preview
-        </button>
-        <div className="flex space-x-3">
-          {wizardData.generatedObjectives.overview && (
-            <div className="text-sm text-green-600 self-center">
-              ✓ Objectives generated successfully
-            </div>
-          )}
-          <button
-            onClick={onNext}
-            disabled={!wizardData.generatedObjectives.overview}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-          >
-            Next: Final Edit
-          </button>
+      {/* Status (navigation lives in the wizard footer) */}
+      {wizardData.generatedObjectives.overview && (
+        <div className="border-t border-gray-200 pt-4 text-sm text-green-600 dark:border-dark-border dark:text-green-400">
+          ✓ Objectives generated successfully
         </div>
-      </div>
+      )}
 
       {/* AI Generation Modal */}
       <AIGenerationModal

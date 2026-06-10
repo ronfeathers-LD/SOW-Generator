@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
-import { WizardStepData } from '../ObjectivesWizard';
+import { WizardStepData, ObjectivesStepNav } from '../ObjectivesWizard';
 import LoadingModal from '../../ui/LoadingModal';
 
 interface AvomaSelectionStepProps {
@@ -21,6 +21,7 @@ interface AvomaSelectionStepProps {
   onNext: () => void;
   onPrev: () => void;
   onGoToStep: (step: number) => void;
+  setNav: (nav: ObjectivesStepNav | null) => void;
 }
 
 interface AvomaSearchResult {
@@ -60,6 +61,7 @@ const AvomaSelectionStep: React.FC<AvomaSelectionStepProps> = ({
   selectedOpportunity,
   onNext,
   onPrev,
+  setNav,
 }) => {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -228,6 +230,16 @@ const AvomaSelectionStep: React.FC<AvomaSelectionStepProps> = ({
     // Meetings are already persisted in handleMeetingSelection, just proceed to next step
     onNext();
   }, [onNext]);
+
+  // Publish nav to the wizard footer (single Next button drives the sub-steps).
+  useEffect(() => {
+    setNav({
+      onNext: handleNext,
+      onPrev,
+      nextLabel: 'Content Preview',
+      nextDisabled: selectedMeetingIds.size === 0,
+    });
+  }, [setNav, handleNext, onPrev, selectedMeetingIds]);
 
   return (
     <div className="space-y-6">
@@ -450,26 +462,9 @@ const AvomaSelectionStep: React.FC<AvomaSelectionStepProps> = ({
         </div>
       )}
 
-      {/* Navigation */}
-      <div className="flex justify-between pt-4 border-t border-gray-200">
-        <button
-          onClick={onPrev}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-        >
-          Previous: Documents
-        </button>
-        <div className="flex space-x-3">
-          <div className="text-sm text-gray-500 self-center">
-            {selectedMeetingIds.size} meeting(s) selected
-          </div>
-          <button
-            onClick={handleNext}
-            disabled={selectedMeetingIds.size === 0}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-          >
-            Next: Content Preview
-          </button>
-        </div>
+      {/* Status (navigation lives in the wizard footer) */}
+      <div className="border-t border-gray-200 pt-4 text-sm text-gray-500 dark:border-dark-border dark:text-dark-text-muted">
+        {selectedMeetingIds.size} meeting(s) selected
       </div>
 
       {/* Loading Modal for Avoma Search */}
