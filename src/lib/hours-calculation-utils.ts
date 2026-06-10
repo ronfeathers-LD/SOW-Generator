@@ -144,14 +144,6 @@ export function calculateBaseProjectHours(template: Partial<SOWTemplate>, accoun
 }
 
 /**
- * Calculate PM hours (45% of total project hours, minimum 10)
- */
-export function calculatePMHours(template: Partial<SOWTemplate>, accountSegment?: string): number {
-  const baseProjectHours = calculateBaseProjectHours(template, accountSegment);
-  return Math.max(10, Math.ceil(baseProjectHours * 0.45));
-}
-
-/**
  * Calculate all hours components for a given template
  * Returns a comprehensive result object
  */
@@ -207,12 +199,14 @@ export function calculateRoleHoursDistribution(
       totalProjectHours: baseProjectHours
     };
   } else {
-    // PM added: Onboarding Specialist loses half of PM hours, PM gets full PM hours
-    const onboardingHours = baseProjectHours - (pmHours / 2);
+    // PM added: Onboarding Specialist loses half of PM hours, PM gets full PM
+    // hours. Floor onboarding at 0 so a small base can't yield negative hours,
+    // and derive the total from the parts so it always reconciles.
+    const onboardingHours = Math.max(0, baseProjectHours - (pmHours / 2));
     return {
       onboardingSpecialistHours: onboardingHours,
       projectManagerHours: pmHours,
-      totalProjectHours: baseProjectHours + (pmHours / 2)
+      totalProjectHours: onboardingHours + pmHours
     };
   }
 }
