@@ -95,6 +95,17 @@ export default function TeamRolesTab({
     };
   }, [responsibilitiesSaveTimeout]);
 
+  // Allow dismissing the contact-selection modal with the Escape key (it also
+  // auto-opens when no signer is set, so it must be easy to back out of).
+  useEffect(() => {
+    if (!showContactSelectionModal.isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowContactSelectionModal({ isOpen: false, type: 'signer' });
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [showContactSelectionModal.isOpen]);
+
   const loadContacts = async (accountId: string) => {
     setIsLoadingContacts(true);
     try {
@@ -630,8 +641,14 @@ export default function TeamRolesTab({
 
                 {/* Unified Contact Selection Modal */}
                 {showContactSelectionModal.isOpen && selectedAccount && (
-                  <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                    <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+                  <div
+                    className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+                    onClick={() => setShowContactSelectionModal({ isOpen: false, type: 'signer' })}
+                  >
+                    <div
+                      className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div className="mt-3">
                         {/* Modal Header */}
                         <div className="flex items-center justify-between mb-4">

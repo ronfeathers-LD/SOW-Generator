@@ -461,7 +461,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
 
         {(!formData.template?.products || formData.template.products.length === 0) && (
           <p className="text-sm text-blue-600 text-center mt-2">
-            💡 Tip: Go to the Project Overview tab to select products and set units (users/endpoints)
+            💡 Tip: Go to the Project Overview step to select products and set units (users/endpoints)
           </p>
         )}
       </div>
