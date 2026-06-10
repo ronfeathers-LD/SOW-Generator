@@ -50,25 +50,38 @@ async function getDashboardStats(session: Session) {
         stats: { total: 0, draft: 0, in_review: 0, approved: 0, rejected: 0, recalled: 0 },
         recentSOWs: [],
         pendingApprovals: [],
+        draftSOWs: [],
       };
     }
 
-    // Round 2: Recent SOWs filtered to current user (requires user ID from round 1)
-    const recentSOWsResult = await supabase
-      .from('sows')
-      .select(`
-        id,
-        client_name,
-        sow_title,
-        status,
-        created_at,
-        author:users!sows_author_id_fkey(name),
-        products:sow_products(product:products(name))
-      `)
-      .eq('is_hidden', false)
-      .eq('author_id', userResult.data.id)
-      .order('created_at', { ascending: false })
-      .limit(10);
+    // Round 2: current-user lists (require user ID from round 1) — run in parallel.
+    const [recentSOWsResult, draftSOWsResult] = await Promise.all([
+      supabase
+        .from('sows')
+        .select(`
+          id,
+          client_name,
+          sow_title,
+          status,
+          created_at,
+          author:users!sows_author_id_fkey(name),
+          products:sow_products(product:products(name))
+        `)
+        .eq('is_hidden', false)
+        .eq('author_id', userResult.data.id)
+        .order('created_at', { ascending: false })
+        .limit(10),
+
+      // The user's own drafts to resume (may be older than the recent-10 window).
+      supabase
+        .from('sows')
+        .select('id, client_name, sow_title, created_at')
+        .eq('is_hidden', false)
+        .eq('author_id', userResult.data.id)
+        .eq('status', 'draft')
+        .order('created_at', { ascending: false })
+        .limit(4),
+    ]);
 
     const stats = {
       total: totalCount.count || 0,
@@ -104,6 +117,7 @@ async function getDashboardStats(session: Session) {
       stats,
       recentSOWs,
       pendingApprovals: pendingApprovalsResult.data || [],
+      draftSOWs: draftSOWsResult.data || [],
     };
   } catch (error) {
     console.error('Error in getDashboardStats:', error);
@@ -111,6 +125,7 @@ async function getDashboardStats(session: Session) {
       stats: { total: 0, draft: 0, in_review: 0, approved: 0, rejected: 0, recalled: 0 },
       recentSOWs: [],
       pendingApprovals: [],
+      draftSOWs: [],
     };
   }
 }
@@ -130,6 +145,7 @@ export default async function DashboardPage() {
         stats={dashboardData.stats}
         recentSOWs={dashboardData.recentSOWs}
         pendingApprovals={dashboardData.pendingApprovals}
+        draftSOWs={dashboardData.draftSOWs}
       />
     </div>
   );
