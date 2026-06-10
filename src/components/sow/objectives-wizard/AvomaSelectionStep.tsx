@@ -232,14 +232,17 @@ const AvomaSelectionStep: React.FC<AvomaSelectionStepProps> = ({
   }, [onNext]);
 
   // Publish nav to the wizard footer (single Next button drives the sub-steps).
+  // Avoma selection is OPTIONAL: the generation step only needs at least one
+  // source across documents OR meetings, and documents are picked in the prior
+  // step — so never block Next here (a SOW may have no Avoma calls at all).
   useEffect(() => {
     setNav({
       onNext: handleNext,
       onPrev,
       nextLabel: 'Content Preview',
-      nextDisabled: selectedMeetingIds.size === 0,
+      nextDisabled: false,
     });
-  }, [setNav, handleNext, onPrev, selectedMeetingIds]);
+  }, [setNav, handleNext, onPrev]);
 
   return (
     <div className="space-y-6">
@@ -464,7 +467,9 @@ const AvomaSelectionStep: React.FC<AvomaSelectionStepProps> = ({
 
       {/* Status (navigation lives in the wizard footer) */}
       <div className="border-t border-gray-200 pt-4 text-sm text-gray-500 dark:border-dark-border dark:text-dark-text-muted">
-        {selectedMeetingIds.size} meeting(s) selected
+        {selectedMeetingIds.size === 0
+          ? 'No meetings selected — Avoma calls are optional, you can continue without them.'
+          : `${selectedMeetingIds.size} meeting(s) selected`}
       </div>
 
       {/* Loading Modal for Avoma Search */}
