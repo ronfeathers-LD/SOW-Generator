@@ -1,4 +1,4 @@
-import { sanitizeHtml } from '@/lib/sanitize-html';
+import SOWSectionContent from '@/components/sow/SOWSectionContent';
 
 interface SOWProjectPhasesPageProps {
   customContent?: string;
@@ -50,18 +50,20 @@ export default function SOWProjectPhasesPage({ customContent, isEdited }: SOWPro
           </div>
           
           {/* Project Phases Content */}
-          <div 
+          <SOWSectionContent
+            sectionKey="project_phases"
             id="sow-content-project-phases"
             className="text-base leading-relaxed sow-content"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(cleanedContent) }}
+            html={cleanedContent}
           />
         </div>
       ) : (
         /* Project Phases Content */
-        <div 
+        <SOWSectionContent
+          sectionKey="project_phases"
           id="sow-content-project-phases"
           className="text-base leading-relaxed sow-content"
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(cleanedContent) }}
+          html={cleanedContent}
         />
       )}
     </div>

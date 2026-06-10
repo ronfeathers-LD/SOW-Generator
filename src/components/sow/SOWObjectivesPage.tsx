@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { sanitizeHtml } from '@/lib/sanitize-html';
+import SOWSectionContent from '@/components/sow/SOWSectionContent';
 import { getContentTemplate } from '@/lib/sow-content';
 import { processContent } from '@/lib/text-to-html';
 import { Product } from '@/lib/constants/products';
@@ -109,9 +109,10 @@ export default function SOWObjectivesPage({
       {projectDescription && projectDescription.trim() && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-4">Objective:</h3>
-          <div 
+          <SOWSectionContent
+            sectionKey="objective_overview"
             className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(projectDescription) }}
+            html={projectDescription}
           />
         </div>
       )}
@@ -121,9 +122,10 @@ export default function SOWObjectivesPage({
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-4">Key Objectives:</h3>
           {customKeyObjectivesContent ? (
-            <div 
+            <SOWSectionContent
+              sectionKey="key_objectives"
               className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(processContent(customKeyObjectivesContent)) }}
+              html={processContent(customKeyObjectivesContent)}
             />
           ) : (
             <ul className="text-gray-700 leading-relaxed list-disc pl-6 space-y-2">
@@ -257,9 +259,10 @@ export default function SOWObjectivesPage({
               <div className="h-32 bg-gray-200 rounded"></div>
             </div>
           ) : (
-            <div 
+            <SOWSectionContent
+              sectionKey="objectives_disclosure"
               className="text-base leading-relaxed sow-content"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(objectivesDisclosureContent) }}
+              html={objectivesDisclosureContent}
             />
           )}
         </div>
@@ -271,9 +274,10 @@ export default function SOWObjectivesPage({
               <div className="h-32 bg-gray-200 rounded"></div>
             </div>
           ) : (
-            <div 
+            <SOWSectionContent
+              sectionKey="objectives_disclosure"
               className="text-base leading-relaxed sow-content"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(objectivesDisclosureContent) }}
+              html={objectivesDisclosureContent}
             />
           )}
         </>
