@@ -8,6 +8,8 @@
     "build:verify": "NEXT_DIST_DIR=.next-verify PUPPETEER_SKIP_DOWNLOAD=true next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "vitest run",
+    "backfill:canonicalize": "tsx tools/backfill-canonicalize-content.ts",
     "postinstall": "node -e \"process.exit(process.env.PUPPETEER_SKIP_DOWNLOAD === 'true' ? 0 : 1)\" || puppeteer browsers install chrome || puppeteer browsers install chromium || echo 'Warning: Failed to install browsers. PDF generation may not work.'",
     "install-chrome": "puppeteer browsers install chrome",
     "install-chromium": "puppeteer browsers install chromium",
@@ -64,6 +66,8 @@
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
     "puppeteer": "^24.17.0",
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.22.4",
+    "vitest": "^4.1.8"
   }
 }

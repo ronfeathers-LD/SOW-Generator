@@ -10,6 +10,7 @@
  * The client-side payload shape these consume is built by `tab-payloads.ts`.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { canonicalizeContentColumns } from '@/lib/sow-content';
 
 /** Thrown for an unknown tab key so callers can map it to a 400. */
 export class InvalidTabError extends Error {
@@ -261,7 +262,11 @@ export function buildTabColumnUpdate(
       throw new InvalidTabError(tab);
   }
 
-  return updateData;
+  // Canonicalize section HTML at write time (#346): every `custom_*_content`
+  // column in the registry is stored in its sanitized canonical form so the
+  // rendered textContent is byte-stable for text-anchored comments. Only the
+  // registered content columns are touched; null/undefined pass through.
+  return canonicalizeContentColumns(updateData);
 }
 
 /**

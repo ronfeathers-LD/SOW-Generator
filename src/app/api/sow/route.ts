@@ -5,6 +5,7 @@ import { supabaseApi } from '@/lib/supabase-api';
 import { getSlackService } from '@/lib/slack';
 import { getSOWUrl } from '@/lib/utils/app-url';
 import { authOptions } from '@/lib/auth';
+import { canonicalizeContent } from '@/lib/sow-content';
 
 export async function POST(request: Request) {
   try {
@@ -124,15 +125,16 @@ export async function POST(request: Request) {
         // Template data
         template: data.template || {},
         
-        // Copy default content templates into the SOW
-        custom_intro_content: data.custom_intro_content || defaultIntroContent,
-        custom_scope_content: data.custom_scope_content || defaultScopeContent,
-        custom_objectives_disclosure_content: data.custom_objectives_disclosure_content || defaultObjectivesDisclosureContent,
-        custom_assumptions_content: data.custom_assumptions_content || defaultAssumptionsContent,
-        custom_project_phases_content: data.custom_project_phases_content || defaultProjectPhasesContent,
-        custom_deliverables_content: data.custom_deliverables_content || '',
-        custom_objective_overview_content: data.custom_objective_overview_content || '',
-        custom_key_objectives_content: data.custom_key_objectives_content || '',
+        // Copy default content templates into the SOW, stored in canonical
+        // (sanitized, byte-stable) form — see canonicalizeContent (#346).
+        custom_intro_content: canonicalizeContent(data.custom_intro_content || defaultIntroContent),
+        custom_scope_content: canonicalizeContent(data.custom_scope_content || defaultScopeContent),
+        custom_objectives_disclosure_content: canonicalizeContent(data.custom_objectives_disclosure_content || defaultObjectivesDisclosureContent),
+        custom_assumptions_content: canonicalizeContent(data.custom_assumptions_content || defaultAssumptionsContent),
+        custom_project_phases_content: canonicalizeContent(data.custom_project_phases_content || defaultProjectPhasesContent),
+        custom_deliverables_content: canonicalizeContent(data.custom_deliverables_content || ''),
+        custom_objective_overview_content: canonicalizeContent(data.custom_objective_overview_content || ''),
+        custom_key_objectives_content: canonicalizeContent(data.custom_key_objectives_content || ''),
         intro_content_edited: data.intro_content_edited || false,
         scope_content_edited: data.scope_content_edited || false,
         objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false,
