@@ -1236,15 +1236,15 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
                 const roll = phaseRollup(phase.sections);
                 const isActive = i === activePhaseIndex;
                 const done = roll === 'complete';
+                // Top dots show PROGRESS only — current (green ring), complete
+                // (green + check), or to-do (neutral outline). Per-section
+                // attention is surfaced on the sub-nav pills + Review step, so
+                // it's kept off the top bar to avoid a muddy multi-colour row.
                 const badge = isActive
                   ? 'bg-[#26D07C] text-[#2a2a2a] ring-2 ring-[#26D07C] ring-offset-2 dark:ring-offset-dark-bg'
                   : done
                     ? 'bg-[#26D07C] text-[#2a2a2a]'
-                    : roll === 'attention'
-                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
-                      : roll === 'partial'
-                        ? 'bg-gray-200 text-gray-700 dark:bg-dark-surface dark:text-dark-text'
-                        : 'bg-gray-100 text-gray-400 dark:bg-dark-surface dark:text-dark-text-subtle';
+                    : 'border-2 border-gray-300 text-gray-400 dark:border-dark-border dark:text-dark-text-muted';
                 return (
                   <React.Fragment key={phase.key}>
                     <li>
@@ -1262,7 +1262,7 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
                             i + 1
                           )}
                         </span>
-                        <span className={`hidden whitespace-nowrap text-sm font-medium sm:block ${isActive ? 'text-gray-900 dark:text-dark-text' : 'text-gray-500 group-hover:text-gray-700 dark:text-dark-text-subtle'}`}>
+                        <span className={`hidden whitespace-nowrap text-sm font-medium lg:block ${isActive ? 'text-gray-900 dark:text-dark-text' : 'text-gray-500 group-hover:text-gray-700 dark:text-dark-text-muted'}`}>
                           {phase.title}
                         </span>
                       </button>
