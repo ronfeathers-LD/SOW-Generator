@@ -21,7 +21,10 @@ import SOWRevisionHistory from '@/components/sow/SOWRevisionHistory';
 import ValidationSubmitButton from '@/components/sow/ValidationSubmitButton';
 import AnchoredCommentButton from '@/components/sow/AnchoredCommentButton';
 import AnchoredCommentComposer from '@/components/sow/AnchoredCommentComposer';
+import AnchoredCommentThread from '@/components/sow/AnchoredCommentThread';
+import type { ApprovalComment } from '@/components/sow/CommentThread';
 import { useTextSelection } from '@/lib/hooks/useTextSelection';
+import { useAnchoredHighlights } from '@/lib/hooks/useAnchoredHighlights';
 import type { SelectionAnchor } from '@/lib/selection-anchor';
 import type { SOWSectionKey } from '@/lib/sow-content';
 import { DisplaySOW, Product, SalesforceData } from '@/types/sow-display';
@@ -118,6 +121,34 @@ export default function SOWFullView({
     canAnchorComment && activeTab === 'content' && !composer
   );
 
+  // ── Anchored-comment highlights (#350): paint anchors over the rendered
+  // sections (CSS Custom Highlight API) and open threads on click. The hook
+  // also yields the resolved/orphaned map SOWComments uses for badges.
+  const {
+    anchorStatus,
+    refresh: refreshHighlights,
+    activeThread,
+    closeThread,
+  } = useAnchoredHighlights<ApprovalComment>({
+    sowId,
+    containerRef: contentRef,
+    enabled: canAnchorComment && activeTab === 'content',
+  });
+
+  // Resolve permission, mirrored from the PATCH route (server still
+  // enforces): comment author, SOW author, or admin/manager/pmo.
+  const canResolveActiveThread = useMemo(() => {
+    if (!activeThread || !session?.user) return false;
+    const userId = session.user.id;
+    return (
+      activeThread.comment.user?.id === userId ||
+      (!!sow.author_id && sow.author_id === userId) ||
+      isAdmin ||
+      isManager ||
+      session.user.role === 'pmo'
+    );
+  }, [activeThread, session?.user, sow.author_id, isAdmin, isManager]);
+
   const openComposer = useCallback(() => {
     if (!selection) return;
     setComposer({
@@ -126,7 +157,8 @@ export default function SOWFullView({
       rect: selection.rect,
     });
     clearSelection();
-  }, [selection, clearSelection]);
+    closeThread(); // one popover at a time
+  }, [selection, clearSelection, closeThread]);
 
   const isEditable = useMemo(() => {
     if (!sow) return false;
@@ -757,10 +789,23 @@ export default function SOWFullView({
                   rect={composer.rect}
                   onClose={() => setComposer(null)}
                   onPosted={() => {
-                    // No explicit refetch needed: SOWComments mounts fresh
-                    // (and reloads) every time the Comments tab is activated,
-                    // so the new comment appears on the next tab switch.
+                    // Repaint highlights with the new comment. (SOWComments
+                    // itself mounts fresh on every Comments-tab activation,
+                    // so the tab needs no explicit refetch.)
+                    refreshHighlights();
                   }}
+                />
+              )}
+              {/* Click-to-thread popover (#350): opened by clicking a
+                  highlighted range in the content above. */}
+              {activeThread && !composer && (
+                <AnchoredCommentThread
+                  sowId={sow.id}
+                  comment={activeThread.comment}
+                  rect={activeThread.rect}
+                  canResolve={canResolveActiveThread}
+                  onClose={closeThread}
+                  onThreadChanged={refreshHighlights}
                 />
               )}
             </div>
@@ -1034,7 +1079,7 @@ export default function SOWFullView({
           {activeTab === 'comments' && showComments && (
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Comments & Discussion</h2>
-              <SOWComments sowId={sow.id} />
+              <SOWComments sowId={sow.id} anchorStatus={anchorStatus} />
             </div>
           )}
 
