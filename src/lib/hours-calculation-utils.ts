@@ -71,60 +71,53 @@ export function calculateProductHours(products: string[]): number {
 }
 
 /**
- * Calculate user group hours (every 50 users/units adds 5 hours)
- * Note: BookIt products share the same user pool, so we use the maximum BookIt user count
+ * Safely parse a units string field, treating blank/non-numeric values as 0.
+ */
+function safeParseUnits(value: string | undefined): number {
+  if (!value) return 0;
+  const parsed = parseInt(value);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+/**
+ * Orchestration user count. `number_of_units` (legacy field name) and
+ * `orchestration_units` (current) name the SAME value, so prefer whichever is
+ * set — never sum them, or a SOW carrying both fields double-counts its users.
+ */
+function getOrchestrationUnits(template: Partial<SOWTemplate>): number {
+  return safeParseUnits(template?.number_of_units) || safeParseUnits(template?.orchestration_units);
+}
+
+/**
+ * Max BookIt user count. BookIt Forms/Links/Handoff share one user pool, so the
+ * effective count is the maximum across them (not the sum).
+ */
+function getMaxBookitUnits(template: Partial<SOWTemplate>): number {
+  return Math.max(
+    safeParseUnits(template?.bookit_forms_units),
+    safeParseUnits(template?.bookit_links_units),
+    safeParseUnits(template?.bookit_handoff_units),
+  );
+}
+
+/**
+ * Effective unit count = max(orchestration users, BookIt users); the two pools
+ * don't sum. Shared by the hours calc and the PM-threshold check so they agree.
+ */
+export function calculateTotalUnits(template: Partial<SOWTemplate>): number {
+  return Math.max(getOrchestrationUnits(template), getMaxBookitUnits(template));
+}
+
+/**
+ * Calculate user group hours (every 50 users/units adds 5 hours). Derives from
+ * the same calculateTotalUnits used elsewhere so the two never diverge.
  */
 export function calculateUserGroupHours(template: Partial<SOWTemplate>): number {
-  // Helper function to safely parse units, handling text values
-  const safeParseUnits = (value: string | undefined): number => {
-    if (!value) return 0;
-    const parsed = parseInt(value);
-    return isNaN(parsed) ? 0 : parsed;
-  };
-  
-  // BookIt products share the same user pool, so use the maximum count
-  const bookitFormsUnits = safeParseUnits(template?.bookit_forms_units);
-  const bookitLinksUnits = safeParseUnits(template?.bookit_links_units);
-  const bookitHandoffUnits = safeParseUnits(template?.bookit_handoff_units);
-  const maxBookitUnits = Math.max(bookitFormsUnits, bookitLinksUnits, bookitHandoffUnits);
-  
-  const orchestrationUnits = safeParseUnits(template?.number_of_units) + 
-                            safeParseUnits(template?.orchestration_units);
-  
-  // Take the maximum of orchestration and BookIt users (not the sum)
-  const totalUnits = Math.max(orchestrationUnits, maxBookitUnits);
-  
+  const totalUnits = calculateTotalUnits(template);
   if (totalUnits >= 50) {
     return Math.floor(totalUnits / 50) * 5;
   }
   return 0;
-}
-
-/**
- * Calculate total units from template
- * Note: BookIt products share the same user pool, so we use the maximum BookIt user count
- */
-export function calculateTotalUnits(template: Partial<SOWTemplate>): number {
-  // Helper function to safely parse units, handling text values
-  const safeParseUnits = (value: string | undefined): number => {
-    if (!value) return 0;
-    const parsed = parseInt(value);
-    return isNaN(parsed) ? 0 : parsed;
-  };
-  
-  const orchestrationUnits = safeParseUnits(template?.number_of_units) || 
-                            safeParseUnits(template?.orchestration_units);
-  
-  // BookIt products share the same user pool, so use the maximum count
-  const bookitFormsUnits = safeParseUnits(template?.bookit_forms_units);
-  const bookitLinksUnits = safeParseUnits(template?.bookit_links_units);
-  const bookitHandoffUnits = safeParseUnits(template?.bookit_handoff_units);
-  const maxBookitUnits = Math.max(bookitFormsUnits, bookitLinksUnits, bookitHandoffUnits);
-  
-  // Take the maximum of orchestration and BookIt users (not the sum)
-  const total = Math.max(orchestrationUnits, maxBookitUnits);
-  
-  return total;
 }
 
 /**
