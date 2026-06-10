@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
-import { Select, Textarea, Button, EmptyState } from '@/components/ui/form';
+import { Select, Textarea, Button, EmptyState, SectionHeader } from '@/components/ui/form';
 import { SalesforceAccount, SalesforceContact } from '@/lib/salesforce';
 import LoadingModal from '@/components/ui/LoadingModal';
 
@@ -525,16 +525,19 @@ export default function TeamRolesTab({
 
   return (
     <section className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Signers & Client Roles</h2>
-        <div className="text-sm text-gray-500 bg-blue-50 px-3 py-2 rounded-md">
-          <svg className="inline w-4 h-4 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-          </svg>
-          Changes are automatically saved
-        </div>
-      </div>
-      
+      <SectionHeader
+        title="Signers & Client Roles"
+        description="Choose the signers and define the client team's roles"
+        action={
+          <div className="text-sm text-gray-500 bg-blue-50 px-3 py-2 rounded-md">
+            <svg className="inline w-4 h-4 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            Changes are automatically saved
+          </div>
+        }
+      />
+
       {/* Signatories Section - 3 Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Column 1: Client Signer */}

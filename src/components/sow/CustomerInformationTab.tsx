@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
-import { Button } from '@/components/ui/form';
+import { Button, SectionHeader } from '@/components/ui/form';
 
 import SalesforceIntegration from '../SalesforceIntegration';
 
@@ -309,26 +309,29 @@ export default function CustomerInformationTab({
 
   return (
     <section className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Customer Information</h2>
-        {/* Partner Badge - Only show if there's partner data */}
-        {formData.salesforce_data?.opportunity_data?.is_partner_sourced && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
-            <div className="flex items-center">
-              <svg className="w-4 h-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <span className="text-blue-900 font-medium text-sm">
-                Partner-Sourced
-                {formData.salesforce_data?.opportunity_data?.isv_partner_account_name && 
-                  `: ${formData.salesforce_data.opportunity_data.isv_partner_account_name}`
-                }
-              </span>
+      <SectionHeader
+        title="Customer Information"
+        description="Select the account and opportunity for this SOW"
+        action={
+          /* Partner Badge - Only show if there's partner data */
+          formData.salesforce_data?.opportunity_data?.is_partner_sourced ? (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+              <div className="flex items-center">
+                <svg className="w-4 h-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span className="text-blue-900 font-medium text-sm">
+                  Partner-Sourced
+                  {formData.salesforce_data?.opportunity_data?.isv_partner_account_name &&
+                    `: ${formData.salesforce_data.opportunity_data.isv_partner_account_name}`
+                  }
+                </span>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
-      
+          ) : undefined
+        }
+      />
+
       {/* Enhanced Confirmation Checklist */}
       <div className="bg-white shadow rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-4">Required Information Checklist</h3>

@@ -433,8 +433,11 @@ export default function ProjectOverviewTab({
 
   return (
     <section className="space-y-6">
-      <h2 className="text-2xl font-bold">Project Overview</h2>
-      
+      <SectionHeader
+        title="Project Overview"
+        description="Set the SOW title and project configuration"
+      />
+
       {/* SOW Title */}
       <Card padding="md">
         <SectionHeader as="h3" title="SOW Title" className="mb-4" />
