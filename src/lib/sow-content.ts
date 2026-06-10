@@ -38,6 +38,30 @@ export const SOW_SECTION_CONTENT_COLUMN_NAMES = Object.values(
 ) as SOWSectionContentColumn[];
 
 /**
+ * Human-readable section names (#351) — shown wherever a section key surfaces
+ * in UI (e.g. the section chip on anchored comments in the Comments tab).
+ * Completeness against SOWSectionKey is enforced by the type AND a test.
+ */
+export const SOW_SECTION_LABELS: Record<SOWSectionKey, string> = {
+  intro: 'Introduction',
+  scope: 'Scope',
+  out_of_scope: 'Out of Scope',
+  objectives_disclosure: 'Objectives Disclosure',
+  assumptions: 'Assumptions',
+  project_phases: 'Project Phases',
+  roles: 'Roles & Responsibilities',
+  deliverables: 'Deliverables',
+  objective_overview: 'Objective Overview',
+  key_objectives: 'Key Objectives',
+};
+
+/** Label for a section key coming from untrusted/legacy data. */
+export function sectionLabel(key: string | null | undefined): string | null {
+  if (!key) return null;
+  return (SOW_SECTION_LABELS as Record<string, string>)[key] ?? key;
+}
+
+/**
  * Section key → the `sows` column whose content is actually RENDERED for that
  * section (what a reviewer sees on the page / in the PDF). Content snapshots
  * (#347) and anchor resolution must read these columns, not blindly the

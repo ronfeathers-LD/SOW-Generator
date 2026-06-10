@@ -2,8 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
   canonicalizeContent,
   canonicalizeContentColumns,
+  sectionLabel,
   SOW_SECTION_CONTENT_COLUMNS,
   SOW_SECTION_KEYS,
+  SOW_SECTION_LABELS,
 } from './sow-content';
 import { sanitizeHtml } from './sanitize-html';
 import DOMPurify from 'isomorphic-dompurify';
@@ -163,5 +165,22 @@ describe('section registry', () => {
     for (const key of SOW_SECTION_KEYS) {
       expect(SOW_SECTION_CONTENT_COLUMNS[key]).toBe(`custom_${key}_content`);
     }
+  });
+
+  it('has a non-empty human label for every section key, and nothing extra', () => {
+    expect(Object.keys(SOW_SECTION_LABELS).sort()).toEqual(
+      [...SOW_SECTION_KEYS].sort()
+    );
+    for (const key of SOW_SECTION_KEYS) {
+      expect(SOW_SECTION_LABELS[key].trim().length).toBeGreaterThan(0);
+    }
+  });
+
+  it('sectionLabel falls back gracefully for unknown/missing keys', () => {
+    expect(sectionLabel('scope')).toBe('Scope');
+    expect(sectionLabel('out_of_scope')).toBe('Out of Scope');
+    expect(sectionLabel('not_a_real_key')).toBe('not_a_real_key');
+    expect(sectionLabel(null)).toBeNull();
+    expect(sectionLabel(undefined)).toBeNull();
   });
 });
