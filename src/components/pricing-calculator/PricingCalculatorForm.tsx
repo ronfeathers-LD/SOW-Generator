@@ -28,9 +28,6 @@ interface CalculatorData {
   hourly_rates?: {
     onboardingSpecialist?: number;
     projectManager?: number;
-    technicalLead?: number;
-    developer?: number;
-    qaEngineer?: number;
   };
 }
 
@@ -293,48 +290,6 @@ export default function PricingCalculatorForm({ products, data, onChange, isScen
                   onChange={(e) => handleHourlyRateChange('projectManager', parseFloat(e.target.value) || 0)}
                   className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
                   placeholder="250"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Technical Lead ($/hour)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={localData.hourly_rates?.technicalLead || ''}
-                  onChange={(e) => handleHourlyRateChange('technicalLead', parseFloat(e.target.value) || 0)}
-                  className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="200"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Developer ($/hour)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={localData.hourly_rates?.developer || ''}
-                  onChange={(e) => handleHourlyRateChange('developer', parseFloat(e.target.value) || 0)}
-                  className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="150"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  QA Engineer ($/hour)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={localData.hourly_rates?.qaEngineer || ''}
-                  onChange={(e) => handleHourlyRateChange('qaEngineer', parseFloat(e.target.value) || 0)}
-                  className="block w-full px-4 py-3 border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="125"
                 />
               </div>
             </div>
