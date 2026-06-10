@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -19,6 +19,11 @@ import LoadingModal from '@/components/ui/LoadingModal';
 import CreateRevisionButton from '@/components/sow/CreateRevisionButton';
 import SOWRevisionHistory from '@/components/sow/SOWRevisionHistory';
 import ValidationSubmitButton from '@/components/sow/ValidationSubmitButton';
+import AnchoredCommentButton from '@/components/sow/AnchoredCommentButton';
+import AnchoredCommentComposer from '@/components/sow/AnchoredCommentComposer';
+import { useTextSelection } from '@/lib/hooks/useTextSelection';
+import type { SelectionAnchor } from '@/lib/selection-anchor';
+import type { SOWSectionKey } from '@/lib/sow-content';
 import { DisplaySOW, Product, SalesforceData } from '@/types/sow-display';
 
 // Helper function to find the appropriate signatory from Salesforce contacts
@@ -96,6 +101,32 @@ export default function SOWFullView({
   const isManager = session?.user?.role === 'manager';
   const canApprove = isAdmin || isManager;
   const router = useRouter();
+
+  // ── Anchored comments (#349): select text in a section → comment on it ──
+  // Gating mirrors the Comments tab: available to ANY signed-in user whenever
+  // comments are shown, regardless of SOW status (SOWComments is rendered
+  // without a status check, so anchored comments follow the same rule).
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const [composer, setComposer] = useState<{
+    anchor: SelectionAnchor;
+    sectionKey: SOWSectionKey;
+    rect: DOMRect;
+  } | null>(null);
+  const canAnchorComment = showComments && !!session?.user;
+  const { selection, clear: clearSelection } = useTextSelection(
+    contentRef,
+    canAnchorComment && activeTab === 'content' && !composer
+  );
+
+  const openComposer = useCallback(() => {
+    if (!selection) return;
+    setComposer({
+      anchor: selection.anchor,
+      sectionKey: selection.sectionKey,
+      rect: selection.rect,
+    });
+    clearSelection();
+  }, [selection, clearSelection]);
 
   const isEditable = useMemo(() => {
     if (!sow) return false;
@@ -343,7 +374,7 @@ export default function SOWFullView({
                 </div>
               )}
               
-              <div id="sow-content-to-export">
+              <div id="sow-content-to-export" ref={contentRef}>
                 {/* Title Page Section */}
                 <div id="title-page" className="mb-12">
                   <SOWTitlePage
@@ -712,6 +743,26 @@ export default function SOWFullView({
                   </p>
                 </div>
               </div>
+
+              {/* Anchored-comment selection UI (#349) — Content tab only;
+                  never rendered on the /print-sow path (SOWPrintView). */}
+              {canAnchorComment && selection && !composer && (
+                <AnchoredCommentButton rect={selection.rect} onClick={openComposer} />
+              )}
+              {canAnchorComment && composer && (
+                <AnchoredCommentComposer
+                  sowId={sow.id}
+                  sectionKey={composer.sectionKey}
+                  anchor={composer.anchor}
+                  rect={composer.rect}
+                  onClose={() => setComposer(null)}
+                  onPosted={() => {
+                    // No explicit refetch needed: SOWComments mounts fresh
+                    // (and reloads) every time the Comments tab is activated,
+                    // so the new comment appears on the next tab switch.
+                  }}
+                />
+              )}
             </div>
           )}
 
