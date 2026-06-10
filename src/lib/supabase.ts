@@ -54,7 +54,30 @@ export interface User {
   role: string;
 }
 
-export interface Comment {
+/**
+ * Anchor + resolution fields on approval_comments (#348). All nullable: a
+ * comment with a NULL anchor is a general (non-anchored) comment. The core
+ * quartet (section_key, quoted_text, start_offset, end_offset) is all-or-none
+ * (DB CHECK constraint); context_prefix/context_suffix may be empty strings
+ * at section edges. See src/lib/comment-anchors.ts for the anchor-text
+ * convention the offsets are measured in.
+ */
+export interface CommentAnchorFields {
+  section_key: string | null;
+  quoted_text: string | null;
+  context_prefix: string | null;
+  context_suffix: string | null;
+  start_offset: number | null;
+  end_offset: number | null;
+  /** Reserved for future stable block IDs — unused in v1. */
+  block_id: string | null;
+  /** The sow_content_snapshots row this anchor was authored against. */
+  snapshot_id: string | null;
+  resolved_at: string | null;
+  resolved_by: string | null;
+}
+
+export interface Comment extends Partial<CommentAnchorFields> {
   id: string;
   content: string;
   created_at: string;

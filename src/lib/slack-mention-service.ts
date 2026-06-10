@@ -15,6 +15,16 @@ export interface CommentMentionNotification {
   commentAuthor: string;
   mentionedUsers: MentionedUser[];
   sowUrl: string;
+  /** For anchored comments (#348): the SOW text the comment refers to. */
+  quotedText?: string;
+}
+
+/** Max characters of anchored quoted text shown in a Slack notification. */
+const SLACK_QUOTED_TEXT_MAX_LENGTH = 150;
+
+function truncateQuotedText(quotedText: string): string {
+  if (quotedText.length <= SLACK_QUOTED_TEXT_MAX_LENGTH) return quotedText;
+  return `${quotedText.slice(0, SLACK_QUOTED_TEXT_MAX_LENGTH)}…`;
 }
 
 /**
@@ -30,7 +40,8 @@ export class SlackMentionService {
     sowId: string,
     sowTitle: string,
     clientName: string,
-    commentAuthor: string
+    commentAuthor: string,
+    quotedText?: string
   ): Promise<boolean> {
     // Skip notifications for Hula Truck
     if (clientName.toLowerCase() === 'hula truck') {
@@ -95,7 +106,8 @@ export class SlackMentionService {
         commentText,
         commentAuthor,
         mentionedUsers: usersWithSlackIds,
-        sowUrl: getSOWUrl(sowId)
+        sowUrl: getSOWUrl(sowId),
+        quotedText
       };
 
       // Send Slack notification
@@ -182,17 +194,24 @@ export class SlackMentionService {
     slackService: SlackService
   ): Promise<boolean> {
     try {
-      const { sowTitle, clientName, commentText, commentAuthor, mentionedUsers, sowUrl } = notification;
+      const { sowTitle, clientName, commentText, commentAuthor, mentionedUsers, sowUrl, quotedText } = notification;
 
       // Extract Slack user IDs for mentions
       const slackUserIds = mentionedUsers
         .map(user => user.slackUserId)
         .filter(id => id) as string[];
 
+      // For anchored comments, show the SOW text the comment refers to
+      // (truncated) as a blockquote above the comment itself.
+      const quotedBlock = quotedText
+        ? `*Regarding this text in the SOW:*\n> _"${truncateQuotedText(quotedText)}"_\n\n`
+        : '';
+
       // Create the message
       const message = ` You were mentioned in a comment on SOW: *${sowTitle}*\n\n` +
         `*Client:* ${clientName}\n` +
         `*Comment by:* ${commentAuthor}\n\n` +
+        quotedBlock +
         `> ${commentText}\n\n` +
         `🔗 <${sowUrl}|View SOW>`;
 
