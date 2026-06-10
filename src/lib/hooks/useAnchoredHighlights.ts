@@ -54,11 +54,26 @@ export interface UseAnchoredHighlightsResult<T> {
    * switches (the SOW view is read-only, so a computed status stays valid).
    */
   anchorStatus: ReadonlyMap<string, AnchorResolutionStatus>;
+  /**
+   * The top-level threads as last fetched (newest first). Exposed for the
+   * Comments-tab count in the host view (#351); empty until the first fetch.
+   */
+  comments: readonly T[];
   /** Refetch comments and re-resolve/repaint (after post/resolve/reply). */
   refresh: () => void;
   /** The thread opened by clicking a highlight, if any. */
   activeThread: ActiveAnchoredThread<T> | null;
   closeThread: () => void;
+  /**
+   * Jump-to-text (#351): once the content containers are mounted and the
+   * comment's anchor resolves, scroll the anchored range into view
+   * (block: 'center'), mark it active (sow-comment-active), and open its
+   * thread popover. The host switches to the Content tab itself; the request
+   * is queued here and satisfied as soon as resolution completes — so it
+   * works even when the Content tab hasn't rendered yet. A request for an
+   * anchor that turns out orphaned is dropped silently.
+   */
+  jumpToComment: (commentId: string) => void;
 }
 
 /**
@@ -95,9 +110,27 @@ export function useAnchoredHighlights<T extends AnchoredCommentRef>(options: {
   const [active, setActive] = useState<{ id: string; rect: DOMRect } | null>(null);
   /** Ranges of PAINTED (open, resolved-anchor) threads — the click targets. */
   const paintedRangesRef = useRef<Map<string, Range>>(new Map());
+  /** Ranges of EVERY resolved anchor (incl. resolved threads) — jump targets
+   *  and the active-highlight source. */
+  const allRangesRef = useRef<Map<string, Range>>(new Map());
+  /** Bumped whenever ranges are (re)computed, so the pending-jump effect runs
+   *  AFTER resolution rather than racing it. */
+  const [rangesVersion, setRangesVersion] = useState(0);
+  /** Jump-to-text request queued until the comment's range is available. */
+  const [pendingJumpId, setPendingJumpId] = useState<string | null>(null);
 
   const refresh = useCallback(() => setLoadVersion((v) => v + 1), []);
   const closeThread = useCallback(() => setActive(null), []);
+  const jumpToComment = useCallback(
+    (commentId: string) => {
+      setPendingJumpId(commentId);
+      // Refetch so a thread just posted/edited from the Comments tab resolves
+      // against fresh data (the fetch effect is gated on `enabled`, which the
+      // host flips on by switching to the Content tab).
+      setLoadVersion((v) => v + 1);
+    },
+    []
+  );
 
   // Leaving the content tab dismisses any open thread popover — otherwise it
   // would silently reappear on the next visit.
@@ -147,6 +180,8 @@ export function useAnchoredHighlights<T extends AnchoredCommentRef>(options: {
       if (range && !comment.resolved_at) painted.set(comment.id, range);
     }
     paintedRangesRef.current = painted;
+    allRangesRef.current = ranges;
+    setRangesVersion((v) => v + 1);
 
     if (!highlightApiSupported()) return;
     if (painted.size > 0) {
@@ -161,13 +196,36 @@ export function useAnchoredHighlights<T extends AnchoredCommentRef>(options: {
       CSS.highlights.delete(COMMENT_HIGHLIGHT_NAME);
       CSS.highlights.delete(ACTIVE_COMMENT_HIGHLIGHT_NAME);
       paintedRangesRef.current = new Map();
+      allRangesRef.current = new Map();
     };
   }, [comments, enabled, containerRef]);
 
+  // ── Pending jump-to-text (#351): runs after every (re)resolution until the
+  // requested comment's range is known, then scrolls + activates it. ──
+  useEffect(() => {
+    if (!enabled || !pendingJumpId) return;
+    const range = allRangesRef.current.get(pendingJumpId);
+    if (!range) {
+      // Known-orphaned anchors can never resolve — drop the request. Anything
+      // else (section not mounted yet, fetch in flight) stays queued.
+      if (anchorStatus.get(pendingJumpId) === 'orphaned') setPendingJumpId(null);
+      return;
+    }
+    const startElement =
+      range.startContainer instanceof Element
+        ? range.startContainer
+        : range.startContainer.parentElement;
+    startElement?.scrollIntoView({ block: 'center' });
+    setActive({ id: pendingJumpId, rect: range.getBoundingClientRect() });
+    setPendingJumpId(null);
+  }, [enabled, pendingJumpId, rangesVersion, anchorStatus]);
+
   // ── Distinct stronger style for the clicked/focused thread ──
+  // Looked up in ALL resolved ranges (not just painted ones) so jump-to-text
+  // can flash resolved-thread anchors that are no longer painted.
   useEffect(() => {
     if (!highlightApiSupported()) return;
-    const range = active ? paintedRangesRef.current.get(active.id) : undefined;
+    const range = active ? allRangesRef.current.get(active.id) : undefined;
     if (range) {
       CSS.highlights.set(ACTIVE_COMMENT_HIGHLIGHT_NAME, new Highlight(range));
     } else {
@@ -176,7 +234,7 @@ export function useAnchoredHighlights<T extends AnchoredCommentRef>(options: {
     return () => {
       CSS.highlights.delete(ACTIVE_COMMENT_HIGHLIGHT_NAME);
     };
-  }, [active, comments, enabled]);
+  }, [active, comments, enabled, rangesVersion]);
 
   // ── Click-to-thread + hover cursor affordance ──
   useEffect(() => {
@@ -226,5 +284,5 @@ export function useAnchoredHighlights<T extends AnchoredCommentRef>(options: {
     return comment ? { comment, rect: active.rect } : null;
   }, [active, comments]);
 
-  return { anchorStatus, refresh, activeThread, closeThread };
+  return { anchorStatus, comments, refresh, activeThread, closeThread, jumpToComment };
 }

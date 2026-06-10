@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -25,6 +25,7 @@ import AnchoredCommentThread from '@/components/sow/AnchoredCommentThread';
 import type { ApprovalComment } from '@/components/sow/CommentThread';
 import { useTextSelection } from '@/lib/hooks/useTextSelection';
 import { useAnchoredHighlights } from '@/lib/hooks/useAnchoredHighlights';
+import { countOpenTopLevel } from '@/lib/comment-filters';
 import type { SelectionAnchor } from '@/lib/selection-anchor';
 import type { SOWSectionKey } from '@/lib/sow-content';
 import { DisplaySOW, Product, SalesforceData } from '@/types/sow-display';
@@ -126,14 +127,41 @@ export default function SOWFullView({
   // also yields the resolved/orphaned map SOWComments uses for badges.
   const {
     anchorStatus,
+    comments: anchoredComments,
     refresh: refreshHighlights,
     activeThread,
     closeThread,
+    jumpToComment,
   } = useAnchoredHighlights<ApprovalComment>({
     sowId,
     containerRef: contentRef,
     enabled: canAnchorComment && activeTab === 'content',
   });
+
+  // ── Comments tab count (#351): open (unresolved) top-level threads. Two
+  // explicit feeders for one piece of state — the hook's fetch (Content tab)
+  // and SOWComments' fetch/mutations (Comments tab) — both derive from the
+  // same endpoint, so last-write-wins is consistent.
+  const [openCommentCount, setOpenCommentCount] = useState(0);
+  useEffect(() => {
+    if (anchoredComments.length > 0) {
+      setOpenCommentCount(countOpenTopLevel(anchoredComments));
+    }
+  }, [anchoredComments]);
+  const handleCommentsChange = useCallback((list: ApprovalComment[]) => {
+    setOpenCommentCount(countOpenTopLevel(list));
+  }, []);
+
+  // ── Jump-to-text (#351): the Comments tab hands us the comment; we own the
+  // tab state and the highlights hook, so we switch tabs and queue the jump
+  // (the hook scrolls/activates once the anchor resolves after mount).
+  const handleJumpToComment = useCallback(
+    (comment: ApprovalComment) => {
+      setActiveTab('content');
+      jumpToComment(comment.id);
+    },
+    [jumpToComment]
+  );
 
   // Resolve permission, mirrored from the PATCH route (server still
   // enforces): comment author, SOW author, or admin/manager/pmo.
@@ -372,7 +400,7 @@ export default function SOWFullView({
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none`}
                   >
-                    Comments
+                    Comments{openCommentCount > 0 ? ` (${openCommentCount})` : ''}
                   </button>
                 )}
               </nav>
@@ -1079,7 +1107,13 @@ export default function SOWFullView({
           {activeTab === 'comments' && showComments && (
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Comments & Discussion</h2>
-              <SOWComments sowId={sow.id} anchorStatus={anchorStatus} />
+              <SOWComments
+                sowId={sow.id}
+                anchorStatus={anchorStatus}
+                sowAuthorId={sow.author_id}
+                onJumpToComment={handleJumpToComment}
+                onCommentsChange={handleCommentsChange}
+              />
             </div>
           )}
 
