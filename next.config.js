@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Build output dir. Defaults to `.next` (used by `next dev` and the Railway
+  // production build). `npm run build:verify` sets NEXT_DIST_DIR=.next-verify so
+  // a verification build never clobbers the running dev server's `.next`
+  // (which otherwise throws "Cannot find module './vendor-chunks/…'").
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   serverExternalPackages: ['puppeteer-core', 'puppeteer'],
   images: {
     remotePatterns: [
