@@ -28,13 +28,19 @@ interface DashboardClientProps {
     status: string;
     created_at: string;
   }>;
+  draftSOWs: Array<{
+    id: string;
+    sow_title?: string;
+    client_name?: string;
+    created_at: string;
+  }>;
 }
 
 // Brand-green text link, legible in both themes (pure #26D07C is too low-contrast
 // as text on white, so use the green scale: darker in light, lighter in dark).
 const LINK = 'text-sm font-medium text-green-700 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300';
 
-export default function DashboardClient({ stats, recentSOWs, pendingApprovals }: DashboardClientProps) {
+export default function DashboardClient({ stats, recentSOWs, pendingApprovals, draftSOWs }: DashboardClientProps) {
 
   // Status pill colors, dark-safe (explicit dark variants — not the globals shim).
   const getStatusColor = (status: string) => {
@@ -123,6 +129,41 @@ export default function DashboardClient({ stats, recentSOWs, pendingApprovals }:
           ))}
         </div>
       </Card>
+
+      {/* Resume your drafts — the user's own unfinished SOWs, straight to edit. */}
+      {draftSOWs.length > 0 && (
+        <Card padding="none">
+          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-dark-border">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-text">Resume your drafts</h3>
+            {stats.draft > draftSOWs.length && (
+              <Link href="/sow?status=draft" className={LINK}>View all {stats.draft} →</Link>
+            )}
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {draftSOWs.map((sow) => (
+                <Link
+                  key={sow.id}
+                  href={`/sow/${sow.id}/edit`}
+                  className="group block rounded-lg border border-gray-200 bg-gray-50 p-4 transition-colors hover:border-[#26D07C] hover:bg-green-50 dark:border-dark-border dark:bg-dark-surface-alt dark:hover:border-[#26D07C] dark:hover:bg-[#26D07C]/10"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="truncate font-semibold text-gray-900 dark:text-dark-text">
+                        {sow.client_name || sow.sow_title || 'Untitled draft'}
+                      </h4>
+                      <p className="mt-1 text-sm text-gray-600 dark:text-dark-text-muted">Created: {formatDate(sow.created_at)}</p>
+                    </div>
+                    <span className="flex-shrink-0 text-sm font-medium text-green-700 group-hover:text-green-800 dark:text-green-400 dark:group-hover:text-green-300">
+                      Resume →
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Pending Approvals */}
       {pendingApprovals.length > 0 && (
