@@ -172,13 +172,13 @@ const ContentPreviewStep: React.FC<ContentPreviewStepProps> = ({
     }
   }, [updateWizardData, formData.id]);
 
+  // Content Preview is OPTIONAL: it only shapes what AI analyses, and AI
+  // generation itself is optional (objectives can be authored by hand in Final
+  // Edit). A SOW with no documents or Avoma calls has no preview content — don't
+  // block it here.
   const handleNext = useCallback(() => {
-    if (!previewContent.trim()) {
-      alert('Please generate preview content before continuing.');
-      return;
-    }
     onNext();
-  }, [previewContent, onNext]);
+  }, [onNext]);
 
   // Publish nav to the wizard footer (single Next button drives the sub-steps).
   useEffect(() => {
@@ -186,9 +186,9 @@ const ContentPreviewStep: React.FC<ContentPreviewStepProps> = ({
       onNext: handleNext,
       onPrev,
       nextLabel: 'AI Generation',
-      nextDisabled: !previewContent.trim(),
+      nextDisabled: false,
     });
-  }, [setNav, handleNext, onPrev, previewContent]);
+  }, [setNav, handleNext, onPrev]);
 
   return (
     <div className="space-y-6">
