@@ -4,6 +4,7 @@ import PricingRolesAndDiscount from '@/components/sow/PricingRolesAndDiscount';
 import LoadingModal from '@/components/ui/LoadingModal';
 import { calculateAllHours, calculateRoleHoursDistribution } from '@/lib/hours-calculation-utils';
 import { getPricingRolesConfig, getDefaultRateForRole, getDescriptionForRole, PricingRoleConfig } from '@/lib/pricing-roles-config';
+import { SectionHeader } from '@/components/ui/form';
 
 interface PricingRole {
   id: string;
@@ -514,8 +515,12 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
 
   return (
     <section className="space-y-6">
-      <h2 className="text-2xl font-bold">Pricing</h2>
-      
+      <SectionHeader
+        title="Pricing"
+        description="Set role hours, rates, and discounts for this SOW"
+        className="mb-2"
+      />
+
       {/* Auto-calc info messaging */}
       {justAutoCalculated && !hasPricingMismatch && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-2">
