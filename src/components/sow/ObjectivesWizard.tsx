@@ -7,6 +7,20 @@ import ContentPreviewStep from './objectives-wizard/ContentPreviewStep';
 import AIGenerationStep from './objectives-wizard/AIGenerationStep';
 import FinalEditStep from './objectives-wizard/FinalEditStep';
 
+/**
+ * Nav intent a sub-step publishes to the wizard footer so a single footer
+ * button drives both the AI sub-steps and the section transition. `onNext`
+ * undefined = no next within the tool (footer continues to the next section);
+ * `onPrev` undefined = footer goes to the previous section.
+ */
+export interface ObjectivesStepNav {
+  onNext?: () => void;
+  onPrev?: () => void;
+  nextLabel?: string;
+  nextDisabled?: boolean;
+  nextLoading?: boolean;
+}
+
 interface ObjectivesWizardProps {
   formData: Partial<SOWData>;
   setFormData: (data: Partial<SOWData>) => void;
@@ -19,6 +33,8 @@ interface ObjectivesWizardProps {
     closeDate?: string;
     description?: string;
   } | null;
+  /** Publish the active sub-step's nav intent to the wizard footer. */
+  onNavChange?: (nav: ObjectivesStepNav | null) => void;
 }
 
 export interface WizardStepData {
@@ -61,6 +77,7 @@ const ObjectivesWizard = React.memo(function ObjectivesWizard({
   setFormData,
   selectedAccount,
   selectedOpportunity,
+  onNavChange,
 }: ObjectivesWizardProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [wizardData, setWizardData] = useState<WizardStepData>({
@@ -199,6 +216,12 @@ const ObjectivesWizard = React.memo(function ObjectivesWizard({
     setCurrentStep(stepIndex);
   }, []);
 
+  // Clear the published footer nav when the tool unmounts (leaving Objectives),
+  // so the footer falls back to plain section navigation.
+  useEffect(() => {
+    return () => onNavChange?.(null);
+  }, [onNavChange]);
+
   const renderCurrentStep = () => {
     const stepProps = {
       wizardData,
@@ -210,6 +233,7 @@ const ObjectivesWizard = React.memo(function ObjectivesWizard({
       onNext: nextStep,
       onPrev: prevStep,
       onGoToStep: goToStep,
+      setNav: onNavChange ?? (() => {}),
     };
 
     switch (currentStep) {

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
-import { WizardStepData } from '../ObjectivesWizard';
+import { WizardStepData, ObjectivesStepNav } from '../ObjectivesWizard';
 
 interface ContentPreviewStepProps {
   wizardData: WizardStepData;
@@ -20,6 +20,7 @@ interface ContentPreviewStepProps {
   onNext: () => void;
   onPrev: () => void;
   onGoToStep: (step: number) => void;
+  setNav: (nav: ObjectivesStepNav | null) => void;
 }
 
 const ContentPreviewStep: React.FC<ContentPreviewStepProps> = ({
@@ -30,6 +31,7 @@ const ContentPreviewStep: React.FC<ContentPreviewStepProps> = ({
   selectedOpportunity,
   onNext,
   onPrev,
+  setNav,
 }) => {
   const [previewContent, setPreviewContent] = useState(wizardData.previewContent || '');
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
@@ -178,6 +180,16 @@ const ContentPreviewStep: React.FC<ContentPreviewStepProps> = ({
     onNext();
   }, [previewContent, onNext]);
 
+  // Publish nav to the wizard footer (single Next button drives the sub-steps).
+  useEffect(() => {
+    setNav({
+      onNext: handleNext,
+      onPrev,
+      nextLabel: 'AI Generation',
+      nextDisabled: !previewContent.trim(),
+    });
+  }, [setNav, handleNext, onPrev, previewContent]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -275,26 +287,9 @@ const ContentPreviewStep: React.FC<ContentPreviewStepProps> = ({
         </ul>
       </div>
 
-      {/* Navigation */}
-      <div className="flex justify-between pt-4 border-t border-gray-200">
-        <button
-          onClick={onPrev}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-        >
-          Previous: Avoma Calls
-        </button>
-        <div className="flex space-x-3">
-          <div className="text-sm text-gray-500 self-center">
-            {previewContent.length > 0 ? 'Content ready' : 'No content'}
-          </div>
-          <button
-            onClick={handleNext}
-            disabled={!previewContent.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-          >
-            Next: AI Generation
-          </button>
-        </div>
+      {/* Status (navigation lives in the wizard footer) */}
+      <div className="border-t border-gray-200 pt-4 text-sm text-gray-500 dark:border-dark-border dark:text-dark-text-muted">
+        {previewContent.length > 0 ? 'Content ready' : 'No content'}
       </div>
     </div>
   );

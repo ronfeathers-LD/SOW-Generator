@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
 import GoogleDriveDocumentSelector from '../../GoogleDriveDocumentSelector';
-import { WizardStepData } from '../ObjectivesWizard';
+import { WizardStepData, ObjectivesStepNav } from '../ObjectivesWizard';
 
 interface DocumentSelectionStepProps {
   wizardData: WizardStepData;
@@ -21,6 +21,7 @@ interface DocumentSelectionStepProps {
   onNext: () => void;
   onPrev: () => void;
   onGoToStep: (step: number) => void;
+  setNav: (nav: ObjectivesStepNav | null) => void;
 }
 
 const DocumentSelectionStep: React.FC<DocumentSelectionStepProps> = ({
@@ -28,6 +29,7 @@ const DocumentSelectionStep: React.FC<DocumentSelectionStepProps> = ({
   updateWizardData,
   selectedAccount,
   onNext,
+  setNav,
 }) => {
   const [isPreloading, setIsPreloading] = useState(false);
 
@@ -62,6 +64,12 @@ const DocumentSelectionStep: React.FC<DocumentSelectionStepProps> = ({
     onNext();
   }, [onNext]);
 
+  // Publish nav to the wizard footer (single Next button drives the sub-steps).
+  // Document selection is the first sub-step, so there's no in-tool "prev".
+  useEffect(() => {
+    setNav({ onNext: handleNext, nextLabel: 'Avoma Calls', nextDisabled: isPreloading });
+  }, [setNav, handleNext, isPreloading]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -90,22 +98,11 @@ const DocumentSelectionStep: React.FC<DocumentSelectionStepProps> = ({
       </div>
 
 
-      {/* Navigation */}
-      <div className="flex justify-between pt-4 border-t border-gray-200">
-        <div className="text-sm text-gray-500">
-          {wizardData.selectedDocuments.length} document(s) selected
-          {isPreloading && <span className="ml-2 text-blue-600">• Searching folders...</span>}
-          {wizardData.selectedDocuments.length > 0 && <span className="ml-2 text-green-600">• Auto-saved</span>}
-        </div>
-        <div className="flex space-x-3">
-          <button
-            onClick={handleNext}
-            disabled={isPreloading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-          >
-            Next: Avoma Calls
-          </button>
-        </div>
+      {/* Status (navigation lives in the wizard footer) */}
+      <div className="border-t border-gray-200 pt-4 text-sm text-gray-500 dark:border-dark-border dark:text-dark-text-muted">
+        {wizardData.selectedDocuments.length} document(s) selected
+        {isPreloading && <span className="ml-2 text-blue-600 dark:text-blue-400">• Searching folders...</span>}
+        {wizardData.selectedDocuments.length > 0 && <span className="ml-2 text-green-600 dark:text-green-400">• Auto-saved</span>}
       </div>
     </div>
   );
