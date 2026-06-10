@@ -37,12 +37,12 @@ const AIGenerationStep: React.FC<AIGenerationStepProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Publish nav to the wizard footer (single Next button drives the sub-steps).
-  // The "Generate" action stays in-card; the footer Next advances to Final Edit
-  // once objectives exist.
-  const hasObjectives = !!wizardData.generatedObjectives.overview;
+  // The "Generate" action stays in-card; the footer Next always advances to
+  // Final Edit. AI generation is OPTIONAL assistance — a SOW with no documents
+  // or Avoma calls can still proceed and author objectives by hand in Final Edit.
   useEffect(() => {
-    setNav({ onNext, onPrev, nextLabel: 'Final Edit', nextDisabled: !hasObjectives });
-  }, [setNav, onNext, onPrev, hasObjectives]);
+    setNav({ onNext, onPrev, nextLabel: 'Final Edit', nextDisabled: false });
+  }, [setNav, onNext, onPrev]);
   
 
   const handleGenerationSuccess = useCallback((generatedObjectives: {
@@ -154,8 +154,8 @@ const AIGenerationStep: React.FC<AIGenerationStepProps> = ({
             Generate Objectives with AI
           </button>
           {wizardData.selectedDocuments.length === 0 && wizardData.selectedMeetings.length === 0 && (
-            <div className="text-sm text-gray-500 mt-2">
-              <p>Please go back and select documents or meetings first</p>
+            <div className="text-sm text-gray-500 mt-2 dark:text-dark-text-muted">
+              <p>No content to analyze. Go back to add documents or Avoma calls, or continue to Final Edit to write objectives manually.</p>
             </div>
           )}
         </div>
