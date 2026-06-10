@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/form';
 import PricingCalculatorForm from '@/components/pricing-calculator/PricingCalculatorForm';
 import PricingCalculatorResults from '@/components/pricing-calculator/PricingCalculatorResults';
 import SOWDataLoader from '@/components/pricing-calculator/SOWDataLoader';
+import { getPricingRolesConfig, getDefaultRateForRole } from '@/lib/pricing-roles-config';
 
 interface Product {
   id: string;
@@ -32,9 +33,6 @@ interface CalculatorData {
   hourly_rates?: {
     onboardingSpecialist?: number;
     projectManager?: number;
-    technicalLead?: number;
-    developer?: number;
-    qaEngineer?: number;
   };
 }
 
@@ -76,6 +74,23 @@ export default function PricingCalculatorPage() {
     fetchProducts();
   }, []);
 
+  // Seed the Onboarding Specialist / Project Manager rates from the same admin
+  // config the SOW pricing uses, so the calculator reflects rate changes instead
+  // of hardcoded defaults. (These are the only two roles that drive cost.)
+  useEffect(() => {
+    getPricingRolesConfig()
+      .then((cfg) => {
+        const rates = {
+          onboardingSpecialist: getDefaultRateForRole('Onboarding Specialist', cfg),
+          projectManager: getDefaultRateForRole('Project Manager', cfg),
+        };
+        setCalculatorData((prev) => ({ ...prev, hourly_rates: { ...rates, ...prev.hourly_rates } }));
+      })
+      .catch(() => {
+        /* leave hourly_rates unset — Results falls back to standard rates */
+      });
+  }, []);
+
   const handleDataLoad = (sowData: SOWData) => {
     const newData: CalculatorData = {
       products: sowData.template?.products || [],
@@ -100,15 +115,10 @@ export default function PricingCalculatorPage() {
   };
 
   const handleCreateScenario = () => {
-    const newScenario = { 
+    const newScenario = {
       ...calculatorData,
-      hourly_rates: {
-        onboardingSpecialist: 250,
-        projectManager: 250,
-        technicalLead: 200,
-        developer: 150,
-        qaEngineer: 125,
-      }
+      // Inherit the admin-sourced rates already on calculatorData.
+      hourly_rates: { ...calculatorData.hourly_rates },
     };
     setScenarios([...scenarios, newScenario]);
     setActiveScenarioIndex(scenarios.length);

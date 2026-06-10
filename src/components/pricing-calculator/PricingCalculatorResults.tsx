@@ -18,9 +18,6 @@ interface CalculatorData {
   hourly_rates?: {
     onboardingSpecialist?: number;
     projectManager?: number;
-    technicalLead?: number;
-    developer?: number;
-    qaEngineer?: number;
   };
 }
 
@@ -36,12 +33,11 @@ interface PricingRole {
   totalCost: number;
 }
 
+// Only Onboarding Specialist and Project Manager drive SOW cost; the rates are
+// sourced from the admin pricing config via page state, with 250 as last resort.
 const STANDARD_ROLES: Omit<PricingRole, 'totalHours' | 'totalCost'>[] = [
   { role: 'Onboarding Specialist', ratePerHour: 250 },
   { role: 'Project Manager', ratePerHour: 250 },
-  { role: 'Technical Lead', ratePerHour: 200 },
-  { role: 'Developer', ratePerHour: 150 },
-  { role: 'QA Engineer', ratePerHour: 125 },
 ];
 
 export default function PricingCalculatorResults({ data, scenarios }: PricingCalculatorResultsProps) {
@@ -86,15 +82,6 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
       }
       if (roleName === 'Project Manager' && ratesToCheck.projectManager) {
         return ratesToCheck.projectManager;
-      }
-      if (roleName === 'Technical Lead' && ratesToCheck.technicalLead) {
-        return ratesToCheck.technicalLead;
-      }
-      if (roleName === 'Developer' && ratesToCheck.developer) {
-        return ratesToCheck.developer;
-      }
-      if (roleName === 'QA Engineer' && ratesToCheck.qaEngineer) {
-        return ratesToCheck.qaEngineer;
       }
     }
     
