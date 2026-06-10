@@ -148,6 +148,28 @@ export const isNoCostProductById = (productId: string): boolean => {
          productId === '6698b269-10b0-485b-be59-ad9c3cc33368'; // BookIt Handoff (without Smartrep)
 };
 
+// The hours engine recognizes products by these hardcoded IDs (see
+// hours-calculation-utils.ts). A product whose ID isn't here contributes 0 hours
+// and isn't treated as routing/BookIt — so creating one via the admin Products
+// tool, or deleting+recreating a seeded product (new ID), silently breaks pricing.
+// Until the engine is keyed off a stable slug instead of UUIDs, use the helpers
+// below to surface that mismatch loudly rather than mis-pricing in silence.
+const ENGINE_KNOWN_PRODUCT_IDS: ReadonlySet<string> = new Set<string>([
+  ...PRODUCT_IDS_BY_CATEGORY.routing,
+  ...PRODUCT_IDS_BY_CATEGORY.bookit,
+  ...PRODUCT_IDS_BY_CATEGORY.other,
+]);
+
+/** True if the pricing/hours engine knows how to score this product. */
+export const isProductRecognizedByEngine = (productId: string): boolean => {
+  return ENGINE_KNOWN_PRODUCT_IDS.has(productId);
+};
+
+/** Active products the engine does NOT recognize (would silently score 0 hours). */
+export const getEngineUnrecognizedProducts = <T extends { id: string; is_active?: boolean }>(
+  products: T[],
+): T[] => products.filter((p) => p.is_active !== false && !ENGINE_KNOWN_PRODUCT_IDS.has(p.id));
+
 // MultiGraph product identification
 export const isMultiGraphProduct = (product: Product): boolean => {
   return product.id === '511f28fa-6cc4-41f9-9234-dc45056aa2d2';

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { getEngineUnrecognizedProducts } from '@/lib/constants/products';
 
 interface Product {
   id: string;
@@ -185,6 +186,33 @@ export default function ProductsAdminPage() {
             Add Product
           </button>
         </div>
+
+        {/* Engine-recognition guardrail: the hours/pricing engine matches products
+            by hardcoded ID, so any product it doesn't know scores 0 hours silently.
+            Surface that here instead of letting SOWs mis-price. */}
+        {(() => {
+          const unrecognized = getEngineUnrecognizedProducts(products);
+          if (unrecognized.length === 0) return null;
+          return (
+            <div className="mb-6 rounded-md border border-amber-300 bg-amber-50 p-4">
+              <h3 className="text-sm font-semibold text-amber-800">
+                ⚠ {unrecognized.length} product{unrecognized.length === 1 ? '' : 's'} not recognized by the pricing engine
+              </h3>
+              <p className="mt-1 text-sm text-amber-700">
+                These active products will contribute <strong>0 hours</strong> to SOW pricing because the
+                hours engine matches products by ID and doesn&apos;t know them (newly created, or deleted &amp;
+                recreated with a new ID). Pricing for SOWs using them will be wrong until the engine is updated.
+              </p>
+              <ul className="mt-2 list-inside list-disc text-sm text-amber-800">
+                {unrecognized.map((p) => (
+                  <li key={p.id}>
+                    {p.name} <span className="font-mono text-xs text-amber-600">({p.id})</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })()}
 
         {/* Products Table */}
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
