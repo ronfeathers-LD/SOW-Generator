@@ -58,4 +58,3 @@ next-env.d.ts
 
 # Local agent/session artifacts
 .claude/
-.beads.bak/
