@@ -18,12 +18,16 @@ interface SnapshotRow {
 }
 
 /**
- * Minimal mock of the two query chains the service uses:
+ * Minimal mock of the query chains the service uses:
  *   from('sows').select(...).eq(...).single()
+ *   from('sow_salesforce_data').select(...).eq(...).maybeSingle()  (only when
+ *     the sows row has a salesforce_account_id)
  *   from('sow_content_snapshots').insert(rows)
  */
 function makeMockClient(options: {
   sowRow?: Record<string, unknown> | null;
+  /** sow_salesforce_data row (e.g. { account_data: { name: 'X' } }). */
+  salesforceRow?: Record<string, unknown> | null;
   selectError?: { message: string } | null;
   insertError?: { message: string } | null;
 }) {
@@ -44,6 +48,21 @@ function makeMockClient(options: {
                       data: options.sowRow ?? null,
                       error: options.selectError ?? null,
                     };
+                  },
+                };
+              },
+            };
+          },
+        };
+      }
+      if (table === 'sow_salesforce_data') {
+        return {
+          select() {
+            return {
+              eq() {
+                return {
+                  async maybeSingle() {
+                    return { data: options.salesforceRow ?? null, error: null };
                   },
                 };
               },
@@ -194,5 +213,75 @@ describe('captureContentSnapshots', () => {
     await expect(captureContentSnapshots('sow-1', client)).rejects.toThrow(
       /Failed to insert content snapshots for SOW sow-1/
     );
+  });
+
+  // ── #351: snapshot content stores the column AS RENDERED ──────────────────
+
+  it('stores the intro with {clientName} substituted (sows.client_name fallback)', async () => {
+    const row = fullSowRow();
+    row.client_name = 'Fallback Inc';
+    row.custom_intro_content = '<p>Between LeanData and {clientName}.</p>';
+    const { client, inserted, getSelectedColumns } = makeMockClient({ sowRow: row });
+
+    await captureContentSnapshots('sow-1', client);
+
+    expect(inserted.find((r) => r.section_key === 'intro')?.content).toBe(
+      '<p>Between LeanData and <span class="font-bold">Fallback Inc</span>.</p>'
+    );
+    expect(getSelectedColumns()).toContain('client_name');
+    expect(getSelectedColumns()).toContain('salesforce_account_id');
+  });
+
+  it('prefers the Salesforce account name over sows.client_name (UI precedence)', async () => {
+    const row = fullSowRow();
+    row.client_name = 'Stale Name';
+    row.salesforce_account_id = 'sf-acct-1';
+    row.custom_intro_content = '<p>Client: {clientName}</p>';
+    const { client, inserted } = makeMockClient({
+      sowRow: row,
+      salesforceRow: { account_data: { name: 'Acme Corp' } },
+    });
+
+    await captureContentSnapshots('sow-1', client);
+
+    expect(inserted.find((r) => r.section_key === 'intro')?.content).toBe(
+      '<p>Client: <span class="font-bold">Acme Corp</span></p>'
+    );
+  });
+
+  it('substitutes the [Client Name] placeholder when no client name resolves', async () => {
+    const row = fullSowRow();
+    row.custom_intro_content = '<p>Client: {clientName}</p>';
+    const { client, inserted } = makeMockClient({ sowRow: row });
+
+    await captureContentSnapshots('sow-1', client);
+
+    expect(inserted.find((r) => r.section_key === 'intro')?.content).toBe(
+      '<p>Client: <span class="font-bold">[Client Name]</span></p>'
+    );
+  });
+
+  it('stores plain-text content as the UI renders it (processContent/textToHtml)', async () => {
+    const row = fullSowRow();
+    row.custom_scope_content = 'Scope line one\n- bullet a';
+    const { client, inserted } = makeMockClient({ sowRow: row });
+
+    await captureContentSnapshots('sow-1', client);
+
+    const content = inserted.find((r) => r.section_key === 'scope')?.content;
+    expect(content).toContain('<p class="mb-4">Scope line one</p>');
+    expect(content).toContain('<li class="mb-1">bullet a</li>');
+  });
+
+  it('leaves canonical HTML content byte-identical (transforms are a no-op)', async () => {
+    const { client, inserted } = makeMockClient({ sowRow: fullSowRow() });
+
+    await captureContentSnapshots('sow-1', client);
+
+    for (const key of SOW_SECTION_KEYS) {
+      expect(inserted.find((r) => r.section_key === key)?.content).toBe(
+        `<p>${key} content</p>`
+      );
+    }
   });
 });

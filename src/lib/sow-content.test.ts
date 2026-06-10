@@ -2,12 +2,17 @@ import { describe, it, expect } from 'vitest';
 import {
   canonicalizeContent,
   canonicalizeContentColumns,
+  renderSectionHtml,
   sectionLabel,
   SOW_SECTION_CONTENT_COLUMNS,
   SOW_SECTION_KEYS,
   SOW_SECTION_LABELS,
+  SOW_SECTION_RENDER_TRANSFORMS,
+  stripTableInlineStyles,
+  substituteClientName,
 } from './sow-content';
 import { sanitizeHtml } from './sanitize-html';
+import { processContent, textToHtml } from './text-to-html';
 import DOMPurify from 'isomorphic-dompurify';
 
 /**
@@ -182,5 +187,114 @@ describe('section registry', () => {
     expect(sectionLabel('not_a_real_key')).toBe('not_a_real_key');
     expect(sectionLabel(null)).toBeNull();
     expect(sectionLabel(undefined)).toBeNull();
+  });
+});
+
+/**
+ * EXACT replica of SOWIntroPage's introProcessor (the component is React and
+ * can't be imported here) — if SOWIntroPage changes, this fixture and the
+ * intro entry in SOW_SECTION_RENDER_TRANSFORMS must change together.
+ */
+function introProcessorReplica(content: string, clientName: string): string {
+  let processedContent = processContent(content);
+  if (clientName) {
+    processedContent = processedContent.replace(
+      /{clientName}/g,
+      `<span class="font-bold">${clientName}</span>`
+    );
+  } else {
+    processedContent = processedContent.replace(
+      /{clientName}/g,
+      '<span class="font-bold">[Client Name]</span>'
+    );
+  }
+  return processedContent;
+}
+
+describe('renderSectionHtml / SOW_SECTION_RENDER_TRANSFORMS (#351)', () => {
+  const INTRO_FIXTURE =
+    '<p>This Statement of Work is entered into between {clientName} and LeanData, Inc. {clientName} agrees to the terms below.</p>';
+
+  it('has a transform for every section key and nothing extra', () => {
+    expect(Object.keys(SOW_SECTION_RENDER_TRANSFORMS).sort()).toEqual(
+      [...SOW_SECTION_KEYS].sort()
+    );
+  });
+
+  it('intro: matches SOWIntroPage introProcessor byte-for-byte (client name present)', () => {
+    const rendered = renderSectionHtml('intro', INTRO_FIXTURE, {
+      clientName: 'Acme Corp',
+    });
+    expect(rendered).toBe(introProcessorReplica(INTRO_FIXTURE, 'Acme Corp'));
+    expect(rendered).toContain('Acme Corp');
+    expect(rendered).not.toContain('{clientName}');
+    // textContent parity with what the browser renders (render path applies
+    // sanitizeHtml on top — must not change the visible text).
+    expect(textContentOf(sanitizeHtml(rendered as string))).toBe(
+      textContentOf(introProcessorReplica(INTRO_FIXTURE, 'Acme Corp'))
+    );
+  });
+
+  it('intro: substitutes the [Client Name] placeholder when the client name is absent', () => {
+    for (const missing of ['', null, undefined] as const) {
+      const rendered = renderSectionHtml('intro', INTRO_FIXTURE, {
+        clientName: missing,
+      });
+      expect(rendered).toBe(introProcessorReplica(INTRO_FIXTURE, ''));
+      expect(rendered).toContain('[Client Name]');
+      expect(rendered).not.toContain('{clientName}');
+    }
+  });
+
+  it('substituteClientName replaces every occurrence', () => {
+    expect(substituteClientName('{clientName} + {clientName}', 'X')).toBe(
+      '<span class="font-bold">X</span> + <span class="font-bold">X</span>'
+    );
+  });
+
+  it('processContent sections: canonical HTML without lists passes through unchanged', () => {
+    const canonical = canonicalizeContent('<p>In scope: <strong>routing</strong>.</p>') as string;
+    for (const key of ['scope', 'out_of_scope', 'assumptions', 'objectives_disclosure', 'key_objectives'] as const) {
+      expect(renderSectionHtml(key, canonical)).toBe(canonical);
+    }
+  });
+
+  it('processContent sections: canonical HTML with lists keeps textContent identical', () => {
+    const canonical = canonicalizeContent(
+      '<p>Items:</p><ul><li>one</li><li>two</li></ul>'
+    ) as string;
+    const rendered = renderSectionHtml('scope', canonical) as string;
+    expect(rendered).toBe(processContent(canonical));
+    expect(textContentOf(rendered)).toBe(textContentOf(canonical));
+  });
+
+  it('processContent sections: stored plain text renders through textToHtml', () => {
+    const plain = 'First line\n\n- bullet one\n- bullet two';
+    const rendered = renderSectionHtml('assumptions', plain);
+    expect(rendered).toBe(textToHtml(plain));
+    expect(rendered).toContain('<li');
+  });
+
+  it('project_phases: applies stripTableInlineStyles (textContent preserved)', () => {
+    const stored =
+      '<table style="min-width: 200px" class="tiptap-table"><tbody><tr><td style="width:50%">cell</td></tr></tbody></table>';
+    const rendered = renderSectionHtml('project_phases', stored) as string;
+    expect(rendered).toBe(stripTableInlineStyles(stored));
+    expect(rendered).not.toContain('style=');
+    expect(textContentOf(rendered)).toBe(textContentOf(stored));
+  });
+
+  it('raw sections pass stored HTML through untouched', () => {
+    const html = '<p>raw {clientName} content with <em>markup</em></p>';
+    for (const key of ['objective_overview', 'deliverables', 'roles'] as const) {
+      expect(renderSectionHtml(key, html)).toBe(html);
+    }
+  });
+
+  it('null/undefined stored content stays null (rendered from defaults)', () => {
+    for (const key of SOW_SECTION_KEYS) {
+      expect(renderSectionHtml(key, null)).toBeNull();
+      expect(renderSectionHtml(key, undefined)).toBeNull();
+    }
   });
 });

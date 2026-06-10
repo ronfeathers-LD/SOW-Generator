@@ -128,6 +128,7 @@ export default function SOWFullView({
   const {
     anchorStatus,
     comments: anchoredComments,
+    hasLoaded: anchoredCommentsLoaded,
     refresh: refreshHighlights,
     activeThread,
     closeThread,
@@ -144,10 +145,13 @@ export default function SOWFullView({
   // same endpoint, so last-write-wins is consistent.
   const [openCommentCount, setOpenCommentCount] = useState(0);
   useEffect(() => {
-    if (anchoredComments.length > 0) {
+    // Gate on hasLoaded (not list length) so a refetch that legitimately
+    // returns zero open threads resets the badge, while the hook's initial
+    // empty state (nothing fetched yet) doesn't clobber a count already set.
+    if (anchoredCommentsLoaded) {
       setOpenCommentCount(countOpenTopLevel(anchoredComments));
     }
-  }, [anchoredComments]);
+  }, [anchoredCommentsLoaded, anchoredComments]);
   const handleCommentsChange = useCallback((list: ApprovalComment[]) => {
     setOpenCommentCount(countOpenTopLevel(list));
   }, []);

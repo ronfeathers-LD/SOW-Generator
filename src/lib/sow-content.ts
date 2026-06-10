@@ -1,6 +1,7 @@
 // import { supabase } from './supabase'; // Not currently used
 import { SOWContentTemplate } from '@/types/sow';
 import { sanitizeHtml } from './sanitize-html';
+import { processContent } from './text-to-html';
 
 /**
  * Canonical registry of SOW content sections → their `sows` table columns.
@@ -89,6 +90,127 @@ export const SOW_SECTION_RENDERED_COLUMNS: Record<SOWSectionKey, string> = {
   ...SOW_SECTION_CONTENT_COLUMNS,
   objective_overview: 'objectives_description',
 };
+
+/**
+ * Strip inline styles/classes from table elements only (preserve image
+ * styles). The SOW view applies this to project_phases content before
+ * rendering (SOWProjectPhasesPage); it is textContent-preserving (attributes
+ * only), but it IS part of the rendered transform chain, so the server-side
+ * renderer reproduces it. Single definition shared by the component and
+ * SOW_SECTION_RENDER_TRANSFORMS — do not fork.
+ */
+export function stripTableInlineStyles(html: string): string {
+  if (!html) return '';
+
+  // Remove style and class attributes from ONLY table-related elements
+  const cleaned = html
+    // Remove style attributes from table elements only
+    .replace(/<table[^>]*style="[^"]*"[^>]*>/gi, '<table>')
+    .replace(/<thead[^>]*style="[^"]*"[^>]*>/gi, '<thead>')
+    .replace(/<tbody[^>]*style="[^"]*"[^>]*>/gi, '<tbody>')
+    .replace(/<tr[^>]*style="[^"]*"[^>]*>/gi, '<tr>')
+    .replace(/<th[^>]*style="[^"]*"[^>]*>/gi, '<th>')
+    .replace(/<td[^>]*style="[^"]*"[^>]*>/gi, '<td>')
+    .replace(/<colgroup[^>]*style="[^"]*"[^>]*>/gi, '<colgroup>')
+    .replace(/<col[^>]*style="[^"]*"[^>]*>/gi, '<col>')
+    // Remove class attributes from table elements only
+    .replace(/<table[^>]*class="[^"]*"[^>]*>/gi, '<table>')
+    .replace(/<thead[^>]*class="[^"]*"[^>]*>/gi, '<thead>')
+    .replace(/<tbody[^>]*class="[^"]*"[^>]*>/gi, '<tbody>')
+    .replace(/<tr[^>]*class="[^"]*"[^>]*>/gi, '<tr>')
+    .replace(/<th[^>]*class="[^"]*"[^>]*>/gi, '<th>')
+    .replace(/<td[^>]*class="[^"]*"[^>]*>/gi, '<td>')
+    .replace(/<colgroup[^>]*class="[^"]*"[^>]*>/gi, '<colgroup>')
+    .replace(/<col[^>]*class="[^"]*"[^>]*>/gi, '<col>')
+    // Remove other table-specific attributes that might interfere
+    .replace(/<table[^>]*min-width="[^"]*"[^>]*>/gi, '<table>')
+    .replace(/<col[^>]*min-width="[^"]*"[^>]*>/gi, '<col>');
+
+  return cleaned;
+}
+
+/**
+ * Replicate SOWIntroPage's `{clientName}` substitution byte-for-byte: a
+ * truthy client name becomes a bold span; a falsy one becomes the literal
+ * `[Client Name]` placeholder (also in a bold span). Exported so tests can
+ * assert parity with the component.
+ */
+export function substituteClientName(
+  html: string,
+  clientName: string | null | undefined
+): string {
+  if (clientName) {
+    return html.replace(/{clientName}/g, `<span class="font-bold">${clientName}</span>`);
+  }
+  return html.replace(/{clientName}/g, '<span class="font-bold">[Client Name]</span>');
+}
+
+/** Context the render transforms need beyond the stored HTML itself. */
+export interface SectionRenderContext {
+  /**
+   * The client name the SOW view substitutes into the intro. SOWFullView
+   * passes `salesforceData?.account_data?.name || sow.clientName` to
+   * SOWIntroPage — i.e. the linked Salesforce account's name when present,
+   * else `sows.client_name`. Falsy → the `[Client Name]` placeholder.
+   */
+  clientName?: string | null;
+}
+
+/**
+ * Section key → the exact transform the UI applies to the STORED column value
+ * before it reaches SOWSectionContent (#351). This is the load-bearing map for
+ * anchored comments: client-side anchors are captured against the RENDERED
+ * DOM, so server-side anchor validation and content snapshots must run the
+ * same transforms or the two coordinate spaces diverge (selecting the client
+ * name in the intro would 422, since the stored column says `{clientName}`).
+ *
+ * Traced render paths (keep in sync with the components):
+ * - intro                  SOWIntroPage:        processContent + {clientName} substitution
+ * - scope                  SOWScopePage:        useSOWContent → processContent
+ * - out_of_scope           SOWOutOfScopePage:   useSOWContent → processContent
+ * - objectives_disclosure  SOWObjectivesPage:   processContent (SOWObjectivesDisclosurePage matches)
+ * - assumptions            SOWAssumptionsPage:  useSOWContent → processContent
+ * - key_objectives         SOWObjectivesPage:   processContent
+ * - project_phases         SOWProjectPhasesPage: stripTableInlineStyles (textContent-preserving)
+ * - objective_overview     SOWObjectivesPage:   rendered RAW (html={projectDescription})
+ * - deliverables           SOWScopePage:        rendered RAW
+ * - roles                  no SOWSectionContent renderer (tables built from structured data) → RAW
+ */
+export const SOW_SECTION_RENDER_TRANSFORMS: Record<
+  SOWSectionKey,
+  (storedHtml: string, context: SectionRenderContext) => string
+> = {
+  intro: (html, context) => substituteClientName(processContent(html), context.clientName),
+  scope: (html) => processContent(html),
+  out_of_scope: (html) => processContent(html),
+  objectives_disclosure: (html) => processContent(html),
+  assumptions: (html) => processContent(html),
+  project_phases: (html) => stripTableInlineStyles(html),
+  roles: (html) => html,
+  deliverables: (html) => html,
+  objective_overview: (html) => html,
+  key_objectives: (html) => processContent(html),
+};
+
+/**
+ * Render a section's stored column value the way the SOW view renders it —
+ * the single server-usable reproduction of the per-component transform chains
+ * (see SOW_SECTION_RENDER_TRANSFORMS). Pure string-in/string-out: no React,
+ * no DOM. The final render-time sanitization (SOWSectionContent) is NOT
+ * applied here; htmlToAnchorText sanitizes with the same shared config when
+ * computing anchor text, so textContent parity holds.
+ *
+ * null/undefined stored content stays null ("rendered from defaults" — the
+ * UI falls back to templates/structured data, which are not anchorable).
+ */
+export function renderSectionHtml(
+  sectionKey: SOWSectionKey,
+  storedHtml: string | null | undefined,
+  context: SectionRenderContext = {}
+): string | null {
+  if (typeof storedHtml !== 'string') return null;
+  return SOW_SECTION_RENDER_TRANSFORMS[sectionKey](storedHtml, context);
+}
 
 /**
  * Canonicalize SOW section HTML for storage.

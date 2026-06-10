@@ -1,6 +1,12 @@
 import DOMPurify from 'isomorphic-dompurify';
 import { SANITIZE_HTML_CONFIG } from './sanitize-html';
-import { SOW_SECTION_KEYS, type SOWSectionKey } from './sow-content';
+import {
+  renderSectionHtml,
+  SOW_SECTION_KEYS,
+  SOW_SECTION_RENDERED_COLUMNS,
+  type SectionRenderContext,
+  type SOWSectionKey,
+} from './sow-content';
 
 /**
  * Comment anchors (#348): quote + context anchoring, W3C Web Annotation style.
@@ -156,6 +162,38 @@ export function htmlToAnchorText(html: string | null | undefined): string {
   return body.textContent ?? '';
 }
 
+/**
+ * The ANCHOR TEXT a section presents to the user (#351): apply the section's
+ * render transform chain to the stored column value (renderSectionHtml — the
+ * server-side reproduction of what the UI does before SOWSectionContent), then
+ * take htmlToAnchorText of the result.
+ *
+ * This — NOT htmlToAnchorText of the raw stored column — is the coordinate
+ * space client-side anchors live in, because the client captures selections
+ * against the rendered DOM. For most canonical-HTML sections the two are
+ * identical, but e.g. the intro's `{clientName}` placeholder renders as the
+ * actual client name, and plain-text content renders through textToHtml.
+ *
+ * @param sow     row-shaped record holding the section's RENDERED column
+ *                (see SOW_SECTION_RENDERED_COLUMNS)
+ * @param context render context (the client name the UI substitutes — see
+ *                SectionRenderContext)
+ */
+export function renderedSectionText(
+  sow: Record<string, unknown>,
+  sectionKey: SOWSectionKey,
+  context: SectionRenderContext = {}
+): string {
+  const column = SOW_SECTION_RENDERED_COLUMNS[sectionKey];
+  const stored = sow[column];
+  const rendered = renderSectionHtml(
+    sectionKey,
+    typeof stored === 'string' ? stored : null,
+    context
+  );
+  return htmlToAnchorText(rendered);
+}
+
 export type AnchorValidationResult =
   /** quoted_text found exactly at [start_offset, end_offset). */
   | { status: 'ok' }
@@ -275,15 +313,28 @@ export function resolveAnchorInText(
 
 /**
  * Validate an anchor against a section's current HTML (server-side gate for
- * POST). Thin wrapper over `resolveAnchorInText` — see it for the resolution
- * order — translating its result into the API's three-way status.
+ * POST). Thin wrapper over `validateAnchorAgainstText`. NOTE: callers
+ * validating against a STORED column must pass the RENDERED html (see
+ * renderSectionHtml / renderedSectionText) — the client anchors against the
+ * rendered DOM, not the raw column.
  */
 export function validateAnchor(
   anchor: CommentAnchorInput,
   sectionHtml: string | null | undefined
 ): AnchorValidationResult {
-  const text = htmlToAnchorText(sectionHtml);
+  return validateAnchorAgainstText(anchor, htmlToAnchorText(sectionHtml));
+}
 
+/**
+ * Validate an anchor against a section's ANCHOR TEXT (see the convention
+ * block above; produce it with `renderedSectionText`). Thin wrapper over
+ * `resolveAnchorInText` — see it for the resolution order — translating its
+ * result into the API's three-way status.
+ */
+export function validateAnchorAgainstText(
+  anchor: CommentAnchorInput,
+  text: string
+): AnchorValidationResult {
   if (text.length === 0) {
     return {
       status: 'not_found',

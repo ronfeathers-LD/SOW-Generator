@@ -59,6 +59,12 @@ export interface UseAnchoredHighlightsResult<T> {
    * Comments-tab count in the host view (#351); empty until the first fetch.
    */
   comments: readonly T[];
+  /**
+   * True once the first fetch has completed successfully — distinguishes
+   * "not yet loaded" (comments === [] means nothing) from "loaded, and the
+   * SOW genuinely has zero / zero-open comments".
+   */
+  hasLoaded: boolean;
   /** Refetch comments and re-resolve/repaint (after post/resolve/reply). */
   refresh: () => void;
   /** The thread opened by clicking a highlight, if any. */
@@ -103,6 +109,7 @@ export function useAnchoredHighlights<T extends AnchoredCommentRef>(options: {
   const { sowId, containerRef, enabled } = options;
 
   const [comments, setComments] = useState<T[]>([]);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [loadVersion, setLoadVersion] = useState(0);
   const [anchorStatus, setAnchorStatus] = useState<
     ReadonlyMap<string, AnchorResolutionStatus>
@@ -147,7 +154,10 @@ export function useAnchoredHighlights<T extends AnchoredCommentRef>(options: {
         const response = await fetch(`/api/sow/${sowId}/approval-comments`);
         if (!response.ok) return;
         const data = (await response.json()) as T[];
-        if (!cancelled && Array.isArray(data)) setComments(data);
+        if (!cancelled && Array.isArray(data)) {
+          setComments(data);
+          setHasLoaded(true);
+        }
       } catch (error) {
         console.error('Error loading anchored comments:', error);
       }
@@ -284,5 +294,5 @@ export function useAnchoredHighlights<T extends AnchoredCommentRef>(options: {
     return comment ? { comment, rect: active.rect } : null;
   }, [active, comments]);
 
-  return { anchorStatus, comments, refresh, activeThread, closeThread, jumpToComment };
+  return { anchorStatus, comments, hasLoaded, refresh, activeThread, closeThread, jumpToComment };
 }
