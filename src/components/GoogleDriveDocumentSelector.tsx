@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
+import { Button, Card, Input } from '@/components/ui/form';
 
 interface DriveDocument {
   id: string;
@@ -466,83 +467,71 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
           </div>
         )}
         
-        {/* No Results Cards - Show when no folders found */}
+        {/* No results — one clear empty state (was two clashing colored cards
+            plus a duplicate message). */}
         {!isPreloading && searchResults.length === 0 && customerName && (
-          <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* No Folders Found Card */}
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-              <div className="text-sm text-yellow-800 mb-3">
-                <strong>No folders found for customer &quot;{customerName}&quot;</strong><br />
-                The folder name in Google Drive might be different from the Salesforce account name.
+          <Card tone="muted" padding="md" className="mb-4">
+            <div className="flex flex-col items-center gap-2 text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-400 dark:bg-dark-elevated dark:text-dark-text-subtle">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
               </div>
-              
-              {!showManualSearch ? (
-                <button
-                  onClick={() => setShowManualSearch(true)}
-                  className="px-3 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition-colors"
-                >
-                  🔍 Search with Different Terms
-                </button>
-              ) : (
-                <div className="space-y-3">
-                  <div>
-                    <label htmlFor="manualSearch" className="block text-sm font-medium text-yellow-800 mb-1">
-                      Search for folders using different terms:
-                    </label>
-                    <input
-                      type="text"
-                      id="manualSearch"
-                      value={manualSearchTerm}
-                      onChange={(e) => setManualSearchTerm(e.target.value)}
-                      placeholder="e.g., company abbreviation, project name, or different spelling"
-                      className="w-full px-4 py-3 border border-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-                    />
-                  </div>
-                  <div className="flex space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => performManualSearch(manualSearchTerm)}
-                      disabled={isManualSearching || !manualSearchTerm.trim()}
-                      className="px-3 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {isManualSearching ? 'Searching...' : 'Search'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowManualSearch(false);
-                        setManualSearchTerm('');
-                      }}
-                      className="px-3 py-2 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+              <p className="text-sm font-medium text-gray-900 dark:text-dark-text">
+                No Google Drive folders found for &quot;{customerName}&quot;
+              </p>
+              <p className="max-w-md text-sm text-gray-500 dark:text-dark-text-muted">
+                The folder name in Drive may differ from the Salesforce account name. Try different
+                search terms, or browse all available folders.
+              </p>
+            </div>
+
+            {!showManualSearch ? (
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                <Button variant="secondary" size="sm" onClick={() => setShowManualSearch(true)}>
+                  Search with different terms
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => loadRootFolders()}>
+                  Browse all folders
+                </Button>
+              </div>
+            ) : (
+              <div className="mx-auto mt-4 max-w-md space-y-3">
+                <Input
+                  type="text"
+                  value={manualSearchTerm}
+                  onChange={(e) => setManualSearchTerm(e.target.value)}
+                  placeholder="e.g. company abbreviation, project name, or different spelling"
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => performManualSearch(manualSearchTerm)}
+                    disabled={isManualSearching || !manualSearchTerm.trim()}
+                    loading={isManualSearching}
+                  >
+                    Search
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => loadRootFolders()}>
+                    Browse all folders
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowManualSearch(false);
+                      setManualSearchTerm('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
                 </div>
-              )}
-            </div>
-
-            {/* No Documents Found Card */}
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-md text-center">
-              <svg className="mx-auto h-8 w-8 text-blue-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
-              <div className="text-sm text-blue-800 mb-3">
-                <strong>No documents found</strong><br />
-                Browse all available folders to find content.
               </div>
-              <button
-                onClick={() => loadRootFolders()}
-                className="px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
-              >
-                📁 Browse All Folders
-              </button>
-            </div>
-          </div>
+            )}
+          </Card>
         )}
-        
 
-        
         {/* Preloaded Results Status */}
         {!isPreloading && searchResults.length > 0 && (
           <div className="text-xs text-green-600">
@@ -551,13 +540,6 @@ const GoogleDriveDocumentSelector = memo(function GoogleDriveDocumentSelector({
             ) : (
               `✅ Found ${searchResults.length} customer folder${searchResults.length !== 1 ? 's' : ''}`
             )}
-          </div>
-        )}
-        
-        {/* No Results Message */}
-        {!isPreloading && searchResults.length === 0 && customerName && (
-          <div className="text-xs text-gray-600">
-            No folders found for &quot;{customerName}&quot;. Try searching with different terms below.
           </div>
         )}
       </div>
