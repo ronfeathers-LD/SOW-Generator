@@ -190,51 +190,60 @@ function contextScore(
   return score;
 }
 
+/** The anchor fields the pure text resolver needs (offsets are a hint). */
+export type AnchorQuery = Pick<
+  CommentAnchorInput,
+  'quoted_text' | 'context_prefix' | 'context_suffix' | 'start_offset'
+>;
+
+export type AnchorTextResolution = {
+  start_offset: number;
+  end_offset: number;
+  /** true when the quote sat exactly at the stored offsets (no drift). */
+  exact: boolean;
+};
+
 /**
- * Validate an anchor against a section's current HTML.
- *
- * Resolution order (first hit wins):
- *   1. Exact: quoted_text occurs at [start_offset, end_offset) → 'ok'.
+ * Resolve an anchor against a plain ANCHOR TEXT string (see the convention
+ * block above). Pure string matching — no DOM, no sanitizer — so it is shared
+ * verbatim between the server (`validateAnchor`, via `htmlToAnchorText`) and
+ * the client (`anchorToRange` in selection-anchor.ts, via the live section
+ * container's `textContent`). Both sides therefore implement the SAME
+ * precedence:
+ *   1. Exact: quoted_text occurs at [start_offset, end_offset) → exact.
  *   2. Otherwise find every occurrence of quoted_text:
- *      - none   → 'not_found' (POST rejects with 422: the text must exist in
- *        the section at the moment the comment is filed).
- *      - one    → 'adjusted' to that occurrence (offset drift).
- *      - many   → disambiguate by context_prefix/context_suffix match score;
+ *      - none → null (server: 'not_found' / client: orphan — never guess).
+ *      - one  → that occurrence (offset drift).
+ *      - many → disambiguate by context_prefix/context_suffix match score;
  *        among the best-scoring candidates, pick the one closest to the
- *        start_offset hint → 'adjusted'. (Offsets are explicitly a tiebreak
- *        hint here — with identical quote AND identical context there is no
- *        stronger signal available until block_id lands.)
+ *        start_offset hint. (Offsets are explicitly a tiebreak hint here —
+ *        with identical quote AND identical context there is no stronger
+ *        signal available until block_id lands.)
  */
-export function validateAnchor(
-  anchor: CommentAnchorInput,
-  sectionHtml: string | null | undefined
-): AnchorValidationResult {
-  const text = htmlToAnchorText(sectionHtml);
+export function resolveAnchorInText(
+  text: string,
+  anchor: AnchorQuery
+): AnchorTextResolution | null {
   const { quoted_text, context_prefix, context_suffix, start_offset } = anchor;
 
-  if (text.length === 0) {
-    return {
-      status: 'not_found',
-      reason: 'Section has no stored content to anchor against',
-    };
-  }
+  if (text.length === 0 || quoted_text.length === 0) return null;
 
   // 1. Exact position match.
   if (
+    start_offset >= 0 &&
     start_offset + quoted_text.length <= text.length &&
     text.startsWith(quoted_text, start_offset)
   ) {
-    return { status: 'ok' };
+    return {
+      start_offset,
+      end_offset: start_offset + quoted_text.length,
+      exact: true,
+    };
   }
 
   // 2. Quote search.
   const occurrences = findAllOccurrences(text, quoted_text);
-  if (occurrences.length === 0) {
-    return {
-      status: 'not_found',
-      reason: 'Quoted text not found in the section content',
-    };
-  }
+  if (occurrences.length === 0) return null;
 
   let best = occurrences[0];
   if (occurrences.length > 1) {
@@ -258,8 +267,41 @@ export function validateAnchor(
   }
 
   return {
-    status: 'adjusted',
     start_offset: best,
     end_offset: best + quoted_text.length,
+    exact: false,
+  };
+}
+
+/**
+ * Validate an anchor against a section's current HTML (server-side gate for
+ * POST). Thin wrapper over `resolveAnchorInText` — see it for the resolution
+ * order — translating its result into the API's three-way status.
+ */
+export function validateAnchor(
+  anchor: CommentAnchorInput,
+  sectionHtml: string | null | undefined
+): AnchorValidationResult {
+  const text = htmlToAnchorText(sectionHtml);
+
+  if (text.length === 0) {
+    return {
+      status: 'not_found',
+      reason: 'Section has no stored content to anchor against',
+    };
+  }
+
+  const resolved = resolveAnchorInText(text, anchor);
+  if (!resolved) {
+    return {
+      status: 'not_found',
+      reason: 'Quoted text not found in the section content',
+    };
+  }
+  if (resolved.exact) return { status: 'ok' };
+  return {
+    status: 'adjusted',
+    start_offset: resolved.start_offset,
+    end_offset: resolved.end_offset,
   };
 }
