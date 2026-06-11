@@ -4,6 +4,8 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { AuditService } from '@/lib/audit-service';
 import { SlackMentionService } from '@/lib/slack-mention-service';
 import { authOptions } from '@/lib/auth';
+import { parseAnchorInput, validateAnchor } from '@/lib/comment-anchors';
+import { SOW_SECTION_RENDERED_COLUMNS } from '@/lib/sow-content';
 
 // GET - Fetch approval comments for a SOW
 export async function GET(
@@ -33,6 +35,16 @@ export async function GET(
         version,
         created_at,
         updated_at,
+        section_key,
+        quoted_text,
+        context_prefix,
+        context_suffix,
+        start_offset,
+        end_offset,
+        block_id,
+        snapshot_id,
+        resolved_at,
+        resolved_by,
         user:users!approval_comments_user_id_fkey(id, name, email)
       `)
       .eq('sow_id', sowId)
@@ -95,22 +107,96 @@ export async function POST(
     }
 
     const sowId = (await params).id;
-    const { comment, parent_id } = await request.json();
+    const { comment, parent_id, anchor } = await request.json();
 
     if (!comment?.trim()) {
       return new NextResponse('Comment is required', { status: 400 });
     }
 
-    // Get the SOW to check version and get details for Slack notifications
+    // Replies live inside their parent's thread and inherit its anchor
+    // context — they must NOT carry an anchor of their own. REJECTED (not
+    // silently ignored) so a buggy client fails loudly instead of dropping
+    // anchor data on the floor.
+    if (parent_id && anchor !== undefined && anchor !== null) {
+      return new NextResponse('Replies cannot carry an anchor', { status: 400 });
+    }
+
+    // Validate anchor shape before touching the database.
+    let parsedAnchor = null;
+    if (anchor !== undefined && anchor !== null) {
+      const parsed = parseAnchorInput(anchor);
+      if (!parsed.ok) {
+        return new NextResponse(`Invalid anchor: ${parsed.error}`, { status: 400 });
+      }
+      parsedAnchor = parsed.anchor;
+    }
+
+    // Get the SOW to check version and get details for Slack notifications.
+    // For anchored comments, also fetch the column actually RENDERED for the
+    // anchored section (SOW_SECTION_RENDERED_COLUMNS) to validate the quote.
+    const anchoredColumn = parsedAnchor
+      ? SOW_SECTION_RENDERED_COLUMNS[parsedAnchor.section_key]
+      : null;
+    const sowColumns = ['version', 'sow_title', 'client_name'];
+    if (anchoredColumn && !sowColumns.includes(anchoredColumn)) {
+      sowColumns.push(anchoredColumn);
+    }
     const { data: sow, error: sowError } = await supabase
       .from('sows')
-      .select('version, sow_title, client_name')
+      .select(sowColumns.join(', '))
       .eq('id', sowId)
       .eq('is_hidden', false)
-      .single();
+      .single<Record<string, unknown> & {
+        version: number | null;
+        sow_title: string;
+        client_name: string;
+      }>();
 
     if (sowError || !sow) {
       return new NextResponse('SOW not found', { status: 404 });
+    }
+
+    // Validate the anchor against the section's current content. The quoted
+    // text must exist in the section at the moment the comment is filed;
+    // offsets are only a hint and are corrected here if they drifted.
+    let snapshotId: string | null = null;
+    if (parsedAnchor && anchoredColumn) {
+      const sectionHtml = sow[anchoredColumn];
+      const result = validateAnchor(
+        parsedAnchor,
+        typeof sectionHtml === 'string' ? sectionHtml : null
+      );
+      if (result.status === 'not_found') {
+        return new NextResponse(
+          `Anchor validation failed for section "${parsedAnchor.section_key}": ${result.reason}. ` +
+            'The selected text must exist in the section content when the comment is filed.',
+          { status: 422 }
+        );
+      }
+      if (result.status === 'adjusted') {
+        parsedAnchor = {
+          ...parsedAnchor,
+          start_offset: result.start_offset,
+          end_offset: result.end_offset,
+        };
+      }
+
+      // Link the most recent snapshot ROW for this (sow, section) so the
+      // comment keeps direct access to the content it was authored against.
+      // NULL is legitimate: the SOW may never have been submitted for review.
+      const { data: snapshot, error: snapshotError } = await supabase
+        .from('sow_content_snapshots')
+        .select('id')
+        .eq('sow_id', sowId)
+        .eq('section_key', parsedAnchor.section_key)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (snapshotError) {
+        // Non-fatal: the anchor itself is already validated; just log.
+        console.error('Error looking up content snapshot for anchor:', snapshotError);
+      }
+      snapshotId = snapshot?.id ?? null;
     }
 
     // Get current user
@@ -147,7 +233,15 @@ export async function POST(
         comment: comment.trim(),
         is_internal: false,
         parent_id: parent_id || null,
-        version: sow.version || 1
+        version: sow.version || 1,
+        // Anchor fields: all null for general comments (zero behavior change).
+        section_key: parsedAnchor?.section_key ?? null,
+        quoted_text: parsedAnchor?.quoted_text ?? null,
+        context_prefix: parsedAnchor?.context_prefix ?? null,
+        context_suffix: parsedAnchor?.context_suffix ?? null,
+        start_offset: parsedAnchor?.start_offset ?? null,
+        end_offset: parsedAnchor?.end_offset ?? null,
+        snapshot_id: snapshotId
       })
       .select(`
         *,
@@ -166,7 +260,8 @@ export async function POST(
       user.id,
       comment.trim(),
       false,
-      parent_id || undefined
+      parent_id || undefined,
+      parsedAnchor ? { section_key: parsedAnchor.section_key } : undefined
     );
 
     // Send Slack notifications for @mentions (if any)
@@ -177,7 +272,8 @@ export async function POST(
         sowId,
         sow.sow_title,
         sow.client_name,
-        commentAuthor
+        commentAuthor,
+        parsedAnchor?.quoted_text
       );
     } catch (mentionError) {
       console.error('Error sending mention notifications:', mentionError);

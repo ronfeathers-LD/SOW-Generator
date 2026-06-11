@@ -12,6 +12,12 @@ interface Comment {
   parent_id?: string;
   created_at: string;
   updated_at: string;
+  // Anchored-comment fields (#348) — null on general comments; replies never
+  // carry their own anchor. Not rendered here yet (UI lands in P5/P6).
+  section_key?: string | null;
+  quoted_text?: string | null;
+  resolved_at?: string | null;
+  resolved_by?: string | null;
   user: {
     id: string;
     name: string;

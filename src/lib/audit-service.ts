@@ -76,7 +76,8 @@ export class AuditService {
     userId: string,
     comment: string,
     isInternal: boolean = false,
-    parentId?: string
+    parentId?: string,
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     try {
       const { error } = await supabase
@@ -88,7 +89,9 @@ export class AuditService {
           comments: comment,
           metadata: {
             is_internal: isInternal,
-            parent_id: parentId
+            parent_id: parentId,
+            // Extra context (e.g. section_key for anchored comments, #348).
+            ...metadata
           }
         });
 
