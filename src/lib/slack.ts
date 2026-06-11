@@ -661,6 +661,13 @@ export async function getSlackService(): Promise<SlackService | null> {
         console.error('Error reading Slack config from database:', error);
       }
 
+      // Honor the admin "enabled" toggle (#368). NULL counts as enabled —
+      // matching how the admin config API reads the flag (is_enabled ?? true).
+      if (config && config.is_enabled === false) {
+        console.warn('Slack notifications disabled via admin config (slack_config.is_enabled = false)');
+        return null;
+      }
+
       let webhookUrl = '';
       let channel = '';
       let username = 'SOW Generator';
