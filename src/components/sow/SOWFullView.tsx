@@ -26,7 +26,7 @@ import type { ApprovalComment } from '@/components/sow/CommentThread';
 import { useTextSelection } from '@/lib/hooks/useTextSelection';
 import { useAnchoredHighlights } from '@/lib/hooks/useAnchoredHighlights';
 import { countOpenTopLevel } from '@/lib/comment-filters';
-import type { SelectionAnchor } from '@/lib/selection-anchor';
+import { anchorToRange, type SelectionAnchor } from '@/lib/selection-anchor';
 import type { SOWSectionKey } from '@/lib/sow-content';
 import { DisplaySOW, Product, SalesforceData } from '@/types/sow-display';
 
@@ -111,6 +111,9 @@ export default function SOWFullView({
   // comments are shown, regardless of SOW status (SOWComments is rendered
   // without a status check, so anchored comments follow the same rule).
   const contentRef = useRef<HTMLDivElement | null>(null);
+  // Paints the selection being commented on while the composer is open —
+  // styled in globals.css next to the sow-comment/sow-comment-active rules.
+  const PENDING_COMMENT_HIGHLIGHT_NAME = 'sow-comment-pending';
   const [composer, setComposer] = useState<{
     anchor: SelectionAnchor;
     sectionKey: SOWSectionKey;
@@ -191,6 +194,30 @@ export default function SOWFullView({
     clearSelection();
     closeThread(); // one popover at a time
   }, [selection, clearSelection, closeThread]);
+
+  // While the composer is open the native selection is gone (focusing the
+  // textarea collapses it), so paint the pending anchor as a highlight to
+  // keep showing the user exactly what they selected (#349).
+  useEffect(() => {
+    if (
+      !composer ||
+      typeof CSS === 'undefined' ||
+      !('highlights' in CSS) ||
+      typeof Highlight === 'undefined'
+    ) {
+      return;
+    }
+    const container = contentRef.current?.querySelector<HTMLElement>(
+      `[data-section-key="${composer.sectionKey}"]`
+    );
+    if (!container) return;
+    const range = anchorToRange(composer.anchor, container);
+    if (!range) return;
+    CSS.highlights.set(PENDING_COMMENT_HIGHLIGHT_NAME, new Highlight(range));
+    return () => {
+      CSS.highlights.delete(PENDING_COMMENT_HIGHLIGHT_NAME);
+    };
+  }, [composer]);
 
   const isEditable = useMemo(() => {
     if (!sow) return false;

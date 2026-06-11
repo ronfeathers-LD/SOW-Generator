@@ -259,7 +259,7 @@ export async function POST(
       })
       .select(`
         *,
-        user:users(id, name, email)
+        user:users!approval_comments_user_id_fkey(id, name, email)
       `)
       .single();
 

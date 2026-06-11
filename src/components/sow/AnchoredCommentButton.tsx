@@ -39,7 +39,9 @@ export default function AnchoredCommentButton({
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       style={{ position: 'fixed', top, left, zIndex: 50 }}
-      className="inline-flex items-center px-3 py-1.5 rounded-md shadow-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      // select-none: the button must never become a text-selection target —
+      // if a drag reaches it, the selection would extend to its DOM position.
+      className="inline-flex items-center px-3 py-1.5 rounded-md shadow-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 select-none"
       aria-label="Comment on selected text"
     >
       <span className="mr-1" aria-hidden="true">💬</span>

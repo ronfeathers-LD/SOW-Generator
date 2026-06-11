@@ -1038,3 +1038,10 @@ body[style*="--print-sow-active: true"] .min-h-screen.bg-gray-50 {
 ::highlight(sow-comment-active) {
   background-color: rgba(245, 158, 11, 0.55); /* stronger amber (amber-500) */
 }
+
+/* The selection being commented on while the composer is open (#349) — the
+   native selection collapses when the textarea takes focus, so this keeps
+   the selected text visibly marked. Registered by SOWFullView. */
+::highlight(sow-comment-pending) {
+  background-color: rgba(129, 140, 248, 0.35); /* indigo-400 */
+}

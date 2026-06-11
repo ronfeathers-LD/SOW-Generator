@@ -123,6 +123,15 @@ export function useAnchoredHighlights<T extends AnchoredCommentRef>(options: {
   /** Bumped whenever ranges are (re)computed, so the pending-jump effect runs
    *  AFTER resolution rather than racing it. */
   const [rangesVersion, setRangesVersion] = useState(0);
+  /**
+   * Bumped when section DOM mutates. Live Ranges DIE when React replaces the
+   * text nodes they point at — the spec collapses their boundaries to the
+   * parent element — so painted highlights silently vanish (e.g. when
+   * useSOWContent swaps in processed content after the first paint). A
+   * MutationObserver re-triggers resolution whenever a section's subtree
+   * changes.
+   */
+  const [domVersion, setDomVersion] = useState(0);
   /** Jump-to-text request queued until the comment's range is available. */
   const [pendingJumpId, setPendingJumpId] = useState<string | null>(null);
 
@@ -167,6 +176,36 @@ export function useAnchoredHighlights<T extends AnchoredCommentRef>(options: {
     };
   }, [sowId, enabled, loadVersion]);
 
+  // ── Watch the section containers for DOM replacement (see domVersion) ──
+  useEffect(() => {
+    if (!enabled) return;
+    const root = containerRef.current;
+    if (!root) return;
+    let scheduled: number | null = null;
+    const observer = new MutationObserver((mutations) => {
+      // Only react to mutations inside a section container — popovers,
+      // buttons and other chrome under the same root are irrelevant (and
+      // reacting to them would cause needless re-resolution cycles).
+      const relevant = mutations.some((m) => {
+        const el =
+          m.target instanceof Element ? m.target : m.target.parentElement;
+        return !!el?.closest('[data-section-key]');
+      });
+      if (!relevant) return;
+      if (scheduled !== null) window.clearTimeout(scheduled);
+      scheduled = window.setTimeout(() => setDomVersion((v) => v + 1), 150);
+    });
+    observer.observe(root, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    return () => {
+      observer.disconnect();
+      if (scheduled !== null) window.clearTimeout(scheduled);
+    };
+  }, [enabled, containerRef]);
+
   // ── Resolve anchors against the mounted sections; paint open threads ──
   useEffect(() => {
     if (!enabled) return;
@@ -208,7 +247,7 @@ export function useAnchoredHighlights<T extends AnchoredCommentRef>(options: {
       paintedRangesRef.current = new Map();
       allRangesRef.current = new Map();
     };
-  }, [comments, enabled, containerRef]);
+  }, [comments, enabled, containerRef, domVersion]);
 
   // ── Pending jump-to-text (#351): runs after every (re)resolution until the
   // requested comment's range is known, then scrolls + activates it. ──

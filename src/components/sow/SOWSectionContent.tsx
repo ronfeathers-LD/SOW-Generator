@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import { sanitizeHtml } from '@/lib/sanitize-html';
 import type { SOWSectionKey } from '@/lib/sow-content';
 
@@ -22,19 +23,29 @@ interface SOWSectionContentProps {
  * - each rendered section is tagged with `data-section-key`, the hook the
  *   anchored-comments phases (snapshots, text anchors, highlight overlays)
  *   use to locate section content in the DOM.
+ *
+ * CRITICAL: the `dangerouslySetInnerHTML` value MUST be referentially stable
+ * across re-renders (hence the useMemo + memo). A freshly-built
+ * `{ __html: sanitizeHtml(html) }` object makes React re-assign innerHTML on
+ * EVERY parent re-render — replacing the section's text nodes each time,
+ * which silently kills the user's text selection and collapses every live
+ * Range the anchored-comment highlights point at (#349/#350).
  */
-export default function SOWSectionContent({
+function SOWSectionContent({
   sectionKey,
   html,
   className,
   id,
 }: SOWSectionContentProps) {
+  const innerHtml = useMemo(() => ({ __html: sanitizeHtml(html) }), [html]);
   return (
     <div
       id={id}
       data-section-key={sectionKey}
       className={className}
-      dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
+      dangerouslySetInnerHTML={innerHtml}
     />
   );
 }
+
+export default memo(SOWSectionContent);
