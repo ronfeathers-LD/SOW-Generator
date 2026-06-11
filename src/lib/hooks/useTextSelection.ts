@@ -34,6 +34,14 @@ export function useTextSelection(
 ) {
   const [selection, setSelection] = useState<TextSelectionState | null>(null);
   const debounceRef = useRef<number | null>(null);
+  // True while the primary mouse button is held down (a drag-selection in
+  // progress). We must NOT report a selection mid-drag: the floating button
+  // would mount under the cursor, and dragging across a fixed-position
+  // overlay extends the browser selection to the overlay's DOM position —
+  // which sits AFTER all page content, so the selection visually explodes
+  // to "everything to the end of the page" and then collapses when the
+  // cross-section result unmounts the button again.
+  const mouseDownRef = useRef(false);
 
   useEffect(() => {
     if (!enabled) {
@@ -87,17 +95,40 @@ export function useTextSelection(
     };
 
     const onSelectionChange = () => {
-      // Debounce: selectionchange fires continuously during a drag.
+      // Never evaluate mid-drag (see mouseDownRef above) — the selection is
+      // reported once, on mouseup. The debounced path handles keyboard
+      // selections (shift+arrows etc.), which happen with the mouse up.
+      if (mouseDownRef.current) return;
       if (debounceRef.current !== null) window.clearTimeout(debounceRef.current);
       debounceRef.current = window.setTimeout(evaluate, 120);
     };
 
+    const onMouseDown = (event: MouseEvent) => {
+      if (event.button !== 0) return;
+      // The floating button preventDefaults its own mousedown to keep the
+      // selection alive — don't treat that as the start of a new drag.
+      if (event.defaultPrevented) return;
+      mouseDownRef.current = true;
+      if (debounceRef.current !== null) window.clearTimeout(debounceRef.current);
+      // A fresh press anywhere dismisses the previous selection report.
+      setSelection(null);
+    };
+
+    const onMouseUp = (event: MouseEvent) => {
+      if (event.button !== 0) return;
+      mouseDownRef.current = false;
+      // Evaluate after the browser finalizes the selection for this mouseup.
+      if (debounceRef.current !== null) window.clearTimeout(debounceRef.current);
+      debounceRef.current = window.setTimeout(evaluate, 0);
+    };
+
     document.addEventListener('selectionchange', onSelectionChange);
-    // mouseup re-evaluates immediately so the button appears without the lag.
-    document.addEventListener('mouseup', onSelectionChange);
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mouseup', onMouseUp);
     return () => {
       document.removeEventListener('selectionchange', onSelectionChange);
-      document.removeEventListener('mouseup', onSelectionChange);
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('mouseup', onMouseUp);
       if (debounceRef.current !== null) window.clearTimeout(debounceRef.current);
     };
   }, [regionRef, enabled]);
