@@ -229,6 +229,17 @@ export default function Navigation() {
                   pathname.startsWith('/help') ? 'border-green-500' : 'border-transparent group-hover:border-green-200'
                 }`}>Help</span>
               </Link>
+              <Link
+                href="/feedback"
+                className={`group flex items-center px-3 text-xs font-semibold uppercase tracking-wider ${
+                  pathname.startsWith('/feedback') ? 'text-white font-bold' : 'hover:text-white'
+                }`}
+                style={{color: 'white'}}
+              >
+                <span className={`border-b-4 ${
+                  pathname.startsWith('/feedback') ? 'border-green-500' : 'border-transparent group-hover:border-green-200'
+                }`}>Feedback</span>
+              </Link>
               {(isPMO || isAdmin) && (
                 <Link
                   href="/pmo"
@@ -422,6 +433,17 @@ export default function Navigation() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Help
+              </Link>
+              <Link
+                href="/feedback"
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  pathname.startsWith('/feedback')
+                    ? 'text-white bg-gray-900'
+                    : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                }`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Feedback
               </Link>
               {(isPMO || isAdmin) && (
                 <Link
