@@ -295,6 +295,29 @@ export async function PUT(
       );
     }
 
+    // Capture content snapshots on the actual transition TO in_review
+    // (draft/rejected/recalled → in_review per ALLOWED_STATUS_TRANSITIONS;
+    // the guard on currentSOW.status skips redundant in_review → in_review
+    // PUTs, which the transition map doesn't reach because the status didn't
+    // change). This is the ONLY server code path that sets status to
+    // 'in_review' — verified by grepping src/app and src/lib: the recall
+    // route and revision routes only ever set 'draft', and
+    // approval-workflow-service only writes 'approved'/'rejected'.
+    //
+    // Failure policy (#347): a snapshot failure must NOT fail the submit —
+    // anchored comments simply degrade gracefully without snapshots.
+    if (data.status === 'in_review' && currentSOW.status !== 'in_review') {
+      try {
+        const { captureContentSnapshots } = await import('@/lib/sow-snapshot-service');
+        await captureContentSnapshots(id, supabase);
+      } catch (snapshotError) {
+        console.error(
+          `SNAPSHOT CAPTURE FAILED for SOW ${id} on submit-for-review — continuing; anchored comments will lack a content snapshot for this submission:`,
+          snapshotError
+        );
+      }
+    }
+
     // Initialize multi-step approval workflow when SOW is submitted for review
     if (data.status === 'in_review') {
       try {

@@ -38,6 +38,35 @@ export const SOW_SECTION_CONTENT_COLUMN_NAMES = Object.values(
 ) as SOWSectionContentColumn[];
 
 /**
+ * Section key → the `sows` column whose content is actually RENDERED for that
+ * section (what a reviewer sees on the page / in the PDF). Content snapshots
+ * (#347) and anchor resolution must read these columns, not blindly the
+ * `custom_*` columns above.
+ *
+ * For every key except `objective_overview` this is identical to
+ * SOW_SECTION_CONTENT_COLUMNS. The exception, established by tracing the
+ * render path (decision for #347):
+ *
+ *   SOWObjectivesPage renders the "Objective:" block from its
+ *   `projectDescription` prop ← `sow.projectDescription` ←
+ *   `objectives.description` (map-api-response-to-display.ts) ←
+ *   `objectives_description` (map-sow-response.ts). The edit UI
+ *   (ObjectivesTab → tab-column-mapping.ts) writes BOTH
+ *   `objectives_description` and `custom_objective_overview_content`, but the
+ *   renderer only ever reads `objectives_description` — so that is the column
+ *   a reviewer's comment is anchored against, and the one we snapshot.
+ *
+ * Note: when a `custom_*` column is NULL the page may fall back to a default
+ * template (intro, scope, …) or structured data (key_objectives array). A
+ * NULL snapshot therefore means "rendered from defaults at submit time",
+ * which is stable/recoverable and intentionally not inlined here.
+ */
+export const SOW_SECTION_RENDERED_COLUMNS: Record<SOWSectionKey, string> = {
+  ...SOW_SECTION_CONTENT_COLUMNS,
+  objective_overview: 'objectives_description',
+};
+
+/**
  * Canonicalize SOW section HTML for storage.
  *
  * Stored section HTML must be byte-stable across edit→save→render cycles so
