@@ -1,6 +1,40 @@
 import nodemailer from 'nodemailer';
 import { logInvalidEmailWarning } from './utils/email-domain-validation';
 import { getSOWUrl, getPMHoursRemovalUrl } from './utils/app-url';
+import { isStagingDeploy } from './deploy-env';
+
+const STAGE_SUBJECT_PREFIX = '[STAGE] ';
+const STAGE_BANNER_TEXT =
+  '⚠️ Sent from the SOW Generator STAGING environment — test traffic.';
+const STAGE_BANNER_HTML =
+  '<div style="background-color: #fef3c7; border: 2px solid #f59e0b; color: #92400e; ' +
+  'padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; ' +
+  'font-family: Arial, sans-serif; font-weight: bold;">' +
+  STAGE_BANNER_TEXT +
+  '</div>';
+
+interface StageMarkedEmail {
+  subject: string;
+  html: string;
+  text: string;
+}
+
+/**
+ * Pure decoration: marks an outgoing email as staging traffic.
+ * - subject gets a "[STAGE] " prefix
+ * - HTML body gets an amber banner div prepended
+ * - text body gets a plain banner line prepended
+ *
+ * Exported for unit tests; EmailService applies it at the single send
+ * chokepoint (sendTemplateEmail) only when isStagingDeploy() is true.
+ */
+export function markEmailForStage(email: StageMarkedEmail): StageMarkedEmail {
+  return {
+    subject: `${STAGE_SUBJECT_PREFIX}${email.subject}`,
+    html: `${STAGE_BANNER_HTML}\n${email.html}`,
+    text: email.text ? `${STAGE_BANNER_TEXT}\n\n${email.text}` : STAGE_BANNER_TEXT
+  };
+}
 
 interface EmailConfig {
   provider: 'gmail' | 'sendgrid' | 'mailgun' | 'smtp';
@@ -130,6 +164,20 @@ class EmailService {
         htmlContent = htmlContent.replace(regex, escapeHtml(value));
         textContent = textContent.replace(regex, raw);
       });
+
+      // Staging deploys send to real recipients (full prod copy) — make the
+      // traffic unmistakably labeled. Single chokepoint: every send path in
+      // this service funnels through sendTemplateEmail.
+      if (isStagingDeploy()) {
+        const marked = markEmailForStage({
+          subject,
+          html: htmlContent,
+          text: textContent
+        });
+        subject = marked.subject;
+        htmlContent = marked.html;
+        textContent = marked.text;
+      }
 
       const mailOptions: {
         from: string;
