@@ -134,8 +134,19 @@ export default function SOWComments({ sowId }: SOWCommentsProps) {
           )}
         </div>
       </div>
-      
-      <div 
+
+      {/* Anchored comment (#349): show the quoted selection above the body.
+          Minimal rendering for now — full chip UX (jump-to-highlight, resolve)
+          lands in P5/P6. */}
+      {comment.quoted_text && (
+        <blockquote className="mb-2 border-l-4 border-indigo-300 bg-indigo-50 rounded-r px-3 py-1.5 text-sm text-gray-600 italic break-words">
+          {comment.quoted_text.length > 200
+            ? `${comment.quoted_text.slice(0, 200)}…`
+            : comment.quoted_text}
+        </blockquote>
+      )}
+
+      <div
         className="text-gray-700 mb-3"
         dangerouslySetInnerHTML={{
           __html: sanitizeHtml(formatCommentWithMentions(comment.comment))
