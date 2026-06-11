@@ -41,13 +41,8 @@ export async function GET(
       .select('*', { count: 'exact', head: true })
       .eq('user_id', id);
 
-    // Get comments posted by this user
-    const { count: commentsPosted } = await supabase
-      .from('comments')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', id);
-
-    // Get approval comments posted by this user
+    // Get approval comments posted by this user (the app's only comment
+    // system — the legacy empty `comments` table was dropped in migration 029)
     const { count: approvalComments } = await supabase
       .from('approval_comments')
       .select('*', { count: 'exact', head: true })
@@ -57,7 +52,6 @@ export async function GET(
     const lastActivityQueries = [
       supabase.from('sows').select('created_at').eq('created_by', id).order('created_at', { ascending: false }).limit(1),
       supabase.from('sow_changelog').select('created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(1),
-      supabase.from('comments').select('created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(1),
       supabase.from('approval_comments').select('created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(1)
     ];
 
@@ -86,7 +80,6 @@ export async function GET(
     const stats = {
       sows_created: sowsCreated || 0,
       sows_edited: sowsEdited || 0,
-      comments_posted: commentsPosted || 0,
       approval_comments: approvalComments || 0,
       last_activity: lastActivity,
       total_sessions: totalSessions
