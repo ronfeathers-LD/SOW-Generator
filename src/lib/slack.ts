@@ -1,4 +1,5 @@
 import { getSOWUrl } from './utils/app-url';
+import { isStagingDeploy } from './deploy-env';
 
 interface SlackMessage {
   text?: string;
@@ -25,11 +26,56 @@ interface SlackNotificationConfig {
   iconEmoji?: string;
 }
 
+const STAGE_TEXT_PREFIX = ':construction: *[STAGE]* ';
+const STAGE_CONTEXT_TEXT =
+  ':construction: *Sent from the STAGING environment — this is test traffic, not a real notification.*';
+
+/**
+ * Pure decoration: marks a Slack webhook payload as staging traffic.
+ * - username gets a " · STAGE" suffix and the icon becomes :construction:
+ * - plain-text messages are prefixed on the first line
+ * - block payloads get a leading context block calling out the staging origin
+ *
+ * Exported for unit tests; SlackService applies it (via decorateForDeployEnv)
+ * only when isStagingDeploy() is true.
+ */
+export function markSlackPayloadForStage(payload: SlackMessage): SlackMessage {
+  const marked: SlackMessage = {
+    ...payload,
+    username: `${payload.username || 'SOW Generator'} · STAGE`,
+    icon_emoji: ':construction:'
+  };
+
+  if (typeof marked.text === 'string') {
+    marked.text = `${STAGE_TEXT_PREFIX}${marked.text}`;
+  }
+
+  if (Array.isArray(marked.blocks)) {
+    marked.blocks = [
+      {
+        type: 'context',
+        elements: [{ type: 'mrkdwn', text: STAGE_CONTEXT_TEXT }]
+      },
+      ...marked.blocks
+    ];
+  }
+
+  return marked;
+}
+
 class SlackService {
   private config: SlackNotificationConfig;
 
   constructor(config: SlackNotificationConfig) {
     this.config = config;
+  }
+
+  /**
+   * Single chokepoint for staging decoration: every outbound webhook payload
+   * passes through here immediately before being serialized for fetch.
+   */
+  private decorateForDeployEnv(payload: SlackMessage): SlackMessage {
+    return isStagingDeploy() ? markSlackPayloadForStage(payload) : payload;
   }
 
   /**
@@ -56,7 +102,7 @@ class SlackService {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(this.decorateForDeployEnv(payload)),
       });
 
       if (!response.ok) {
@@ -87,7 +133,7 @@ class SlackService {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(this.decorateForDeployEnv(payload)),
       });
 
       return response.ok;
@@ -123,7 +169,7 @@ class SlackService {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(this.decorateForDeployEnv(payload)),
       });
 
       return response.ok;
@@ -582,7 +628,7 @@ class SlackService {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(this.decorateForDeployEnv(payload)),
       });
 
       return response.ok;

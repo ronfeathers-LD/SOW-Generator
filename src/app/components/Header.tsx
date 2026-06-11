@@ -1,14 +1,12 @@
 // Server component: reads the deploy environment at render time.
-// Railway injects RAILWAY_ENVIRONMENT_NAME ("staging" | "production") into
-// each environment automatically; NEXT_PUBLIC_APP_ENV is an explicit override
-// for anything Railway doesn't cover. Local dev matches neither and renders
-// the default (production-style) strip.
+// Detection logic lives in src/lib/deploy-env.ts (single source of truth);
+// local dev matches neither env var and renders the default
+// (production-style) strip.
 
-const ENV_NAME =
-  process.env.NEXT_PUBLIC_APP_ENV ?? process.env.RAILWAY_ENVIRONMENT_NAME;
+import { isStagingDeploy } from '@/lib/deploy-env';
 
 export default function Header() {
-  const isStage = ENV_NAME === 'staging';
+  const isStage = isStagingDeploy();
 
   return (
     <div
