@@ -1,5 +1,92 @@
 // import { supabase } from './supabase'; // Not currently used
 import { SOWContentTemplate } from '@/types/sow';
+import { sanitizeHtml } from './sanitize-html';
+
+/**
+ * Canonical registry of SOW content sections → their `sows` table columns.
+ *
+ * This is the single source of truth for "which DB columns hold rendered SOW
+ * section HTML". The anchored-comments pipeline (#346+) keys everything off
+ * these section keys: write paths canonicalize exactly these columns, the
+ * shared renderer (`SOWSectionContent`) tags rendered sections with
+ * `data-section-key`, and future phases (content snapshots, text anchors)
+ * reference sections by these keys.
+ */
+export const SOW_SECTION_CONTENT_COLUMNS = {
+  intro: 'custom_intro_content',
+  scope: 'custom_scope_content',
+  out_of_scope: 'custom_out_of_scope_content',
+  objectives_disclosure: 'custom_objectives_disclosure_content',
+  assumptions: 'custom_assumptions_content',
+  project_phases: 'custom_project_phases_content',
+  roles: 'custom_roles_content',
+  deliverables: 'custom_deliverables_content',
+  objective_overview: 'custom_objective_overview_content',
+  key_objectives: 'custom_key_objectives_content',
+} as const;
+
+export type SOWSectionKey = keyof typeof SOW_SECTION_CONTENT_COLUMNS;
+export type SOWSectionContentColumn =
+  (typeof SOW_SECTION_CONTENT_COLUMNS)[SOWSectionKey];
+
+export const SOW_SECTION_KEYS = Object.keys(
+  SOW_SECTION_CONTENT_COLUMNS
+) as SOWSectionKey[];
+
+export const SOW_SECTION_CONTENT_COLUMN_NAMES = Object.values(
+  SOW_SECTION_CONTENT_COLUMNS
+) as SOWSectionContentColumn[];
+
+/**
+ * Canonicalize SOW section HTML for storage.
+ *
+ * Stored section HTML must be byte-stable across edit→save→render cycles so
+ * that text anchors (quote + context against a section's rendered textContent)
+ * survive round-trips. The canonical form is: sanitize through DOMPurify
+ * (whose parse→serialize is deterministic), with line endings normalized to
+ * `\n` and outer whitespace trimmed. Deliberately conservative — no whitespace
+ * collapsing inside the markup (would corrupt <pre>/<code>), no manual
+ * attribute juggling.
+ *
+ * HARD REQUIREMENT (tested): idempotent —
+ * `canonicalizeContent(canonicalizeContent(x)) === canonicalizeContent(x)`.
+ *
+ * null/undefined pass through unchanged so callers' null semantics are
+ * preserved (a missing section must stay missing, not become '').
+ */
+export function canonicalizeContent(html: string): string;
+export function canonicalizeContent(html: null): null;
+export function canonicalizeContent(html: undefined): undefined;
+export function canonicalizeContent(
+  html: string | null | undefined
+): string | null | undefined;
+export function canonicalizeContent(
+  html: string | null | undefined
+): string | null | undefined {
+  if (html === null || html === undefined) return html;
+  // Normalize line endings before parsing so CRLF vs LF input can't produce
+  // two different canonical byte sequences.
+  const normalized = String(html).replace(/\r\n?/g, '\n');
+  return sanitizeHtml(normalized).trim();
+}
+
+/**
+ * Canonicalize every registered section-content column present on a pending
+ * `sows` update/insert payload, in place. Only string values are touched —
+ * null/undefined (and absent keys) pass through untouched. All other columns
+ * are left exactly as provided.
+ */
+export function canonicalizeContentColumns<T extends Record<string, unknown>>(
+  update: T
+): T {
+  for (const column of SOW_SECTION_CONTENT_COLUMN_NAMES) {
+    const value = update[column];
+    if (typeof value === 'string') {
+      (update as Record<string, unknown>)[column] = canonicalizeContent(value);
+    }
+  }
+  return update;
+}
 
 export async function getContentTemplate(sectionName: string): Promise<SOWContentTemplate | null> {
   try {

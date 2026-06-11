@@ -1,7 +1,7 @@
 'use client';
 
 import { useSOWContent } from '@/lib/hooks/useSOWContent';
-import { sanitizeHtml } from '@/lib/sanitize-html';
+import SOWSectionContent from '@/components/sow/SOWSectionContent';
 import { DetailedSkeleton } from '@/components/ui/LoadingSkeletons';
 
 interface SOWObjectivesDisclosurePageProps {
@@ -32,10 +32,11 @@ export default function SOWObjectivesDisclosurePage({
         </div>
       )}
       
-      <div 
+      <SOWSectionContent
+        sectionKey="objectives_disclosure"
         id="sow-content-objectives-disclosure"
         className="text-base leading-relaxed sow-content"
-        dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
+        html={content}
       />
     </div>
   );
