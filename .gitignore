@@ -32,6 +32,8 @@ yarn-error.log*
 
 # local development files
 .env.local.backup
+.env.local.prod-backup
+backfill-canonicalize-backup-*.json
 complete-production-schema.sql
 scripts/
 src/lib/local-auth.ts
