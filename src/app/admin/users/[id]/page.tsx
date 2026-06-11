@@ -19,7 +19,6 @@ interface User {
 interface UserStats {
   sows_created: number;
   sows_edited: number;
-  comments_posted: number;
   approval_comments: number;
   last_activity: string;
   total_sessions: number;
@@ -575,7 +574,7 @@ export default function UserDetailPage() {
             {userStats && (
               <div className="bg-white shadow rounded-lg p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">App Usage Statistics</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-indigo-600">{userStats.sows_created}</div>
                     <div className="text-sm text-gray-500">SOWs Created</div>
@@ -585,12 +584,8 @@ export default function UserDetailPage() {
                     <div className="text-sm text-gray-500">SOWs Edited</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">{userStats.comments_posted}</div>
-                    <div className="text-sm text-gray-500">Comments</div>
-                  </div>
-                  <div className="text-center">
                     <div className="text-2xl font-bold text-purple-600">{userStats.approval_comments}</div>
-                    <div className="text-sm text-gray-500">Approval Comments</div>
+                    <div className="text-sm text-gray-500">Comments</div>
                   </div>
                 </div>
                 
