@@ -11,7 +11,12 @@
  *     divergence (these are the ones that matter for text anchors),
  *   - markup-only changes are reported with byte counts.
  *
- * Pass --apply to actually write the changes.
+ * Pass --apply to actually write the changes. Canonicalization irreversibly
+ * strips attributes (e.g. inline table styles the TipTap editor round-trips),
+ * so before any write, --apply dumps every original value it is about to
+ * change to a timestamped JSON backup file (sow id → {column: originalValue})
+ * in the current directory and prints its path. If the backup cannot be
+ * written, the run aborts without touching the database.
  *
  * Usage:
  *   npm run backfill:canonicalize            # dry run
@@ -20,6 +25,8 @@
  * Uses the service-role Supabase client from .env.local / the environment.
  * Do NOT point this at a remote database without an explicit decision to.
  */
+import { writeFileSync } from 'fs';
+import { resolve as resolvePath } from 'path';
 import { config as loadEnv } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import DOMPurify from 'isomorphic-dompurify';
@@ -77,6 +84,12 @@ async function main() {
   let sowsChanged = 0;
   let applied = 0;
   let failed = 0;
+  /** Every planned write, with the original values (for the --apply backup). */
+  const pendingUpdates: Array<{
+    id: string;
+    update: Record<string, string>;
+    original: Record<string, string>;
+  }> = [];
   const perSectionCounts: Record<SOWSectionKey, { text: number; markup: number }> =
     Object.fromEntries(
       SOW_SECTION_KEYS.map((k) => [k, { text: 0, markup: 0 }])
@@ -98,6 +111,7 @@ async function main() {
     for (const row of rows as unknown as Array<Record<string, unknown>>) {
       scanned++;
       const update: Record<string, string> = {};
+      const original: Record<string, string> = {};
       const reportLines: string[] = [];
 
       for (const key of SOW_SECTION_KEYS) {
@@ -110,6 +124,7 @@ async function main() {
         if (canonical === stored) continue;
 
         update[column] = canonical;
+        original[column] = stored;
         const storedText = textContentOf(stored);
         const canonicalText = textContentOf(canonical);
         if (storedText !== canonicalText) {
@@ -134,23 +149,48 @@ async function main() {
       );
       for (const line of reportLines) console.log(line);
 
-      if (APPLY) {
-        const { error: updateError } = await supabase
-          .from('sows')
-          .update(update)
-          .eq('id', row.id as string);
-        if (updateError) {
-          failed++;
-          console.error(`    ✗ update failed: ${updateError.message}`);
-        } else {
-          applied++;
-          console.log(`    ✓ applied (${Object.keys(update).length} sections)`);
-        }
-      }
+      pendingUpdates.push({ id: row.id as string, update, original });
     }
 
     if (rows.length < PAGE_SIZE) break;
     offset += PAGE_SIZE;
+  }
+
+  if (APPLY && pendingUpdates.length > 0) {
+    // Canonicalization is irreversible (attributes are stripped), so back up
+    // every original value BEFORE the first write. Refuse to proceed if the
+    // backup can't be persisted.
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupPath = resolvePath(
+      process.cwd(),
+      `backfill-canonicalize-backup-${timestamp}.json`
+    );
+    const backup: Record<string, Record<string, string>> = {};
+    for (const { id, original } of pendingUpdates) backup[id] = original;
+    try {
+      writeFileSync(backupPath, JSON.stringify(backup, null, 2), 'utf8');
+    } catch (backupError) {
+      console.error(
+        `\nFailed to write backup file ${backupPath} — aborting before any database write:`,
+        backupError
+      );
+      process.exit(1);
+    }
+    console.log(`\nBackup of original values written to: ${backupPath}`);
+
+    for (const { id, update } of pendingUpdates) {
+      const { error: updateError } = await supabase
+        .from('sows')
+        .update(update)
+        .eq('id', id);
+      if (updateError) {
+        failed++;
+        console.error(`  ✗ ${id} update failed: ${updateError.message}`);
+      } else {
+        applied++;
+        console.log(`  ✓ ${id} applied (${Object.keys(update).length} sections)`);
+      }
+    }
   }
 
   console.log('\n=== Summary ===');

@@ -1,39 +1,9 @@
 import SOWSectionContent from '@/components/sow/SOWSectionContent';
+import { stripTableInlineStyles } from '@/lib/sow-content';
 
 interface SOWProjectPhasesPageProps {
   customContent?: string;
   isEdited?: boolean;
-}
-
-// Function to strip inline styles from table elements only (preserve image styles)
-function stripTableInlineStyles(html: string): string {
-  if (!html) return '';
-  
-  // Remove style and class attributes from ONLY table-related elements
-  const cleaned = html
-    // Remove style attributes from table elements only
-    .replace(/<table[^>]*style="[^"]*"[^>]*>/gi, '<table>')
-    .replace(/<thead[^>]*style="[^"]*"[^>]*>/gi, '<thead>')
-    .replace(/<tbody[^>]*style="[^"]*"[^>]*>/gi, '<tbody>')
-    .replace(/<tr[^>]*style="[^"]*"[^>]*>/gi, '<tr>')
-    .replace(/<th[^>]*style="[^"]*"[^>]*>/gi, '<th>')
-    .replace(/<td[^>]*style="[^"]*"[^>]*>/gi, '<td>')
-    .replace(/<colgroup[^>]*style="[^"]*"[^>]*>/gi, '<colgroup>')
-    .replace(/<col[^>]*style="[^"]*"[^>]*>/gi, '<col>')
-    // Remove class attributes from table elements only
-    .replace(/<table[^>]*class="[^"]*"[^>]*>/gi, '<table>')
-    .replace(/<thead[^>]*class="[^"]*"[^>]*>/gi, '<thead>')
-    .replace(/<tbody[^>]*class="[^"]*"[^>]*>/gi, '<tbody>')
-    .replace(/<tr[^>]*class="[^"]*"[^>]*>/gi, '<tr>')
-    .replace(/<th[^>]*class="[^"]*"[^>]*>/gi, '<th>')
-    .replace(/<td[^>]*class="[^"]*"[^>]*>/gi, '<td>')
-    .replace(/<colgroup[^>]*class="[^"]*"[^>]*>/gi, '<colgroup>')
-    .replace(/<col[^>]*class="[^"]*"[^>]*>/gi, '<col>')
-    // Remove other table-specific attributes that might interfere
-    .replace(/<table[^>]*min-width="[^"]*"[^>]*>/gi, '<table>')
-    .replace(/<col[^>]*min-width="[^"]*"[^>]*>/gi, '<col>');
-    
-  return cleaned;
 }
 
 export default function SOWProjectPhasesPage({ customContent, isEdited }: SOWProjectPhasesPageProps) {

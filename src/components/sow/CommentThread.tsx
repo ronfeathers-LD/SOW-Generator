@@ -2,7 +2,9 @@
 
 import { hasMentions, formatCommentWithMentions } from '@/lib/mention-utils';
 import MentionAutocomplete from '@/components/ui/MentionAutocomplete';
+import OrphanedAnchorContext from '@/components/sow/OrphanedAnchorContext';
 import { sanitizeHtml } from '@/lib/sanitize-html';
+import { sectionLabel } from '@/lib/sow-content';
 import type { AnchorResolutionStatus } from '@/lib/anchored-highlights';
 
 /**
@@ -64,6 +66,23 @@ interface CommentThreadProps {
    * rendered this session) → show nothing, don't guess.
    */
   anchorStatus?: AnchorResolutionStatus;
+  /**
+   * SOW id (#351) — needed only for the orphaned-anchor "show original
+   * context" fetch; the section is omitted when absent.
+   */
+  sowId?: string;
+  /**
+   * Jump-to-text (#351): when provided AND the thread is anchored AND not
+   * known-orphaned, a "Jump to text" action scrolls the Content tab to the
+   * anchored passage. Orphans get the original-context presentation instead.
+   */
+  onJumpToText?: () => void;
+  /** Show the inline Resolve/Unresolve button (permission-gated by parent). */
+  canResolve?: boolean;
+  /** Toggle this thread's resolution; required for the button to render. */
+  onToggleResolved?: () => void;
+  /** Disables the Resolve button while a PATCH is in flight. */
+  isResolving?: boolean;
 }
 
 export default function CommentThread({
@@ -77,6 +96,11 @@ export default function CommentThread({
   onSubmitReply,
   showQuotedText = true,
   anchorStatus,
+  sowId,
+  onJumpToText,
+  canResolve = false,
+  onToggleResolved,
+  isResolving = false,
 }: CommentThreadProps) {
   const renderComment = (current: ApprovalComment, isReply: boolean) => (
     <div
@@ -96,12 +120,28 @@ export default function CommentThread({
               @mentions
             </span>
           )}
+          {!isReply && current.quoted_text && current.section_key && showQuotedText && (
+            <span
+              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+              title="The SOW section this comment is anchored to."
+            >
+              {sectionLabel(current.section_key)}
+            </span>
+          )}
           {!isReply && current.quoted_text && anchorStatus === 'orphaned' && (
             <span
               className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
               title="The text this comment was anchored to no longer appears in the SOW content."
             >
               ⚠ original text was edited
+            </span>
+          )}
+          {!isReply && current.resolved_at && (
+            <span
+              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
+              title={`Resolved on ${new Date(current.resolved_at).toLocaleDateString()}`}
+            >
+              ✓ Resolved
             </span>
           )}
         </div>
@@ -114,6 +154,26 @@ export default function CommentThread({
         </blockquote>
       )}
 
+      {/* Orphaned anchor (#351): offer the snapshot-backed original context.
+          Comments without a snapshot_id keep just the quote above. */}
+      {showQuotedText &&
+        !isReply &&
+        current.quoted_text &&
+        anchorStatus === 'orphaned' &&
+        sowId &&
+        current.snapshot_id && (
+          <OrphanedAnchorContext
+            sowId={sowId}
+            snapshotId={current.snapshot_id}
+            anchor={{
+              quoted_text: current.quoted_text,
+              context_prefix: current.context_prefix,
+              context_suffix: current.context_suffix,
+              start_offset: current.start_offset,
+            }}
+          />
+        )}
+
       <div
         className="text-gray-700 mb-3"
         dangerouslySetInnerHTML={{
@@ -122,12 +182,45 @@ export default function CommentThread({
       />
 
       {!isReply && (
-        <button
-          onClick={() => onStartReply(current.id)}
-          className="text-sm text-blue-600 hover:text-blue-800"
-        >
-          Reply
-        </button>
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => onStartReply(current.id)}
+            className="text-sm text-blue-600 hover:text-blue-800"
+          >
+            Reply
+          </button>
+          {/* Jump-to-text (#351): anchored threads whose anchor still resolves
+              (or is not yet checked). Orphans get the original-context
+              presentation above instead. */}
+          {onJumpToText &&
+            current.quoted_text &&
+            current.section_key &&
+            anchorStatus !== 'orphaned' && (
+              <button
+                onClick={onJumpToText}
+                className="text-sm text-indigo-600 hover:text-indigo-800"
+                title="Open the Content tab and scroll to the commented text."
+              >
+                Jump to text
+              </button>
+            )}
+          {/* Inline Resolve/Unresolve (#351) — same permission gating as the
+              highlight popover; the PATCH route allows it on ANY top-level
+              comment (anchored or general). */}
+          {canResolve && onToggleResolved && (
+            <button
+              onClick={onToggleResolved}
+              disabled={isResolving}
+              className={`text-sm disabled:opacity-50 ${
+                current.resolved_at
+                  ? 'text-gray-600 hover:text-gray-800'
+                  : 'text-green-700 hover:text-green-900'
+              }`}
+            >
+              {isResolving ? 'Saving…' : current.resolved_at ? 'Unresolve' : 'Resolve'}
+            </button>
+          )}
+        </div>
       )}
 
       {replyTo === current.id && (

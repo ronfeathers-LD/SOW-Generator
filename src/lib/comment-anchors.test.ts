@@ -1,11 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import {
   htmlToAnchorText,
+  renderedSectionText,
   validateAnchor,
+  validateAnchorAgainstText,
   parseAnchorInput,
   MAX_QUOTED_TEXT_LENGTH,
   type CommentAnchorInput,
 } from './comment-anchors';
+import { processContent, textToHtml } from './text-to-html';
 
 function anchor(overrides: Partial<CommentAnchorInput>): CommentAnchorInput {
   const quoted = overrides.quoted_text ?? 'quote';
@@ -223,5 +226,96 @@ describe('parseAnchorInput', () => {
     expect(parseAnchorInput({ ...valid, context_prefix: null }).ok).toBe(false);
     expect(parseAnchorInput(null).ok).toBe(false);
     expect(parseAnchorInput('anchor').ok).toBe(false);
+  });
+});
+
+describe('renderedSectionText (#351)', () => {
+  const INTRO_STORED =
+    '<p>This SOW is entered into between LeanData, Inc. and {clientName}, effective on signature.</p>';
+
+  /**
+   * Replicate SOWIntroPage's introProcessor effect on the fixture: the
+   * component runs processContent then swaps {clientName} for a bold span.
+   * What the reviewer sees (and selects) is the textContent of that.
+   */
+  function introRenderedReplica(clientName: string): string {
+    let html = processContent(INTRO_STORED);
+    html = clientName
+      ? html.replace(/{clientName}/g, `<span class="font-bold">${clientName}</span>`)
+      : html.replace(/{clientName}/g, '<span class="font-bold">[Client Name]</span>');
+    return html;
+  }
+
+  it('intro: equals the textContent of what SOWIntroPage renders (client name substituted)', () => {
+    const text = renderedSectionText(
+      { custom_intro_content: INTRO_STORED },
+      'intro',
+      { clientName: 'Acme Corp' }
+    );
+    expect(text).toBe(htmlToAnchorText(introRenderedReplica('Acme Corp')));
+    expect(text).toContain('Acme Corp');
+    expect(text).not.toContain('{clientName}');
+  });
+
+  it('intro: substitutes [Client Name] when the client name is null/absent (UI parity)', () => {
+    const text = renderedSectionText({ custom_intro_content: INTRO_STORED }, 'intro', {
+      clientName: null,
+    });
+    expect(text).toBe(htmlToAnchorText(introRenderedReplica('')));
+    expect(text).toContain('[Client Name]');
+  });
+
+  it('REGRESSION: an anchor quoting the rendered client name validates ok (raw column would 422)', () => {
+    const sow = { custom_intro_content: INTRO_STORED };
+    const text = renderedSectionText(sow, 'intro', { clientName: 'Acme Corp' });
+    const start = text.indexOf('and Acme Corp');
+    expect(start).toBeGreaterThan(-1);
+    const a = anchor({
+      quoted_text: 'and Acme Corp',
+      start_offset: start,
+      end_offset: start + 'and Acme Corp'.length,
+    });
+    // Against the rendered text: found exactly where the client selected it.
+    expect(validateAnchorAgainstText(a, text)).toEqual({ status: 'ok' });
+    // Against the RAW stored column (the pre-#351 behavior): not found — this
+    // was the bug.
+    expect(validateAnchor(a, sow.custom_intro_content).status).toBe('not_found');
+  });
+
+  it('canonical HTML sections are a no-op: rendered text equals raw anchor text', () => {
+    const stored = '<p>In scope: <strong>lead routing</strong> setup.</p>';
+    expect(renderedSectionText({ custom_scope_content: stored }, 'scope')).toBe(
+      htmlToAnchorText(stored)
+    );
+  });
+
+  it('plain-text stored content goes through textToHtml (trimmed lines, dropped blanks)', () => {
+    const stored = '  Assumption one  \n\n- bullet a\n- bullet b';
+    const text = renderedSectionText(
+      { custom_assumptions_content: stored },
+      'assumptions'
+    );
+    expect(text).toBe(htmlToAnchorText(textToHtml(stored)));
+    // textToHtml trims each line, drops the bullet markers, and re-joins the
+    // generated tags with '\n' — the rendered coordinate space differs from
+    // the raw stored string ('  Assumption one  ', '- bullet a', …), which is
+    // exactly why the server must validate against the transformed content.
+    expect(text).toBe('Assumption one\n\nbullet a\nbullet b\n');
+  });
+
+  it('objective_overview reads the RENDERED column (objectives_description)', () => {
+    const text = renderedSectionText(
+      {
+        objectives_description: '<p>rendered objective</p>',
+        custom_objective_overview_content: '<p>stale custom copy</p>',
+      },
+      'objective_overview'
+    );
+    expect(text).toBe('rendered objective');
+  });
+
+  it('returns empty string when the section has no stored content', () => {
+    expect(renderedSectionText({}, 'scope')).toBe('');
+    expect(renderedSectionText({ custom_scope_content: null }, 'scope')).toBe('');
   });
 });

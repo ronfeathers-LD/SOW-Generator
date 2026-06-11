@@ -4,8 +4,13 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { AuditService } from '@/lib/audit-service';
 import { SlackMentionService } from '@/lib/slack-mention-service';
 import { authOptions } from '@/lib/auth';
-import { parseAnchorInput, validateAnchor } from '@/lib/comment-anchors';
+import {
+  parseAnchorInput,
+  renderedSectionText,
+  validateAnchorAgainstText,
+} from '@/lib/comment-anchors';
 import { SOW_SECTION_RENDERED_COLUMNS } from '@/lib/sow-content';
+import { resolveRenderedClientName } from '@/lib/sow-client-name';
 
 // GET - Fetch approval comments for a SOW
 export async function GET(
@@ -137,7 +142,7 @@ export async function POST(
     const anchoredColumn = parsedAnchor
       ? SOW_SECTION_RENDERED_COLUMNS[parsedAnchor.section_key]
       : null;
-    const sowColumns = ['version', 'sow_title', 'client_name'];
+    const sowColumns = ['version', 'sow_title', 'client_name', 'salesforce_account_id'];
     if (anchoredColumn && !sowColumns.includes(anchoredColumn)) {
       sowColumns.push(anchoredColumn);
     }
@@ -156,15 +161,24 @@ export async function POST(
       return new NextResponse('SOW not found', { status: 404 });
     }
 
-    // Validate the anchor against the section's current content. The quoted
-    // text must exist in the section at the moment the comment is filed;
-    // offsets are only a hint and are corrected here if they drifted.
+    // Validate the anchor against the section's current content AS RENDERED
+    // (#351): the client captured the anchor against the rendered DOM, so we
+    // validate against renderedSectionText — the stored column run through the
+    // section's render transform chain (e.g. the intro's {clientName}
+    // substitution, processContent for plain-text content) — not the raw
+    // column. The quoted text must exist in the section at the moment the
+    // comment is filed; offsets are only a hint and are corrected here if
+    // they drifted.
     let snapshotId: string | null = null;
     if (parsedAnchor && anchoredColumn) {
-      const sectionHtml = sow[anchoredColumn];
-      const result = validateAnchor(
+      // Only the intro substitutes the client name; skip the lookup otherwise.
+      const clientName =
+        parsedAnchor.section_key === 'intro'
+          ? await resolveRenderedClientName(supabase, sowId, sow)
+          : '';
+      const result = validateAnchorAgainstText(
         parsedAnchor,
-        typeof sectionHtml === 'string' ? sectionHtml : null
+        renderedSectionText(sow, parsedAnchor.section_key, { clientName })
       );
       if (result.status === 'not_found') {
         return new NextResponse(

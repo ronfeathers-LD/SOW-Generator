@@ -46,7 +46,27 @@ CREATE INDEX IF NOT EXISTS idx_sow_content_snapshots_sow_id_section_key
 -- its neighbors rather than being left without RLS.
 ALTER TABLE sow_content_snapshots ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view sow content snapshots"
-  ON sow_content_snapshots FOR SELECT USING (true);
-CREATE POLICY "Users can create sow content snapshots"
-  ON sow_content_snapshots FOR INSERT WITH CHECK (true);
+-- Guarded like the rest of this migration (CREATE POLICY has no IF NOT
+-- EXISTS), so re-running is a no-op — same pattern as 025's storage policies.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'sow_content_snapshots'
+      AND policyname = 'Users can view sow content snapshots'
+  ) THEN
+    CREATE POLICY "Users can view sow content snapshots"
+      ON sow_content_snapshots FOR SELECT USING (true);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'sow_content_snapshots'
+      AND policyname = 'Users can create sow content snapshots'
+  ) THEN
+    CREATE POLICY "Users can create sow content snapshots"
+      ON sow_content_snapshots FOR INSERT WITH CHECK (true);
+  END IF;
+END $$;
