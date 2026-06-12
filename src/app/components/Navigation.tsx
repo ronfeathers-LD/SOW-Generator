@@ -151,30 +151,19 @@ export default function Navigation() {
                   pathname.startsWith('/sow') ? 'border-green-500' : 'border-transparent group-hover:border-green-200'
                 }`}>SOWs</span>
               </Link>
-              <Link
-                href="/change-orders"
-                className={`group flex items-center px-3 text-xs font-semibold uppercase tracking-wider ${
-                  pathname.startsWith('/change-orders') ? 'text-white font-bold' : 'hover:text-white'
-                }`}
-                style={{color: 'white'}}
-              >
-                <span className={`border-b-4 ${
-                  pathname.startsWith('/change-orders') ? 'border-green-500' : 'border-transparent group-hover:border-green-200'
-                }`}>Change Orders</span>
-              </Link>
               {/* Utilities Dropdown */}
               <div className="relative" ref={toolsDropdownRef}>
                 <button
                   onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
                   className={`group flex items-center px-3 text-xs font-semibold uppercase tracking-wider ${
-                    pathname.startsWith('/pricing-calculator') || pathname.startsWith('/preview-sow')
+                    pathname.startsWith('/change-orders') || pathname.startsWith('/pricing-calculator') || pathname.startsWith('/preview-sow')
                       ? 'text-white font-bold'
                       : 'hover:text-white'
                   }`}
                   style={{color: 'white'}}
                 >
                   <span className={`border-b-4 ${
-                    pathname.startsWith('/pricing-calculator') || pathname.startsWith('/preview-sow')
+                    pathname.startsWith('/change-orders') || pathname.startsWith('/pricing-calculator') || pathname.startsWith('/preview-sow')
                       ? 'border-green-500'
                       : 'border-transparent group-hover:border-green-200'
                   }`}>Utilities</span>
@@ -192,6 +181,17 @@ export default function Navigation() {
                 {isToolsDropdownOpen && (
                   <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
                     <div className="py-1">
+                      <Link
+                        href="/change-orders"
+                        className={`block px-4 py-2 text-sm ${
+                          pathname.startsWith('/change-orders')
+                            ? 'bg-gray-100 text-gray-900 font-medium'
+                            : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                        onClick={() => setIsToolsDropdownOpen(false)}
+                      >
+                        Change Orders
+                      </Link>
                       <Link
                         href="/pricing-calculator"
                         className={`block px-4 py-2 text-sm ${
@@ -385,21 +385,21 @@ export default function Navigation() {
               >
                 SOWs
               </Link>
-              <Link
-                href="/change-orders"
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
-                  pathname.startsWith('/change-orders')
-                    ? 'text-white bg-gray-900'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-700'
-                }`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Change Orders
-              </Link>
               <div className="px-3 py-2">
                 <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
                   Tools
                 </div>
+                <Link
+                  href="/change-orders"
+                  className={`block px-3 py-2 rounded-md text-base font-medium ${
+                    pathname.startsWith('/change-orders')
+                      ? 'text-white bg-gray-900'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                  }`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Change Orders
+                </Link>
                 <Link
                   href="/pricing-calculator"
                   className={`block px-3 py-2 rounded-md text-base font-medium ${
