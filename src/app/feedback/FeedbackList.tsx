@@ -171,28 +171,33 @@ export default function FeedbackList() {
             </p>
           </div>
         ) : (
-          <ul className="space-y-3">
+          // Divs, not ul/li — globals.css has unscoped list fallbacks for
+          // SOW content (`ul { list-style: disc }`, `li { margin … !important }`)
+          // that paint bullets and fight spacing utilities.
+          <div className="space-y-3">
             {filtered.map((issue) => (
-              <li key={issue.number} className="bg-white border border-gray-200 rounded-md p-4">
-                <div className="flex flex-wrap items-center gap-2 mb-1">
+              <div key={issue.number} className="bg-white border border-gray-200 rounded-md p-4">
+                {/* Inline flow (not flex) so long titles wrap like text after
+                    the issue number, with label chips flowing inline. */}
+                <p className="text-sm leading-6 mb-1">
                   <a
                     href={issue.html_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                    className="font-medium text-indigo-600 hover:text-indigo-800"
                   >
                     #{issue.number}
-                  </a>
-                  <span className="text-sm font-medium text-gray-900">{issue.title}</span>
+                  </a>{' '}
+                  <span className="font-medium text-gray-900">{issue.title}</span>
                   {issue.labels.map((label) => (
                     <span
                       key={label.name}
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${labelChipClasses(label.name)}`}
+                      className={`ml-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium align-middle ${labelChipClasses(label.name)}`}
                     >
                       {label.name}
                     </span>
                   ))}
-                </div>
+                </p>
                 <div className="text-xs text-gray-500">
                   {issue.submitter || issue.user || 'unknown'} · {relativeDate(issue.created_at)}
                   {issue.comments > 0 && (
@@ -201,9 +206,9 @@ export default function FeedbackList() {
                     </>
                   )}
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
     </div>
