@@ -121,10 +121,15 @@ export function classifySow(sow: SowRowInput): ClassifyResult {
   }
 
   // No PM row but PM is required.  Check whether the OS carries the deduction.
+  //
+  // Guard: only flag SOWs where an OS row ACTUALLY EXISTS with hours > 0.
+  // When pricing is empty or the OS row is absent, currentOsHours resolves to 0
+  // (< base), which would be a false positive — those SOWs were never priced,
+  // not stranded.  See dry-run evidence: 9 of 11 flagged SOWs had OS = 0.
   const osRole = roles.find(r => r.role === 'Onboarding Specialist');
   const currentOsHours = toNum(osRole?.totalHours);
 
-  if (currentOsHours < baseProjectHours) {
+  if (osRole && currentOsHours > 0 && currentOsHours < baseProjectHours) {
     // OS hours are below base → PM was stripped without restoring OS.
     // pmHoursRemoved = (base - currentOsHours) * 2 because the deduction
     // applied to OS was pmHours / 2 (see calculateRoleHoursDistribution).

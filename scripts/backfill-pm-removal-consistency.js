@@ -154,7 +154,11 @@ function classifySow(sow) {
   const osRole        = roles.find(r => r.role === 'Onboarding Specialist');
   const currentOsHrs  = toNum(osRole?.totalHours);
 
-  if (currentOsHrs < base) {
+  // Guard: only flag SOWs where an OS row ACTUALLY EXISTS with hours > 0.
+  // When pricing is empty or the OS row is absent, currentOsHrs resolves to 0
+  // (< base), which would be a false positive — those SOWs were never priced,
+  // not stranded.  See dry-run evidence: 9 of 11 flagged SOWs had OS = 0.
+  if (osRole && currentOsHrs > 0 && currentOsHrs < base) {
     return {
       action: 'restore-os-set-flag',
       osTarget: base,
