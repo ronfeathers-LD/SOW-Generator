@@ -366,7 +366,7 @@ export default function SOWFullView({
           </div>
 
           {/* PM Hours Removed Notice */}
-          {!pmIncluded && (
+          {sow.pm_hours_requirement_disabled && (
             <div className="mb-6 bg-amber-50 border-l-4 border-amber-400 p-4 rounded">
               <div className="flex">
                 <div className="flex-shrink-0">
