@@ -11,6 +11,36 @@ export type PricingSummary = {
 const toNum = (v: unknown): number =>
   typeof v === 'number' ? v : typeof v === 'string' ? parseFloat(v) || 0 : 0;
 
+type DiscountLike = {
+  type?: 'none' | 'fixed' | 'percentage';
+  amount?: number;
+  percentage?: number;
+};
+type PricingRoleLike = { role: string; ratePerHour?: number; totalHours?: number };
+
+/**
+ * Build the object form that {@link getPricingSummary} consumes from the editor's
+ * in-memory pricing roles + discount config. This is the single mapping the editor
+ * (PricingRolesAndDiscount / BillingPaymentTab) uses so the displayed summary and
+ * PM-inclusion are derived from the stored table, not from a live products formula.
+ */
+export function toPricingRolesObject(
+  roles: PricingRoleLike[],
+  discount?: DiscountLike
+): Record<string, unknown> {
+  return {
+    roles: (roles || []).map((r) => ({
+      role: r.role,
+      ratePerHour: r.ratePerHour,
+      totalHours: r.totalHours,
+    })),
+    discount_type: discount?.type ?? 'none',
+    discount_amount: discount?.type === 'fixed' ? (discount.amount ?? null) : null,
+    discount_percentage:
+      discount?.type === 'percentage' ? (discount.percentage ?? null) : null,
+  };
+}
+
 export function getPricingSummary(pricingRoles: unknown): PricingSummary {
   const isObjectForm =
     !!pricingRoles && typeof pricingRoles === 'object' && !Array.isArray(pricingRoles);

@@ -3,6 +3,7 @@ import { SOWData } from '@/types/sow';
 import PricingRolesAndDiscount from '@/components/sow/PricingRolesAndDiscount';
 import LoadingModal from '@/components/ui/LoadingModal';
 import { calculateAllHours, calculateRoleHoursDistribution } from '@/lib/hours-calculation-utils';
+import { getPricingSummary, toPricingRolesObject } from '@/lib/sow/pricing-summary';
 import { getPricingRolesConfig, getDefaultRateForRole, getDescriptionForRole, PricingRoleConfig } from '@/lib/pricing-roles-config';
 import { SectionHeader } from '@/components/ui/form';
 
@@ -321,40 +322,28 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
     }
   };
 
-  // Check for pricing mismatch between current form data and saved pricing
+  // Flag when the in-memory pricing table differs from the saved pricing — i.e. the
+  // user has unsaved manual adjustments. Compared via the single read model
+  // (getPricingSummary) against the STORED table, NOT recomputed from a live products
+  // formula. The old products-derived comparison is what produced false drift after a
+  // PM removal.
   useEffect(() => {
     const checkPricingMismatch = () => {
-      if (!formData.template?.products || formData.template.products.length === 0) {
+      if (!formData.pricing) {
         setHasPricingMismatch(false);
         return;
       }
 
-      // Calculate what the hours should be based on current form data
-      const hoursResult = calculateAllHours(formData.template, selectedAccount?.Employee_Band__c);
-      const { baseProjectHours, pmHours, shouldAddProjectManager } = hoursResult;
-      
-      const roleDistribution = calculateRoleHoursDistribution(
-        baseProjectHours,
-        pmHours,
-        shouldAddProjectManager,
-        formData.pm_hours_requirement_disabled
+      const current = getPricingSummary(toPricingRolesObject(pricingRoles, discountConfig));
+      const saved = getPricingSummary(formData.pricing);
+
+      setHasPricingMismatch(
+        current.totalHours !== saved.totalHours || current.subtotal !== saved.subtotal
       );
-
-      // Check if current pricing roles match the calculated hours
-      const hasMismatch = pricingRoles.some(role => {
-        if (role.role === 'Onboarding Specialist') {
-          return role.totalHours !== roleDistribution.onboardingSpecialistHours;
-        } else if (role.role === 'Project Manager') {
-          return role.totalHours !== roleDistribution.projectManagerHours;
-        }
-        return false;
-      });
-
-      setHasPricingMismatch(hasMismatch);
     };
 
     checkPricingMismatch();
-  }, [formData.template, pricingRoles, selectedAccount?.Employee_Band__c, formData.pm_hours_requirement_disabled]);
+  }, [pricingRoles, discountConfig, formData.pricing]);
 
   // Auto-calculate hours based on selected products and units
   const autoCalculateHours = async () => {
@@ -367,13 +356,14 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
     try {
       // Use shared utility to calculate all hours
       const hoursResult = calculateAllHours(formData.template, selectedAccount?.Employee_Band__c);
-      const { baseProjectHours, pmHours, shouldAddProjectManager: shouldAddPM } = hoursResult;
-      
-      // Calculate role hours distribution
+      const { baseProjectHours, pmHours, shouldAddProjectManager } = hoursResult;
+
+      // Calculate role hours distribution (Onboarding Specialist allocation only;
+      // PM is no longer auto-managed here — see note below).
       const roleDistribution = calculateRoleHoursDistribution(
         baseProjectHours,
         pmHours,
-        shouldAddPM,
+        shouldAddProjectManager,
         formData.pm_hours_requirement_disabled
       );
       
@@ -417,47 +407,11 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
         });
       }
 
-      // Check if we need to add or update a Project Manager role
-      const hasProjectManager = updatedRoles.some(role => role.role === 'Project Manager');
-
-
-      if (shouldAddPM && !formData.pm_hours_requirement_disabled) {
-        if (!hasProjectManager) {
-          // Add new Project Manager role
-          const defaultRate = getDefaultRateForRole('Project Manager', pricingRolesConfig);
-          const description = getDescriptionForRole('Project Manager', pricingRolesConfig);
-          const pmRole: PricingRole = {
-            id: Math.random().toString(36).substr(2, 9),
-            role: 'Project Manager',
-            description: description,
-            ratePerHour: defaultRate,
-            defaultRate: defaultRate,
-            totalHours: roleDistribution.projectManagerHours,
-            totalCost: defaultRate * roleDistribution.projectManagerHours,
-          };
-          updatedRoles.push(pmRole);
-        } else {
-          // Update existing Project Manager role
-          const defaultRate = getDefaultRateForRole('Project Manager', pricingRolesConfig);
-          const description = getDescriptionForRole('Project Manager', pricingRolesConfig);
-          updatedRoles = updatedRoles.map(role => {
-            if (role.role === 'Project Manager') {
-              return {
-                ...role,
-                description: description || role.description, // Update description if available
-                totalHours: roleDistribution.projectManagerHours,
-                totalCost: defaultRate * roleDistribution.projectManagerHours,
-              };
-            }
-            return role;
-          });
-        }
-      } else {
-        // Rules indicate PM should NOT be present: remove any PM roles
-        if (hasProjectManager) {
-          updatedRoles = updatedRoles.filter(role => role.role !== 'Project Manager');
-        }
-      }
+      // NOTE: The Project Manager role is intentionally NOT auto-added/updated/removed
+      // here. Auto re-adding the PM role on every calc is what stranded an "Onboarding
+      // Specialist Deduction" after a PM removal. PM presence is now driven solely by
+      // the stored table and the explicit PM removal flow (PricingRolesAndDiscount).
+      // An explicit, user-initiated PM re-derivation is a separate later task.
 
       // Update pricing roles and then calculate totals in the same render cycle
       setPricingRoles(updatedRoles);
