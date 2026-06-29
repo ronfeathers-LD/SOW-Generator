@@ -100,7 +100,19 @@ function calculateAccountSegmentHours(segment) {
 }
 
 function shouldAddPM(sow) {
-  const products = (sow.products || []).filter(p => p !== BOOKIT_LINKS_ID);
+  // INTENTIONALLY mirrors the deployed app's behavior in shouldAddProjectManager
+  // (src/lib/hours-calculation-utils.ts).  That function attempts to filter out
+  // BookIt Links via:
+  //   products.filter(product => product !== PRODUCT_IDS.BOOKIT_LINKS)
+  // where PRODUCT_IDS.BOOKIT_LINKS is the SLUG string 'bookit-links'.  Because
+  // DB products are UUIDs, the slug-vs-UUID comparison is always false — the
+  // filter is a no-op and BookIt Links IS counted toward the ≥3-product PM
+  // threshold in the running app.
+  //
+  // Do NOT add a UUID exclusion here to "fix" that: correcting the business rule
+  // is out of scope for this backfill.  The backfill's job is to find SOWs that
+  // are actually stranded in production, so it must match deployed reality exactly.
+  const products = sow.products || [];
   return products.length >= 3 || getTotalUnits(sow) >= 200;
 }
 
