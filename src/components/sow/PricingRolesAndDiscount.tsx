@@ -65,6 +65,9 @@ interface PricingRolesAndDiscountProps {
   // the parent can flip formData.pm_hours_requirement_disabled and stop the PM role
   // from being re-added in-session (Billing auto-calc / Pricing distribution).
   onPMHoursRequirementDisabled?: () => void;
+  // Called when the user manually edits hours or rates so the parent can set
+  // formData.pricing.auto_calculated = false, persisting the flag to the DB.
+  onManualPricingEdit?: () => void;
 }
 
 const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.memo(({
@@ -78,7 +81,8 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   onHoursCalculated,
   selectedAccount,
   pricingRolesConfig: _pricingRolesConfig = [], // eslint-disable-line @typescript-eslint/no-unused-vars
-  onPMHoursRequirementDisabled
+  onPMHoursRequirementDisabled,
+  onManualPricingEdit,
 }) => {
 
 
@@ -314,7 +318,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   // Guarded by recalculateNeedsConfirm: if the user has hand-edited the table
   // (auto_calculated === false), we prompt before overwriting their work.
   const handleRecalculateHours = useCallback(async () => {
-    if (recalculateNeedsConfirm({ auto_calculated: autoCalculatedState })) {
+    if (recalculateNeedsConfirm(formData.pricing as { auto_calculated?: boolean } | undefined)) {
       const confirmed = window.confirm(
         'This will overwrite your manually edited hours with values derived from the selected products and units. Continue?'
       );
@@ -431,6 +435,9 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
       // Mark the table as hand-edited so the Recalculate button will prompt
       // for confirmation before overwriting the user's changes.
       setAutoCalculatedState(false);
+      // Propagate the manual-edit flag to formData.pricing so it survives
+      // save + reload (the save path reads formData.pricing.auto_calculated).
+      onManualPricingEdit?.();
     }
     
     setPricingRoles(pricingRoles.map(role => {

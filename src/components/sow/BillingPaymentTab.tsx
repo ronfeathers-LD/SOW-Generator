@@ -541,6 +541,10 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
           onPMHoursRequirementDisabled={() =>
             setFormData({ ...formData, pm_hours_requirement_disabled: true })
           }
+          onManualPricingEdit={() => {
+            if (!formData.pricing) return;
+            setFormData({ ...formData, pricing: { ...formData.pricing, auto_calculated: false } });
+          }}
         />
 
       </div>
