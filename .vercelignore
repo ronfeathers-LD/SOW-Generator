@@ -1,0 +1,8 @@
+node_modules
+.next
+.next-verify
+.next-moved-test
+.next-moved-test2
+.git
+*.tsbuildinfo
+backfill-canonicalize-backup-*.json
