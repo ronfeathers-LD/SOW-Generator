@@ -253,16 +253,11 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
 
   // Single read model for the Project Summary + PM-inclusion. Derived from the
   // STORED pricing table (pricingRoles + discountConfig), NOT from a live products
-  // formula — this is the fix for the stranded "Onboarding Specialist Deduction"
-  // drift after a PM removal. When PM hours were removed via the PMO approval flow
-  // the role row is still present but logically excluded, so we drop it here too so
-  // the summary matches what the table actually charges.
-  const effectivePricingRoles = approvedPMHoursRequest
-    ? pricingRoles.filter(role => role.role !== 'Project Manager')
-    : pricingRoles;
+  // formula. When PM hours were removed via the PMO approval flow, the role row is
+  // already stripped from the stored pricing_roles, so we read pricingRoles directly.
   const summary = useMemo(
-    () => getPricingSummary(toPricingRolesObject(effectivePricingRoles, discountConfig)),
-    [effectivePricingRoles, discountConfig]
+    () => getPricingSummary(toPricingRolesObject(pricingRoles, discountConfig)),
+    [pricingRoles, discountConfig]
   );
 
   // Auto-sync role hours based on calculated distribution
