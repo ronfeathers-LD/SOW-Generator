@@ -5,6 +5,7 @@ import PMHoursRemovalApprovalOverlay from './PMHoursRemovalApprovalOverlay';
 import { calculateAllHours, HOURS_CALCULATION_RULES, calculateProductHoursForProduct } from '@/lib/hours-calculation-utils';
 import { getDefaultRateForRole } from '@/lib/pricing-roles-config';
 import { getPricingSummary, toPricingRolesObject } from '@/lib/sow/pricing-summary';
+import { recalculateNeedsConfirm } from '@/lib/sow/recalculate-guard';
 import { Card, Field, Select, Input, Textarea, SectionHeader, Button } from '@/components/ui/form';
 
 interface Product {
@@ -102,6 +103,15 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   const [showRoleSelectModal, setShowRoleSelectModal] = useState(false);
   const [roleBeingEdited, setRoleBeingEdited] = useState<string | null>(null);
   const hasAutoCalculated = useRef(false);
+
+  // Tracks whether the pricing table is in an auto-calculated state.
+  // Initialized from the stored pricing data so that a reload after manual
+  // edits (auto_calculated=false) still prompts before overwriting.
+  const [autoCalculatedState, setAutoCalculatedState] = useState<boolean>(() => {
+    const storedPricing = formData.pricing as { auto_calculated?: boolean } | undefined;
+    // Default to true (no confirm needed) when the flag is absent or true.
+    return storedPricing?.auto_calculated !== false;
+  });
 
   // Fetch products on component mount
   useEffect(() => {
@@ -300,14 +310,27 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   }, [roleDistribution, isManuallyEditing, setPricingRoles]);
   */
 
-  // Wrapper for autoCalculateHours that triggers PM status check
+  // Wrapper for autoCalculateHours that triggers PM status check.
+  // Guarded by recalculateNeedsConfirm: if the user has hand-edited the table
+  // (auto_calculated === false), we prompt before overwriting their work.
   const handleRecalculateHours = useCallback(async () => {
+    if (recalculateNeedsConfirm({ auto_calculated: autoCalculatedState })) {
+      const confirmed = window.confirm(
+        'This will overwrite your manually edited hours with values derived from the selected products and units. Continue?'
+      );
+      if (!confirmed) return;
+    }
+
     // Reset manual editing flag when auto-calculating
     setIsManuallyEditing(false);
-    
+
     // Only recalculate the base hours and role assignments
     // Don't recalculate costs - those are handled separately
     await autoCalculateHours();
+
+    // Mark the table as auto-calculated so the guard won't fire again until
+    // the user makes another manual edit.
+    setAutoCalculatedState(true);
     
     // After recalculating hours, ensure PM removal status is respected
     if (approvedPMHoursRequest && pricingRoles.length > 0) {
@@ -337,7 +360,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     if (onHoursCalculated) {
       onHoursCalculated();
     }
-  }, [autoCalculateHours, approvedPMHoursRequest, pricingRoles, baseProjectHours, setPricingRoles, onHoursCalculated]);
+  }, [autoCalculateHours, autoCalculatedState, approvedPMHoursRequest, pricingRoles, baseProjectHours, setPricingRoles, onHoursCalculated]);
 
 
 
@@ -405,6 +428,9 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     // Set manual editing flag when user changes hours or rates
     if (field === 'totalHours' || field === 'ratePerHour') {
       setIsManuallyEditing(true);
+      // Mark the table as hand-edited so the Recalculate button will prompt
+      // for confirmation before overwriting the user's changes.
+      setAutoCalculatedState(false);
     }
     
     setPricingRoles(pricingRoles.map(role => {
