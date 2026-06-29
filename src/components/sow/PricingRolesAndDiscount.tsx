@@ -6,6 +6,7 @@ import { calculateAllHours, HOURS_CALCULATION_RULES, calculateProductHoursForPro
 import { getDefaultRateForRole } from '@/lib/pricing-roles-config';
 import { getPricingSummary, toPricingRolesObject } from '@/lib/sow/pricing-summary';
 import { recalculateNeedsConfirm } from '@/lib/sow/recalculate-guard';
+import { removePmRoleRestoringOs } from '@/lib/sow/pricing-roles-edit';
 import { Card, Field, Select, Input, Textarea, SectionHeader, Button } from '@/components/ui/form';
 
 interface Product {
@@ -107,15 +108,6 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   const [showRoleSelectModal, setShowRoleSelectModal] = useState(false);
   const [roleBeingEdited, setRoleBeingEdited] = useState<string | null>(null);
   const hasAutoCalculated = useRef(false);
-
-  // Tracks whether the pricing table is in an auto-calculated state.
-  // Initialized from the stored pricing data so that a reload after manual
-  // edits (auto_calculated=false) still prompts before overwriting.
-  const [autoCalculatedState, setAutoCalculatedState] = useState<boolean>(() => {
-    const storedPricing = formData.pricing as { auto_calculated?: boolean } | undefined;
-    // Default to true (no confirm needed) when the flag is absent or true.
-    return storedPricing?.auto_calculated !== false;
-  });
 
   // Fetch products on component mount
   useEffect(() => {
@@ -332,10 +324,6 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     // Don't recalculate costs - those are handled separately
     await autoCalculateHours();
 
-    // Mark the table as auto-calculated so the guard won't fire again until
-    // the user makes another manual edit.
-    setAutoCalculatedState(true);
-    
     // After recalculating hours, ensure PM removal status is respected
     if (approvedPMHoursRequest && pricingRoles.length > 0) {
       const updatedRoles = pricingRoles.map(role => {
@@ -364,7 +352,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     if (onHoursCalculated) {
       onHoursCalculated();
     }
-  }, [autoCalculateHours, autoCalculatedState, approvedPMHoursRequest, pricingRoles, baseProjectHours, setPricingRoles, onHoursCalculated]);
+  }, [autoCalculateHours, approvedPMHoursRequest, pricingRoles, baseProjectHours, setPricingRoles, onHoursCalculated]);
 
 
 
@@ -387,7 +375,9 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
 
     if (!formData.id) {
       // Unsaved SOW: persist locally only. The flag is saved with the SOW on first save.
-      setPricingRoles(pricingRoles.filter(role => role.id !== pmRoleToRemove));
+      // Mirror the server strip: remove the PM row AND restore the half-PM deduction
+      // back to the Onboarding Specialist so the local table matches what will persist.
+      setPricingRoles(removePmRoleRestoringOs(pricingRoles, pmRoleToRemove));
       setPmRoleToRemove(null);
       setShowEnterprisePMRemovalModal(false);
       onPMHoursRequirementDisabled?.();
@@ -408,8 +398,10 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
       }
 
       // Persisted successfully — reflect it in local state and flip the parent flag so
-      // the PM role is not re-added in-session.
-      setPricingRoles(pricingRoles.filter(role => role.id !== pmRoleToRemove));
+      // the PM role is not re-added in-session. The server (stripProjectManagerFromPricing)
+      // restored OS hours by removedPMHours/2; mirror that locally so a subsequent Save All
+      // does not re-strand the deduction by persisting the reduced OS hours.
+      setPricingRoles(removePmRoleRestoringOs(pricingRoles, pmRoleToRemove));
       setPmRoleToRemove(null);
       onPMHoursRequirementDisabled?.();
     } catch (err) {
@@ -432,9 +424,6 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     // Set manual editing flag when user changes hours or rates
     if (field === 'totalHours' || field === 'ratePerHour') {
       setIsManuallyEditing(true);
-      // Mark the table as hand-edited so the Recalculate button will prompt
-      // for confirmation before overwriting the user's changes.
-      setAutoCalculatedState(false);
       // Propagate the manual-edit flag to formData.pricing so it survives
       // save + reload (the save path reads formData.pricing.auto_calculated).
       onManualPricingEdit?.();
