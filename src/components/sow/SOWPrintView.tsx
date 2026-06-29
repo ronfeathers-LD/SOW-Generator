@@ -9,6 +9,7 @@ import SOWProjectPhasesPage from '@/components/sow/SOWProjectPhasesPage';
 import SOWAssumptionsPage from '@/components/sow/SOWAssumptionsPage';
 import PricingDisplay from '@/components/sow/PricingDisplay';
 import { DisplaySOW, Product, SalesforceData } from '@/types/sow-display';
+import { getPricingSummary } from '@/lib/sow/pricing-summary';
 
 interface SOWPrintViewProps {
   sow: DisplaySOW;
@@ -24,6 +25,7 @@ interface SOWPrintViewProps {
  * and as the PDF source. Extracted verbatim from SOWDisplay (#68 slice 4).
  */
 export default function SOWPrintView({ sow, salesforceData, products, showPricing, className }: SOWPrintViewProps) {
+  const pmIncluded = getPricingSummary(sow.pricingRoles).pmIncluded;
   return (
       <div className={`min-h-screen bg-white print:bg-white ${className}`}>
         <div className="print-layout">
@@ -135,16 +137,12 @@ export default function SOWPrintView({ sow, salesforceData, products, showPricin
             
             {/* Project Team Roles */}
             {Array.isArray(sow.pricingRoles) && sow.pricingRoles.length > 0 && (() => {
-              // Filter out Account Executive and Project Manager if PM hours are removed
+              // Filter out Account Executive; PM row absent from table when removed (table-derived)
               const filteredRoles = sow.pricingRoles.filter((role: unknown) => {
                 const roleData = role as Record<string, unknown>;
                 const roleName = String(roleData.role || '');
                 // Always exclude Account Executive
                 if (roleName === 'Account Executive') {
-                  return false;
-                }
-                // Exclude Project Manager if PM hours are removed
-                if (sow.pm_hours_requirement_disabled && roleName === 'Project Manager') {
                   return false;
                 }
                 return true;
@@ -315,7 +313,7 @@ export default function SOWPrintView({ sow, salesforceData, products, showPricin
                 subtotal={sow.pricing?.subtotal || 0}
                 totalAmount={sow.pricing?.total_amount || 0}
                 lastCalculated={sow.pricing?.last_calculated || null}
-                pmHoursRemoved={sow.pm_hours_requirement_disabled || false}
+                pmHoursRemoved={!pmIncluded}
                 isPrintMode={true}
               />
 

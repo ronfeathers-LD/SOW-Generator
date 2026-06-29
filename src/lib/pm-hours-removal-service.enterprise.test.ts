@@ -60,6 +60,44 @@ function makeMockClient(pricingRoles: unknown) {
   return { client, captured };
 }
 
+// ---------------------------------------------------------------------------
+// Guard test: both entry points must strip PM and restore the OS deduction.
+// Added before the applyPMRemoval refactor so it locks in the behaviour.
+// ---------------------------------------------------------------------------
+function mockClient(pricingRoles: unknown) {
+  const captured: { sowUpdate?: Record<string, unknown> } = {};
+  const client = {
+    from(table: string) {
+      if (table === 'sows') {
+        return {
+          select: () => ({ eq: () => ({ single: async () => ({ data: { pricing_roles: pricingRoles }, error: null }) }) }),
+          update: (p: Record<string, unknown>) => { captured.sowUpdate = p; return { eq: async () => ({ error: null }) }; },
+        };
+      }
+      return { insert: async () => ({ error: null }) };
+    },
+  } as unknown as SupabaseClient;
+  return { client, captured };
+}
+
+describe('enterprise removal strips PM AND restores OS (single path)', () => {
+  it('restores the OS deduction when removing PM', async () => {
+    const { client, captured } = mockClient({
+      roles: [
+        { role: 'Onboarding Specialist', totalHours: 27, ratePerHour: 250 },
+        { role: 'Project Manager', totalHours: 16, ratePerHour: 250 },
+      ],
+      discount_type: 'none',
+    });
+    const res = await PMHoursRemovalService.disablePMHoursRequirementDirect('sow-1', 'user-1', client);
+    expect(res.success).toBe(true);
+    const pricing = captured.sowUpdate?.pricing_roles as { roles: { role: string; totalHours: number }[] };
+    const os = pricing.roles.find((r) => r.role === 'Onboarding Specialist');
+    expect(os?.totalHours).toBe(35); // 27 + 16/2
+    expect(captured.sowUpdate?.pm_hours_requirement_disabled).toBe(true);
+  });
+});
+
 describe('PMHoursRemovalService.disablePMHoursRequirementDirect (enterprise self-serve)', () => {
   const pricingWithPM = {
     roles: [

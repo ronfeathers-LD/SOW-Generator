@@ -558,13 +558,6 @@ export class PDFGenerator {
       }
     }
     
-    // Filter out Project Manager role if PM hours are removed
-    if (sowData.pm_hours_requirement_disabled) {
-      pricingRoles = pricingRoles.filter(role => role.role !== 'Project Manager');
-      // Also filter out Project Manager from client roles
-      clientRoles = clientRoles.filter(role => role.role !== 'Project Manager');
-    }
-    
     // Always filter out Account Executive from pricing roles table
     pricingRoles = pricingRoles.filter(role => role.role !== 'Account Executive');
     
@@ -1238,10 +1231,9 @@ export class PDFGenerator {
                 </thead>
                 <tbody>
                   ${(() => {
-                    // Filter out Account Executive and Project Manager if PM hours are removed
+                    // Filter out Account Executive; PM row absent from table when removed (table-derived)
                     const filteredPricingRoles = pricingRoles.filter(role => {
                       if (role.role === 'Account Executive') return false;
-                      if (sowData.pm_hours_requirement_disabled && role.role === 'Project Manager') return false;
                       return true;
                     });
 
@@ -1320,10 +1312,9 @@ export class PDFGenerator {
                 <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">Pricing Summary</h3>
                 ${(() => {
                   // Recalculate subtotal from filtered roles to ensure consistency
-                  // This fixes the case where PM hours are removed but stored subtotal still includes PM costs
+                  // Recalculate subtotal from filtered roles; PM row absent from table when removed (table-derived)
                   const filteredRolesForSummary = pricingRoles.filter(role => {
                     if (role.role === 'Account Executive') return false;
-                    if (sowData.pm_hours_requirement_disabled && role.role === 'Project Manager') return false;
                     return true;
                   });
                   const effectiveSubtotal = filteredRolesForSummary.reduce((sum, role) => sum + ((role.ratePerHour || 0) * (role.totalHours || 0)), 0);
