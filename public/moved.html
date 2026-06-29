@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>SOW Generator has moved</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --brand: #2563eb;
+      --brand-dark: #1d4ed8;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(1200px 600px at 50% -10%, #1e293b 0%, #0f172a 60%);
+      padding: 24px;
+    }
+    .card {
+      background: var(--card);
+      color: var(--text);
+      max-width: 520px;
+      width: 100%;
+      border-radius: 16px;
+      padding: 48px 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      text-align: center;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--brand);
+      background: #eff6ff;
+      border: 1px solid #dbeafe;
+      padding: 6px 12px;
+      border-radius: 999px;
+      margin-bottom: 24px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0 0 12px;
+      line-height: 1.2;
+    }
+    p {
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--muted);
+      margin: 0 0 28px;
+    }
+    .btn {
+      display: inline-block;
+      background: var(--brand);
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 16px;
+      padding: 14px 28px;
+      border-radius: 10px;
+      transition: background 0.15s ease, transform 0.05s ease;
+    }
+    .btn:hover { background: var(--brand-dark); }
+    .btn:active { transform: translateY(1px); }
+    .url {
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--muted);
+      word-break: break-all;
+    }
+    .url a { color: var(--brand); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <span class="badge">SOW Generator</span>
+    <h1>We&rsquo;ve moved</h1>
+    <p>
+      The SOW Generator now lives at a new home. Please update your bookmarks &mdash;
+      this address is no longer in service.
+    </p>
+    <a class="btn" href="https://sow-generator-production.up.railway.app">Go to the new SOW Generator &rarr;</a>
+    <div class="url">
+      <a href="https://sow-generator-production.up.railway.app">sow-generator-production.up.railway.app</a>
+    </div>
+  </main>
+</body>
+</html>

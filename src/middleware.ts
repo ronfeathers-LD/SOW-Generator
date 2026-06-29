@@ -4,6 +4,21 @@ import { getToken } from "next-auth/jwt";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // "We've moved" interstitial — ONLY on Vercel. Vercel auto-sets `VERCEL=1`
+  // on every deployment; Railway (the live app) and local dev never set it, so
+  // the auth middleware below runs untouched there. This lets the change live
+  // safely on any branch, including main, without affecting the real app.
+  // Rewrites every request to the static goodbye page (see public/moved.html),
+  // except the page itself and Next's internal assets.
+  if (
+    process.env.VERCEL &&
+    pathname !== "/moved.html" &&
+    !pathname.startsWith("/_next")
+  ) {
+    return NextResponse.rewrite(new URL("/moved.html", request.url));
+  }
+
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
