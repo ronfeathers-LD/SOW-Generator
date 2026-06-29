@@ -584,6 +584,9 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
           }}
           selectedAccount={selectedAccount}
           pricingRolesConfig={pricingRolesConfig}
+          onPMHoursRequirementDisabled={() =>
+            setFormData({ ...formData, pm_hours_requirement_disabled: true })
+          }
         />
 
       </div>

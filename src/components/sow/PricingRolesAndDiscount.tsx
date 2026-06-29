@@ -59,6 +59,10 @@ interface PricingRolesAndDiscountProps {
   onHoursCalculated?: () => void;
   selectedAccount?: { Employee_Band__c?: string } | null;
   pricingRolesConfig?: Array<{ role_name: string; default_rate: number; is_active: boolean; description?: string; sort_order?: number }>;
+  // Called after an Enterprise PM hours removal has been persisted server-side so
+  // the parent can flip formData.pm_hours_requirement_disabled and stop the PM role
+  // from being re-added in-session (Billing auto-calc / Pricing distribution).
+  onPMHoursRequirementDisabled?: () => void;
 }
 
 const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.memo(({
@@ -71,7 +75,8 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   isAutoCalculating,
   onHoursCalculated,
   selectedAccount,
-  pricingRolesConfig: _pricingRolesConfig = [] // eslint-disable-line @typescript-eslint/no-unused-vars
+  pricingRolesConfig: _pricingRolesConfig = [], // eslint-disable-line @typescript-eslint/no-unused-vars
+  onPMHoursRequirementDisabled
 }) => {
 
 
@@ -344,13 +349,51 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     checkPMHoursStatus();
   };
 
-  // Handle Enterprise PM removal confirmation
-  const handleEnterprisePMRemovalConfirm = () => {
-    if (pmRoleToRemove) {
+  // Handle Enterprise PM removal confirmation.
+  // Enterprise accounts skip the PMO approval flow, but the removal must still be
+  // persisted server-side: setting pm_hours_requirement_disabled = true and stripping
+  // the PM role. Without this the removal lived only in local state and silently
+  // reverted on reload (Billing auto-calc re-adds the PM role while the flag is false).
+  const handleEnterprisePMRemovalConfirm = async () => {
+    if (!pmRoleToRemove) {
+      setShowEnterprisePMRemovalModal(false);
+      return;
+    }
+
+    if (!formData.id) {
+      // Unsaved SOW: persist locally only. The flag is saved with the SOW on first save.
       setPricingRoles(pricingRoles.filter(role => role.id !== pmRoleToRemove));
       setPmRoleToRemove(null);
+      setShowEnterprisePMRemovalModal(false);
+      onPMHoursRequirementDisabled?.();
+      return;
     }
-    setShowEnterprisePMRemovalModal(false);
+
+    try {
+      const response = await fetch('/api/pm-hours-removal/enterprise-disable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sowId: formData.id }),
+      });
+
+      if (!response.ok) {
+        const { error } = await response.json().catch(() => ({ error: 'Unknown error' }));
+        alert(`Failed to remove PM hours: ${error || 'Please try again.'}`);
+        return;
+      }
+
+      // Persisted successfully — reflect it in local state and flip the parent flag so
+      // the PM role is not re-added in-session.
+      setPricingRoles(pricingRoles.filter(role => role.id !== pmRoleToRemove));
+      setPmRoleToRemove(null);
+      onPMHoursRequirementDisabled?.();
+    } catch (err) {
+      console.error('Error removing PM hours (enterprise):', err);
+      alert('Failed to remove PM hours. Please try again.');
+      return;
+    } finally {
+      setShowEnterprisePMRemovalModal(false);
+    }
   };
 
   // Handle Enterprise PM removal cancellation
