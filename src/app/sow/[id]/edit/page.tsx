@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import SOWForm from '@/components/SOWForm';
 import { SOWData } from '@/types/sow';
 import { mapApiResponseToSOWData } from '@/lib/sow/map-api-response';
+import { resolveRestrictedTab, resolveEditAccess, type RestrictedTab } from '@/lib/sow/edit-access';
 import { Skeleton } from '@/components/ui/form';
 
 export default function EditSOWPage() {
@@ -16,28 +17,40 @@ export default function EditSOWPage() {
   const [sow, setSOW] = useState<SOWData | null>(null);
   const [sowStatus, setSOWStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const isAdmin = session?.user?.role === 'admin';
-  const pricingOnly = searchParams?.get('tab') === 'pricing';
+  const [formRestrictedTab, setFormRestrictedTab] = useState<RestrictedTab | null>(null);
+  const requestedTab = resolveRestrictedTab(searchParams?.get('tab'));
+  const userId = session?.user?.id;
+  const userRole = session?.user?.role;
 
   useEffect(() => {
     const fetchSOW = async () => {
       try {
         const response = await fetch(`/api/sow/${params.id}`);
-        
+
         if (response.ok) {
           const data = await response.json();
-          
+
           // Check if SOW is editable
           const status = data.status;
           setSOWStatus(status);
-          
-          // Allow admins to edit pricing on approved SOWs
-          if ((status === 'approved' || status === 'rejected') && !(isAdmin && pricingOnly)) {
-            // Redirect to view page with error message
+
+          // The post-approval edit gate lives in one pure helper (edit-access):
+          // approved SOWs open only in a restricted single-tab mode — admins for
+          // Pricing, the author or an elevated role for Signers.
+          const isAuthor = !!data.author_id && data.author_id === userId;
+          const access = resolveEditAccess({
+            status,
+            requestedTab,
+            role: userRole,
+            isAuthor,
+          });
+
+          if (!access.allowed) {
             router.push(`/sow/${params.id}?error=immutable`);
             return;
           }
-          
+          setFormRestrictedTab(access.formRestrictedTab);
+
           // Transform the canonical API response into the form's SOWData shape
           // via the shared client mapper (src/lib/sow/map-api-response.ts).
           const transformedData: SOWData = mapApiResponseToSOWData(data);
@@ -56,7 +69,7 @@ export default function EditSOWPage() {
     };
 
     fetchSOW();
-  }, [params.id, router, isAdmin, pricingOnly]);
+  }, [params.id, router, requestedTab, userId, userRole]);
 
   // Update document title when SOW is loaded
   useEffect(() => {
@@ -113,8 +126,11 @@ export default function EditSOWPage() {
     );
   }
 
-  // Determine if we're in pricing-only mode (admin editing approved SOW)
-  const isPricingOnlyMode = pricingOnly && isAdmin && sowStatus === 'approved';
-  
-  return <SOWForm initialData={sow} pricingOnly={isPricingOnlyMode} status={sowStatus ?? undefined} />;
+  return (
+    <SOWForm
+      initialData={sow}
+      restrictedTab={formRestrictedTab ?? undefined}
+      status={sowStatus ?? undefined}
+    />
+  );
 } 
