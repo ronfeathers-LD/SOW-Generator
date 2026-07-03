@@ -60,6 +60,7 @@ export function buildIssueBody(params: {
   description?: string | null;
   submitterEmail: string;
   submitterName?: string | null;
+  imageUrls?: string[] | null;
 }): string {
   const { description, submitterEmail } = params;
   const name = params.submitterName?.trim() || submitterEmail;
@@ -67,7 +68,61 @@ export function buildIssueBody(params: {
     `<!-- sow-feedback:submitter=${submitterEmail} -->\n` +
     `> Submitted by: ${name} (${submitterEmail}) via the SOW Generator app`;
   const body = description?.trim();
-  return body ? `${header}\n\n${body}` : header;
+  const images = (params.imageUrls ?? []).filter(Boolean);
+
+  // Assemble the present sections and join with a single blank line, so an
+  // absent description never leaves a dangling gap before the screenshots.
+  const sections = [header];
+  if (body) sections.push(body);
+  if (images.length > 0) {
+    sections.push(
+      '## Screenshots\n\n' +
+        images.map((url, i) => `![screenshot ${i + 1}](${url})`).join('\n\n')
+    );
+  }
+  return sections.join('\n\n');
+}
+
+/** Cap on the number of screenshots attached to a single feedback issue. */
+export const MAX_ATTACHMENTS = 10;
+
+/**
+ * True only for image URLs that live in our own Supabase `rte-images` public
+ * bucket. User-submitted URLs are otherwise untrusted — this prevents arbitrary
+ * or off-site content from being embedded into a GitHub issue on our repo.
+ */
+export function isAllowedAttachmentUrl(url: string): boolean {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base) return false;
+  let parsed: URL;
+  let baseHost: string;
+  try {
+    parsed = new URL(url);
+    baseHost = new URL(base).host;
+  } catch {
+    return false;
+  }
+  return (
+    parsed.protocol === 'https:' &&
+    parsed.host === baseHost &&
+    parsed.pathname.startsWith('/storage/v1/object/public/rte-images/')
+  );
+}
+
+/**
+ * Filters a client-supplied list down to distinct, allowed image URLs, capped
+ * at MAX_ATTACHMENTS. Accepts unknown input and never throws.
+ */
+export function sanitizeAttachmentUrls(urls: unknown): string[] {
+  if (!Array.isArray(urls)) return [];
+  const out: string[] = [];
+  for (const u of urls) {
+    if (out.length >= MAX_ATTACHMENTS) break;
+    if (typeof u === 'string' && isAllowedAttachmentUrl(u) && !out.includes(u)) {
+      out.push(u);
+    }
+  }
+  return out;
 }
 
 /** Parses the submitter email out of an issue body, if the marker is present. */
@@ -156,6 +211,7 @@ export async function createFeedbackIssue(params: {
   description?: string | null;
   submitterEmail: string;
   submitterName?: string | null;
+  imageUrls?: string[] | null;
 }): Promise<CreatedIssue> {
   const response = await githubFetch(`/repos/${issuesRepo()}/issues`, {
     method: 'POST',

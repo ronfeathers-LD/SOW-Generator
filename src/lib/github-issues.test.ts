@@ -2,10 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildIssueBody,
   createFeedbackIssue,
+  isAllowedAttachmentUrl,
   labelsForFeedbackType,
   listOpenIssues,
   mapIssueList,
   parseSubmitterFromBody,
+  sanitizeAttachmentUrls,
 } from './github-issues';
 
 const ISSUE_BASE = {
@@ -53,6 +55,104 @@ describe('buildIssueBody', () => {
   it('omits the trailing description block when description is empty', () => {
     const body = buildIssueBody({ description: '  ', submitterEmail: 'ron@leandata.com' });
     expect(body.endsWith('via the SOW Generator app')).toBe(true);
+  });
+
+  it('appends a Screenshots section with markdown images when imageUrls are provided', () => {
+    const body = buildIssueBody({
+      description: 'It broke.',
+      submitterEmail: 'ron@leandata.com',
+      submitterName: 'Ron Feathers',
+      imageUrls: ['https://x/a.png', 'https://x/b.png'],
+    });
+    expect(body).toBe(
+      '<!-- sow-feedback:submitter=ron@leandata.com -->\n' +
+        '> Submitted by: Ron Feathers (ron@leandata.com) via the SOW Generator app\n' +
+        '\n' +
+        'It broke.\n' +
+        '\n' +
+        '## Screenshots\n' +
+        '\n' +
+        '![screenshot 1](https://x/a.png)\n' +
+        '\n' +
+        '![screenshot 2](https://x/b.png)'
+    );
+  });
+
+  it('adds screenshots even when there is no description', () => {
+    const body = buildIssueBody({
+      submitterEmail: 'ron@leandata.com',
+      imageUrls: ['https://x/a.png'],
+    });
+    expect(body).toContain('## Screenshots');
+    expect(body).toContain('![screenshot 1](https://x/a.png)');
+    // The empty description must not leave a dangling blank block before it.
+    expect(body).not.toContain('app\n\n\n');
+  });
+
+  it('ignores an empty imageUrls array', () => {
+    const body = buildIssueBody({ description: 'hi', submitterEmail: 'ron@leandata.com', imageUrls: [] });
+    expect(body).not.toContain('Screenshots');
+  });
+});
+
+describe('isAllowedAttachmentUrl', () => {
+  const SUPA = 'https://proj.supabase.co';
+  beforeEach(() => {
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', SUPA);
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('accepts a public rte-images URL on our Supabase host', () => {
+    expect(
+      isAllowedAttachmentUrl(`${SUPA}/storage/v1/object/public/rte-images/123-abc.png`)
+    ).toBe(true);
+  });
+
+  it('rejects a different host', () => {
+    expect(
+      isAllowedAttachmentUrl('https://evil.example.com/storage/v1/object/public/rte-images/x.png')
+    ).toBe(false);
+  });
+
+  it('rejects a non-rte-images path on our host', () => {
+    expect(isAllowedAttachmentUrl(`${SUPA}/storage/v1/object/public/other/x.png`)).toBe(false);
+  });
+
+  it('rejects non-https and malformed URLs', () => {
+    expect(
+      isAllowedAttachmentUrl(`http://proj.supabase.co/storage/v1/object/public/rte-images/x.png`)
+    ).toBe(false);
+    expect(isAllowedAttachmentUrl('not a url')).toBe(false);
+  });
+});
+
+describe('sanitizeAttachmentUrls', () => {
+  const SUPA = 'https://proj.supabase.co';
+  const ok = (n: string) => `${SUPA}/storage/v1/object/public/rte-images/${n}`;
+  beforeEach(() => {
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', SUPA);
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('keeps only allowed URLs and drops the rest', () => {
+    expect(
+      sanitizeAttachmentUrls([ok('a.png'), 'https://evil.com/x.png', ok('b.png')])
+    ).toEqual([ok('a.png'), ok('b.png')]);
+  });
+
+  it('de-duplicates and caps at 10', () => {
+    const many = Array.from({ length: 15 }, (_, i) => ok(`${i}.png`));
+    expect(sanitizeAttachmentUrls([ok('a.png'), ok('a.png'), ...many]).length).toBe(10);
+  });
+
+  it('returns [] for non-array input', () => {
+    expect(sanitizeAttachmentUrls('nope')).toEqual([]);
+    expect(sanitizeAttachmentUrls(undefined)).toEqual([]);
+    expect(sanitizeAttachmentUrls([123, null, {}])).toEqual([]);
   });
 });
 
