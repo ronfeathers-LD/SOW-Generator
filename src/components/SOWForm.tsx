@@ -21,6 +21,7 @@ import { reviewSOW } from '@/lib/sow/review';
 import ReviewSubmitTab from './sow/ReviewSubmitTab';
 import { Button } from '@/components/ui/form';
 import type { StepStatus } from '@/components/ui/form';
+import ConfirmActionModal from './ConfirmActionModal';
 
 const REVIEW_STEP_KEY = 'Review & Submit';
 
@@ -329,6 +330,7 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
     description?: string;
   }>>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
@@ -1081,6 +1083,33 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
     updatePageTitle();
   }, [initialData, formData.template?.sow_title]);
 
+  const handleConfirmedDelete = async () => {
+    if (!initialData) return;
+    setShowDeleteModal(false);
+
+    try {
+      const response = await fetch(`/api/sow/${initialData.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete SOW');
+      }
+
+      const result = await response.json();
+
+      // Show success message
+      alert(`SOW "${initialData.template?.sow_title || 'SOW'}" deleted successfully${result.hiddenVersions ? ` along with ${result.hiddenVersions} version(s)` : ''}.`);
+
+      // Redirect to the SOW list page
+      window.location.href = '/sow';
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete SOW';
+      alert(`Error: ${errorMessage}`);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
@@ -1120,41 +1149,9 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
               View
             </a>
             <button
-              onClick={async () => {
+              onClick={() => {
                 if (!initialData) return;
-                
-                // Enhanced confirmation dialog
-                const confirmMessage = `Are you sure you want to delete "${initialData.template?.sow_title || 'this SOW'}"?\n\n` +
-                  `This action will permanently hide this SOW and all its versions from the system.\n` +
-                  `The data will be preserved but will no longer be visible.\n\n` +
-                  `Type "DELETE" to confirm:`;
-                
-                const userInput = prompt(confirmMessage);
-                if (userInput !== 'DELETE') {
-                  return;
-                }
-
-                try {
-                  const response = await fetch(`/api/sow/${initialData.id}`, {
-                    method: 'DELETE',
-                  });
-
-                  if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to delete SOW');
-                  }
-
-                  const result = await response.json();
-                  
-                  // Show success message
-                  alert(`SOW "${initialData.template?.sow_title || 'SOW'}" deleted successfully${result.hiddenVersions ? ` along with ${result.hiddenVersions} version(s)` : ''}.`);
-
-                  // Redirect to the SOW list page
-                  window.location.href = '/sow';
-                } catch (err) {
-                  const errorMessage = err instanceof Error ? err.message : 'Failed to delete SOW';
-                  alert(`Error: ${errorMessage}`);
-                }
+                setShowDeleteModal(true);
               }}
               className="inline-flex items-center px-3 py-1 border border-red-600 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               title="Delete SOW from the system"
@@ -1167,6 +1164,18 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
         </div>
         )}
       </div>
+
+      {initialData && (
+        <ConfirmActionModal
+          isOpen={showDeleteModal}
+          title="Delete this SOW?"
+          message={`"${initialData.template?.sow_title || 'This SOW'}" and all its versions will be hidden from the system.\nThe data is preserved and an admin can restore it later.`}
+          confirmLabel="Delete SOW"
+          requiredText="DELETE"
+          onConfirm={handleConfirmedDelete}
+          onCancel={() => setShowDeleteModal(false)}
+        />
+      )}
 
       {/* Notification */}
       {notification && (
