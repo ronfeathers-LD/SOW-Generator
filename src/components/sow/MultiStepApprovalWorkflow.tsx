@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import ApprovalWorkflowDisplay from './ApprovalWorkflowDisplay';
 import StageApprovalCard from './StageApprovalCard';
-import SimpleApproval from './SimpleApproval';
 import { ApprovalWorkflowStatus } from '@/types/sow';
 import { canApproveStage } from '@/lib/utils/approval-permissions';
 
@@ -21,7 +20,9 @@ export default function MultiStepApprovalWorkflow({
   sowTitle,
   clientName,
   showApproval,
-  canApprove
+  // Stage-level permission checks (canApproveStage per stage) superseded this
+  // coarse flag when the SimpleApproval fallback was removed (audit #56/#63).
+  canApprove: _canApprove, // eslint-disable-line @typescript-eslint/no-unused-vars
 }: MultiStepApprovalWorkflowProps) {
   const [workflow, setWorkflow] = useState<ApprovalWorkflowStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -110,19 +111,24 @@ export default function MultiStepApprovalWorkflow({
     );
   }
 
-  // If no workflow exists, show simple approval as fallback
-  if (!workflow) {
+  // No workflow could be loaded or initialized. This is a configuration
+  // problem (no active approval stages, or initiation failed) — surface it
+  // rather than offering a bypass. The old SimpleApproval fallback here let a
+  // single manager approve directly, skipping required approvers (audit #56/#63).
+  if (!workflow || !workflow.all_stages || workflow.all_stages.length === 0) {
     return (
       <div className="space-y-4">
-        <p className="text-blue-600">This SOW is currently under review.</p>
-        {showApproval && canApprove && (
-          <SimpleApproval
-            sowId={sowId}
-            sowTitle={sowTitle}
-            clientName={clientName}
-            onStatusChange={() => window.location.reload()}
-          />
-        )}
+        <p className="text-blue-600 dark:text-blue-400">This SOW is currently under review.</p>
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-6 dark:border-amber-700 dark:bg-amber-950">
+          <h3 className="text-lg font-semibold text-amber-800 dark:text-amber-200">
+            Approval workflow unavailable
+          </h3>
+          <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">
+            The approval stages for this SOW could not be loaded or created. This usually
+            means no active approval stages are configured. Please contact an administrator —
+            approvals cannot proceed until the workflow is set up.
+          </p>
+        </div>
       </div>
     );
   }
@@ -151,7 +157,7 @@ export default function MultiStepApprovalWorkflow({
       <ApprovalWorkflowDisplay sowId={sowId} />
 
       {/* Show approval cards for all pending stages the user can approve (parallel approval) */}
-      {pendingStagesUserCanApprove.length > 0 && (
+      {showApproval && pendingStagesUserCanApprove.length > 0 && (
         <div className="space-y-4">
           {pendingStagesUserCanApprove.map((stageApproval) => (
             <StageApprovalCard
