@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import ImageAttachments from '@/components/feedback/ImageAttachments';
 
 const MAX_TITLE_LENGTH = 200;
 const MAX_DESCRIPTION_LENGTH = 5000;
@@ -22,10 +23,17 @@ export default function NewFeedbackForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<{ number: number; html_url: string } | null>(null);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [uploadsPending, setUploadsPending] = useState(false);
+
+  const handleAttachmentsChange = useCallback((urls: string[], pending: boolean) => {
+    setImageUrls(urls);
+    setUploadsPending(pending);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (submitting || created) return;
+    if (submitting || created || uploadsPending) return;
     setError(null);
     setSubmitting(true);
 
@@ -33,7 +41,7 @@ export default function NewFeedbackForm() {
       const response = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, title: title.trim(), description: description.trim() }),
+        body: JSON.stringify({ type, title: title.trim(), description: description.trim(), imageUrls }),
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) {
@@ -146,6 +154,8 @@ export default function NewFeedbackForm() {
               </p>
             </div>
 
+            <ImageAttachments onChange={handleAttachmentsChange} />
+
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-800">
                 {error}
@@ -161,10 +171,10 @@ export default function NewFeedbackForm() {
               </Link>
               <button
                 type="submit"
-                disabled={submitting || !title.trim()}
+                disabled={submitting || !title.trim() || uploadsPending}
                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? 'Submitting…' : 'Submit'}
+                {submitting ? 'Submitting…' : uploadsPending ? 'Uploading images…' : 'Submit'}
               </button>
             </div>
           </form>

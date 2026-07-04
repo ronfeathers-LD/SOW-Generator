@@ -35,7 +35,11 @@ const ContentPreviewStep: React.FC<ContentPreviewStepProps> = ({
 }) => {
   const [previewContent, setPreviewContent] = useState(wizardData.previewContent || '');
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+  // Transient "rebuilt" confirmation — the rebuild is synchronous and often
+  // produces identical text, so without this the button appears to do nothing.
+  const [justRebuilt, setJustRebuilt] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const rebuiltTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sync local state with wizardData changes
   useEffect(() => {
@@ -113,6 +117,11 @@ const ContentPreviewStep: React.FC<ContentPreviewStepProps> = ({
       setPreviewContent(content);
       // Always update wizard data with new content
       updateWizardData({ previewContent: content });
+      // Flash a confirmation so the action is visible even when the rebuilt
+      // text is identical to what was already there.
+      setJustRebuilt(true);
+      if (rebuiltTimeoutRef.current) clearTimeout(rebuiltTimeoutRef.current);
+      rebuiltTimeoutRef.current = setTimeout(() => setJustRebuilt(false), 2500);
     } catch (error) {
       console.error('Error generating preview content:', error);
       setPreviewContent('Error generating preview content. Please try again.');
@@ -128,11 +137,14 @@ const ContentPreviewStep: React.FC<ContentPreviewStepProps> = ({
     }
   }, [wizardData.selectedDocuments.length, wizardData.selectedMeetings.length, wizardData.selectedDocuments, wizardData.selectedMeetings, wizardData.previewContent, generatePreviewContent]);
 
-  // Cleanup timeout on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
+      }
+      if (rebuiltTimeoutRef.current) {
+        clearTimeout(rebuiltTimeoutRef.current);
       }
     };
   }, []);
@@ -251,14 +263,26 @@ const ContentPreviewStep: React.FC<ContentPreviewStepProps> = ({
       {/* Preview Content Editor */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h4 className="font-medium text-gray-900">Preview Content</h4>
-          <button
-            onClick={generatePreviewContent}
-            disabled={isGeneratingPreview}
-            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300"
-          >
-            {isGeneratingPreview ? 'Generating...' : 'Regenerate'}
-          </button>
+          <div>
+            <h4 className="font-medium text-gray-900">Preview Content</h4>
+            <p className="text-xs text-gray-500">
+              Rebuilds from the selected documents &amp; meetings, replacing any manual edits above.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {justRebuilt && (
+              <span className="text-xs font-medium text-green-600" role="status">
+                ✓ Rebuilt from sources
+              </span>
+            )}
+            <button
+              onClick={generatePreviewContent}
+              disabled={isGeneratingPreview}
+              className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300"
+            >
+              {isGeneratingPreview ? 'Generating...' : 'Regenerate'}
+            </button>
+          </div>
         </div>
         
         <div className="border border-gray-300 rounded-lg">

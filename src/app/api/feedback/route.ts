@@ -5,6 +5,7 @@ import {
   createFeedbackIssue,
   isFeedbackConfigured,
   listOpenIssues,
+  sanitizeAttachmentUrls,
   type FeedbackIssue,
   type FeedbackType,
 } from '@/lib/github-issues';
@@ -62,6 +63,8 @@ export async function POST(request: Request) {
     const type = body?.type as FeedbackType | undefined;
     const title = typeof body?.title === 'string' ? body.title.trim() : '';
     const description = typeof body?.description === 'string' ? body.description.trim() : '';
+    // Only URLs in our own Supabase public bucket survive this filter.
+    const imageUrls = sanitizeAttachmentUrls(body?.imageUrls);
 
     if (!type || !FEEDBACK_TYPES.includes(type)) {
       return NextResponse.json(
@@ -91,6 +94,7 @@ export async function POST(request: Request) {
       description,
       submitterEmail: session.user.email || 'unknown',
       submitterName: session.user.name,
+      imageUrls,
     });
 
     // The list has changed; drop the cache so the next GET reflects it.

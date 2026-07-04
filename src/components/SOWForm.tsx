@@ -14,6 +14,7 @@ import ContentEditingTab from './sow/ContentEditingTab';
 
 import { createSalesforceAccountData, createSalesforceOpportunityData } from '@/types/salesforce';
 import { SOW_TAB_KEYS, SowTabKey } from '@/lib/sow/tab-payloads';
+import type { RestrictedTab } from '@/lib/sow/edit-access';
 import { saveAllTabs } from '@/lib/sow/save-all';
 import { getSectionStatus } from '@/lib/sow/section-status';
 import { reviewSOW } from '@/lib/sow/review';
@@ -78,12 +79,16 @@ interface PricingData {
 
 interface SOWFormProps {
   initialData?: SOWData;
-  pricingOnly?: boolean;
+  /** When set, the form is locked to a single tab (post-approval edit modes). */
+  restrictedTab?: RestrictedTab;
   /** Current SOW status — gates Submit-for-Review in the Sign-off phase to drafts. */
   status?: string;
 }
 
-export default function SOWForm({ initialData, pricingOnly = false, status }: SOWFormProps) {
+export default function SOWForm({ initialData, restrictedTab, status }: SOWFormProps) {
+  // Two mutually exclusive single-tab modes. `pricingOnly` is kept as a derived
+  // local so the many existing pricing checks below read unchanged.
+  const pricingOnly = restrictedTab === 'Pricing';
   const [formData, setFormData] = useState<Partial<SOWData>>(
     initialData
       ? {
@@ -275,7 +280,7 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
   );
 
 
-  const [activeTab, setActiveTab] = useState(pricingOnly ? 'Pricing' : 'Customer Information');
+  const [activeTab, setActiveTab] = useState(restrictedTab ?? 'Customer Information');
 
   const handleTabChange = (tabKey: string) => {
     // Auto-save on navigation instead of nagging with a confirm dialog. Switching
@@ -922,7 +927,7 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
 
     // In pricing-only mode the other sections are read-only (and would be
     // rejected on an in-review SOW), so persist Pricing alone.
-    let tabKeys: SowTabKey[] = pricingOnly ? ['Pricing'] : [...SOW_TAB_KEYS];
+    let tabKeys: SowTabKey[] = restrictedTab ? [restrictedTab] : [...SOW_TAB_KEYS];
     if (!livePricing) {
       tabKeys = tabKeys.filter(tab => tab !== 'Pricing');
     }
@@ -980,24 +985,24 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
       { key: 'Content Editing', label: 'Content Editing' },
     ];
     
-    // If pricing-only mode, only show Pricing tab
-    if (pricingOnly) {
-      return allTabs.filter(tab => tab.key === 'Pricing');
+    // Restricted modes show only their single tab.
+    if (restrictedTab) {
+      return allTabs.filter(tab => tab.key === restrictedTab);
     }
-    
+
     return allTabs;
-  }, [pricingOnly]);
+  }, [restrictedTab]);
 
   // Flat, ordered section list for Back/Next, in phase order with Review last.
   // Pricing-only mode stays a single-section edit (no phases).
   const wizardKeys = useMemo(
     () =>
-      pricingOnly
+      restrictedTab
         ? tabs.map((t) => t.key)
         : // Commercials renders Billing + Pricing stacked, so it's a single
           // Back/Next stop (its first section).
           PHASES.flatMap((p) => (p.key === 'commercials' ? [p.sections[0]] : p.sections)),
-    [tabs, pricingOnly],
+    [tabs, restrictedTab],
   );
 
   // Whether the SOW passes the strict submit-gating validation — drives the
@@ -1213,8 +1218,8 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
         )}
 
       <div className="space-y-8 pb-20">
-      {/* Pricing-Only Mode Notice */}
-      {pricingOnly && (
+      {/* Restricted-mode notice */}
+      {restrictedTab && (
         <div className="mb-4 bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
           <div className="flex">
             <div className="flex-shrink-0">
@@ -1224,7 +1229,11 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
             </div>
             <div className="ml-3">
               <p className="text-sm text-blue-700">
-                <strong>Pricing-Only Edit Mode:</strong> You are editing pricing and discounts on an approved SOW. Only pricing-related fields can be modified.
+                {pricingOnly ? (
+                  <><strong>Pricing-Only Edit Mode:</strong> You are editing pricing and discounts on an approved SOW. Only pricing-related fields can be modified.</>
+                ) : (
+                  <><strong>Signers-Only Edit Mode:</strong> You are editing the signers on an approved SOW. Only signer fields can be modified; no re-approval is required.</>
+                )}
               </p>
             </div>
           </div>
@@ -1232,7 +1241,7 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
       )}
 
       {/* 4-phase wizard: top progress bar + per-phase sub-nav + the active section. */}
-      {!pricingOnly && (
+      {!restrictedTab && (
         <>
           <nav aria-label="Progress" className="mb-8">
             <ol className="flex list-none items-center pl-0">
@@ -1363,7 +1372,7 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
 
       {/* Billing Information Section */}
       {/* Commercials phase: billing details + pricing/roles, stacked as one view. */}
-      {!pricingOnly && activePhase.key === 'commercials' && (
+      {!restrictedTab && activePhase.key === 'commercials' && (
         <>
           {hasUnsavedChanges && (
             <div className="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-700/40">
@@ -1430,7 +1439,7 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
           bar that replaces the old separate nav row + floating save control.
           The top 4-phase bar is the sole progress indicator (no "Step N of M"). */}
       {(() => {
-        const nextKey = !pricingOnly && currentStepIndex < wizardKeys.length - 1 ? wizardKeys[currentStepIndex + 1] : null;
+        const nextKey = !restrictedTab && currentStepIndex < wizardKeys.length - 1 ? wizardKeys[currentStepIndex + 1] : null;
         const nextPhase = nextKey ? PHASES.find((p) => p.sections.includes(nextKey)) : null;
         const nextLabel = !nextKey
           ? 'Next'
@@ -1459,7 +1468,7 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
         );
         return (
           <div className="mt-2 flex items-center justify-between gap-4 border-t border-gray-200 pt-6 dark:border-dark-border">
-            {!pricingOnly ? (
+            {!restrictedTab ? (
               <Button
                 variant="secondary"
                 onClick={onBackClick}
@@ -1491,9 +1500,9 @@ export default function SOWForm({ initialData, pricingOnly = false, status }: SO
                 )}
               </span>
               <Button variant="secondary" onClick={handleSaveAll} loading={isSaving} leftIcon={saveIcon}>
-                {pricingOnly ? 'Save Pricing' : 'Save all changes'}
+                {restrictedTab ? (pricingOnly ? 'Save Pricing' : 'Save Signers') : 'Save all changes'}
               </Button>
-              {!pricingOnly && showNextButton && (
+              {!restrictedTab && showNextButton && (
                 <Button variant="primary" onClick={onNextClick} disabled={nextBtnDisabled} loading={nextBtnLoading}>
                   {nextBtnLabel}
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

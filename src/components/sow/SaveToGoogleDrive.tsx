@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import LoadingModal from '@/components/ui/LoadingModal';
 
 interface SaveToGoogleDriveProps {
@@ -215,9 +214,14 @@ export default function SaveToGoogleDrive({ sowId, customerName, sowTitle }: Sav
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="w-full bg-white text-gray-700 px-3 py-2 rounded border border-gray-300 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:border-blue-500 flex items-center justify-center"
+        className="w-full bg-white text-gray-700 px-3 py-2 rounded border border-gray-300 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:border-blue-500 flex items-center justify-center dark:bg-dark-surface dark:text-dark-text dark:border-dark-border dark:hover:bg-dark-elevated"
       >
-        <Image src="/google-drive-icon.svg.png" alt="Google Drive" width={16} height={16} className="mr-1.5" />
+        {/* Inline folder-download icon (currentColor) — avoids a static asset
+            that failed to load through next/image and renders correctly in both themes. */}
+        <svg className="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11v5m0 0l-2-2m2 2l2-2" />
+        </svg>
         Save to Customer Folder
       </button>
 
