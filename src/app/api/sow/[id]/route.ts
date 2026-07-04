@@ -169,9 +169,16 @@ export async function GET(
 // Legal SOW status transitions. A status change not listed here is rejected,
 // so e.g. a manager cannot jump a draft straight to 'approved', re-approve an
 // already-approved SOW, or approve/reject something that isn't in review.
+// Approval outcomes ('approved'/'rejected') are intentionally NOT reachable
+// through this endpoint. ApprovalWorkflowService is the single writer of those
+// statuses — the per-stage workflow (PS → optional PM → Sr. Leadership) is the
+// only path, so one manager click can never bypass required approvers, and
+// sows.status can't diverge from sow_approvals. Admin overrides go through
+// POST /api/sow/[id]/force-approve, which writes consistent stage rows and an
+// audit entry. (audit #56/#63)
 const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
   draft: ['in_review'],
-  in_review: ['approved', 'rejected', 'recalled', 'draft'],
+  in_review: ['recalled', 'draft'],
   rejected: ['in_review', 'draft'],
   recalled: ['in_review', 'draft'],
   approved: [], // terminal via this endpoint (revisions go through their own route)
@@ -204,10 +211,19 @@ export async function PUT(
     const { id } = await params;
     const data = await request.json();
     
+    // Approval outcomes must go through the stage workflow (or the audited
+    // admin force-approve endpoint) — never a direct status write.
+    if (data.status === 'approved' || data.status === 'rejected') {
+      return NextResponse.json(
+        { error: 'SOWs are approved or rejected through the approval workflow, not a direct status update.' },
+        { status: 403 }
+      );
+    }
+
     // Allow status updates and Account Segment updates
     if (
       data.status &&
-      !['draft', 'in_review', 'approved', 'rejected', 'recalled'].includes(data.status)
+      !['draft', 'in_review', 'recalled'].includes(data.status)
     ) {
       return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
     }
@@ -260,29 +276,6 @@ export async function PUT(
           { status: 400 }
         );
       }
-    }
-    // Only managers/admins can approve/reject
-    else if (data.status === 'approved' || data.status === 'rejected') {
-      if (user.role !== 'admin' && user.role !== 'manager') {
-        return NextResponse.json({ error: 'Manager or Admin access required to approve/reject SOWs' }, { status: 403 });
-      }
-    }
-
-    // If rejecting, keep status as rejected and set rejection tracking
-    if (data.status === 'rejected') {
-      updateData.status = 'rejected';
-      // Server-stamped, not caller-supplied.
-      updateData.rejected_at = new Date().toISOString();
-    }
-
-    // Add approval tracking
-    if (data.status === 'approved') {
-      updateData.approved_by = user.id;
-      updateData.approved_at = new Date().toISOString();
-    } else if (data.status === 'rejected') {
-      // This was a rejection, track who rejected it
-      updateData.rejected_by = user.id;
-    } else if (data.status === 'in_review') {
       // Track who submitted the SOW for review
       updateData.submitted_by = user.id;
       updateData.submitted_at = new Date().toISOString();
@@ -430,153 +423,8 @@ export async function PUT(
       }
     }
 
-    // Send Slack notification when SOW is approved
-    if (data.status === 'approved') {
-      try {
-        const slackService = await getSlackService();
-        if (slackService) {
-          // Get SOW details for the notification
-          const { data: sowDetails } = await supabase
-            .from('sows')
-            .select('client_name, author_id, template')
-            .eq('id', id)
-            .single();
-
-          if (sowDetails) {
-            // Get author name if available
-            let authorName = 'Unknown User';
-            if (sowDetails.author_id) {
-              const { data: author } = await supabase
-                .from('users')
-                .select('name, email')
-                .eq('id', sowDetails.author_id)
-                .single();
-              if (author) {
-                authorName = author.name || author.email || 'Unknown User';
-              }
-            }
-
-            // Get SOW title from either direct field or template
-            const clientName = sowDetails.client_name || 'Unknown Client';
-            const sowUrl = getSOWUrl(id);
-
-            await slackService.sendMessage(
-              `:white_check_mark: *SOW Approved*\n\n` +
-              `*Client:* ${clientName}\n` +
-              `*Submitted by:* ${authorName}\n` +
-              `*Approved by:* ${session.user.email}\n\n` +
-              `:link: <${sowUrl}|View SOW>\n\n` +
-              `This SOW is now ready for client signature.`
-            );
-          }
-        }
-      } catch (slackError) {
-        console.error('Slack notification failed for SOW approval:', slackError);
-        // Don't fail the main operation if Slack notification fails
-      }
-    }
-
-    // Send notifications when SOW is rejected. Trigger on the actual status
-    // transition, not a caller-supplied rejected_at field. (audit #57)
-    if (data.status === 'rejected') {
-      try {
-        // Get SOW details for the notification
-        const { data: sowDetails } = await supabase
-          .from('sows')
-          .select('sow_title, client_name, author_id')
-          .eq('id', id)
-          .single();
-
-        if (sowDetails) {
-          // Get author information
-          let authorName = 'Unknown User';
-          let authorEmail = '';
-          if (sowDetails.author_id) {
-            const { data: author } = await supabase
-              .from('users')
-              .select('name, email')
-              .eq('id', sowDetails.author_id)
-              .single();
-            if (author) {
-              authorName = author.name || author.email || 'Unknown User';
-              authorEmail = author.email || '';
-            }
-          }
-
-          const clientName = sowDetails.client_name || 'Unknown Client';
-          const sowTitle = sowDetails.sow_title || 'Untitled SOW';
-          const sowUrl = getSOWUrl(id);
-          const comments = data.approval_comments || 'No comments provided';
-
-          // Send Slack notification
-          try {
-            const slackService = await getSlackService();
-            if (slackService) {
-              await slackService.sendMessage(
-                `:x: *SOW Rejected*\n\n` +
-                `*Client:* ${clientName}\n` +
-                `*Submitted by:* ${authorName}\n` +
-                `*Rejected by:* ${session.user.email}\n` +
-                `*Comments:* ${comments}\n\n` +
-                `:link: <${sowUrl}|View SOW>\n\n` +
-                `The SOW author can create a new revision to address the feedback and resubmit for approval.`
-              );
-            }
-          } catch (slackError) {
-            console.error('Slack notification failed for SOW rejection:', slackError);
-          }
-
-          // Send email notifications for SOW rejection
-          try {
-            const emailService = await getEmailService();
-            if (emailService) {
-              // Get account owner email for CC
-              const { data: sowWithOwner } = await supabase
-                .from('sows')
-                .select('salesforce_account_owner_email')
-                .eq('id', id)
-                .single();
-
-              // Prepare CC emails (account owner if available)
-              const ccEmails: string[] = [];
-              if (sowWithOwner?.salesforce_account_owner_email) {
-                ccEmails.push(sowWithOwner.salesforce_account_owner_email);
-              }
-
-              // Send email to commercial approvals team with account owner in CC
-              await emailService.sendSOWStatusNotification(
-                id,
-                sowTitle,
-                clientName,
-                'sowapprovalscommercial@leandata.com',
-                'rejected',
-                session.user.email || 'Unknown Approver',
-                comments,
-                ccEmails
-              );
-
-              // Also send email to SOW author if available
-              if (authorEmail) {
-                await emailService.sendSOWStatusNotification(
-                  id,
-                  sowTitle,
-                  clientName,
-                  authorEmail,
-                  'rejected',
-                  session.user.email || 'Unknown Approver',
-                  comments
-                );
-              }
-            }
-          } catch (emailError) {
-            console.error('Email notification failed for SOW rejection:', emailError);
-          }
-        }
-      } catch (error) {
-        console.error('Error sending SOW rejection notifications:', error);
-        // Don't fail the main operation if notifications fail
-      }
-    }
+    // Approved/rejected notifications live in ApprovalWorkflowService (the
+    // single writer of those statuses); this endpoint no longer handles them.
 
     return NextResponse.json(updatedSOW);
   } catch (error) {
