@@ -218,28 +218,19 @@ export class SalesforceClient {
       
       // Verify that the connection has both instance URL and access token after authentication
       if (!this.conn.instanceUrl) {
-        // If jsforce didn't set the instance URL, try to derive it from the login URL
+        // If jsforce didn't set the instance URL, the only safe fallback is a
+        // My Domain login URL, which *is* the org's instance. Generic
+        // login/test URLs carry no org information — the old behavior
+        // fabricated https://na1.salesforce.com, a long-decommissioned pod
+        // that produced unreachable URLs. (audit #171)
         console.warn('Salesforce connection missing instance URL, attempting to derive from login URL');
-        
-        // Try to extract instance URL from the login URL used for authentication
+
         const loginUrl = this.conn.loginUrl || '';
-        let derivedInstanceUrl = '';
-        
-        if (loginUrl.includes('login.salesforce.com')) {
-          derivedInstanceUrl = 'https://na1.salesforce.com';
-        } else if (loginUrl.includes('test.salesforce.com')) {
-          derivedInstanceUrl = 'https://na1.salesforce.com';
-        } else {
-          // For custom domains, try to extract the instance
-          const match = loginUrl.match(/https:\/\/([^.]+)\.salesforce\.com/);
-          if (match) {
-            derivedInstanceUrl = `https://${match[1]}.salesforce.com`;
-          }
-        }
-        
-        if (derivedInstanceUrl) {
-          // Set the instance URL manually
-          (this.conn as { instanceUrl?: string }).instanceUrl = derivedInstanceUrl;
+        const isGenericLogin =
+          loginUrl.includes('login.salesforce.com') || loginUrl.includes('test.salesforce.com');
+
+        if (!isGenericLogin && /^https:\/\/[^.]+\.(my\.)?salesforce\.com/.test(loginUrl)) {
+          (this.conn as { instanceUrl?: string }).instanceUrl = loginUrl.replace(/\/+$/, '');
         } else {
           throw new Error('Salesforce authentication succeeded but no instance URL was returned and could not be derived from login URL');
         }

@@ -231,7 +231,12 @@ export class ApprovalWorkflowService {
       approvals.sort((a, b) => {
         const aSortOrder = (a.stage as { sort_order?: number })?.sort_order ?? 999;
         const bSortOrder = (b.stage as { sort_order?: number })?.sort_order ?? 999;
-        return aSortOrder - bSortOrder;
+        if (aSortOrder !== bSortOrder) return aSortOrder - bSortOrder;
+        // Deterministic tie-break (duplicate sort_order or missing stage join)
+        // so the 'current_stage' surfaced to the UI is stable across calls.
+        const aName = (a.stage as { name?: string })?.name ?? '';
+        const bName = (b.stage as { name?: string })?.name ?? '';
+        return aName.localeCompare(bName) || String(a.id).localeCompare(String(b.id));
       });
 
       // For parallel approval: find first pending stage (for backwards compatibility with UI)
@@ -374,11 +379,28 @@ export class ApprovalWorkflowService {
         if (allApproved) {
           // Only promote from in_review so a rejected/recalled SOW is never
           // clobbered back to approved by a late-arriving stage write.
-          await supabase
-            .from('sows')
-            .update({ status: 'approved' })
-            .eq('id', sowId)
-            .eq('status', 'in_review');
+          // Surface promotion failures — this used to be fire-and-forget, so a
+          // fully-approved workflow could silently never promote the SOW.
+          const promote = () =>
+            supabase
+              .from('sows')
+              .update({ status: 'approved' })
+              .eq('id', sowId)
+              .eq('status', 'in_review');
+
+          let { error: promoteError } = await promote();
+          if (promoteError) {
+            // One retry for transient failures before reporting.
+            ({ error: promoteError } = await promote());
+          }
+          if (promoteError) {
+            console.error('Failed to promote fully-approved SOW to approved:', promoteError);
+            return {
+              success: false,
+              error:
+                'Your approval was recorded, but marking the SOW as fully approved failed. Refresh to verify and contact an admin if the status does not update.'
+            };
+          }
         }
       }
 
