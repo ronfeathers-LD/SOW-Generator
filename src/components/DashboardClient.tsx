@@ -249,10 +249,10 @@ export default function DashboardClient({ stats, recentSOWs, pendingApprovals, d
             </div>
           ) : (
             <div className="py-8 text-center">
-              <p className="text-gray-500 dark:text-gray-400">
+              <p className="text-gray-500 dark:text-dark-text-muted">
                 You haven&apos;t created any SOWs yet.
               </p>
-              <Link href="/sow/new" className="text-purple-600 hover:underline dark:text-purple-400">
+              <Link href="/sow/new" className={LINK}>
                 Create your first SOW →
               </Link>
             </div>
