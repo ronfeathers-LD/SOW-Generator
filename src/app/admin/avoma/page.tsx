@@ -61,6 +61,8 @@ export default function AvomaAdminPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          // PUT requires the config id (updates 400ed without it).
+          ...(config?.id ? { id: config.id } : {}),
           apiKey: config?.api_key || '',
           apiUrl: config?.api_url || 'https://api.avoma.com/v1',
           isActive: config?.is_active || true,

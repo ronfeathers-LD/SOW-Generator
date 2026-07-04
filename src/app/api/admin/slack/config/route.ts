@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createServiceRoleClient } from '@/lib/supabase-server';
+import { maskSecret, resolveSecretInput } from '@/lib/utils/secret-mask';
 
 // GET - Retrieve Slack configuration
 export async function GET() {
@@ -26,14 +27,19 @@ export async function GET() {
       return new NextResponse('Internal Server Error', { status: 500 });
     }
 
+    // Never return the stored secrets (bot token, webhook URL) to the browser —
+    // they are masked; the save path keeps the stored value when it receives
+    // the mask back, and test endpoints resolve the stored value server-side.
+    // (audit #53)
+
     // If no config in database, fall back to environment variables
     if (!config) {
       const envConfig = {
-        webhookUrl: process.env.SLACK_WEBHOOK_URL || '',
+        webhookUrl: maskSecret(process.env.SLACK_WEBHOOK_URL),
         channel: process.env.SLACK_CHANNEL || '',
         username: process.env.SLACK_USERNAME || 'SOW Generator',
         iconEmoji: process.env.SLACK_ICON_EMOJI || ':memo:',
-        botToken: process.env.SLACK_BOT_TOKEN || '',
+        botToken: maskSecret(process.env.SLACK_BOT_TOKEN),
         workspaceDomain: process.env.SLACK_WORKSPACE_DOMAIN || '',
         isEnabled: !!process.env.SLACK_WEBHOOK_URL
       };
@@ -42,11 +48,11 @@ export async function GET() {
 
     // Transform database fields to frontend format
     const frontendConfig = {
-      webhookUrl: config.webhook_url || '',
+      webhookUrl: maskSecret(config.webhook_url),
       channel: config.channel || '',
       username: config.username || 'SOW Generator',
       iconEmoji: config.icon_emoji || ':memo:',
-      botToken: config.bot_token || '',
+      botToken: maskSecret(config.bot_token),
       workspaceDomain: config.workspace_domain || '',
       isEnabled: config.is_enabled ?? true
     };
@@ -68,13 +74,41 @@ export async function POST(request: Request) {
 
     const config = await request.json();
 
-    // Validate required fields
-    if (!config.webhookUrl) {
+    const supabase = createServiceRoleClient();
+
+    // The GET handler returns masked secrets, and the admin form round-trips
+    // them on save. Resolve masked/blank values back to the stored secret so
+    // saving without re-typing a secret never overwrites it with the mask.
+    // (audit #53)
+    let storedWebhookUrl: string | undefined;
+    let storedBotToken: string | undefined;
+    try {
+      const { data: storedRows } = await supabase
+        .from('slack_config')
+        .select('webhook_url, bot_token')
+        .order('id', { ascending: false })
+        .limit(1);
+      storedWebhookUrl = storedRows?.[0]?.webhook_url || undefined;
+      storedBotToken = storedRows?.[0]?.bot_token || undefined;
+    } catch {
+      // Table may not exist yet — fall back to env below.
+    }
+
+    const resolvedWebhookUrl = resolveSecretInput(
+      config.webhookUrl,
+      storedWebhookUrl ?? process.env.SLACK_WEBHOOK_URL
+    );
+    const resolvedBotToken = resolveSecretInput(
+      config.botToken,
+      storedBotToken ?? process.env.SLACK_BOT_TOKEN
+    );
+
+    // Validate required fields (after resolution, so a masked value counts
+    // as "configured" rather than being persisted literally)
+    if (!resolvedWebhookUrl) {
       return new NextResponse('Webhook URL is required', { status: 400 });
     }
 
-    const supabase = createServiceRoleClient();
-    
     // First check if the slack_config table exists
     try {
       const { error: tableCheckError } = await supabase
@@ -89,23 +123,23 @@ export async function POST(request: Request) {
         console.warn('Saving config to environment variables instead of database');
         
         // Update environment variables for the current session
-        process.env.SLACK_WEBHOOK_URL = config.webhookUrl;
+        process.env.SLACK_WEBHOOK_URL = resolvedWebhookUrl;
         process.env.SLACK_CHANNEL = config.channel || '';
         process.env.SLACK_USERNAME = config.username || 'SOW Generator';
         process.env.SLACK_ICON_EMOJI = config.iconEmoji || ':memo:';
-        process.env.SLACK_BOT_TOKEN = config.botToken || '';
+        process.env.SLACK_BOT_TOKEN = resolvedBotToken || '';
         process.env.SLACK_WORKSPACE_DOMAIN = config.workspaceDomain || '';
-        
-        return NextResponse.json({ 
-          success: true, 
+
+        return NextResponse.json({
+          success: true,
           message: 'Configuration saved to environment variables (database table not found - run migration to persist)',
           warning: 'Configuration is not persisted. Please run the database migration (add-slack-config-table.sql) to enable persistent storage.',
           config: {
-            webhookUrl: config.webhookUrl,
+            webhookUrl: maskSecret(resolvedWebhookUrl),
             channel: config.channel,
             username: config.username,
             iconEmoji: config.iconEmoji,
-            botToken: config.botToken,
+            botToken: maskSecret(resolvedBotToken),
             workspaceDomain: config.workspaceDomain,
             isEnabled: config.isEnabled
           }
@@ -121,11 +155,11 @@ export async function POST(request: Request) {
     
     // Transform frontend format to database format
     const dbConfig = {
-      webhook_url: config.webhookUrl,
+      webhook_url: resolvedWebhookUrl,
       channel: config.channel || null,
       username: config.username || 'SOW Generator',
       icon_emoji: config.iconEmoji || ':memo:',
-      bot_token: config.botToken || null,
+      bot_token: resolvedBotToken || null,
       workspace_domain: config.workspaceDomain || null,
       is_enabled: config.isEnabled ?? true,
       updated_at: new Date().toISOString()
@@ -169,15 +203,15 @@ export async function POST(request: Request) {
       return new NextResponse(`Failed to save configuration: ${result.error.message}`, { status: 500 });
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: 'Configuration updated successfully',
       config: {
-        webhookUrl: dbConfig.webhook_url,
+        webhookUrl: maskSecret(dbConfig.webhook_url),
         channel: dbConfig.channel,
         username: dbConfig.username,
         iconEmoji: dbConfig.icon_emoji,
-        botToken: dbConfig.bot_token,
+        botToken: maskSecret(dbConfig.bot_token),
         workspaceDomain: dbConfig.workspace_domain,
         isEnabled: dbConfig.is_enabled
       }

@@ -3,12 +3,15 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { SlackUserLookupService } from '@/lib/slack-user-lookup';
 import { createServiceRoleClient } from '@/lib/supabase-server';
+import { isMaskedSecret } from '@/lib/utils/secret-mask';
 
 async function resolveBotToken(providedToken?: string): Promise<{
   token: string | null;
   workspaceDomain?: string | null;
 }> {
-  if (providedToken) {
+  // The admin form holds the masked placeholder (the config GET never returns
+  // the real token) — treat a mask as "not provided" and use the stored token.
+  if (providedToken && !isMaskedSecret(providedToken)) {
     return { token: providedToken };
   }
 
