@@ -3,6 +3,7 @@ import { PMHoursRequirementDisableRequest, PMHoursComment, PMHoursRequirementDis
 import { getEmailService } from './email';
 import { getSlackService } from './slack';
 import { filterValidLeandataEmails, logInvalidEmailWarning } from './utils/email-domain-validation';
+import { ApprovalWorkflowService } from './approval-workflow-service';
 
 // Fallback client for client-side usage
 const fallbackSupabase = createClient(
@@ -1124,6 +1125,18 @@ export class PMHoursRemovalService {
         if (sowUpdateError) {
           console.error('Error reverting SOW changes:', sowUpdateError);
           return { success: false, error: 'Failed to revert SOW changes' };
+        }
+
+        // Restoring PM hours can leave an in-review SOW with a workflow that
+        // was created without a PM stage (because PM approval was waived while
+        // disabled). Reconcile so the required PM/PMO oversight is not skipped.
+        const reconcile = await ApprovalWorkflowService.reconcilePMStage(
+          request.sow_id,
+          client
+        );
+        if (!reconcile.success) {
+          console.error('Failed to reconcile PM approval stage after reversal:', reconcile.error);
+          // Non-fatal: the pricing reversal already succeeded. Log and continue.
         }
       }
 

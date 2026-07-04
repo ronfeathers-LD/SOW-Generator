@@ -35,7 +35,9 @@ export function getDefaultRateForRole(roleName: string, configs: PricingRoleConf
   }
   
   const config = configs.find(c => c.role_name === roleName);
-  return config?.default_rate || 250; // Default to 250 if not found
+  // Use nullish coalescing so a legitimate configured rate of 0 is respected;
+  // `|| 250` would silently bill an intentionally-$0 role at $250/hr.
+  return config?.default_rate ?? 250; // Default to 250 only if unconfigured
 }
 
 // Helper function to get description for a role

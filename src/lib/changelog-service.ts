@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from './supabase-server';
+import { toCsvRow } from './utils/csv';
 
 export interface ChangelogEntry {
   id: string;
@@ -369,7 +370,7 @@ export class ChangelogService {
       const changelog = await this.getChangelog(sowId);
       
       // Create CSV header
-      const csvHeader = [
+      const csvHeader = toCsvRow([
         'Date',
         'User',
         'Action',
@@ -379,20 +380,20 @@ export class ChangelogService {
         'New Value',
         'Diff Summary',
         'Version'
-      ].join(',');
+      ]);
 
       // Create CSV rows
-      const csvRows = changelog.map(entry => [
+      const csvRows = changelog.map(entry => toCsvRow([
         new Date(entry.created_at).toISOString(),
         entry.user_id || 'Unknown',
         entry.action,
         entry.field_name || '',
         entry.change_type,
-        `"${(entry.previous_value || '').replace(/"/g, '""')}"`,
-        `"${(entry.new_value || '').replace(/"/g, '""')}"`,
-        `"${(entry.diff_summary || '').replace(/"/g, '""')}"`,
+        entry.previous_value || '',
+        entry.new_value || '',
+        entry.diff_summary || '',
         entry.version
-      ].join(','));
+      ]));
 
       return [csvHeader, ...csvRows].join('\n');
     } catch (error) {

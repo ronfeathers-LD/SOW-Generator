@@ -99,23 +99,27 @@ export class SlackUserLookupService {
       const usernameVariations = this.generateUsernameVariations(username);
       console.log(`Trying username variations: ${usernameVariations.join(', ')}`);
       
-      // Search by various name fields with all variations
-      const foundUser = allUsers.find(user => {
-        const displayName = user.profile.display_name?.toLowerCase();
-        const realName = user.profile.real_name?.toLowerCase();
-        const name = user.name.toLowerCase();
-        
-        // Check if any username variation matches any name field
-        return usernameVariations.some(variation => {
-          const searchTerm = variation.toLowerCase();
-          return displayName === searchTerm || 
-                 realName === searchTerm || 
-                 name === searchTerm ||
-                 displayName?.includes(searchTerm) ||
-                 realName?.includes(searchTerm) ||
-                 name.includes(searchTerm);
-        });
-      });
+      // Search by various name fields with all variations.
+      const searchTerms = usernameVariations.map(v => v.toLowerCase());
+      const nameFieldsOf = (user: typeof allUsers[number]) =>
+        [
+          user.profile.display_name?.toLowerCase(),
+          user.profile.real_name?.toLowerCase(),
+          user.name.toLowerCase(),
+        ].filter((f): f is string => !!f);
+
+      // Prefer an EXACT match on any name field before considering substrings.
+      // Substring matching alone resolved e.g. '@ron' to the first user merely
+      // containing 'ron' ('Veronica', 'Cameron'); an exact handle/display-name
+      // match must always win to avoid notifying the wrong person.
+      const foundUser =
+        allUsers.find(user =>
+          nameFieldsOf(user).some(field => searchTerms.includes(field))
+        ) ||
+        // Fall back to substring only when no exact match exists anywhere.
+        allUsers.find(user =>
+          nameFieldsOf(user).some(field => searchTerms.some(term => field.includes(term)))
+        );
 
       if (foundUser) {
         return {

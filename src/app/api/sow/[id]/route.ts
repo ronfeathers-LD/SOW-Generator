@@ -12,6 +12,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Require authentication. Without this any caller who guesses a SOW UUID
+    // could read the full SOW (billing, pricing, signer emails, Salesforce
+    // account data) unauthenticated. Read access across authenticated users is
+    // intentional for this internal tool; unauthenticated access is not.
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabase = await createServerSupabaseClient();
     const { data: sow, error } = await supabase
       .from('sows')
@@ -603,7 +612,13 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    
+
+    // The id is interpolated into a PostgREST .or() filter below — restrict it
+    // to a UUID so filter syntax can never be injected via the route param.
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      return NextResponse.json({ error: 'Invalid SOW id' }, { status: 400 });
+    }
+
     // Find the SOW to ensure it exists and check its status
     const { data: existingSOW, error: findError } = await supabase
       .from('sows')
@@ -615,12 +630,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'SOW not found' }, { status: 404 });
     }
 
-    // Prevent hiding of approved SOWs for non-admin users
-    if (existingSOW.status === 'approved' && user.role !== 'admin') {
-      return NextResponse.json({ 
-        error: 'Cannot hide approved SOWs. Approved SOWs are protected.' 
-      }, { status: 403 });
-    }
+    // Note: only admins reach this point (403 above), and admins are allowed
+    // to hide approved SOWs. A previous "approved SOWs are protected" branch
+    // here was unreachable dead code (it checked role !== 'admin' after the
+    // admin-only gate) and implied a protection that never existed.
 
     // Determine if this is hiding a single revision or the entire SOW family
     const isRevision = existingSOW.parent_id !== null;

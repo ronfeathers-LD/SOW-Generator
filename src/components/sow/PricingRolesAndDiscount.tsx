@@ -667,14 +667,19 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                     type="number"
                     value={discountConfig.type === 'fixed' ? (discountConfig?.amount || '') : (discountConfig?.percentage || '')}
                     onChange={(e) => {
-                      const value = parseFloat(e.target.value) || 0;
+                      const raw = parseFloat(e.target.value) || 0;
                       if (discountConfig.type === 'fixed') {
-                        setDiscountConfig({ ...discountConfig, amount: value });
+                        // Never negative.
+                        setDiscountConfig({ ...discountConfig, amount: Math.max(0, raw) });
                       } else {
-                        setDiscountConfig({ ...discountConfig, percentage: value });
+                        // A percentage must be within 0–100; >100 would produce
+                        // a discount exceeding subtotal and a negative total.
+                        setDiscountConfig({ ...discountConfig, percentage: Math.min(100, Math.max(0, raw)) });
                       }
                     }}
                     placeholder={discountConfig.type === 'fixed' ? '0.00' : '0'}
+                    min={0}
+                    max={discountConfig.type === 'percentage' ? 100 : undefined}
                     step={discountConfig.type === 'fixed' ? '0.01' : '0.1'}
                   />
                 </Field>

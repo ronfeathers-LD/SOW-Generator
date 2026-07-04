@@ -2,6 +2,7 @@
 // are not silently dropped by RLS (the previous browser anon client was the
 // likely cause of "swallowed" audit failures). (audit #77/#78)
 import { supabaseApi as supabase } from './supabase-api';
+import { toCsvRow } from './utils/csv';
 
 export interface AuditLogEntry {
   id: string;
@@ -276,7 +277,7 @@ export class AuditService {
       const auditTrail = await this.getAuditTrail(sowId);
       
       // Create CSV header
-      const csvHeader = [
+      const csvHeader = toCsvRow([
         'Date',
         'User',
         'Action',
@@ -284,18 +285,19 @@ export class AuditService {
         'New Status',
         'Comments',
         'Metadata'
-      ].join(',');
+      ]);
 
-      // Create CSV rows
-      const csvRows = auditTrail.map(entry => [
+      // Create CSV rows — every cell escaped to prevent column-shifting and
+      // spreadsheet formula injection (see utils/csv).
+      const csvRows = auditTrail.map(entry => toCsvRow([
         new Date(entry.created_at).toISOString(),
         entry.user?.name || 'Unknown',
         entry.action,
         entry.previous_status || '',
         entry.new_status || '',
-        `"${(entry.comments || '').replace(/"/g, '""')}"`,
+        entry.comments || '',
         JSON.stringify(entry.metadata || {})
-      ].join(','));
+      ]));
 
       return [csvHeader, ...csvRows].join('\n');
     } catch (error) {

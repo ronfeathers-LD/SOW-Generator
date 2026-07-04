@@ -231,7 +231,12 @@ export class ApprovalWorkflowService {
       approvals.sort((a, b) => {
         const aSortOrder = (a.stage as { sort_order?: number })?.sort_order ?? 999;
         const bSortOrder = (b.stage as { sort_order?: number })?.sort_order ?? 999;
-        return aSortOrder - bSortOrder;
+        if (aSortOrder !== bSortOrder) return aSortOrder - bSortOrder;
+        // Deterministic tie-break (duplicate sort_order or missing stage join)
+        // so the 'current_stage' surfaced to the UI is stable across calls.
+        const aName = (a.stage as { name?: string })?.name ?? '';
+        const bName = (b.stage as { name?: string })?.name ?? '';
+        return aName.localeCompare(bName) || String(a.id).localeCompare(String(b.id));
       });
 
       // For parallel approval: find first pending stage (for backwards compatibility with UI)
@@ -322,8 +327,11 @@ export class ApprovalWorkflowService {
         return { success: false, error: 'Stage is already approved' };
       }
 
-      // Update approval record
-      const { error: updateError } = await supabase
+      // Update approval record. Guard on status='pending' so that two
+      // concurrent approvals of the same stage cannot both "succeed" — only the
+      // transition from pending is allowed, making the operation idempotent and
+      // race-safe. If no row was updated, the stage was already resolved.
+      const { data: updatedRows, error: updateError } = await supabase
         .from('sow_approvals')
         .update({
           status: 'approved',
@@ -331,11 +339,18 @@ export class ApprovalWorkflowService {
           comments: comments?.trim() || null,
           approved_at: new Date().toISOString()
         })
-        .eq('id', stageId);
+        .eq('id', stageId)
+        .eq('status', 'pending')
+        .select('id');
 
       if (updateError) {
         console.error('Error updating approval:', updateError);
         return { success: false, error: 'Failed to approve stage' };
+      }
+
+      if (!updatedRows || updatedRows.length === 0) {
+        // Another request already resolved this stage between our read and write.
+        return { success: false, error: 'Stage is no longer pending approval' };
       }
 
       // Log the approval
@@ -357,12 +372,35 @@ export class ApprovalWorkflowService {
 
       if (allApprovals) {
         // If all stages are approved, mark SOW as fully approved
-        const allApproved = allApprovals.every(a => a.status === 'approved');
+        // Require a non-empty set, and every stage approved. `every` returns
+        // true for an empty array, which must not promote a SOW with no stages.
+        const allApproved =
+          allApprovals.length > 0 && allApprovals.every(a => a.status === 'approved');
         if (allApproved) {
-          await supabase
-            .from('sows')
-            .update({ status: 'approved' })
-            .eq('id', sowId);
+          // Only promote from in_review so a rejected/recalled SOW is never
+          // clobbered back to approved by a late-arriving stage write.
+          // Surface promotion failures — this used to be fire-and-forget, so a
+          // fully-approved workflow could silently never promote the SOW.
+          const promote = () =>
+            supabase
+              .from('sows')
+              .update({ status: 'approved' })
+              .eq('id', sowId)
+              .eq('status', 'in_review');
+
+          let { error: promoteError } = await promote();
+          if (promoteError) {
+            // One retry for transient failures before reporting.
+            ({ error: promoteError } = await promote());
+          }
+          if (promoteError) {
+            console.error('Failed to promote fully-approved SOW to approved:', promoteError);
+            return {
+              success: false,
+              error:
+                'Your approval was recorded, but marking the SOW as fully approved failed. Refresh to verify and contact an admin if the status does not update.'
+            };
+          }
         }
       }
 
@@ -370,6 +408,109 @@ export class ApprovalWorkflowService {
     } catch (error) {
       console.error('Error in approveStage:', error);
       return { success: false, error: 'Internal server error' };
+    }
+  }
+
+  /**
+   * Reconcile the Project Management approval stage for a SOW whose PM-hours
+   * situation changed after the workflow was already created (e.g. an admin
+   * reverses a PM-hours-removal, restoring PM hours). If the SOW is in review
+   * and now requires PM approval but has no active PM stage, add a pending one
+   * so the required oversight is not skipped.
+   *
+   * Scoped to in_review SOWs: a draft rebuilds its workflow fresh on submit,
+   * and an already-approved SOW is intentionally left alone (re-opening a
+   * completed approval is a separate, disruptive decision).
+   */
+  static async reconcilePMStage(
+    sowId: string,
+    supabaseClient?: SupabaseClient
+  ): Promise<{ success: boolean; added_pm_stage: boolean; error?: string }> {
+    try {
+      const supabase = supabaseClient || await createServerSupabaseClient();
+
+      const { data: sow, error: sowError } = await supabase
+        .from('sows')
+        .select('products, pricing_roles, pm_hours_requirement_disabled, status')
+        .eq('id', sowId)
+        .single();
+
+      if (sowError || !sow) {
+        return { success: false, added_pm_stage: false, error: 'SOW not found' };
+      }
+
+      if (sow.status !== 'in_review') {
+        return { success: true, added_pm_stage: false };
+      }
+
+      const needsPMApproval = requiresPMApproval({
+        products: sow.products || [],
+        pricing_roles: sow.pricing_roles,
+        pm_hours_requirement_disabled: sow.pm_hours_requirement_disabled
+      });
+
+      if (!needsPMApproval) {
+        return { success: true, added_pm_stage: false };
+      }
+
+      // Is there already an active (non-rejected) Project Management stage?
+      const { data: existing } = await supabase
+        .from('sow_approvals')
+        .select('id, stage:approval_stages!inner(name)')
+        .eq('sow_id', sowId)
+        .neq('status', 'rejected');
+
+      const hasPMStage = (existing || []).some(
+        (row) => (row as { stage?: { name?: string } }).stage?.name === 'Project Management'
+      );
+      if (hasPMStage) {
+        return { success: true, added_pm_stage: false };
+      }
+
+      // Find the active Project Management stage definition.
+      const { data: pmStage } = await supabase
+        .from('approval_stages')
+        .select('id')
+        .eq('name', 'Project Management')
+        .eq('is_active', true)
+        .single();
+
+      if (!pmStage) {
+        return { success: false, added_pm_stage: false, error: 'Project Management stage not configured' };
+      }
+
+      const { error: insertError } = await supabase
+        .from('sow_approvals')
+        .insert({
+          sow_id: sowId,
+          stage_id: pmStage.id,
+          status: 'pending',
+          comments: null,
+          approver_id: null,
+          approved_at: null,
+          rejected_at: null,
+          skipped_at: null,
+          version: 1
+        });
+
+      if (insertError) {
+        console.error('Error adding PM approval stage during reconcile:', insertError);
+        return { success: false, added_pm_stage: false, error: 'Failed to add PM approval stage' };
+      }
+
+      // A newly-required pending stage means the SOW is no longer fully
+      // approved; keep it in review (it already is, but guard against a
+      // concurrent promotion).
+      await supabase
+        .from('sows')
+        .update({ status: 'in_review' })
+        .eq('id', sowId)
+        .eq('status', 'approved');
+
+      return { success: true, added_pm_stage: true };
+    } catch (error) {
+      console.error('Error in reconcilePMStage:', error);
+      return { success: false, added_pm_stage: false, error: 'Internal server error' };
     }
   }
 

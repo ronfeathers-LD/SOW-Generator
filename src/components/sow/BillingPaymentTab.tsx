@@ -140,7 +140,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       } else if (discountConfig.type === 'percentage') {
         discountTotal = subtotal * ((discountConfig.percentage || 0) / 100);
       }
-      const totalAmount = subtotal - discountTotal;
+      const totalAmount = Math.max(0, subtotal - discountTotal); // never persist a negative total (#166)
       
       return {
         roles: pricingRoles.map(role => ({
@@ -281,7 +281,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       } else if (discountConfig.type === 'percentage') {
         discountTotal = subtotal * ((discountConfig.percentage || 0) / 100);
       }
-      const totalAmount = subtotal - discountTotal;
+      const totalAmount = Math.max(0, subtotal - discountTotal); // never persist a negative total (#166)
 
       const requestBody = {
         tab: 'Pricing',
@@ -424,7 +424,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       } else if (discountConfig.type === 'percentage') {
         newDiscountTotal = newSubtotal * ((discountConfig.percentage || 0) / 100);
       }
-      const newTotalAmount = newSubtotal - newDiscountTotal;
+      const newTotalAmount = Math.max(0, newSubtotal - newDiscountTotal); // never persist a negative total (#166)
       
       // Update form data directly - PRESERVE ALL ROLES, not just the ones we modified
       const updatedFormData: Partial<SOWData> = {

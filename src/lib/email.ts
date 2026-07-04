@@ -129,6 +129,13 @@ class EmailService {
       // Validate CC emails
       const validCCEmails: string[] = [];
       for (const ccEmail of ccEmails) {
+        // Guard against null/undefined/non-string CC entries — otherwise
+        // .toLowerCase() throws and aborts the entire send, so a single bad CC
+        // would stop the primary recipient from being notified.
+        if (typeof ccEmail !== 'string' || !ccEmail.trim()) {
+          logInvalidEmailWarning(String(ccEmail), 'email CC');
+          continue;
+        }
         const ccDomain = ccEmail.toLowerCase().split('@')[1];
         if (emailRegex.test(ccEmail) && ccDomain === 'leandata.com') {
           validCCEmails.push(ccEmail);
