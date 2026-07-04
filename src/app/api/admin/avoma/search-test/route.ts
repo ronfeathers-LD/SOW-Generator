@@ -1,17 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { resolveSecretInput } from '@/lib/utils/secret-mask';
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session || session.user?.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { apiKey, apiUrl } = body;
+    const { apiKey: providedKey, apiUrl } = body;
+
+    // The admin form holds the masked placeholder (config GET never returns
+    // the real key) — resolve a masked/blank value to the stored key so the
+    // test exercises the real configured key. (audit #53)
+    const supabase = await createServerSupabaseClient();
+    const { data: storedConfig } = await supabase
+      .from('avoma_configs')
+      .select('api_key')
+      .single();
+
+    const apiKey = resolveSecretInput(providedKey, storedConfig?.api_key);
 
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });
