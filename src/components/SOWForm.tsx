@@ -346,9 +346,15 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
   // Wrapper function to update form data. Any tab editing through this marks the
   // whole form dirty so the unsaved-changes guard covers every tab, not just the
   // active one (the gap behind the #109 data-loss bug).
-  const updateFormData = (newData: Partial<SOWData>) => {
+  // `options.markDirty: false` opts a write-back out of the dirty flag — reserved for
+  // programmatic writes that aren't user edits (e.g. BillingPaymentTab's mount-time
+  // auto-calc), so the "unsaved changes" banner doesn't fire before the user has
+  // touched anything.
+  const updateFormData = (newData: Partial<SOWData>, options?: { markDirty?: boolean }) => {
     setFormData(newData);
-    setHasUnsavedChanges(true);
+    if (options?.markDirty !== false) {
+      setHasUnsavedChanges(true);
+    }
   };
 
   // Fetch LeanData signatories and Salesforce instance URL on component mount
