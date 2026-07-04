@@ -6,7 +6,12 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = await getToken({
     req: request,
-    secret: process.env.NEXTAUTH_SECRET,
+    // Must match the secret NextAuth signs with (src/lib/auth.ts). Without the
+    // same dev fallback, local tokens are signed with 'dev-secret' but verified
+    // here with undefined, so middleware rejects every authenticated request.
+    secret:
+      process.env.NEXTAUTH_SECRET ||
+      (process.env.NODE_ENV === 'production' ? undefined : 'dev-secret'),
   });
 
   const isAdmin = token?.role === "admin";

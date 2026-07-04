@@ -82,12 +82,17 @@ const automatedChecks: ChecklistItem[] = [
     type: 'automated',
     label: 'Salesforce Tenants is greater than 1',
     check: (sow) => {
-      const tenants = parseInt(sow.salesforce_tenants || '0');
-      if (tenants === 1) {
+      // Use Number (not parseInt) so '1abc' is rejected rather than read as 1,
+      // and treat blank/0/non-numeric as failing — the gate is "greater than 1".
+      const raw = (sow.salesforce_tenants ?? '').toString().trim();
+      const tenants = raw === '' ? NaN : Number(raw);
+      if (!Number.isFinite(tenants) || tenants <= 1) {
         return {
           passed: false,
           detail:
-            'Salesforce Tenants is set to 1. If the customer has any sandbox environment, this should be at least 2.',
+            tenants === 1
+              ? 'Salesforce Tenants is set to 1. If the customer has any sandbox environment, this should be at least 2.'
+              : 'Salesforce Tenants must be a number greater than 1 (set it based on the customer\'s environments, including sandboxes).',
         };
       }
       return { passed: true };
