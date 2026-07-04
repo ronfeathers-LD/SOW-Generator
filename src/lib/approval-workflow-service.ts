@@ -390,6 +390,109 @@ export class ApprovalWorkflowService {
   }
 
   /**
+   * Reconcile the Project Management approval stage for a SOW whose PM-hours
+   * situation changed after the workflow was already created (e.g. an admin
+   * reverses a PM-hours-removal, restoring PM hours). If the SOW is in review
+   * and now requires PM approval but has no active PM stage, add a pending one
+   * so the required oversight is not skipped.
+   *
+   * Scoped to in_review SOWs: a draft rebuilds its workflow fresh on submit,
+   * and an already-approved SOW is intentionally left alone (re-opening a
+   * completed approval is a separate, disruptive decision).
+   */
+  static async reconcilePMStage(
+    sowId: string,
+    supabaseClient?: SupabaseClient
+  ): Promise<{ success: boolean; added_pm_stage: boolean; error?: string }> {
+    try {
+      const supabase = supabaseClient || await createServerSupabaseClient();
+
+      const { data: sow, error: sowError } = await supabase
+        .from('sows')
+        .select('products, pricing_roles, pm_hours_requirement_disabled, status')
+        .eq('id', sowId)
+        .single();
+
+      if (sowError || !sow) {
+        return { success: false, added_pm_stage: false, error: 'SOW not found' };
+      }
+
+      if (sow.status !== 'in_review') {
+        return { success: true, added_pm_stage: false };
+      }
+
+      const needsPMApproval = requiresPMApproval({
+        products: sow.products || [],
+        pricing_roles: sow.pricing_roles,
+        pm_hours_requirement_disabled: sow.pm_hours_requirement_disabled
+      });
+
+      if (!needsPMApproval) {
+        return { success: true, added_pm_stage: false };
+      }
+
+      // Is there already an active (non-rejected) Project Management stage?
+      const { data: existing } = await supabase
+        .from('sow_approvals')
+        .select('id, stage:approval_stages!inner(name)')
+        .eq('sow_id', sowId)
+        .neq('status', 'rejected');
+
+      const hasPMStage = (existing || []).some(
+        (row) => (row as { stage?: { name?: string } }).stage?.name === 'Project Management'
+      );
+      if (hasPMStage) {
+        return { success: true, added_pm_stage: false };
+      }
+
+      // Find the active Project Management stage definition.
+      const { data: pmStage } = await supabase
+        .from('approval_stages')
+        .select('id')
+        .eq('name', 'Project Management')
+        .eq('is_active', true)
+        .single();
+
+      if (!pmStage) {
+        return { success: false, added_pm_stage: false, error: 'Project Management stage not configured' };
+      }
+
+      const { error: insertError } = await supabase
+        .from('sow_approvals')
+        .insert({
+          sow_id: sowId,
+          stage_id: pmStage.id,
+          status: 'pending',
+          comments: null,
+          approver_id: null,
+          approved_at: null,
+          rejected_at: null,
+          skipped_at: null,
+          version: 1
+        });
+
+      if (insertError) {
+        console.error('Error adding PM approval stage during reconcile:', insertError);
+        return { success: false, added_pm_stage: false, error: 'Failed to add PM approval stage' };
+      }
+
+      // A newly-required pending stage means the SOW is no longer fully
+      // approved; keep it in review (it already is, but guard against a
+      // concurrent promotion).
+      await supabase
+        .from('sows')
+        .update({ status: 'in_review' })
+        .eq('id', sowId)
+        .eq('status', 'approved');
+
+      return { success: true, added_pm_stage: true };
+    } catch (error) {
+      console.error('Error in reconcilePMStage:', error);
+      return { success: false, added_pm_stage: false, error: 'Internal server error' };
+    }
+  }
+
+  /**
    * Reject a specific stage
    */
   static async rejectStage(
