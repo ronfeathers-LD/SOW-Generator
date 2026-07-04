@@ -29,6 +29,7 @@ import { countOpenTopLevel } from '@/lib/comment-filters';
 import { anchorToRange, type SelectionAnchor } from '@/lib/selection-anchor';
 import type { SOWSectionKey } from '@/lib/sow-content';
 import { DisplaySOW, Product, SalesforceData } from '@/types/sow-display';
+import { getPricingSummary } from '@/lib/sow/pricing-summary';
 
 // Helper function to find the appropriate signatory from Salesforce contacts
 function findSignatory(contacts: SalesforceData['contacts_data']): { name: string; title: string; email: string } | null {
@@ -109,6 +110,7 @@ export default function SOWFullView({
   const isPmo = session?.user?.role === 'pmo';
   const isSowAuthor = !!sow.author_id && sow.author_id === session?.user?.id;
   const canEditSigners = isSowAuthor || isAdmin || isManager || isPmo;
+  const pmIncluded = getPricingSummary(sow.pricingRoles).pmIncluded;
   const router = useRouter();
 
   // ── Anchored comments (#349): select text in a section → comment on it ──
@@ -580,16 +582,12 @@ export default function SOWFullView({
                   
                   {/* Project Team Roles */}
                   {Array.isArray(sow.pricingRoles) && sow.pricingRoles.length > 0 && (() => {
-                    // Filter out Account Executive and Project Manager if PM hours are removed
+                    // Filter out Account Executive; PM row absent from table when removed (table-derived)
                     const filteredRoles = sow.pricingRoles.filter((role: unknown) => {
                       const roleData = role as Record<string, unknown>;
                       const roleName = String(roleData.role || '');
                       // Always exclude Account Executive
                       if (roleName === 'Account Executive') {
-                        return false;
-                      }
-                      // Exclude Project Manager if PM hours are removed
-                      if (sow.pm_hours_requirement_disabled && roleName === 'Project Manager') {
                         return false;
                       }
                       return true;
@@ -760,7 +758,7 @@ export default function SOWFullView({
                       subtotal={sow.pricing?.subtotal || 0}
                       totalAmount={sow.pricing?.total_amount || 0}
                       lastCalculated={sow.pricing?.last_calculated || null}
-                      pmHoursRemoved={sow.pm_hours_requirement_disabled || false}
+                      pmHoursRemoved={!pmIncluded}
                       isPrintMode={false}
                     />
 

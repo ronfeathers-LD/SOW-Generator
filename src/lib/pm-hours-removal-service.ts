@@ -393,6 +393,64 @@ export class PMHoursRemovalService {
   }
 
   /**
+   * Core read-strip-write path shared by approveRequest and disablePMHoursRequirementDirect.
+   *
+   * Reads pricing_roles from the SOW, calls stripProjectManagerFromPricing to remove the
+   * PM role and restore the Onboarding Specialist hours, then persists the updated row
+   * with pm_hours_requirement_disabled = true and all related flags/dates.
+   *
+   * Pass { approverId } for the standard PMO approval flow (records the approver).
+   * Pass { requesterId } for the Enterprise self-serve flow (records the requester).
+   */
+  private static async applyPMRemoval(
+    client: SupabaseClient,
+    sowId: string,
+    options: { requesterId?: string; approverId?: string }
+  ): Promise<{ success: boolean; pmHoursRemoved?: number; error?: string }> {
+    const { data: sowRow, error: sowReadError } = await client
+      .from('sows')
+      .select('pricing_roles')
+      .eq('id', sowId)
+      .single();
+
+    if (sowReadError) {
+      console.error('Error reading SOW for PM removal:', sowReadError);
+      return { success: false, error: 'Failed to load SOW' };
+    }
+
+    const { updated: updatedPricing, pmHoursRemoved } = stripProjectManagerFromPricing(
+      sowRow?.pricing_roles
+    );
+
+    const now = new Date().toISOString();
+    const { error: sowUpdateError } = await client
+      .from('sows')
+      .update({
+        pm_hours_requirement_disabled: true,
+        pm_hours_requirement_disabled_date: now,
+        ...(options.approverId
+          ? { pm_hours_requirement_disabled_approver_id: options.approverId }
+          : {}),
+        ...(options.requesterId
+          ? { pm_hours_requirement_disabled_requester_id: options.requesterId }
+          : {}),
+        pm_hours_removed: pmHoursRemoved,
+        pm_hours_removal_approved: true,
+        pm_hours_removal_date: now,
+        // Only overwrite pricing_roles when the SOW actually had pricing to update.
+        ...(sowRow?.pricing_roles ? { pricing_roles: updatedPricing } : {}),
+      })
+      .eq('id', sowId);
+
+    if (sowUpdateError) {
+      console.error('Error updating SOW during PM removal:', sowUpdateError);
+      return { success: false, error: 'Failed to update SOW' };
+    }
+
+    return { success: true, pmHoursRemoved };
+  }
+
+  /**
    * Approve a PM hours removal request
    */
   static async approveRequest(
@@ -448,38 +506,19 @@ export class PMHoursRemovalService {
       // Authoritatively strip the Project Manager role from the SOW's pricing so the
       // hours are actually removed at approval time, regardless of whether anyone
       // re-opens the SOW in the editor to trigger a front-end recalculation.
-      const { data: sowRow } = await client
-        .from('sows')
-        .select('pricing_roles')
-        .eq('id', request.sow_id)
-        .single();
+      const {
+        success: applySuccess,
+        pmHoursRemoved,
+        error: applyError,
+      } = await this.applyPMRemoval(client, request.sow_id, { approverId });
 
-      const { updated: updatedPricing, pmHoursRemoved } = stripProjectManagerFromPricing(
-        sowRow?.pricing_roles
-      );
+      if (!applySuccess) {
+        return { success: false, error: applyError || 'Failed to update SOW' };
+      }
+
       // currentPMHours has historically been passed as 0; prefer the hours actually
       // found in pricing_roles so pm_hours_removed reflects reality.
       const hoursRemoved = pmHoursRemoved || currentPMHours;
-
-      // Update the SOW to disable PM hours requirement
-      const { error: sowUpdateError } = await client
-        .from('sows')
-        .update({
-          pm_hours_requirement_disabled: true,
-          pm_hours_requirement_disabled_date: new Date().toISOString(),
-          pm_hours_requirement_disabled_approver_id: approverId,
-          pm_hours_removed: hoursRemoved,
-          pm_hours_removal_approved: true,
-          pm_hours_removal_date: new Date().toISOString(),
-          // Only overwrite pricing_roles when the SOW actually had pricing to update.
-          ...(sowRow?.pricing_roles ? { pricing_roles: updatedPricing } : {})
-        })
-        .eq('id', request.sow_id);
-
-      if (sowUpdateError) {
-        console.error('Error updating SOW:', sowUpdateError);
-        return { success: false, error: 'Failed to update SOW' };
-      }
 
       // Log the approval
       await this.logAuditAction(
@@ -527,42 +566,17 @@ export class PMHoursRemovalService {
     try {
       const client = supabaseClient || fallbackSupabase;
 
-      // Read current pricing so we can authoritatively strip the PM role.
-      const { data: sowRow, error: sowReadError } = await client
-        .from('sows')
-        .select('pricing_roles')
-        .eq('id', sowId)
-        .single();
+      // Enterprise removal is self-serve: strip PM and persist all flags via the
+      // shared applyPMRemoval path. The acting user is recorded as the requester
+      // (no separate approver since no approval is required).
+      const {
+        success: applySuccess,
+        pmHoursRemoved,
+        error: applyError,
+      } = await this.applyPMRemoval(client, sowId, { requesterId: userId });
 
-      if (sowReadError) {
-        console.error('Error reading SOW for enterprise PM removal:', sowReadError);
-        return { success: false, error: 'Failed to load SOW' };
-      }
-
-      const { updated: updatedPricing, pmHoursRemoved } = stripProjectManagerFromPricing(
-        sowRow?.pricing_roles
-      );
-
-      const now = new Date().toISOString();
-      const { error: sowUpdateError } = await client
-        .from('sows')
-        .update({
-          pm_hours_requirement_disabled: true,
-          pm_hours_requirement_disabled_date: now,
-          // Enterprise removal is self-serve: the acting user is the requester and
-          // there is no separate approver since no approval is required.
-          pm_hours_requirement_disabled_requester_id: userId,
-          pm_hours_removed: pmHoursRemoved,
-          pm_hours_removal_approved: true,
-          pm_hours_removal_date: now,
-          // Only overwrite pricing_roles when the SOW actually had pricing to update.
-          ...(sowRow?.pricing_roles ? { pricing_roles: updatedPricing } : {}),
-        })
-        .eq('id', sowId);
-
-      if (sowUpdateError) {
-        console.error('Error updating SOW for enterprise PM removal:', sowUpdateError);
-        return { success: false, error: 'Failed to update SOW' };
+      if (!applySuccess) {
+        return { success: false, error: applyError };
       }
 
       // Best-effort audit entry. request_id is nullable for self-serve removals.
@@ -572,7 +586,7 @@ export class PMHoursRemovalService {
           null as unknown as string,
           userId,
           'enterprise_requirement_disabled',
-          pmHoursRemoved,
+          pmHoursRemoved ?? 0,
           0,
           'PM hours requirement disabled directly (Enterprise account, no approval required)',
           { hours_removed: pmHoursRemoved, requirement_disabled: true, enterprise: true },

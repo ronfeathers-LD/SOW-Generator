@@ -2,8 +2,11 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { PMHoursRequirementDisableRequest } from '@/types/sow';
 import PMHoursRemovalModal from './PMHoursRemovalModal';
 import PMHoursRemovalApprovalOverlay from './PMHoursRemovalApprovalOverlay';
-import { calculateAllHours, calculateRoleHoursDistribution, HOURS_CALCULATION_RULES, calculateProductHoursForProduct } from '@/lib/hours-calculation-utils';
+import { calculateAllHours, HOURS_CALCULATION_RULES, calculateProductHoursForProduct } from '@/lib/hours-calculation-utils';
 import { getDefaultRateForRole } from '@/lib/pricing-roles-config';
+import { getPricingSummary, toPricingRolesObject } from '@/lib/sow/pricing-summary';
+import { recalculateNeedsConfirm } from '@/lib/sow/recalculate-guard';
+import { removePmRoleRestoringOs } from '@/lib/sow/pricing-roles-edit';
 import { Card, Field, Select, Input, Textarea, SectionHeader, Button } from '@/components/ui/form';
 
 interface Product {
@@ -63,6 +66,9 @@ interface PricingRolesAndDiscountProps {
   // the parent can flip formData.pm_hours_requirement_disabled and stop the PM role
   // from being re-added in-session (Billing auto-calc / Pricing distribution).
   onPMHoursRequirementDisabled?: () => void;
+  // Called when the user manually edits hours or rates so the parent can set
+  // formData.pricing.auto_calculated = false, persisting the flag to the DB.
+  onManualPricingEdit?: () => void;
 }
 
 const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.memo(({
@@ -76,7 +82,8 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   onHoursCalculated,
   selectedAccount,
   pricingRolesConfig: _pricingRolesConfig = [], // eslint-disable-line @typescript-eslint/no-unused-vars
-  onPMHoursRequirementDisabled
+  onPMHoursRequirementDisabled,
+  onManualPricingEdit,
 }) => {
 
 
@@ -124,7 +131,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     calculateAllHours(formData.template || {}, typeof formData.account_segment === 'string' ? formData.account_segment : selectedAccount?.Employee_Band__c), 
     [formData.template, formData.account_segment, selectedAccount?.Employee_Band__c]
   );
-  const { productHours, userGroupHours, accountSegmentHours, baseProjectHours, pmHours, totalUnits, shouldAddProjectManager } = hoursResult;
+  const { productHours, userGroupHours, accountSegmentHours, baseProjectHours, totalUnits } = hoursResult;
 
   // Resolve the account segment from form data first, then the selected account.
   const accountSegmentValue =
@@ -136,7 +143,6 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   // Defaulting unknown segments to "requires approval" prevents PM hours from being
   // silently dropped without sign-off.
   const isEnterpriseSegment = accountSegmentValue === 'EE' || accountSegmentValue === 'LE';
-  const pmRemovalRequiresApproval = !isEnterpriseSegment;
 
   // Debug logging removed to prevent console spam
 
@@ -251,15 +257,13 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   }, [formData.template, approvedPMHoursRequest, isAutoCalculating]);
   */
 
-  // Calculate role hours distribution - memoized to prevent recalculation
-  const roleDistribution = useMemo(() =>
-    calculateRoleHoursDistribution(
-      baseProjectHours,
-      pmHours,
-      shouldAddProjectManager,
-      !!approvedPMHoursRequest || !!formData.pm_hours_requirement_disabled
-    ),
-    [baseProjectHours, pmHours, shouldAddProjectManager, approvedPMHoursRequest, formData.pm_hours_requirement_disabled]
+  // Single read model for the Project Summary + PM-inclusion. Derived from the
+  // STORED pricing table (pricingRoles + discountConfig), NOT from a live products
+  // formula. When PM hours were removed via the PMO approval flow, the role row is
+  // already stripped from the stored pricing_roles, so we read pricingRoles directly.
+  const summary = useMemo(
+    () => getPricingSummary(toPricingRolesObject(pricingRoles, discountConfig)),
+    [pricingRoles, discountConfig]
   );
 
   // Auto-sync role hours based on calculated distribution
@@ -302,15 +306,24 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   }, [roleDistribution, isManuallyEditing, setPricingRoles]);
   */
 
-  // Wrapper for autoCalculateHours that triggers PM status check
+  // Wrapper for autoCalculateHours that triggers PM status check.
+  // Guarded by recalculateNeedsConfirm: if the user has hand-edited the table
+  // (auto_calculated === false), we prompt before overwriting their work.
   const handleRecalculateHours = useCallback(async () => {
+    if (recalculateNeedsConfirm(formData.pricing as { auto_calculated?: boolean } | undefined)) {
+      const confirmed = window.confirm(
+        'This will overwrite your manually edited hours with values derived from the selected products and units. Continue?'
+      );
+      if (!confirmed) return;
+    }
+
     // Reset manual editing flag when auto-calculating
     setIsManuallyEditing(false);
-    
+
     // Only recalculate the base hours and role assignments
     // Don't recalculate costs - those are handled separately
     await autoCalculateHours();
-    
+
     // After recalculating hours, ensure PM removal status is respected
     if (approvedPMHoursRequest && pricingRoles.length > 0) {
       const updatedRoles = pricingRoles.map(role => {
@@ -362,7 +375,9 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
 
     if (!formData.id) {
       // Unsaved SOW: persist locally only. The flag is saved with the SOW on first save.
-      setPricingRoles(pricingRoles.filter(role => role.id !== pmRoleToRemove));
+      // Mirror the server strip: remove the PM row AND restore the half-PM deduction
+      // back to the Onboarding Specialist so the local table matches what will persist.
+      setPricingRoles(removePmRoleRestoringOs(pricingRoles, pmRoleToRemove));
       setPmRoleToRemove(null);
       setShowEnterprisePMRemovalModal(false);
       onPMHoursRequirementDisabled?.();
@@ -383,8 +398,10 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
       }
 
       // Persisted successfully — reflect it in local state and flip the parent flag so
-      // the PM role is not re-added in-session.
-      setPricingRoles(pricingRoles.filter(role => role.id !== pmRoleToRemove));
+      // the PM role is not re-added in-session. The server (stripProjectManagerFromPricing)
+      // restored OS hours by removedPMHours/2; mirror that locally so a subsequent Save All
+      // does not re-strand the deduction by persisting the reduced OS hours.
+      setPricingRoles(removePmRoleRestoringOs(pricingRoles, pmRoleToRemove));
       setPmRoleToRemove(null);
       onPMHoursRequirementDisabled?.();
     } catch (err) {
@@ -407,6 +424,9 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     // Set manual editing flag when user changes hours or rates
     if (field === 'totalHours' || field === 'ratePerHour') {
       setIsManuallyEditing(true);
+      // Propagate the manual-edit flag to formData.pricing so it survives
+      // save + reload (the save path reads formData.pricing.auto_calculated).
+      onManualPricingEdit?.();
     }
     
     setPricingRoles(pricingRoles.map(role => {
@@ -460,30 +480,9 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     }
   };
 
-  // Calculate total cost
-  const calculateTotalCost = (): number => {
-    return pricingRoles.reduce((sum, role) => {
-      // If PM hours are removed by approval, don't include Project Manager role
-      if (role.role === 'Project Manager' && approvedPMHoursRequest) {
-        return sum;
-      }
-      return sum + role.totalCost;
-    }, 0);
-  };
-
-  // Calculate total hours from actual role table values (not just formula)
-  // This ensures manually added/adjusted role hours are reflected in the summary
-  const totalHours = pricingRoles.length > 0
-    ? pricingRoles.reduce((sum, role) => {
-        if (role.role === 'Project Manager' && approvedPMHoursRequest) {
-          return sum;
-        }
-        return sum + role.totalHours;
-      }, 0)
-    : roleDistribution.totalProjectHours;
-
-  // Additional hours = difference between actual role table hours and formula-calculated hours
-  const additionalHours = totalHours - roleDistribution.totalProjectHours;
+  // Hours displayed for any PM-removal modals: read the PM row's hours from the
+  // stored table (0 when no PM row / PM hours removed).
+  const pmHoursFromTable = summary.roles.find(role => role.role === 'Project Manager')?.hours ?? 0;
 
   // Get account segment from formData or selectedAccount (unused variable removed)
 
@@ -590,116 +589,47 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
               </div>
             )}
             
-            <div className="flex justify-between items-center border-t pt-3">
-              <span className="font-medium text-gray-900">Base Hours:</span>
-              <span className="font-semibold text-gray-900">{baseProjectHours} hours</span>
-            </div>
-
-            {roleDistribution.projectManagerHours > 0 && (
-              <>
-                <div className="flex justify-between items-center">
-                  <span className="font-medium text-gray-900">Onboarding Specialist Deduction:</span>
-                  <span className="font-semibold text-red-600">-{pmHours / 2} hours</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="font-medium text-gray-900">Onboarding Specialist (final):</span>
-                  <span className="font-semibold text-gray-900">{roleDistribution.onboardingSpecialistHours} hours</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900">Project Manager (45%):</span>
-                    {pmRemovalRequiresApproval && (
-                      pendingPMHoursRequest ? (
-                        <button
-                          onClick={() => setShowPMHoursApprovalOverlay(true)}
-                          className="text-xs text-blue-600 hover:text-blue-800 underline"
-                        >
-                          (Request Pending)
-                        </button>
-                      ) : approvedPMHoursRequest ? (
-                        <button
-                          onClick={() => setShowPMHoursApprovalOverlay(true)}
-                          className="text-xs text-green-600 hover:text-green-800 underline"
-                        >
-                          (Removed - Click to Review)
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setShowPMHoursRemovalModal(true)}
-                          className="text-xs text-blue-600 hover:text-blue-800 underline"
-                        >
-                          (Request Removal)
-                        </button>
-                      )
-                    )}
+            {/*
+              Per-role hours + totals are derived from the STORED pricing table via
+              getPricingSummary — never from a live products formula. The PM line only
+              appears when summary.pmIncluded is true (i.e. a Project Manager row with
+              hours exists in the table). The Base→PM45%→−8 derivation breakdown moves
+              to a transient "Recalculate" display in a later task; keeping it out of
+              this persistent panel is what stops the stranded-deduction drift.
+            */}
+            <div className="border-t pt-3 space-y-2">
+              {summary.roles.length > 0 ? (
+                summary.roles.map((role, index) => (
+                  <div key={`${role.role}-${index}`} className="flex justify-between items-center">
+                    <span className="font-medium text-gray-900">{role.role || 'Unnamed role'}:</span>
+                    <span className="font-semibold text-gray-900">{role.hours} hours</span>
                   </div>
-                  <span className="font-semibold text-gray-900">{roleDistribution.projectManagerHours} hours</span>
-                </div>
-              </>
-            )}
-
-            {/* Show PM hours removal controls even when PM hours are removed */}
-            {!roleDistribution.projectManagerHours && shouldAddProjectManager && (
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-900">Project Manager (45%):</span>
-                  {(selectedAccount?.Employee_Band__c === 'EC' || selectedAccount?.Employee_Band__c === 'MM' || !selectedAccount?.Employee_Band__c) && (
-                    pendingPMHoursRequest ? (
-                      <button
-                        onClick={() => setShowPMHoursApprovalOverlay(true)}
-                        className="text-xs text-blue-600 hover:text-blue-800 underline"
-                      >
-                        (Request Pending)
-                      </button>
-                    ) : approvedPMHoursRequest ? (
-                      <button
-                        onClick={() => setShowPMHoursApprovalOverlay(true)}
-                        className="text-xs text-green-600 hover:text-green-800 underline"
-                      >
-                        (Removed - Click to Review)
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => setShowPMHoursRemovalModal(true)}
-                        className="text-xs text-blue-600 hover:text-blue-800 underline"
-                      >
-                        (Request Removal)
-                      </button>
-                    )
-                  )}
-                </div>
-                <span className="font-semibold text-gray-900">0 hours</span>
-              </div>
-            )}
-
-
-            {additionalHours > 0 && (
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-blue-700">Additional hours (added in roles table):</span>
-                <span className="font-semibold text-blue-700">+{additionalHours} hours</span>
-              </div>
-            )}
+                ))
+              ) : (
+                <div className="text-sm text-gray-500">No roles added yet.</div>
+              )}
+            </div>
 
             <div className="flex justify-between items-center border-t pt-3">
               <span className="font-semibold text-lg text-gray-900">Total Hours:</span>
-              <span className="font-bold text-lg text-gray-900">{totalHours} hours</span>
+              <span className="font-bold text-lg text-gray-900">{summary.totalHours} hours</span>
             </div>
 
-            {/* Total Cost - Added here after Total Hours */}
+            {/* Total Cost - derived from the stored pricing table */}
             <div className="space-y-2">
               {/* Subtotal */}
               <div className="flex justify-between items-center">
                 <span className="font-medium text-gray-700">Subtotal:</span>
-                <span className="font-medium text-gray-700">${calculateTotalCost().toLocaleString()}</span>
+                <span className="font-medium text-gray-700">${summary.subtotal.toLocaleString()}</span>
               </div>
 
               {/* Discount */}
-              {discountConfig?.type && discountConfig.type !== 'none' && ((discountConfig.type === 'fixed' && discountConfig.amount && discountConfig.amount > 0) || (discountConfig.type === 'percentage' && discountConfig.percentage && discountConfig.percentage > 0)) && (
+              {summary.discountTotal > 0 && (
                 <div className="flex justify-between items-center text-green-600">
                   <span className="font-medium">Discount {discountConfig.type === 'fixed' ? '($)' : '(%)'}:</span>
                   <span className="font-medium">
-                    {discountConfig.type === 'fixed' 
-                      ? `-$${(discountConfig.amount || 0).toLocaleString()}` 
+                    {discountConfig.type === 'fixed'
+                      ? `-$${(discountConfig.amount || 0).toLocaleString()}`
                       : `-${discountConfig.percentage || 0}%`
                     }
                   </span>
@@ -709,17 +639,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
               {/* Total */}
               <div className="flex justify-between items-center border-t pt-2">
                 <span className="font-semibold text-lg text-gray-900">Total:</span>
-                <span className="font-bold text-lg text-gray-900">
-                  ${(() => {
-                    const subtotal = calculateTotalCost();
-                    if (discountConfig?.type === 'fixed' && discountConfig.amount && discountConfig.amount > 0) {
-                      return Math.max(0, subtotal - discountConfig.amount).toLocaleString();
-                    } else if (discountConfig?.type === 'percentage' && discountConfig.percentage && discountConfig.percentage > 0) {
-                      return Math.max(0, subtotal * (1 - discountConfig.percentage / 100)).toLocaleString();
-                    }
-                    return subtotal.toLocaleString();
-                  })()}
-                </span>
+                <span className="font-bold text-lg text-gray-900">${summary.total.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -1068,7 +988,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
         isOpen={showPMHoursRemovalModal}
         onClose={() => setShowPMHoursRemovalModal(false)}
         sowId={formData.id || ''}
-        currentPMHours={roleDistribution.projectManagerHours}
+        currentPMHours={pmHoursFromTable}
         onRequestSubmitted={handlePMHoursRemovalRequestSubmitted}
       />
 
@@ -1175,9 +1095,9 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
               {/* Current PM Hours Display */}
               <div className="bg-red-50 p-3 rounded-md">
                 <p className="text-sm text-red-600">Current PM Hours</p>
-                <p className="text-lg font-semibold text-red-900">{roleDistribution.projectManagerHours} hours</p>
+                <p className="text-lg font-semibold text-red-900">{pmHoursFromTable} hours</p>
                 <p className="text-xs text-red-600">
-                  Financial Impact: ${(roleDistribution.projectManagerHours * 250).toLocaleString()}
+                  Financial Impact: ${(pmHoursFromTable * 250).toLocaleString()}
                 </p>
               </div>
 
