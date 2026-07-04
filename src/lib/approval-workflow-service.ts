@@ -322,8 +322,11 @@ export class ApprovalWorkflowService {
         return { success: false, error: 'Stage is already approved' };
       }
 
-      // Update approval record
-      const { error: updateError } = await supabase
+      // Update approval record. Guard on status='pending' so that two
+      // concurrent approvals of the same stage cannot both "succeed" — only the
+      // transition from pending is allowed, making the operation idempotent and
+      // race-safe. If no row was updated, the stage was already resolved.
+      const { data: updatedRows, error: updateError } = await supabase
         .from('sow_approvals')
         .update({
           status: 'approved',
@@ -331,11 +334,18 @@ export class ApprovalWorkflowService {
           comments: comments?.trim() || null,
           approved_at: new Date().toISOString()
         })
-        .eq('id', stageId);
+        .eq('id', stageId)
+        .eq('status', 'pending')
+        .select('id');
 
       if (updateError) {
         console.error('Error updating approval:', updateError);
         return { success: false, error: 'Failed to approve stage' };
+      }
+
+      if (!updatedRows || updatedRows.length === 0) {
+        // Another request already resolved this stage between our read and write.
+        return { success: false, error: 'Stage is no longer pending approval' };
       }
 
       // Log the approval
@@ -357,12 +367,18 @@ export class ApprovalWorkflowService {
 
       if (allApprovals) {
         // If all stages are approved, mark SOW as fully approved
-        const allApproved = allApprovals.every(a => a.status === 'approved');
+        // Require a non-empty set, and every stage approved. `every` returns
+        // true for an empty array, which must not promote a SOW with no stages.
+        const allApproved =
+          allApprovals.length > 0 && allApprovals.every(a => a.status === 'approved');
         if (allApproved) {
+          // Only promote from in_review so a rejected/recalled SOW is never
+          // clobbered back to approved by a late-arriving stage write.
           await supabase
             .from('sows')
             .update({ status: 'approved' })
-            .eq('id', sowId);
+            .eq('id', sowId)
+            .eq('status', 'in_review');
         }
       }
 

@@ -35,7 +35,26 @@ export async function GET(request: Request) {
     
     let requests;
     if (sowId) {
-      // If sowId is provided, get requests for that specific SOW
+      // If sowId is provided, get requests for that specific SOW.
+      // Object-level authorization: only the SOW author, a PM director, or an
+      // admin may read a given SOW's PM-hours-removal requests. Without this
+      // check any authenticated user could enumerate sowIds and read other
+      // teams' requests (requester identity, reasons, financial impact).
+      const { data: sowRow } = await supabase
+        .from('sows')
+        .select('author_id')
+        .eq('id', sowId)
+        .single();
+
+      if (!sowRow) {
+        return NextResponse.json({ error: 'SOW not found' }, { status: 404 });
+      }
+
+      const isAuthor = sowRow.author_id === user.id;
+      if (!isAuthor && !isPMDirector && !isAdmin) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
       requests = await PMHoursRemovalService.getSOWRequests(sowId, supabase);
     } else if (isPMDirector || isAdmin) {
       // PM Directors and Admins see all requests

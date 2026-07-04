@@ -12,6 +12,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Require authentication. Without this any caller who guesses a SOW UUID
+    // could read the full SOW (billing, pricing, signer emails, Salesforce
+    // account data) unauthenticated. Read access across authenticated users is
+    // intentional for this internal tool; unauthenticated access is not.
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabase = await createServerSupabaseClient();
     const { data: sow, error } = await supabase
       .from('sows')
