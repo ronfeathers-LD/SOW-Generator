@@ -2,6 +2,7 @@
 
 import { useMemo, useCallback } from 'react';
 import { calculateAllHours, calculateRoleHoursDistribution, HOURS_CALCULATION_RULES } from '@/lib/hours-calculation-utils';
+import { DEFAULT_SEGMENT_RULES } from '@/lib/segment-rules';
 
 interface CalculatorData {
   products: string[];
@@ -53,7 +54,7 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
 
   // Calculate hours using the existing utility
   const hoursResult = useMemo(() => 
-    calculateAllHours(templateData, data.account_segment),
+    calculateAllHours(templateData, data.account_segment, DEFAULT_SEGMENT_RULES), // TODO(segment-rules Task 4): thread fetched rules
     [templateData, data.account_segment]
   );
 
@@ -148,7 +149,7 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
         bookit_handoff_units: scenario.bookit_handoff_units,
       };
       
-      const scenarioHours = calculateAllHours(scenarioTemplate, scenario.account_segment);
+      const scenarioHours = calculateAllHours(scenarioTemplate, scenario.account_segment, DEFAULT_SEGMENT_RULES); // TODO(segment-rules Task 4): thread fetched rules
       const scenarioRoleDistribution = calculateRoleHoursDistribution(
         scenarioHours.baseProjectHours,
         scenarioHours.pmHours,

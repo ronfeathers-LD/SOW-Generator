@@ -4,15 +4,16 @@
  */
 
 import { SOWTemplate } from '@/types/sow';
-import { 
-  PRODUCT_IDS, 
+import {
+  PRODUCT_IDS,
   PRODUCT_IDS_BY_CATEGORY,
-  isRoutingProductById, 
-  isLeadToAccountProductById, 
-  isFormsProductById, 
-  isLinksProductById, 
-  isNoCostProductById 
+  isRoutingProductById,
+  isLeadToAccountProductById,
+  isFormsProductById,
+  isLinksProductById,
+  isNoCostProductById
 } from '@/lib/constants/products';
+import { getExtraHours, type SegmentRulesMap } from '@/lib/segment-rules';
 
 export interface HoursCalculationResult {
   productHours: number;
@@ -121,25 +122,29 @@ export function calculateUserGroupHours(template: Partial<SOWTemplate>): number 
 }
 
 /**
- * Calculate account segment hours
- * MM (MidMarket) accounts get 5 additional hours
+ * Segment bonus hours, driven by segment_rules config
+ * (seeded: MM +5; see /admin/segment-rules).
  * Note: The actual field name in Salesforce is Employee_Band__c
  */
-export function calculateAccountSegmentHours(accountSegment?: string): number {
-  if (accountSegment === 'MM' || accountSegment === 'MidMarket') {
-    return 5;
-  }
-  return 0;
+export function calculateAccountSegmentHours(
+  accountSegment: string | undefined,
+  rules: SegmentRulesMap
+): number {
+  return getExtraHours(rules, accountSegment);
 }
 
 /**
  * Calculate base project hours (product hours + user group hours + account segment hours)
  */
-export function calculateBaseProjectHours(template: Partial<SOWTemplate>, accountSegment?: string): number {
+export function calculateBaseProjectHours(
+  template: Partial<SOWTemplate>,
+  accountSegment: string | undefined,
+  rules: SegmentRulesMap
+): number {
   const products = template?.products || [];
   const productHours = calculateProductHours(products);
   const userGroupHours = calculateUserGroupHours(template);
-  const accountSegmentHours = calculateAccountSegmentHours(accountSegment);
+  const accountSegmentHours = calculateAccountSegmentHours(accountSegment, rules);
   return productHours + userGroupHours + accountSegmentHours;
 }
 
@@ -147,11 +152,15 @@ export function calculateBaseProjectHours(template: Partial<SOWTemplate>, accoun
  * Calculate all hours components for a given template
  * Returns a comprehensive result object
  */
-export function calculateAllHours(template: Partial<SOWTemplate>, accountSegment?: string): HoursCalculationResult {
+export function calculateAllHours(
+  template: Partial<SOWTemplate>,
+  accountSegment: string | undefined,
+  rules: SegmentRulesMap
+): HoursCalculationResult {
   const products = template?.products || [];
   const productHours = calculateProductHours(products);
   const userGroupHours = calculateUserGroupHours(template);
-  const accountSegmentHours = calculateAccountSegmentHours(accountSegment);
+  const accountSegmentHours = calculateAccountSegmentHours(accountSegment, rules);
   const baseProjectHours = productHours + userGroupHours + accountSegmentHours;
   const totalUnits = calculateTotalUnits(template);
   const shouldAddPM = shouldAddProjectManager(template);
@@ -290,6 +299,9 @@ export const HOURS_CALCULATION_RULES = {
     hoursPerGroup: 5,
     unitsPerGroup: 50,
     description: "User groups: 5 hours per 50 users/endpoints"
+  },
+  accountSegment: {
+    description: "Account segment bonus hours: driven by segment_rules config (seeded: MM +5; see /admin/segment-rules), not hardcoded"
   },
   projectManager: {
     percentage: 45,

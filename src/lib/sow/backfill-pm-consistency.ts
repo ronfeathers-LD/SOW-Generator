@@ -10,6 +10,7 @@
  */
 
 import { calculateAllHours } from '@/lib/hours-calculation-utils';
+import { DEFAULT_SEGMENT_RULES } from '@/lib/segment-rules';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -104,7 +105,8 @@ export function classifySow(sow: SowRowInput): ClassifyResult {
 
   const { baseProjectHours, shouldAddProjectManager } = calculateAllHours(
     template,
-    sow.account_segment ?? undefined
+    sow.account_segment ?? undefined,
+    DEFAULT_SEGMENT_RULES // TODO(segment-rules Task 4): thread fetched rules
   );
 
   // Rule engine says PM is not required → no inconsistency possible.

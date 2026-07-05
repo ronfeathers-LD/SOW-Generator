@@ -3,6 +3,7 @@ import { PMHoursRequirementDisableRequest } from '@/types/sow';
 import PMHoursRemovalModal from './PMHoursRemovalModal';
 import PMHoursRemovalApprovalOverlay from './PMHoursRemovalApprovalOverlay';
 import { calculateAllHours, HOURS_CALCULATION_RULES, calculateProductHoursForProduct } from '@/lib/hours-calculation-utils';
+import { DEFAULT_SEGMENT_RULES } from '@/lib/segment-rules';
 import { getDefaultRateForRole } from '@/lib/pricing-roles-config';
 import { getPricingSummary, toPricingRolesObject } from '@/lib/sow/pricing-summary';
 import { recalculateNeedsConfirm } from '@/lib/sow/recalculate-guard';
@@ -128,7 +129,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
 
   // Use shared utility to calculate all hours - memoized to prevent recalculation
   const hoursResult = useMemo(() => 
-    calculateAllHours(formData.template || {}, typeof formData.account_segment === 'string' ? formData.account_segment : selectedAccount?.Employee_Band__c), 
+    calculateAllHours(formData.template || {}, typeof formData.account_segment === 'string' ? formData.account_segment : selectedAccount?.Employee_Band__c, DEFAULT_SEGMENT_RULES), // TODO(segment-rules Task 4): thread fetched rules
     [formData.template, formData.account_segment, selectedAccount?.Employee_Band__c]
   );
   const { productHours, userGroupHours, accountSegmentHours, baseProjectHours, totalUnits } = hoursResult;
