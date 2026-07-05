@@ -101,3 +101,28 @@ describe('GoogleDriveService allowlist (#74)', () => {
     expect(await svc.isWithinAllowedRoots('a')).toBe(false);
   });
 });
+
+describe('filterToAllowedRoots (#74 search-scoping follow-up)', () => {
+  const graph = {
+    inDoc: { parents: ['root1'] },
+    outDoc: { parents: ['elsewhere'] },
+    elsewhere: {},
+    root1: {},
+  };
+  const results = [
+    { id: 'inDoc', name: 'Customer scoping', mimeType: 'x', createdTime: '', modifiedTime: '' },
+    { id: 'outDoc', name: 'HR perf eval', mimeType: 'x', createdTime: '', modifiedTime: '' },
+  ];
+
+  it('drops results outside the allowed roots (no name/link leak)', async () => {
+    const svc = serviceWith(['root1'], graph);
+    const filtered = await svc.filterToAllowedRoots(results);
+    expect(filtered.map((r) => r.id)).toEqual(['inDoc']);
+  });
+
+  it('returns everything unchanged when no allowlist is configured', async () => {
+    const svc = serviceWith([], graph);
+    const filtered = await svc.filterToAllowedRoots(results);
+    expect(filtered.map((r) => r.id)).toEqual(['inDoc', 'outDoc']);
+  });
+});
