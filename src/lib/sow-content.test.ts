@@ -1,8 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   canonicalizeContent,
   canonicalizeContentColumns,
+  getContentTemplate,
+  getGlobalOrAnyTemplate,
   renderSectionHtml,
+  resolveTemplatesForSegment,
   sectionLabel,
   SOW_SECTION_CONTENT_COLUMNS,
   SOW_SECTION_KEYS,
@@ -296,5 +299,115 @@ describe('renderSectionHtml / SOW_SECTION_RENDER_TRANSFORMS (#351)', () => {
       expect(renderSectionHtml(key, null)).toBeNull();
       expect(renderSectionHtml(key, undefined)).toBeNull();
     }
+  });
+});
+
+describe('getGlobalOrAnyTemplate / getContentTemplate (variant-safe, final-review fix)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('getGlobalOrAnyTemplate prefers the global row when a global + LE row both exist', () => {
+    const templates = [
+      { section_name: 'out-of-scope', segment: 'LE', default_content: 'LE variant' } as any,
+      { section_name: 'out-of-scope', segment: null, default_content: 'global default' } as any,
+    ];
+    const result = getGlobalOrAnyTemplate(templates, 'out-of-scope');
+    expect(result?.default_content).toBe('global default');
+  });
+
+  it('getGlobalOrAnyTemplate falls back to the only available row when no global row exists', () => {
+    const templates = [
+      { section_name: 'out-of-scope', segment: 'LE', default_content: 'LE variant' } as any,
+    ];
+    const result = getGlobalOrAnyTemplate(templates, 'out-of-scope');
+    expect(result?.default_content).toBe('LE variant');
+  });
+
+  it('getGlobalOrAnyTemplate returns null when no row matches the section', () => {
+    const templates = [
+      { section_name: 'scope', segment: null, default_content: 'global scope' } as any,
+    ];
+    expect(getGlobalOrAnyTemplate(templates, 'out-of-scope')).toBeNull();
+  });
+
+  it('getContentTemplate returns the global row when a global + LE row both exist', async () => {
+    const templates = [
+      { section_name: 'out-of-scope', segment: 'LE', default_content: 'LE variant' },
+      { section_name: 'out-of-scope', segment: null, default_content: 'global default' },
+    ];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: async () => templates })
+    );
+
+    const result = await getContentTemplate('out-of-scope');
+    expect(result?.default_content).toBe('global default');
+  });
+
+  it('getContentTemplate returns the LE row when only an LE row exists (no global fallback available)', async () => {
+    const templates = [
+      { section_name: 'out-of-scope', segment: 'LE', default_content: 'LE variant' },
+    ];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: async () => templates })
+    );
+
+    const result = await getContentTemplate('out-of-scope');
+    expect(result?.default_content).toBe('LE variant');
+  });
+});
+
+describe('resolveTemplatesForSegment (ENT roadmap Phase 3 §3)', () => {
+  it('resolves global-only rows for any segment', () => {
+    const rows = [
+      { section_name: 'intro', default_content: 'global intro', segment: null },
+      { section_name: 'scope', default_content: 'global scope', segment: undefined },
+    ];
+    for (const segment of ['LE', 'MM', 'EE', 'EC', null, undefined, 'bogus']) {
+      const resolved = resolveTemplatesForSegment(rows, segment);
+      expect(resolved.get('intro')).toBe('global intro');
+      expect(resolved.get('scope')).toBe('global scope');
+    }
+  });
+
+  it('prefers the LE variant for LE and ignores it for MM (falls back to global)', () => {
+    const rows = [
+      { section_name: 'intro', default_content: 'global intro', segment: null },
+      { section_name: 'intro', default_content: 'LE intro', segment: 'LE' },
+    ];
+    expect(resolveTemplatesForSegment(rows, 'LE').get('intro')).toBe('LE intro');
+    expect(resolveTemplatesForSegment(rows, 'MM').get('intro')).toBe('global intro');
+  });
+
+  it('normalizes "MidMarket" to MM before matching', () => {
+    const rows = [
+      { section_name: 'intro', default_content: 'global intro', segment: null },
+      { section_name: 'intro', default_content: 'MM intro', segment: 'MM' },
+    ];
+    expect(resolveTemplatesForSegment(rows, 'MidMarket').get('intro')).toBe('MM intro');
+  });
+
+  it('omits a section entirely when no matching or global row exists', () => {
+    const rows = [
+      { section_name: 'intro', default_content: 'LE intro', segment: 'LE' },
+    ];
+    // MM has no exact match and no global fallback for this section.
+    expect(resolveTemplatesForSegment(rows, 'MM').has('intro')).toBe(false);
+    // LE gets the exact match even with no global row present.
+    expect(resolveTemplatesForSegment(rows, 'LE').get('intro')).toBe('LE intro');
+  });
+
+  it('null/unknown segment gets globals only, non-matching segment rows are ignored', () => {
+    const rows = [
+      { section_name: 'intro', default_content: 'global intro', segment: null },
+      { section_name: 'intro', default_content: 'LE intro', segment: 'LE' },
+      { section_name: 'intro', default_content: 'EE intro', segment: 'EE' },
+    ];
+    const resolved = resolveTemplatesForSegment(rows, null);
+    expect(resolved.get('intro')).toBe('global intro');
+    expect(resolveTemplatesForSegment(rows, undefined).get('intro')).toBe('global intro');
+    expect(resolveTemplatesForSegment(rows, 'bogus-segment').get('intro')).toBe('global intro');
   });
 });

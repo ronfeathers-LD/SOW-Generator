@@ -237,6 +237,8 @@ interface SOWData {
   billing_address?: string;
   billing_email?: string;
   purchase_order_number?: string;
+  /** Flat `sows.payment_terms` column — not part of the `billing_info` JSONB blob. */
+  payment_terms?: string;
   pm_hours_requirement_disabled?: boolean;
 }
 
@@ -851,6 +853,94 @@ export class PDFGenerator {
               font-size: 12px;
               color: #666;
             }
+
+            /* Appendix A: Change Request Form (blank, static) */
+            .appendix-details-table {
+              width: 100%;
+              margin: 0 0 24px 0;
+              border: none;
+              border-radius: 0;
+              overflow: visible;
+            }
+
+            .appendix-details-table td {
+              padding: 8px 0;
+              border: none;
+              border-bottom: 1px solid #d1d5db;
+              vertical-align: bottom;
+            }
+
+            .appendix-details-table td:first-child {
+              width: 180px;
+              font-weight: 600;
+              color: #374151;
+              padding-right: 12px;
+            }
+
+            /* Empty <thead> exists solely so the generic "table with no
+               thead" first-row header styling (green background/uppercase)
+               doesn't apply to this label/blank-value details table. */
+            .appendix-details-table thead {
+              display: none;
+            }
+
+            .appendix-category-row {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 10px;
+              margin-bottom: 24px;
+            }
+
+            .appendix-category-badge {
+              display: inline-flex;
+              align-items: center;
+              gap: 8px;
+              border: 1px solid #9ca3af;
+              border-radius: 6px;
+              padding: 6px 12px;
+              font-size: 12px;
+              color: #374151;
+            }
+
+            .appendix-ruled-box {
+              border: 1px solid #9ca3af;
+              border-radius: 4px;
+              margin-bottom: 24px;
+              padding: 10px;
+            }
+
+            .appendix-ruled-box.short {
+              min-height: 60px;
+            }
+
+            .appendix-ruled-box.tall {
+              min-height: 110px;
+            }
+
+            .appendix-signature-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 32px;
+              margin-top: 8px;
+            }
+
+            .appendix-signature-field {
+              margin-bottom: 16px;
+            }
+
+            .appendix-signature-field label {
+              display: block;
+              font-size: 11px;
+              font-weight: 600;
+              color: #6b7280;
+              margin-bottom: 4px;
+            }
+
+            .appendix-signature-rule {
+              width: 100%;
+              height: 1px;
+              background-color: #9ca3af;
+            }
           </style>
         </head>
         <body>
@@ -1383,7 +1473,12 @@ export class PDFGenerator {
                     <div class="billing-label">Purchase Order Number:</div>
                     <div class="billing-value">${billingInfo?.po_number || 'N/A'}</div>
                   </div>
-                 
+                  ${sowData.payment_terms ? `
+                  <div>
+                    <div class="billing-label">Payment Terms:</div>
+                    <div class="billing-value">${sowData.payment_terms}</div>
+                  </div>
+                  ` : ''}
                 </div>
               </div>
             </div>
@@ -1395,12 +1490,76 @@ export class PDFGenerator {
             <div class="content">
               ${assumptionsContent}
             </div>
-            
+          </div>
+
+          <!-- PAGE 9: APPENDIX A -->
+          <div class="content-page" style="page-break-before: always;">
+            <h2 class="section-title">Appendix A: Change Request Form</h2>
+            <div class="content">
+              <p>Changes to this SOW are managed via the following form. A completed and signed change request is required before work on any change begins.</p>
+
+              <table class="appendix-details-table">
+                <thead></thead>
+                <tbody>
+                  <tr>
+                    <td>Project Name</td>
+                    <td>&nbsp;</td>
+                  </tr>
+                  <tr>
+                    <td>Change Requestor</td>
+                    <td>&nbsp;</td>
+                  </tr>
+                  <tr>
+                    <td>Change Number</td>
+                    <td>&nbsp;</td>
+                  </tr>
+                  <tr>
+                    <td>Associated PO</td>
+                    <td>&nbsp;</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <h3>Change Category (Select all that apply):</h3>
+              <div class="appendix-category-row">
+                ${['Schedule', 'Cost', 'Scope', 'Testing (Quality)', 'Resources', 'Artifacts'].map((cat) => `
+                <span class="appendix-category-badge">&#9744; ${cat}</span>
+                `).join('')}
+              </div>
+
+              <h3>Reason for Change</h3>
+              <div class="appendix-ruled-box short"></div>
+
+              <h3>Change Description</h3>
+              <div class="appendix-ruled-box tall"></div>
+
+              <div class="appendix-signature-grid">
+                <div>
+                  <h3>Customer</h3>
+                  ${['Name', 'Title', 'Signature', 'Date'].map((field) => `
+                  <div class="appendix-signature-field">
+                    <label>${field}</label>
+                    <div class="appendix-signature-rule"></div>
+                  </div>
+                  `).join('')}
+                </div>
+                <div>
+                  <h3>LeanData</h3>
+                  ${['Name', 'Title', 'Signature', 'Date'].map((field) => `
+                  <div class="appendix-signature-field">
+                    <label>${field}</label>
+                    <div class="appendix-signature-rule"></div>
+                  </div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+
             <!-- AI Generation Disclaimer -->
             <div style="margin-top: 60px; padding: 20px; background-color: #f9fafb; border-top: 2px solid #e5e7eb; border-bottom: 2px solid #e5e7eb; page-break-inside: avoid;">
               <p style="margin: 0; font-size: 11px; color: #6b7280; line-height: 1.6; text-align: center; font-style: italic;">
-                <strong>Note:</strong> This Statement of Work was generated with the assistance of artificial intelligence. 
-                While we strive for accuracy, please review all details carefully as there may be minor errors or inconsistencies. 
+                <strong>Note:</strong> This Statement of Work was generated with the assistance of artificial intelligence.
+                While we strive for accuracy, please review all details carefully as there may be minor errors or inconsistencies.
                 If you notice any discrepancies, please contact us immediately.
               </p>
             </div>

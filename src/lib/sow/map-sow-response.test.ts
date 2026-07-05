@@ -25,3 +25,24 @@ describe('mapSowRowToResponse tenant/timeline/regions defaults', () => {
     expect(result.template.timeline_weeks).toBe('12');
   });
 });
+
+describe('mapSowRowToResponse payment_terms', () => {
+  it('passes an empty payment_terms through as empty (no sentinel default)', () => {
+    const result = mapSowRowToResponse(rowWith({ payment_terms: '' }));
+    expect(result.payment_terms).toBe('');
+  });
+
+  it('passes a real payment_terms value through unchanged', () => {
+    const result = mapSowRowToResponse(
+      rowWith({ payment_terms: 'Billed monthly, as incurred; payment due upon receipt.' })
+    );
+    expect(result.payment_terms).toBe(
+      'Billed monthly, as incurred; payment due upon receipt.'
+    );
+  });
+
+  it('defaults a missing payment_terms column to empty string', () => {
+    const result = mapSowRowToResponse(rowWith({}));
+    expect(result.payment_terms).toBe('');
+  });
+});

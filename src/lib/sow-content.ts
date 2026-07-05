@@ -2,6 +2,7 @@
 import { SOWContentTemplate } from '@/types/sow';
 import { sanitizeHtml } from './sanitize-html';
 import { processContent } from './text-to-html';
+import { normalizeSegment } from '@/lib/segment-rules';
 
 /**
  * Canonical registry of SOW content sections → their `sows` table columns.
@@ -25,6 +26,14 @@ export const SOW_SECTION_CONTENT_COLUMNS = {
   objective_overview: 'custom_objective_overview_content',
   key_objectives: 'custom_key_objectives_content',
 } as const;
+
+/**
+ * Standard payment terms language carried by every mined LeanData-paper SOW.
+ * Seeded onto new SOWs at creation (`payment_terms` column); editable per-SOW
+ * thereafter via the Billing Information tab.
+ */
+export const DEFAULT_PAYMENT_TERMS =
+  'Billed monthly, as incurred; payment due upon receipt.';
 
 export type SOWSectionKey = keyof typeof SOW_SECTION_CONTENT_COLUMNS;
 export type SOWSectionContentColumn =
@@ -263,6 +272,76 @@ export function canonicalizeContentColumns<T extends Record<string, unknown>>(
   return update;
 }
 
+/**
+ * Resolve one default-content value per `section_name` for a given SOW
+ * segment (ENT roadmap Phase 3 §3). Pure: no fetch, no DB.
+ *
+ * Per section, prefers the row whose `segment` matches the normalized
+ * segment code (`normalizeSegment`); falls back to the row with a null/
+ * undefined `segment` (the global/default row). Rows whose `segment` is set
+ * but does NOT match are ignored entirely (never used as a fallback for a
+ * different segment, and never override the exact match).
+ *
+ * Row order doesn't matter — every row is inspected once; the first
+ * candidate found for each of "exact match" / "global" wins, but since only
+ * one row per (section_name, segment) is expected, this is effectively
+ * deterministic regardless of duplicates.
+ */
+export function resolveTemplatesForSegment(
+  rows: Array<{
+    section_name: string;
+    default_content: string;
+    segment?: string | null;
+  }>,
+  segment: string | null | undefined
+): Map<string, string> {
+  const code = normalizeSegment(segment);
+
+  const exactBySection = new Map<string, string>();
+  const globalBySection = new Map<string, string>();
+
+  rows.forEach((row) => {
+    const rowSegment = row.segment ?? null;
+    if (rowSegment === null || rowSegment === undefined) {
+      globalBySection.set(row.section_name, row.default_content);
+    } else if (code && rowSegment === code) {
+      exactBySection.set(row.section_name, row.default_content);
+    }
+    // else: row is scoped to a different, non-matching segment — ignored.
+  });
+
+  const resolved = new Map<string, string>(globalBySection);
+  exactBySection.forEach((content, section) => {
+    resolved.set(section, content);
+  });
+  return resolved;
+}
+
+/**
+ * Pick one row for `sectionName` out of a (possibly multi-row, post
+ * drop-UNIQUE(section_name)) templates array. Prefers the GLOBAL row
+ * (`segment` null/undefined); falls back to any row (e.g. a segment-only
+ * variant with no global counterpart) if no global row exists.
+ *
+ * This is deliberately segment-UNAWARE: callers (ContentEditingTab,
+ * SOWObjectivesPage, useSOWContent) only ever pass a sectionName — none of
+ * them know the SOW's segment, and this function has no way to find out
+ * from a client component. Global-preferred is the correct default for
+ * editor placeholder/default content; segment-aware resolution belongs to
+ * `resolveTemplatesForSegment`, used where the SOW's segment IS known
+ * (e.g. the PDF route).
+ */
+export function getGlobalOrAnyTemplate(
+  templates: SOWContentTemplate[],
+  sectionName: string
+): SOWContentTemplate | null {
+  return (
+    templates.find((t) => t.section_name === sectionName && !t.segment) ??
+    templates.find((t) => t.section_name === sectionName) ??
+    null
+  );
+}
+
 export async function getContentTemplate(sectionName: string): Promise<SOWContentTemplate | null> {
   try {
     const response = await fetch('/api/sow-content-templates');
@@ -270,11 +349,9 @@ export async function getContentTemplate(sectionName: string): Promise<SOWConten
       console.error('Error fetching content templates:', response.statusText);
       return null;
     }
-    
+
     const templates = await response.json();
-    const template = templates.find((t: SOWContentTemplate) => t.section_name === sectionName);
-    
-    return template || null;
+    return getGlobalOrAnyTemplate(templates, sectionName);
   } catch (error) {
     console.error('Error in getContentTemplate:', error);
     return null;

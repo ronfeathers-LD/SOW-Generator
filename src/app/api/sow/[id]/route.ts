@@ -252,7 +252,7 @@ export async function PUT(
     // Prepare update data - only allow specific fields to be updated.
     // approved_at / rejected_at are intentionally NOT caller-settable; they are
     // stamped server-side below so timestamps can't be spoofed.
-    const allowedFields = ['status', 'salesforce_account_id', 'salesforce_account_owner_name', 'salesforce_account_owner_email', 'account_segment', 'approval_comments'];
+    const allowedFields = ['status', 'salesforce_account_id', 'salesforce_account_owner_name', 'salesforce_account_owner_email', 'account_segment', 'approval_comments', 'payment_terms'];
     const updateData: Record<string, unknown> = {};
     
     // Only include fields that are allowed and provided

@@ -151,6 +151,7 @@ export function buildTabPayload(
           billing_address: template?.billing_address,
           purchase_order_number: template?.purchase_order_number,
         },
+        payment_terms: formData.payment_terms,
         pricing: {
           billing: formData.pricing?.billing,
         },

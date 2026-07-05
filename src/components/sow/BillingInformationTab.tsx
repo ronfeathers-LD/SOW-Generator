@@ -462,6 +462,14 @@ export default function BillingInformationTab({
                   placeholder="Purchase order number"
                 />
               </Field>
+
+              <Field label="Payment Terms" hint="Optional">
+                <Input
+                  value={formData.payment_terms || ''}
+                  onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
+                  placeholder="Payment terms"
+                />
+              </Field>
             </div>
           </Card>
         </div>

@@ -11,6 +11,7 @@ import SOWScopePage from '@/components/sow/SOWScopePage';
 import SOWOutOfScopePage from '@/components/sow/SOWOutOfScopePage';
 import SOWProjectPhasesPage from '@/components/sow/SOWProjectPhasesPage';
 import SOWAssumptionsPage from '@/components/sow/SOWAssumptionsPage';
+import AppendixChangeRequestForm from '@/components/sow/AppendixChangeRequestForm';
 import PricingDisplay from '@/components/sow/PricingDisplay';
 import MultiStepApprovalWorkflow from '@/components/sow/MultiStepApprovalWorkflow';
 import SOWComments from '@/components/sow/SOWComments';
@@ -796,25 +797,14 @@ export default function SOWFullView({
                         
                         <dt className="font-semibold text-gray-700">Purchase Order Number:</dt>
                         <dd className="text-gray-900">{sow.template?.purchase_order_number || 'N/A'}</dd>
-                        
-                        {/* TODO: Wire this in the future when we have a way to read the terms from SFDC
-                        <dt className="font-semibold text-gray-700">Payment Terms:</dt>
-                        <dd className="text-gray-900">Net 30</dd>
-                        
-                        <dt className="font-semibold text-gray-700">Currency:</dt>
-                        <dd className="text-gray-900">USD</dd>
-                        */}
+
+                        {sow.payment_terms && (
+                          <>
+                            <dt className="font-semibold text-gray-700">Payment Terms:</dt>
+                            <dd className="text-gray-900">{sow.payment_terms}</dd>
+                          </>
+                        )}
                       </dl>
-                      
-                      {/* TODO: Wire this in the future when we have a way to determine the billing cycle 
-                      <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                        <p className="text-sm text-yellow-800">
-                          <strong>Payment Terms:</strong> Net 30 • 
-                          <strong>Currency:</strong> USD • 
-                          <strong>Billing Cycle:</strong> Monthly or upon completion of major milestones
-                        </p>
-                      </div>
-                      */}
                     </div>
                   </div>
                 )}
@@ -828,11 +818,16 @@ export default function SOWFullView({
                   />
                 </div>
 
+                {/* Appendix A: Change Request Form */}
+                <div id="appendix-a" className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                  <AppendixChangeRequestForm />
+                </div>
+
                 {/* AI Generation Disclaimer */}
                 <div className="max-w-7xl mx-auto mt-8 pt-8 border-t-2 border-gray-300 bg-gray-50 px-6 py-4 mb-12">
                   <p className="text-xs text-gray-600 text-center italic leading-relaxed">
-                    <strong>Note:</strong> This Statement of Work was generated with the assistance of artificial intelligence. 
-                    While we strive for accuracy, please review all details carefully as there may be minor errors or inconsistencies. 
+                    <strong>Note:</strong> This Statement of Work was generated with the assistance of artificial intelligence.
+                    While we strive for accuracy, please review all details carefully as there may be minor errors or inconsistencies.
                     If you notice any discrepancies, please contact us immediately.
                   </p>
                 </div>

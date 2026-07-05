@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { PDFGenerator } from '@/lib/pdf-generator';
+import { resolveTemplatesForSegment } from '@/lib/sow-content';
 import { existsSync } from 'fs';
 import { join } from 'path';
 
@@ -210,7 +211,8 @@ export async function POST(
       billing_contact_name: sowData.billing_contact_name || '',
       billing_address: sowData.billing_address || '',
       billing_email: sowData.billing_email || '',
-      purchase_order_number: sowData.purchase_order_number || ''
+      purchase_order_number: sowData.purchase_order_number || '',
+      payment_terms: sowData.payment_terms || ''
     };
 
     // If the SOW doesn't have custom Out of Scope content, fall back to the
@@ -218,16 +220,27 @@ export async function POST(
     // what the UI shows (which loads templates when custom content is empty).
     if (!transformedData.custom_out_of_scope_content || transformedData.custom_out_of_scope_content.trim() === '') {
       try {
-        const { data: tpl, error: tplError } = await supabase
+        // NOTE: section_name is no longer UNIQUE — a segment-scoped variant row
+        // (e.g. LE) can coexist with the global row, so this must fetch ALL
+        // matching rows and resolve segment-aware rather than `.single()`
+        // (which would error, and silently skip the fallback, the moment a
+        // variant row exists).
+        const { data: tplRows, error: tplError } = await supabase
           .from('sow_content_templates')
-          .select('default_content')
+          .select('section_name, default_content, segment')
           .eq('is_active', true)
-          .eq('section_name', 'out-of-scope')
-          .single();
+          .eq('section_name', 'out-of-scope');
 
-        if (!tplError && tpl && (tpl as any).default_content) {
-          transformedData.custom_out_of_scope_content = (tpl as any).default_content;
-          console.log('ℹ️ Using default Out of Scope template for PDF generation');
+        if (!tplError && tplRows && tplRows.length > 0) {
+          const resolved = resolveTemplatesForSegment(
+            tplRows as Array<{ section_name: string; default_content: string; segment?: string | null }>,
+            sowData.account_segment
+          );
+          const defaultContent = resolved.get('out-of-scope');
+          if (defaultContent) {
+            transformedData.custom_out_of_scope_content = defaultContent;
+            console.log('ℹ️ Using default Out of Scope template for PDF generation');
+          }
         }
       } catch (err) {
         console.warn('⚠️ Failed to load Out of Scope template for PDF fallback:', err);

@@ -82,6 +82,8 @@ export interface SOWContentTemplate {
   is_active: boolean;
   sort_order: number;
   description?: string;
+  /** Segment code (LE/EE/MM/EC) this row's content is scoped to, or null/undefined for the global/default row (ENT roadmap Phase 3 §3). */
+  segment?: string | null;
 }
 
 export interface SOWData {
@@ -198,6 +200,9 @@ export interface SOWData {
   
   // Account Information
   account_segment?: string;
+
+  // Billing: standard payment terms language, editable per-SOW
+  payment_terms?: string;
   
   // Salesforce Data (from sow_salesforce_data table)
   salesforce_data?: {
