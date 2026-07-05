@@ -2,6 +2,7 @@
 import { SOWContentTemplate } from '@/types/sow';
 import { sanitizeHtml } from './sanitize-html';
 import { processContent } from './text-to-html';
+import { normalizeSegment } from '@/lib/segment-rules';
 
 /**
  * Canonical registry of SOW content sections → their `sows` table columns.
@@ -269,6 +270,51 @@ export function canonicalizeContentColumns<T extends Record<string, unknown>>(
     }
   }
   return update;
+}
+
+/**
+ * Resolve one default-content value per `section_name` for a given SOW
+ * segment (ENT roadmap Phase 3 §3). Pure: no fetch, no DB.
+ *
+ * Per section, prefers the row whose `segment` matches the normalized
+ * segment code (`normalizeSegment`); falls back to the row with a null/
+ * undefined `segment` (the global/default row). Rows whose `segment` is set
+ * but does NOT match are ignored entirely (never used as a fallback for a
+ * different segment, and never override the exact match).
+ *
+ * Row order doesn't matter — every row is inspected once; the first
+ * candidate found for each of "exact match" / "global" wins, but since only
+ * one row per (section_name, segment) is expected, this is effectively
+ * deterministic regardless of duplicates.
+ */
+export function resolveTemplatesForSegment(
+  rows: Array<{
+    section_name: string;
+    default_content: string;
+    segment?: string | null;
+  }>,
+  segment: string | null | undefined
+): Map<string, string> {
+  const code = normalizeSegment(segment);
+
+  const exactBySection = new Map<string, string>();
+  const globalBySection = new Map<string, string>();
+
+  rows.forEach((row) => {
+    const rowSegment = row.segment ?? null;
+    if (rowSegment === null || rowSegment === undefined) {
+      globalBySection.set(row.section_name, row.default_content);
+    } else if (code && rowSegment === code) {
+      exactBySection.set(row.section_name, row.default_content);
+    }
+    // else: row is scoped to a different, non-matching segment — ignored.
+  });
+
+  const resolved = new Map<string, string>(globalBySection);
+  exactBySection.forEach((content, section) => {
+    resolved.set(section, content);
+  });
+  return resolved;
 }
 
 export async function getContentTemplate(sectionName: string): Promise<SOWContentTemplate | null> {

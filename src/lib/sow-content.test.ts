@@ -3,6 +3,7 @@ import {
   canonicalizeContent,
   canonicalizeContentColumns,
   renderSectionHtml,
+  resolveTemplatesForSegment,
   sectionLabel,
   SOW_SECTION_CONTENT_COLUMNS,
   SOW_SECTION_KEYS,
@@ -296,5 +297,58 @@ describe('renderSectionHtml / SOW_SECTION_RENDER_TRANSFORMS (#351)', () => {
       expect(renderSectionHtml(key, null)).toBeNull();
       expect(renderSectionHtml(key, undefined)).toBeNull();
     }
+  });
+});
+
+describe('resolveTemplatesForSegment (ENT roadmap Phase 3 §3)', () => {
+  it('resolves global-only rows for any segment', () => {
+    const rows = [
+      { section_name: 'intro', default_content: 'global intro', segment: null },
+      { section_name: 'scope', default_content: 'global scope', segment: undefined },
+    ];
+    for (const segment of ['LE', 'MM', 'EE', 'EC', null, undefined, 'bogus']) {
+      const resolved = resolveTemplatesForSegment(rows, segment);
+      expect(resolved.get('intro')).toBe('global intro');
+      expect(resolved.get('scope')).toBe('global scope');
+    }
+  });
+
+  it('prefers the LE variant for LE and ignores it for MM (falls back to global)', () => {
+    const rows = [
+      { section_name: 'intro', default_content: 'global intro', segment: null },
+      { section_name: 'intro', default_content: 'LE intro', segment: 'LE' },
+    ];
+    expect(resolveTemplatesForSegment(rows, 'LE').get('intro')).toBe('LE intro');
+    expect(resolveTemplatesForSegment(rows, 'MM').get('intro')).toBe('global intro');
+  });
+
+  it('normalizes "MidMarket" to MM before matching', () => {
+    const rows = [
+      { section_name: 'intro', default_content: 'global intro', segment: null },
+      { section_name: 'intro', default_content: 'MM intro', segment: 'MM' },
+    ];
+    expect(resolveTemplatesForSegment(rows, 'MidMarket').get('intro')).toBe('MM intro');
+  });
+
+  it('omits a section entirely when no matching or global row exists', () => {
+    const rows = [
+      { section_name: 'intro', default_content: 'LE intro', segment: 'LE' },
+    ];
+    // MM has no exact match and no global fallback for this section.
+    expect(resolveTemplatesForSegment(rows, 'MM').has('intro')).toBe(false);
+    // LE gets the exact match even with no global row present.
+    expect(resolveTemplatesForSegment(rows, 'LE').get('intro')).toBe('LE intro');
+  });
+
+  it('null/unknown segment gets globals only, non-matching segment rows are ignored', () => {
+    const rows = [
+      { section_name: 'intro', default_content: 'global intro', segment: null },
+      { section_name: 'intro', default_content: 'LE intro', segment: 'LE' },
+      { section_name: 'intro', default_content: 'EE intro', segment: 'EE' },
+    ];
+    const resolved = resolveTemplatesForSegment(rows, null);
+    expect(resolved.get('intro')).toBe('global intro');
+    expect(resolveTemplatesForSegment(rows, undefined).get('intro')).toBe('global intro');
+    expect(resolveTemplatesForSegment(rows, 'bogus-segment').get('intro')).toBe('global intro');
   });
 });

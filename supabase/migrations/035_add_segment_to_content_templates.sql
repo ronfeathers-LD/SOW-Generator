@@ -1,0 +1,22 @@
+-- 035_add_segment_to_content_templates.sql
+--
+-- Per-segment content-template variants (ENT roadmap Phase 3 §3).
+--
+-- IMPORTANT: sow_content_templates' live shape has drifted from the repo
+-- migrations that originally created it (migrations 002/005 define a
+-- name/content JSONB shape; the live table actually has
+-- section_name/section_title/default_content/... columns, with no repo
+-- migration ever recorded creating them). Because the live shape can't be
+-- reconciled against the migration history with confidence, this migration
+-- is deliberately additive-only against whatever the live table currently
+-- is: it adds exactly one nullable column and touches nothing else (no
+-- renames, no constraints, no backfill of other columns).
+--
+-- `segment` semantics: NULL = global/default row (every existing row stays
+-- global, unaffected). A non-null value is a segment code (e.g. 'LE', 'EE',
+-- 'MM', 'EC') that this row's content should be preferred for. Deliberately
+-- NO unique constraint on (section_name, segment) here — the live table's
+-- true constraints are unverifiable given the drift above; uniqueness is
+-- instead enforced at the admin API layer (reject duplicate section+segment
+-- combinations on POST/PUT with 409).
+ALTER TABLE sow_content_templates ADD COLUMN IF NOT EXISTS segment TEXT NULL;

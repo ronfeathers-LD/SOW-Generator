@@ -5,7 +5,7 @@ import { supabaseApi } from '@/lib/supabase-api';
 import { getSlackService } from '@/lib/slack';
 import { getSOWUrl } from '@/lib/utils/app-url';
 import { authOptions } from '@/lib/auth';
-import { canonicalizeContent, DEFAULT_PAYMENT_TERMS } from '@/lib/sow-content';
+import { canonicalizeContent, DEFAULT_PAYMENT_TERMS, resolveTemplatesForSegment } from '@/lib/sow-content';
 import { buildPricingRolesColumn } from '@/lib/sow/pricing-roles-column';
 import { STANDARD_CLIENT_ROLES } from '@/lib/sow/standard-client-roles';
 
@@ -41,14 +41,14 @@ export async function POST(request: Request) {
       console.error('Error fetching content templates:', templateError);
     }
     
-    // Extract default content from templates
-    const templateMap = new Map();
-    if (templates) {
-      templates.forEach(template => {
-        templateMap.set(template.section_name, template.default_content);
-      });
-    }
-    
+    // Resolve one default-content value per section for this SOW's segment
+    // (ENT roadmap Phase 3 §3): prefers a segment-specific template row over
+    // the global (segment IS NULL) row, per section.
+    const templateMap = resolveTemplatesForSegment(
+      templates || [],
+      data.selectedAccount?.Employee_Band__c || data.selectedAccount?.accountSegment
+    );
+
     const defaultIntroContent = templateMap.get('intro') || '';
     const defaultScopeContent = templateMap.get('scope') || '';
     const defaultObjectivesDisclosureContent = templateMap.get('objectives-disclosure') || '';
