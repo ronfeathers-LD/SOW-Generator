@@ -2,7 +2,8 @@ import React from 'react';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
 import TipTapEditor from '../TipTapEditor';
-import { manualEditPatch } from '@/lib/sow/objectives-content';
+import { manualEditPatch, aiGenerationPatch, GeneratedObjectives } from '@/lib/sow/objectives-content';
+import AiGenerationPanel from './objectives-wizard/AiGenerationPanel';
 
 interface ObjectivesEditorProps {
   formData: Partial<SOWData>;
@@ -17,10 +18,12 @@ interface ObjectivesEditorProps {
     description?: string;
   } | null;
   /**
-   * Task 4's "Generate with AI" panel. Rendered in a stable slot at the top
-   * of the editor, wrapped in a `#ai-generation-panel` anchor div so Task 4
-   * can target it without another edit to this file. Left undefined for now
-   * (renders nothing) — SOWForm doesn't pass it yet.
+   * Task 3's provisional slot for the "Generate with AI" panel. Task 4 opted
+   * to construct `AiGenerationPanel` directly below instead of routing it
+   * through this prop — SOWForm never passed one, and there's no benefit to
+   * threading the panel through a second layer when ObjectivesEditor already
+   * owns the `onGenerated` fan-out it needs to call. Left in place (unused,
+   * renders nothing extra) in case a future caller wants to override it.
    */
   aiPanel?: React.ReactNode;
 }
@@ -38,6 +41,8 @@ function keyObjectivesFallbackHtml(items: string[]): string {
 export default function ObjectivesEditor({
   formData,
   setFormData,
+  selectedAccount,
+  selectedOpportunity,
   aiPanel,
 }: ObjectivesEditorProps) {
   const overviewValue =
@@ -87,9 +92,32 @@ export default function ObjectivesEditor({
     });
   };
 
+  const handleGenerated = (gen: GeneratedObjectives) => {
+    setFormData({
+      ...formData,
+      ...aiGenerationPatch(gen),
+      // Legacy mirror: keep objectives.description/key_objectives in sync
+      // with AI results the same way manual edits keep them in sync above.
+      objectives: {
+        ...(formData.objectives || { description: '', key_objectives: [] }),
+        description: gen.overview,
+        key_objectives: gen.keyObjectives,
+      },
+    });
+  };
+
   return (
     <div className="space-y-6">
-      <div id="ai-generation-panel">{aiPanel}</div>
+      <div id="ai-generation-panel">
+        {aiPanel}
+        <AiGenerationPanel
+          formData={formData}
+          setFormData={setFormData}
+          selectedAccount={selectedAccount}
+          selectedOpportunity={selectedOpportunity}
+          onGenerated={handleGenerated}
+        />
+      </div>
 
       <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-dark-border dark:bg-dark-surface">
         <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-dark-text">Objective Overview</h3>
