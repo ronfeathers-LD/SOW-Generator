@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 import { GoogleDriveService } from '@/lib/google-drive';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { assertDriveResourceAllowed } from '@/lib/google-drive-guard';
 
 export async function POST(request: NextRequest) {
   try {
+    const __auth = await requireAuth();
+    if ('error' in __auth) return __auth.error;
     const supabase = await createServerSupabaseClient();
     
     // Get Google Drive configuration
@@ -55,10 +59,18 @@ export async function POST(request: NextRequest) {
         clientId: driveConfig.client_id,
         clientSecret: driveConfig.client_secret,
         redirectUri: driveConfig.redirect_uri,
-        refreshToken: driveConfig.refresh_token
+        refreshToken: driveConfig.refresh_token,
+        allowedFolderIds: Array.isArray(driveConfig.allowed_folder_ids) ? driveConfig.allowed_folder_ids : [],
       },
       useAI ? geminiConfig.api_key : undefined
     );
+
+    // If the caller targets a specific folder, it must be within an allowed
+    // root before we enumerate/search inside it. (audit #74)
+    if (parentFolderId) {
+      const denied = await assertDriveResourceAllowed(driveService, parentFolderId, 'search:parentFolder');
+      if (denied) return denied;
+    }
 
     let result;
 

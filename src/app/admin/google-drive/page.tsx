@@ -12,6 +12,7 @@ interface GoogleDriveConfig {
   refresh_token?: string;
   access_token?: string;
   token_expiry?: string;
+  allowed_folder_ids?: string[];
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -57,11 +58,17 @@ export default function GoogleDriveConfigPage() {
 
     try {
       const formData = new FormData(e.target as HTMLFormElement);
+      // Parse the allowlist textarea: one ID per line, or comma/space separated.
+      const allowedFolderIds = ((formData.get('allowed_folder_ids') as string) || '')
+        .split(/[\s,]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
       const configData = {
         client_id: formData.get('client_id') as string,
         client_secret: formData.get('client_secret') as string,
         redirect_uri: formData.get('redirect_uri') as string,
         refresh_token: formData.get('refresh_token') as string || null,
+        allowed_folder_ids: allowedFolderIds,
         is_active: true
       };
 
@@ -304,6 +311,26 @@ export default function GoogleDriveConfigPage() {
               />
               <p className="mt-1 text-sm text-gray-500">
                 This should match the redirect URI configured in your Google Cloud Console.
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="allowed_folder_ids" className="block text-sm font-medium text-gray-700">
+                Allowed Folder / Shared-Drive IDs
+              </label>
+              <textarea
+                name="allowed_folder_ids"
+                id="allowed_folder_ids"
+                rows={3}
+                defaultValue={(config?.allowed_folder_ids || []).join('\n')}
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder={'One folder or shared-drive ID per line\n1Abc…customer-docs-root'}
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Restricts which Drive folders the app may read, list, extract, and upload into.
+                Documents outside these roots are blocked. <strong>Leave empty for unrestricted access</strong>{' '}
+                (the whole connected account is reachable — not recommended). Paste the folder ID
+                from its Drive URL (the part after <code>/folders/</code>).
               </p>
             </div>
 

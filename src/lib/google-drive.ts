@@ -7,6 +7,9 @@ interface GoogleDriveConfig {
   clientSecret: string;
   redirectUri: string;
   refreshToken?: string;
+  // Allowlist of folder / shared-drive IDs the integration may operate within.
+  // Empty/undefined = unrestricted (legacy behavior). See audit #74.
+  allowedFolderIds?: string[];
 }
 
 interface DriveSearchResult {
@@ -308,6 +311,64 @@ Only include fields that are relevant to the query. If no specific folder name i
   }
 
   /**
+   * True when this integration has an access allowlist configured. When false,
+   * access is unrestricted (legacy behavior) and callers should treat any
+   * resource as allowed (optionally logging a warning). See audit #74.
+   */
+  hasAccessAllowlist(): boolean {
+    return Array.isArray(this.config.allowedFolderIds) && this.config.allowedFolderIds.length > 0;
+  }
+
+  /**
+   * Object-level authorization for Drive resources (audit #74).
+   *
+   * Returns true when `resourceId` is — or is nested anywhere under — one of the
+   * configured allowed folder/shared-drive roots. Walks the `parents` chain
+   * upward (capped depth) and also matches the resource's containing shared
+   * drive (`driveId`). Returns true unconditionally when no allowlist is
+   * configured, so the feature is unchanged until an admin sets roots.
+   */
+  async isWithinAllowedRoots(resourceId: string): Promise<boolean> {
+    const allowed = this.config.allowedFolderIds;
+    if (!allowed || allowed.length === 0) return true; // unrestricted
+    if (!resourceId) return false;
+
+    const allowedSet = new Set(allowed);
+    const visited = new Set<string>();
+    let frontier: string[] = [resourceId];
+    const MAX_HOPS = 25; // guard against cycles / pathological depth
+
+    for (let hop = 0; hop < MAX_HOPS && frontier.length > 0; hop++) {
+      const next: string[] = [];
+      for (const id of frontier) {
+        if (!id || visited.has(id)) continue;
+        visited.add(id);
+        if (allowedSet.has(id)) return true;
+
+        try {
+          const resp = await this.drive.files.get({
+            fileId: id,
+            fields: 'id,parents,driveId',
+            supportsAllDrives: true,
+          });
+          const data = resp.data;
+          // A resource sitting directly in an allowed shared drive.
+          if (data.driveId && allowedSet.has(data.driveId)) return true;
+          for (const parent of data.parents || []) {
+            if (allowedSet.has(parent)) return true;
+            if (!visited.has(parent)) next.push(parent);
+          }
+        } catch (error) {
+          // Missing/inaccessible ancestor — cannot prove containment; deny.
+          console.error(`Drive ancestry check failed for ${id}:`, error);
+        }
+      }
+      frontier = next;
+    }
+    return false;
+  }
+
+  /**
    * Get folder details including subfolder structure
    */
   async getFolderStructure(folderId: string, maxDepth: number = 3): Promise<FolderStructure> {
@@ -531,6 +592,43 @@ Please provide:
       console.error('Error uploading file to Google Drive:', error);
       throw new Error(`Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * List the entry folders to show the user. When an access allowlist is
+   * configured, this returns metadata for exactly those allowed roots (so the
+   * picker can't surface folders outside scope, audit #74); otherwise it falls
+   * back to listing the account's Drive root folders.
+   */
+  async listEntryFolders(): Promise<DriveSearchResult[]> {
+    const allowed = this.config.allowedFolderIds;
+    if (!allowed || allowed.length === 0) {
+      return this.listRootFolders();
+    }
+
+    const results = await Promise.all(
+      allowed.map(async (id): Promise<DriveSearchResult | null> => {
+        try {
+          const resp = await this.drive.files.get({
+            fileId: id,
+            fields: 'id,name,mimeType,createdTime,modifiedTime',
+            supportsAllDrives: true,
+          });
+          const f = resp.data;
+          return {
+            id: f.id || id,
+            name: f.name || '(unknown)',
+            mimeType: f.mimeType || '',
+            createdTime: f.createdTime || '',
+            modifiedTime: f.modifiedTime || '',
+          };
+        } catch (error) {
+          console.error(`Failed to load allowed root ${id}:`, error);
+          return null;
+        }
+      })
+    );
+    return results.filter((r): r is DriveSearchResult => r !== null);
   }
 
   /**
