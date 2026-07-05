@@ -55,6 +55,10 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
 }, ref) {
   const [pricingRolesConfig, setPricingRolesConfig] = useState<PricingRoleConfig[]>([]);
   const [segmentRules, setSegmentRules] = useState<SegmentRulesMap>(DEFAULT_SEGMENT_RULES);
+  // Tracks when fetchSegmentRules() has resolved (success or fallback), so the
+  // mount auto-calc effect below can wait for real rules instead of computing
+  // hours from DEFAULT_SEGMENT_RULES and persisting stale values (#segment-rules).
+  const [segmentRulesLoaded, setSegmentRulesLoaded] = useState(false);
   const [pricingRoles, setPricingRoles] = useState<PricingRole[]>(STANDARD_ROLES.map(role => ({
     ...role,
     id: Math.random().toString(36).substr(2, 9),
@@ -96,7 +100,10 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
   useEffect(() => {
     let cancelled = false;
     fetchSegmentRules().then((rules) => {
-      if (!cancelled) setSegmentRules(rules);
+      if (!cancelled) {
+        setSegmentRules(rules);
+        setSegmentRulesLoaded(true);
+      }
     });
     return () => {
       cancelled = true;
@@ -185,6 +192,10 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
   /* eslint-disable react-hooks/exhaustive-deps */
   // Effect: Auto-calc if pricingRoles are blank on load or products change
   useEffect(() => {
+    // Wait for real segment rules before computing hours — otherwise this
+    // always uses DEFAULT_SEGMENT_RULES and persists stale values into
+    // formData if an admin has since edited a rule.
+    if (!segmentRulesLoaded) return;
     const products = formData?.template?.products || [];
     if (!formData || products.length === 0) return;
     if (hasFirstAutoCalcRef.current) return;
@@ -198,8 +209,8 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       hasFirstAutoCalcRef.current = true;
       autoCalculateHours({ fromMount: true });
     }
-  // deps: formData.id, productsKey, pricingRoles.length
-  }, [formData?.id, formData?.template?.products, pricingRoles.length]);
+  // deps: formData.id, productsKey, pricingRoles.length, segmentRulesLoaded, segmentRules
+  }, [formData?.id, formData?.template?.products, pricingRoles.length, segmentRulesLoaded, segmentRules]);
   /* eslint-enable react-hooks/exhaustive-deps */
 
   // Used to control info message about auto-calc

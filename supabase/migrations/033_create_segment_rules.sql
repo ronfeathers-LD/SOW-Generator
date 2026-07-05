@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS segment_rules (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+DROP TRIGGER IF EXISTS update_segment_rules_updated_at ON segment_rules;
 CREATE TRIGGER update_segment_rules_updated_at
   BEFORE UPDATE ON segment_rules
   FOR EACH ROW
@@ -30,5 +31,6 @@ ON CONFLICT (segment) DO NOTHING;
 -- (pricing_roles_config needed migrations 019/020/022 to fix this — do it right first time).
 ALTER TABLE segment_rules ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "service_role_all_segment_rules" ON segment_rules;
 CREATE POLICY "service_role_all_segment_rules" ON segment_rules
   FOR ALL TO service_role USING (true) WITH CHECK (true);
