@@ -68,7 +68,7 @@ Whole-document reject; the rejection banner shows a free-text comment (observed:
 
 ### F4. Self-defeating defaults (MEDIUM, trivial)
 Salesforce Tenants and Timeline default to **999**; Review & Submit then rejects them ("must be greater than 0 and less than 99"). A brand-new SOW starts with **12 blocking validation items**, several of which the app itself planted.
-**Direction:** blank + required beats absurd sentinel values; prefill timeline from segment guidelines where possible.
+**Direction:** blank + required beats absurd sentinel values (root cause: DB stores `''` but `map-sow-response.ts:117-119` injects `'999'` on read, and saves persist it); prefill timeline from segment guidelines where possible.
 
 ### F5. Signers & client roles don't match reality (MEDIUM)
 The tab auto-opens a modal listing **59 unranked SF contacts** with no search. Client Roles is a freeform empty list — while 6 of 8 real ENT SOWs use the same five stakeholder slots (Executive Sponsor, Project Manager, LeanData Administrator, Owner of Business Requirements, SFDC System Team POC).
@@ -78,7 +78,7 @@ The tab auto-opens a modal listing **59 unranked SF contacts** with no search. C
 - Dashboard: "TOTAL 52" directly above "My Recent SOWs — No SOWs found" (different scopes, no labeling).
 - Auto-title duplicates the account: "OpenAI OpCo, LLC. - Renewal - 2026-10-01 - OpenAI OpCo, LLC."
 - Env banner flips between "STAGE" and "INTERNAL TOOL" page-to-page.
-- **Delete has no confirmation at all** — one click on the edit page's Delete button immediately destroys the SOW and navigates away (verified on staging). Highest-severity item in this group.
+- **Delete confirmation is a native `prompt()`** requiring the user to type "DELETE" (`SOWForm.tsx:1126-1140`) — the list page uses the same pattern but with "HIDE". Native prompts block automation, are inconsistent between the two entry points, and in the staging walkthrough the SOW was soft-deleted without the prompt being visibly completed. Replace with a styled confirm modal. (Delete is a soft-hide — `is_hidden=true` — which the copy should say plainly.)
 - Brief unstyled "JavaScript Required" noscript flash during page hydration.
 
 ### Good bones (keep and extend)
@@ -146,7 +146,7 @@ Also observed: signer identity varies by deal/era (SVP CX, CFO, COO) — validat
 Sequenced for value-per-effort and dependency order. Each phase = its own spec → plan → implementation cycle.
 
 ### Phase 0 — Quick wins (days; no design debt)
-- **Add a delete confirmation** (F6 — currently one-click destructive, no undo); kill 999 defaults (F4); fix phantom pricing dirty-flag (F3); dedupe auto-title (F6); signer-picker search + stop auto-opening (F5); clarify dashboard list scoping (F6).
+- **Replace the native `prompt()` delete confirmation with a styled modal** (F6 — unify the DELETE/HIDE keywords, state that it's a soft-hide); kill the 999 read-mapper sentinel (F4 — `map-sow-response.ts` injects '999' for empty values, which then fails validation); fix phantom pricing dirty-flag (F3); dedupe auto-title (F6); signer-picker search + stop auto-opening (F5); clarify dashboard list scoping (F6).
 
 ### Phase 1 — Segment substrate (small)
 - `segment_rules` table + admin page + `src/lib/segment-rules.ts`; migrate the two existing literal behaviors (PM-removal self-serve, MM +5h) into it. Pure refactor, no behavior change — de-risks everything after.
