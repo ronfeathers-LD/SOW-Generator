@@ -1,27 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleDriveService } from '@/lib/google-drive';
+import { requireAuth } from '@/lib/api-auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { loadDriveService, assertDriveResourceAllowed } from '@/lib/google-drive-guard';
 
 export async function POST(request: NextRequest) {
   try {
+    const __auth = await requireAuth();
+    if ('error' in __auth) return __auth.error;
     const supabase = await createServerSupabaseClient();
-    
-    // Get Google Drive configuration
-    const { data: driveConfig, error: configError } = await supabase
-      .from('google_drive_configs')
-      .select('*')
-      .eq('is_active', true)
-      .single();
 
-    if (configError || !driveConfig) {
-      return NextResponse.json(
-        { 
-          error: 'Google Drive integration is not configured',
-          details: 'Please configure Google Drive in the admin panel first.'
-        },
-        { status: 400 }
-      );
-    }
+    const loaded = await loadDriveService(supabase);
+    if ('error' in loaded) return loaded.error;
+    const driveService = loaded.service;
 
     const { query, folderName, parentFolderId } = await request.json();
 
@@ -32,13 +22,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize Google Drive service WITHOUT Gemini for faster results
-    const driveService = new GoogleDriveService({
-      clientId: driveConfig.client_id,
-      clientSecret: driveConfig.client_secret,
-      redirectUri: driveConfig.redirect_uri,
-      refreshToken: driveConfig.refresh_token
-    });
+    // If the caller targets a specific folder, it must be within an allowed
+    // root. (audit #74)
+    if (parentFolderId) {
+      const denied = await assertDriveResourceAllowed(driveService, parentFolderId, 'fast-search:parentFolder');
+      if (denied) return denied;
+    }
 
     // Use direct search without AI for immediate results
     const searchResults = await driveService.searchFolders({

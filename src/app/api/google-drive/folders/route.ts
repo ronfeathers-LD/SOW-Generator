@@ -1,38 +1,21 @@
 import { NextResponse } from 'next/server';
-import { GoogleDriveService } from '@/lib/google-drive';
+import { requireAuth } from '@/lib/api-auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { loadDriveService } from '@/lib/google-drive-guard';
 
 export async function GET() {
   try {
+    const __auth = await requireAuth();
+    if ('error' in __auth) return __auth.error;
     const supabase = await createServerSupabaseClient();
-    
-    // Get Google Drive configuration
-    const { data: driveConfig, error: configError } = await supabase
-      .from('google_drive_configs')
-      .select('*')
-      .eq('is_active', true)
-      .single();
 
-    if (configError || !driveConfig) {
-      return NextResponse.json(
-        { 
-          error: 'Google Drive integration is not configured',
-          details: 'Please configure Google Drive in the admin panel first.'
-        },
-        { status: 400 }
-      );
-    }
+    const loaded = await loadDriveService(supabase);
+    if ('error' in loaded) return loaded.error;
+    const driveService = loaded.service;
 
-    // Initialize Google Drive service
-    const driveService = new GoogleDriveService({
-      clientId: driveConfig.client_id,
-      clientSecret: driveConfig.client_secret,
-      redirectUri: driveConfig.redirect_uri,
-      refreshToken: driveConfig.refresh_token
-    });
-
-    // List root folders
-    const folders = await driveService.listRootFolders();
+    // List entry folders — restricted to the allowed roots when an allowlist
+    // is configured, otherwise the account's Drive root folders. (audit #74)
+    const folders = await driveService.listEntryFolders();
 
     return NextResponse.json({
       folders: folders.map(folder => ({

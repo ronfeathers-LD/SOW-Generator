@@ -1,30 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/api-auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
-import { GoogleDriveService } from '@/lib/google-drive';
+import { loadDriveService, assertDriveResourceAllowed } from '@/lib/google-drive-guard';
 
 export async function POST(request: NextRequest) {
   try {
     const __auth = await requireAuth();
     if ('error' in __auth) return __auth.error;
     const supabase = await createServerSupabaseClient();
-    
-    // Get Google Drive configuration
-    const { data: driveConfig, error: configError } = await supabase
-      .from('google_drive_configs')
-      .select('*')
-      .eq('is_active', true)
-      .single();
 
-    if (configError || !driveConfig) {
-      return NextResponse.json(
-        { 
-          error: 'Google Drive integration is not configured',
-          details: 'Please configure Google Drive in the admin panel first.'
-        },
-        { status: 400 }
-      );
-    }
+    const loaded = await loadDriveService(supabase);
+    if ('error' in loaded) return loaded.error;
+    const googleDriveService = loaded.service;
 
     const { documentId } = await request.json();
 
@@ -32,14 +19,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Document ID is required' }, { status: 400 });
     }
 
-    // Initialize Google Drive service with configuration
-    const googleDriveService = new GoogleDriveService({
-      clientId: driveConfig.client_id,
-      clientSecret: driveConfig.client_secret,
-      redirectUri: driveConfig.redirect_uri,
-      refreshToken: driveConfig.refresh_token
-    });
-    
+    // Object-level authorization: the document must be within an allowed root
+    // before we return its contents to the caller. (audit #74)
+    const denied = await assertDriveResourceAllowed(googleDriveService, documentId, 'extract-content');
+    if (denied) return denied;
+
     const result = await googleDriveService.extractDocumentContent(documentId);
 
     return NextResponse.json({ 
