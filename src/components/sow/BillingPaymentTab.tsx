@@ -3,6 +3,7 @@ import { SOWData } from '@/types/sow';
 import PricingRolesAndDiscount from '@/components/sow/PricingRolesAndDiscount';
 import LoadingModal from '@/components/ui/LoadingModal';
 import { calculateAllHours, calculateRoleHoursDistribution } from '@/lib/hours-calculation-utils';
+import { DEFAULT_SEGMENT_RULES, fetchSegmentRules, SegmentRulesMap } from '@/lib/segment-rules';
 import { getPricingSummary, toPricingRolesObject } from '@/lib/sow/pricing-summary';
 import { getPricingRolesConfig, getDefaultRateForRole, getDescriptionForRole, PricingRoleConfig } from '@/lib/pricing-roles-config';
 import { SectionHeader } from '@/components/ui/form';
@@ -53,6 +54,11 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
   selectedAccount,
 }, ref) {
   const [pricingRolesConfig, setPricingRolesConfig] = useState<PricingRoleConfig[]>([]);
+  const [segmentRules, setSegmentRules] = useState<SegmentRulesMap>(DEFAULT_SEGMENT_RULES);
+  // Tracks when fetchSegmentRules() has resolved (success or fallback), so the
+  // mount auto-calc effect below can wait for real rules instead of computing
+  // hours from DEFAULT_SEGMENT_RULES and persisting stale values (#segment-rules).
+  const [segmentRulesLoaded, setSegmentRulesLoaded] = useState(false);
   const [pricingRoles, setPricingRoles] = useState<PricingRole[]>(STANDARD_ROLES.map(role => ({
     ...role,
     id: Math.random().toString(36).substr(2, 9),
@@ -86,6 +92,22 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
     };
 
     loadPricingRolesConfig();
+  }, []);
+
+  // Load segment rules (self-serve PM removal eligibility). Never blocks the
+  // form — state initializes to DEFAULT_SEGMENT_RULES and fetchSegmentRules()
+  // never throws.
+  useEffect(() => {
+    let cancelled = false;
+    fetchSegmentRules().then((rules) => {
+      if (!cancelled) {
+        setSegmentRules(rules);
+        setSegmentRulesLoaded(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Populate descriptions when pricingRolesConfig loads
@@ -170,6 +192,10 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
   /* eslint-disable react-hooks/exhaustive-deps */
   // Effect: Auto-calc if pricingRoles are blank on load or products change
   useEffect(() => {
+    // Wait for real segment rules before computing hours — otherwise this
+    // always uses DEFAULT_SEGMENT_RULES and persists stale values into
+    // formData if an admin has since edited a rule.
+    if (!segmentRulesLoaded) return;
     const products = formData?.template?.products || [];
     if (!formData || products.length === 0) return;
     if (hasFirstAutoCalcRef.current) return;
@@ -183,8 +209,8 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       hasFirstAutoCalcRef.current = true;
       autoCalculateHours({ fromMount: true });
     }
-  // deps: formData.id, productsKey, pricingRoles.length
-  }, [formData?.id, formData?.template?.products, pricingRoles.length]);
+  // deps: formData.id, productsKey, pricingRoles.length, segmentRulesLoaded, segmentRules
+  }, [formData?.id, formData?.template?.products, pricingRoles.length, segmentRulesLoaded, segmentRules]);
   /* eslint-enable react-hooks/exhaustive-deps */
 
   // Used to control info message about auto-calc
@@ -359,7 +385,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
     
     try {
       // Use shared utility to calculate all hours
-      const hoursResult = calculateAllHours(formData.template, selectedAccount?.Employee_Band__c);
+      const hoursResult = calculateAllHours(formData.template, selectedAccount?.Employee_Band__c, segmentRules);
       const { baseProjectHours, pmHours, shouldAddProjectManager } = hoursResult;
 
       // Calculate role hours distribution (Onboarding Specialist allocation only;
@@ -542,6 +568,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
           }}
           selectedAccount={selectedAccount}
           pricingRolesConfig={pricingRolesConfig}
+          segmentRules={segmentRules}
           onPMHoursRequirementDisabled={() =>
             setFormData({ ...formData, pm_hours_requirement_disabled: true })
           }

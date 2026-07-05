@@ -95,8 +95,56 @@ function calculateUserGroupHours(sow) {
   return units >= 50 ? Math.floor(units / 50) * 5 : 0;
 }
 
-function calculateAccountSegmentHours(segment) {
-  return (segment === 'MM' || segment === 'MidMarket') ? 5 : 0;
+// Mirrors src/lib/segment-rules.ts DEFAULT_SEGMENT_RULES exactly — the fallback
+// used if the segment_rules table is empty/unreachable (was the sole,
+// hardcoded, hours source before segment_rules existed).
+const DEFAULT_SEGMENT_RULES = {
+  LE: { segment: 'LE', pmRemovalSelfServe: true, extraHours: 0 },
+  EE: { segment: 'EE', pmRemovalSelfServe: true, extraHours: 0 },
+  MM: { segment: 'MM', pmRemovalSelfServe: false, extraHours: 5 },
+  EC: { segment: 'EC', pmRemovalSelfServe: false, extraHours: 0 },
+};
+
+function normalizeSegment(segment) {
+  const s = (segment ?? '').trim();
+  if (s === 'MidMarket') return 'MM';
+  return s;
+}
+
+/**
+ * Load effective segment rules from the segment_rules table using the
+ * script's own Supabase client, falling back to DEFAULT_SEGMENT_RULES on
+ * error or an empty table (mirrors loadSegmentRules in
+ * src/lib/segment-rules-server.ts — duplicated here so this script has no
+ * build/compile-step dependency).
+ */
+async function loadSegmentRules(client) {
+  try {
+    const { data, error } = await client
+      .from('segment_rules')
+      .select('segment, pm_removal_self_serve, extra_hours')
+      .eq('is_active', true);
+    if (error || !data || data.length === 0) {
+      if (error) console.error('segment_rules query failed, using defaults:', error);
+      return DEFAULT_SEGMENT_RULES;
+    }
+    const map = {};
+    for (const row of data) {
+      map[row.segment] = {
+        segment: row.segment,
+        pmRemovalSelfServe: row.pm_removal_self_serve,
+        extraHours: row.extra_hours,
+      };
+    }
+    return map;
+  } catch (error) {
+    console.error('segment_rules load threw, using defaults:', error);
+    return DEFAULT_SEGMENT_RULES;
+  }
+}
+
+function calculateAccountSegmentHours(segment, rules) {
+  return rules[normalizeSegment(segment)]?.extraHours ?? 0;
 }
 
 function shouldAddPM(sow) {
@@ -116,10 +164,10 @@ function shouldAddPM(sow) {
   return products.length >= 3 || getTotalUnits(sow) >= 200;
 }
 
-function getBaseProjectHours(sow) {
+function getBaseProjectHours(sow, rules) {
   return calculateProductHours(sow.products || [])
     + calculateUserGroupHours(sow)
-    + calculateAccountSegmentHours(sow.account_segment);
+    + calculateAccountSegmentHours(sow.account_segment, rules);
 }
 
 // ---------------------------------------------------------------------------
@@ -140,9 +188,11 @@ function toNum(v) {
 
 /**
  * @param {object} sow - Row from the sows table (flat).
+ * @param {object} rules - Segment rules map (segment -> { extraHours, ... }),
+ *   loaded via loadSegmentRules() above.
  * @returns {{ action: string, osTarget?: number, pmHoursRemoved?: number }}
  */
-function classifySow(sow) {
+function classifySow(sow, rules) {
   if (sow.pm_hours_requirement_disabled) return { action: 'none' };
   if (!shouldAddPM(sow))                 return { action: 'none' };
 
@@ -150,7 +200,7 @@ function classifySow(sow) {
   const hasPM  = roles.some(r => r.role === 'Project Manager');
   if (hasPM) return { action: 'none' };
 
-  const base          = getBaseProjectHours(sow);
+  const base          = getBaseProjectHours(sow, rules);
   const osRole        = roles.find(r => r.role === 'Onboarding Specialist');
   const currentOsHrs  = toNum(osRole?.totalHours);
 
@@ -238,6 +288,8 @@ async function main() {
 
   console.log(`\n=== PM-Removal Consistency Backfill  [${APPLY ? 'APPLY' : 'DRY-RUN'}] ===\n`);
 
+  const rules = await loadSegmentRules(client);
+
   // Fetch only the columns the classifier and writer need.
   const { data: sows, error } = await client
     .from('sows')
@@ -262,7 +314,7 @@ async function main() {
   const affected = [];
 
   for (const sow of sows) {
-    const result = classifySow(sow);
+    const result = classifySow(sow, rules);
     if (result.action !== 'none') {
       affected.push({ sow, result });
     }

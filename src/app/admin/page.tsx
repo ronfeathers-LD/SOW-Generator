@@ -295,6 +295,36 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Segment Rules */}
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-6 w-6 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">
+                    Segment Rules
+                  </dt>
+                  <dd className="text-lg font-medium text-gray-900">
+                    Manage
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+          <div className="bg-gray-50 px-5 py-3">
+            <div className="text-sm">
+              <Link href="/admin/segment-rules" className="font-medium text-indigo-700 hover:text-indigo-900">
+                Manage Segment Rules
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Quick Actions */}

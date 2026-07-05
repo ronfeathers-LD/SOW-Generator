@@ -10,6 +10,7 @@
  */
 
 import { calculateAllHours } from '@/lib/hours-calculation-utils';
+import type { SegmentRulesMap } from '@/lib/segment-rules';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -82,8 +83,13 @@ function extractRoles(pricingRoles: unknown): PricingRoleRow[] {
  * Returns `{ action: 'restore-os-set-flag', osTarget, pmHoursRemoved }` for
  * SOWs that are stranded: no PM row, PM would be required, and OS hours are
  * below base — meaning the deduction was applied but never reversed.
+ *
+ * @param rules Segment rules (extra hours per segment) used to reconstruct
+ *   baseProjectHours exactly as the SOW form would have computed it at the
+ *   time. Callers with a Supabase client in scope should load these via
+ *   `loadSegmentRules(supabase)`.
  */
-export function classifySow(sow: SowRowInput): ClassifyResult {
+export function classifySow(sow: SowRowInput, rules: SegmentRulesMap): ClassifyResult {
   // Already flagged → consistent, nothing to do.
   if (sow.pm_hours_requirement_disabled) {
     return { action: 'none' };
@@ -104,7 +110,8 @@ export function classifySow(sow: SowRowInput): ClassifyResult {
 
   const { baseProjectHours, shouldAddProjectManager } = calculateAllHours(
     template,
-    sow.account_segment ?? undefined
+    sow.account_segment ?? undefined,
+    rules
   );
 
   // Rule engine says PM is not required → no inconsistency possible.
