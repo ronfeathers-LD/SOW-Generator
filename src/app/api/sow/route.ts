@@ -5,7 +5,7 @@ import { supabaseApi } from '@/lib/supabase-api';
 import { getSlackService } from '@/lib/slack';
 import { getSOWUrl } from '@/lib/utils/app-url';
 import { authOptions } from '@/lib/auth';
-import { canonicalizeContent } from '@/lib/sow-content';
+import { canonicalizeContent, DEFAULT_PAYMENT_TERMS } from '@/lib/sow-content';
 import { buildPricingRolesColumn } from '@/lib/sow/pricing-roles-column';
 import { STANDARD_CLIENT_ROLES } from '@/lib/sow/standard-client-roles';
 
@@ -90,6 +90,9 @@ export async function POST(request: Request) {
         // and forced every reader to branch on both shapes. (audit #104)
         pricing_roles: buildPricingRolesColumn(data.pricing),
         billing_info: data.pricing?.billing || {},
+        // Standard billing language every mined LeanData-paper SOW carries;
+        // editable thereafter via the Billing Information tab.
+        payment_terms: data.payment_terms || DEFAULT_PAYMENT_TERMS,
         
         // Project Assumptions
         // Note: access_requirements, travel_requirements, working_hours, testing_responsibilities columns have been removed

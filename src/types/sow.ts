@@ -198,6 +198,9 @@ export interface SOWData {
   
   // Account Information
   account_segment?: string;
+
+  // Billing: standard payment terms language, editable per-SOW
+  payment_terms?: string;
   
   // Salesforce Data (from sow_salesforce_data table)
   salesforce_data?: {

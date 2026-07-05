@@ -26,6 +26,14 @@ export const SOW_SECTION_CONTENT_COLUMNS = {
   key_objectives: 'custom_key_objectives_content',
 } as const;
 
+/**
+ * Standard payment terms language carried by every mined LeanData-paper SOW.
+ * Seeded onto new SOWs at creation (`payment_terms` column); editable per-SOW
+ * thereafter via the Billing Information tab.
+ */
+export const DEFAULT_PAYMENT_TERMS =
+  'Billed monthly, as incurred; payment due upon receipt.';
+
 export type SOWSectionKey = keyof typeof SOW_SECTION_CONTENT_COLUMNS;
 export type SOWSectionContentColumn =
   (typeof SOW_SECTION_CONTENT_COLUMNS)[SOWSectionKey];

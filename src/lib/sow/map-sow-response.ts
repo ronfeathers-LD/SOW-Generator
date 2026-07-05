@@ -150,6 +150,8 @@ export function mapSowRowToResponse(sow: SowRow, extras: MapSowExtras = {}): Sow
     leandata_signatory_id: sow.leandata_signatory_id || null,
     // Include account segment
     account_segment: sow.account_segment || null,
+    // Include payment terms — plain passthrough, empty stays empty (no sentinel).
+    payment_terms: sow.payment_terms || '',
     // Include PM hours removal state so the editor recalculates hours correctly
     pm_hours_requirement_disabled: sow.pm_hours_requirement_disabled || false,
     pm_hours_removed: sow.pm_hours_removed || 0,
