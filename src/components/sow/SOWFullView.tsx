@@ -796,25 +796,14 @@ export default function SOWFullView({
                         
                         <dt className="font-semibold text-gray-700">Purchase Order Number:</dt>
                         <dd className="text-gray-900">{sow.template?.purchase_order_number || 'N/A'}</dd>
-                        
-                        {/* TODO: Wire this in the future when we have a way to read the terms from SFDC
-                        <dt className="font-semibold text-gray-700">Payment Terms:</dt>
-                        <dd className="text-gray-900">Net 30</dd>
-                        
-                        <dt className="font-semibold text-gray-700">Currency:</dt>
-                        <dd className="text-gray-900">USD</dd>
-                        */}
+
+                        {sow.payment_terms && (
+                          <>
+                            <dt className="font-semibold text-gray-700">Payment Terms:</dt>
+                            <dd className="text-gray-900">{sow.payment_terms}</dd>
+                          </>
+                        )}
                       </dl>
-                      
-                      {/* TODO: Wire this in the future when we have a way to determine the billing cycle 
-                      <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                        <p className="text-sm text-yellow-800">
-                          <strong>Payment Terms:</strong> Net 30 • 
-                          <strong>Currency:</strong> USD • 
-                          <strong>Billing Cycle:</strong> Monthly or upon completion of major milestones
-                        </p>
-                      </div>
-                      */}
                     </div>
                   </div>
                 )}

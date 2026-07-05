@@ -210,7 +210,8 @@ export async function POST(
       billing_contact_name: sowData.billing_contact_name || '',
       billing_address: sowData.billing_address || '',
       billing_email: sowData.billing_email || '',
-      purchase_order_number: sowData.purchase_order_number || ''
+      purchase_order_number: sowData.purchase_order_number || '',
+      payment_terms: sowData.payment_terms || ''
     };
 
     // If the SOW doesn't have custom Out of Scope content, fall back to the

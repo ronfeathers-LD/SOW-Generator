@@ -130,6 +130,8 @@ export interface DisplaySOW {
   deliverables_content_edited?: boolean;
   objective_overview_content_edited?: boolean;
   key_objectives_content_edited?: boolean;
+  /** Flat `sows.payment_terms` column — top-level, not part of `template` (see map-sow-response). */
+  payment_terms?: string;
   template?: {
     billing_company_name?: string;
     billing_contact_name?: string;

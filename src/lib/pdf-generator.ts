@@ -237,6 +237,8 @@ interface SOWData {
   billing_address?: string;
   billing_email?: string;
   purchase_order_number?: string;
+  /** Flat `sows.payment_terms` column — not part of the `billing_info` JSONB blob. */
+  payment_terms?: string;
   pm_hours_requirement_disabled?: boolean;
 }
 
@@ -1383,7 +1385,12 @@ export class PDFGenerator {
                     <div class="billing-label">Purchase Order Number:</div>
                     <div class="billing-value">${billingInfo?.po_number || 'N/A'}</div>
                   </div>
-                 
+                  ${sowData.payment_terms ? `
+                  <div>
+                    <div class="billing-label">Payment Terms:</div>
+                    <div class="billing-value">${sowData.payment_terms}</div>
+                  </div>
+                  ` : ''}
                 </div>
               </div>
             </div>
