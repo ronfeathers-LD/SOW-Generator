@@ -35,6 +35,8 @@ export function mapApiResponseToSOWData(data: SowApiResponse): SOWData {
     salesforce_contact_id: data.salesforce_contact_id,
     // Include account segment
     account_segment: data.account_segment,
+    // Include payment terms (flat `sows.payment_terms` column, see map-sow-response)
+    payment_terms: data.payment_terms || '',
     // Include PM hours removal state so hour recalculation reflects an approved removal
     pm_hours_requirement_disabled: data.pm_hours_requirement_disabled || false,
     pm_hours_removed: data.pm_hours_removed || 0,
