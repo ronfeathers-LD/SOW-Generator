@@ -11,6 +11,7 @@ import SOWScopePage from '@/components/sow/SOWScopePage';
 import SOWOutOfScopePage from '@/components/sow/SOWOutOfScopePage';
 import SOWProjectPhasesPage from '@/components/sow/SOWProjectPhasesPage';
 import SOWAssumptionsPage from '@/components/sow/SOWAssumptionsPage';
+import AppendixChangeRequestForm from '@/components/sow/AppendixChangeRequestForm';
 import PricingDisplay from '@/components/sow/PricingDisplay';
 import MultiStepApprovalWorkflow from '@/components/sow/MultiStepApprovalWorkflow';
 import SOWComments from '@/components/sow/SOWComments';
@@ -817,11 +818,16 @@ export default function SOWFullView({
                   />
                 </div>
 
+                {/* Appendix A: Change Request Form */}
+                <div id="appendix-a" className="max-w-7xl mx-auto bg-white p-8 mb-12">
+                  <AppendixChangeRequestForm />
+                </div>
+
                 {/* AI Generation Disclaimer */}
                 <div className="max-w-7xl mx-auto mt-8 pt-8 border-t-2 border-gray-300 bg-gray-50 px-6 py-4 mb-12">
                   <p className="text-xs text-gray-600 text-center italic leading-relaxed">
-                    <strong>Note:</strong> This Statement of Work was generated with the assistance of artificial intelligence. 
-                    While we strive for accuracy, please review all details carefully as there may be minor errors or inconsistencies. 
+                    <strong>Note:</strong> This Statement of Work was generated with the assistance of artificial intelligence.
+                    While we strive for accuracy, please review all details carefully as there may be minor errors or inconsistencies.
                     If you notice any discrepancies, please contact us immediately.
                   </p>
                 </div>
