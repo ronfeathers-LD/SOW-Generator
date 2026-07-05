@@ -5,8 +5,7 @@ import { SOWData, SOWTemplate } from '@/types/sow';
 import { SalesforceAccount, SalesforceContact } from '@/lib/salesforce';
 import ProjectOverviewTab from './sow/ProjectOverviewTab';
 import CustomerInformationTab from './sow/CustomerInformationTab';
-import ObjectivesWizard from './sow/ObjectivesWizard';
-import type { ObjectivesStepNav } from './sow/ObjectivesWizard';
+import ObjectivesEditor from './sow/ObjectivesEditor';
 import TeamRolesTab from './sow/TeamRolesTab';
 import BillingInformationTab from './sow/BillingInformationTab';
 import BillingPaymentTab from './sow/BillingPaymentTab';
@@ -334,10 +333,7 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
-  // The objectives AI sub-stepper publishes its current nav here so the single
-  // footer button drives the sub-steps (then continues to the next section).
-  const [objectivesNav, setObjectivesNav] = useState<ObjectivesStepNav | null>(null);
-  
+
   // Ref to get current pricing data from BillingPaymentTab
   const pricingRef = useRef<{ getCurrentPricingData?: () => PricingData }>(null);
   const [salesforceInstanceUrl, setSalesforceInstanceUrl] = useState<string>('https://na1.salesforce.com');
@@ -1360,12 +1356,11 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
 
       {/* Objectives Section */}
       {activeTab === 'Objectives' && (
-        <ObjectivesWizard
+        <ObjectivesEditor
           formData={formData}
           setFormData={updateFormData}
           selectedAccount={selectedAccount}
           selectedOpportunity={selectedOpportunity}
-          onNavChange={setObjectivesNav}
         />
       )}
 
@@ -1462,20 +1457,16 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
             ? `Continue to ${nextPhase.title}`
             : `Next: ${SECTION_LABELS[nextKey] ?? nextKey}`;
 
-        // On the Objectives section the AI sub-stepper publishes its own nav, so
-        // the single footer button drives the sub-steps; once past the last
-        // sub-step (objNav.onNext is undefined) it falls back to the section nav.
-        const objNav = activeTab === 'Objectives' ? objectivesNav : null;
-        const onBackClick = objNav?.onPrev ?? (() => goToStep(currentStepIndex - 1));
-        const backDisabled = objNav?.onPrev ? false : currentStepIndex <= 0;
-        const onNextClick = objNav?.onNext ?? (() => goToStep(currentStepIndex + 1));
-        const nextBtnLabel = objNav?.onNext ? `Next: ${objNav.nextLabel ?? ''}` : nextLabel;
-        const nextBtnDisabled = objNav?.onNext ? !!objNav.nextDisabled : !nextKey;
-        const nextBtnLoading = objNav?.nextLoading ?? false;
+        const onBackClick = () => goToStep(currentStepIndex - 1);
+        const backDisabled = currentStepIndex <= 0;
+        const onNextClick = () => goToStep(currentStepIndex + 1);
+        const nextBtnLabel = nextLabel;
+        const nextBtnDisabled = !nextKey;
+        const nextBtnLoading = false;
         // On the terminal step (Review & Submit) there's nowhere to go next —
         // the action is the in-card "Submit for Review" — so hide the footer
         // Next rather than show a dead, permanently-disabled button.
-        const showNextButton = !!nextKey || !!objNav?.onNext;
+        const showNextButton = !!nextKey;
         const saveIcon = (
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
