@@ -5,8 +5,7 @@ import { SOWData, SOWTemplate } from '@/types/sow';
 import { SalesforceAccount, SalesforceContact } from '@/lib/salesforce';
 import ProjectOverviewTab from './sow/ProjectOverviewTab';
 import CustomerInformationTab from './sow/CustomerInformationTab';
-import ObjectivesWizard from './sow/ObjectivesWizard';
-import type { ObjectivesStepNav } from './sow/ObjectivesWizard';
+import ObjectivesEditor from './sow/ObjectivesEditor';
 import TeamRolesTab from './sow/TeamRolesTab';
 import BillingInformationTab from './sow/BillingInformationTab';
 import BillingPaymentTab from './sow/BillingPaymentTab';
@@ -334,10 +333,15 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
-  // The objectives AI sub-stepper publishes its current nav here so the single
-  // footer button drives the sub-steps (then continues to the next section).
-  const [objectivesNav, setObjectivesNav] = useState<ObjectivesStepNav | null>(null);
-  
+  // Always-current mirror of `isSaving`, read inside the autosave debounce
+  // timer below so the fire-time check isn't a stale closure over a value
+  // captured when the timer was scheduled.
+  const isSavingRef = useRef(isSaving);
+  isSavingRef.current = isSaving;
+  // Set when the debounce timer fires while a save is already in flight; the
+  // in-flight-completion effect below runs one trailing save when it settles.
+  const pendingSaveRef = useRef(false);
+
   // Ref to get current pricing data from BillingPaymentTab
   const pricingRef = useRef<{ getCurrentPricingData?: () => PricingData }>(null);
   const [salesforceInstanceUrl, setSalesforceInstanceUrl] = useState<string>('https://na1.salesforce.com');
@@ -603,15 +607,17 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
     }
   }, [leanDataSignatories, initialData]);
 
+    // Updates local form data only; the global autosave loop (marked dirty via
+    // `updateFormData`) persists it, so there's no separate immediate PUT here.
     const handleLeanDataSignatoryChange = async (signatoryId: string): Promise<void> => {
     setSelectedLeanDataSignatory(signatoryId);
 
     if (signatoryId && leanDataSignatories) {
       const selectedSignatory = leanDataSignatories.find(s => s.id === signatoryId);
       if (selectedSignatory) {
-        // Update local form data
-        const updatedFormData = {
+        updateFormData({
           ...formData,
+          leandata_signatory_id: signatoryId,
           template: {
             ...formData.template!,
             lean_data_name: selectedSignatory.name,
@@ -620,39 +626,7 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
             lean_data_signature_name: selectedSignatory.name,
             lean_data_signature: selectedSignatory.title
           }
-        };
-        setFormData(updatedFormData);
-
-        // Save to database immediately
-    if (formData.id) {
-          try {
-            const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                tab: 'Signers & Roles',
-                data: {
-                  leandata_signatory_id: signatoryId,
-                  template: {
-                    lean_data_name: selectedSignatory.name,
-                    lean_data_title: selectedSignatory.title,
-                    lean_data_email: selectedSignatory.email,
-                    lean_data_signature_name: selectedSignatory.name,
-                    lean_data_signature: selectedSignatory.title
-                  }
-                }
-              })
-            });
-
-            if (!response.ok) {
-              console.error('Failed to save LeanData signatory:', response.statusText);
-          }
-        } catch (error) {
-            console.error('Error saving LeanData signatory:', error);
-          }
-        }
+        });
       }
     }
   };
@@ -981,6 +955,38 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
       setIsSaving(false);
     }
   };
+
+  // Global autosave: replaces the old "Save all changes" button. 1500ms after
+  // the last dirtying edit (any `updateFormData` call that doesn't pass
+  // `markDirty: false`), persist automatically via the same `handleSaveAll`
+  // used by tab-switch flush-save. Restarts on every edit because `formData`
+  // is a dependency, so the timer always measures from the *last* change.
+  useEffect(() => {
+    if (!hasUnsavedChanges || !initialData?.id) return;
+
+    const timer = setTimeout(() => {
+      // A save may already be in flight (e.g. kicked off by a tab switch).
+      // Don't stack a second concurrent save-all; queue one trailing save to
+      // run once the in-flight save settles, so these edits aren't dropped.
+      if (isSavingRef.current) {
+        pendingSaveRef.current = true;
+      } else {
+        void handleSaveAll();
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData, hasUnsavedChanges, initialData?.id]);
+
+  // Run the queued trailing save once an in-flight save settles.
+  useEffect(() => {
+    if (!isSaving && pendingSaveRef.current) {
+      pendingSaveRef.current = false;
+      void handleSaveAll();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSaving]);
 
   const tabs = useMemo(() => {
     const allTabs = [
@@ -1360,12 +1366,11 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
 
       {/* Objectives Section */}
       {activeTab === 'Objectives' && (
-        <ObjectivesWizard
+        <ObjectivesEditor
           formData={formData}
           setFormData={updateFormData}
           selectedAccount={selectedAccount}
           selectedOpportunity={selectedOpportunity}
-          onNavChange={setObjectivesNav}
         />
       )}
 
@@ -1380,7 +1385,6 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
           selectedAccount={selectedAccount}
             selectedContact={selectedContact}
           getSalesforceLink={getSalesforceLink}
-          isActiveTab={activeTab === 'Signers & Roles'}
           onContactChange={(contact) => setSelectedContact(contact)}
         />
       )}
@@ -1450,9 +1454,11 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
         />
       )}
 
-      {/* Unified footer: Back · save status · Save all · Next — a single bottom
-          bar that replaces the old separate nav row + floating save control.
-          The top 4-phase bar is the sole progress indicator (no "Step N of M"). */}
+      {/* Unified footer: Back · save status · Next — a single bottom bar that
+          replaces the old separate nav row + floating save control. Saving is
+          now fully automatic (global autosave), so there is no save button —
+          the status indicator is the sole source of truth. The top 4-phase
+          bar is the sole progress indicator (no "Step N of M"). */}
       {(() => {
         const nextKey = !restrictedTab && currentStepIndex < wizardKeys.length - 1 ? wizardKeys[currentStepIndex + 1] : null;
         const nextPhase = nextKey ? PHASES.find((p) => p.sections.includes(nextKey)) : null;
@@ -1462,25 +1468,16 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
             ? `Continue to ${nextPhase.title}`
             : `Next: ${SECTION_LABELS[nextKey] ?? nextKey}`;
 
-        // On the Objectives section the AI sub-stepper publishes its own nav, so
-        // the single footer button drives the sub-steps; once past the last
-        // sub-step (objNav.onNext is undefined) it falls back to the section nav.
-        const objNav = activeTab === 'Objectives' ? objectivesNav : null;
-        const onBackClick = objNav?.onPrev ?? (() => goToStep(currentStepIndex - 1));
-        const backDisabled = objNav?.onPrev ? false : currentStepIndex <= 0;
-        const onNextClick = objNav?.onNext ?? (() => goToStep(currentStepIndex + 1));
-        const nextBtnLabel = objNav?.onNext ? `Next: ${objNav.nextLabel ?? ''}` : nextLabel;
-        const nextBtnDisabled = objNav?.onNext ? !!objNav.nextDisabled : !nextKey;
-        const nextBtnLoading = objNav?.nextLoading ?? false;
+        const onBackClick = () => goToStep(currentStepIndex - 1);
+        const backDisabled = currentStepIndex <= 0;
+        const onNextClick = () => goToStep(currentStepIndex + 1);
+        const nextBtnLabel = nextLabel;
+        const nextBtnDisabled = !nextKey;
+        const nextBtnLoading = false;
         // On the terminal step (Review & Submit) there's nowhere to go next —
         // the action is the in-card "Submit for Review" — so hide the footer
         // Next rather than show a dead, permanently-disabled button.
-        const showNextButton = !!nextKey || !!objNav?.onNext;
-        const saveIcon = (
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
-        );
+        const showNextButton = !!nextKey;
         return (
           <div className="mt-2 flex items-center justify-between gap-4 border-t border-gray-200 pt-6 dark:border-dark-border">
             {!restrictedTab ? (
@@ -1514,9 +1511,6 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
                   <span className="text-gray-400 dark:text-dark-text-subtle">All changes saved</span>
                 )}
               </span>
-              <Button variant="secondary" onClick={handleSaveAll} loading={isSaving} leftIcon={saveIcon}>
-                {restrictedTab ? (pricingOnly ? 'Save Pricing' : 'Save Signers') : 'Save all changes'}
-              </Button>
               {!restrictedTab && showNextButton && (
                 <Button variant="primary" onClick={onNextClick} disabled={nextBtnDisabled} loading={nextBtnLoading}>
                   {nextBtnLabel}

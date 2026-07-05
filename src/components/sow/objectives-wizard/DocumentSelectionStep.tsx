@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
 import GoogleDriveDocumentSelector from '../../GoogleDriveDocumentSelector';
-import { WizardStepData, ObjectivesStepNav } from '../ObjectivesWizard';
+import { WizardStepData, ObjectivesStepNav } from './types';
 
 interface DocumentSelectionStepProps {
   wizardData: WizardStepData;
