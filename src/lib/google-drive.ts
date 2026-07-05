@@ -262,7 +262,7 @@ Only include fields that are relevant to the query. If no specific folder name i
         files = broaderResponse.data.files || [];
       }
       
-      const results = files
+      const mapped = files
         .filter((file): file is GoogleDriveFile => file !== null && file !== undefined)
         .map((file): DriveSearchResult => ({
           id: file.id || '',
@@ -275,9 +275,14 @@ Only include fields that are relevant to the query. If no specific folder name i
           size: file.size || undefined
         }));
 
-      // Cache the results
+      // Scope results to the allowed roots so search cannot leak folder
+      // names/links from outside the customer-docs area (audit #74 follow-up).
+      // No-op when no allowlist is configured.
+      const results = await this.filterToAllowedRoots(mapped);
+
+      // Cache the (already-scoped) results
       this.searchCache.set(cacheKey, { results, timestamp: Date.now() });
-      
+
       return results;
     } catch (error) {
       console.error('Error searching Google Drive:', error);
@@ -366,6 +371,19 @@ Only include fields that are relevant to the query. If no specific folder name i
       frontier = next;
     }
     return false;
+  }
+
+  /**
+   * Filter a set of search results down to those within the configured allowed
+   * roots. No-op (returns input) when no allowlist is set. Runs the ancestry
+   * checks concurrently. (audit #74 follow-up)
+   */
+  async filterToAllowedRoots(results: DriveSearchResult[]): Promise<DriveSearchResult[]> {
+    if (!this.hasAccessAllowlist() || results.length === 0) return results;
+    const verdicts = await Promise.all(
+      results.map((r) => this.isWithinAllowedRoots(r.id).catch(() => false))
+    );
+    return results.filter((_, i) => verdicts[i]);
   }
 
   /**
