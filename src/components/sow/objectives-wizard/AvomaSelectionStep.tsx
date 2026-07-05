@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
-import { WizardStepData, ObjectivesStepNav } from '../ObjectivesWizard';
+import { WizardStepData, ObjectivesStepNav } from './types';
 import LoadingModal from '../../ui/LoadingModal';
 
 interface AvomaSelectionStepProps {

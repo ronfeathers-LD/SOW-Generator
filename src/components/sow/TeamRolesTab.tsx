@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
 import { Select, Textarea, Button, EmptyState, SectionHeader } from '@/components/ui/form';
 import { SalesforceAccount, SalesforceContact } from '@/lib/salesforce';
-import LoadingModal from '@/components/ui/LoadingModal';
 import { filterContacts } from '@/lib/utils/filter-contacts';
+import { mergeStandardClientRoles } from '@/lib/sow/standard-client-roles';
 
 interface TeamRolesTabProps {
   formData: Partial<SOWData>;
@@ -15,7 +15,6 @@ interface TeamRolesTabProps {
   selectedAccount: SalesforceAccount | null;
   selectedContact: SalesforceContact | null;
   getSalesforceLink: (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => string;
-  isActiveTab: boolean; // Add this prop to know if this tab is currently active
   onContactChange?: (contact: SalesforceContact | null) => void;
 }
 
@@ -28,7 +27,6 @@ export default function TeamRolesTab({
   selectedAccount,
   selectedContact,
   getSalesforceLink,
-  isActiveTab,
   onContactChange,
 }: TeamRolesTabProps) {
 
@@ -41,22 +39,6 @@ export default function TeamRolesTab({
   }>({ isOpen: false, type: 'signer' });
   const [contactSearch, setContactSearch] = useState('');
   const [showSecondSignerSection, setShowSecondSignerSection] = useState<boolean>(false);
-  
-  // Loading states for contact operations
-  const [isSavingContact, setIsSavingContact] = useState(false);
-  const [isClearingContact, setIsClearingContact] = useState(false);
-  
-  // Loading states for client roles operations
-  const [isSavingClientRoles, setIsSavingClientRoles] = useState(false);
-  const [clientRolesSaveError, setClientRolesSaveError] = useState<string | null>(null);
-  const [clientRolesSaveSuccess, setClientRolesSaveSuccess] = useState<string | null>(null);
-  
-  // Loading state for LeanData signatory changes
-  const [isSavingLeanDataSignatory, setIsSavingLeanDataSignatory] = useState(false);
-  const [leanDataSignatorySaveSuccess, setLeanDataSignatorySaveSuccess] = useState<string | null>(null);
-  
-  // Debounced save for responsibilities
-  const [responsibilitiesSaveTimeout, setResponsibilitiesSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Load contacts when account is selected and set initial contact selection state
   useEffect(() => {
@@ -72,17 +54,7 @@ export default function TeamRolesTab({
     }
   }, [formData.template?.customer_signature_name_2]);
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (responsibilitiesSaveTimeout) {
-        clearTimeout(responsibilitiesSaveTimeout);
-      }
-    };
-  }, [responsibilitiesSaveTimeout]);
-
-  // Allow dismissing the contact-selection modal with the Escape key (it also
-  // auto-opens when no signer is set, so it must be easy to back out of).
+  // Allow dismissing the contact-selection modal with the Escape key.
   useEffect(() => {
     if (!showContactSelectionModal.isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -144,118 +116,40 @@ export default function TeamRolesTab({
     await loadContacts(selectedAccount.id);
   };
 
-  const handleContactSelected = async (contact: SalesforceContact) => {
-    setIsSavingContact(true);
-    
-    try {
-      // Update local form data for first signer
-      setFormData({
-        ...formData,
-        template: {
-          ...formData.template!,
-          customer_signature_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
-          customer_email: contact.Email || '',
-          customer_signature: contact.Title || '',
-        }
-      });
+  // All mutations below go through `setFormData` only, which the parent wires
+  // to `updateFormData` — that marks the form dirty and the global autosave
+  // loop in SOWForm persists it, so nothing here needs its own PUT.
 
-      // Asynchronously save the Customer Signer selection via tab-update
-      if (formData.id) {
-        const requestBody = {
-          tab: 'Signers & Roles',
-          data: {
-            template: {
-              customer_signature_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
-              customer_email: contact.Email || '',
-              customer_signature: contact.Title || '',
-            }
-          }
-        };
-        
-        const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        });
-
-        if (!response.ok) {
-          console.error('Failed to save Customer Signer, status:', response.status);
-          const errorText = await response.text();
-          console.error('Error response:', errorText);
-        }
-      } else {
-        console.warn('No formData.id available, skipping save');
+  const handleContactSelected = (contact: SalesforceContact) => {
+    setFormData({
+      ...formData,
+      template: {
+        ...formData.template!,
+        customer_signature_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
+        customer_email: contact.Email || '',
+        customer_signature: contact.Title || '',
       }
-
-      setShowContactSelectionModal({ isOpen: false, type: 'signer' });
-    } catch (error) {
-      console.error('Error saving Customer Signer:', error);
-    } finally {
-      setIsSavingContact(false);
-    }
+    });
+    setShowContactSelectionModal({ isOpen: false, type: 'signer' });
   };
 
-  const handleSecondSignerContactSelected = async (contact: SalesforceContact) => {
-    setIsSavingContact(true);
-    
-    try {
-      // Update local form data for second signer
-      setFormData({
-        ...formData,
-        template: {
-          ...formData.template!,
-          customer_signature_name_2: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
-          customer_email_2: contact.Email || '',
-          customer_signature_2: contact.Title || '',
-        }
-      });
-
-      // Asynchronously save the Second Customer Signer selection via tab-update
-      if (formData.id) {
-        const requestBody = {
-          tab: 'Signers & Roles',
-          data: {
-            template: {
-              customer_signature_name_2: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
-              customer_email_2: contact.Email || '',
-              customer_signature_2: contact.Title || '',
-            }
-          }
-        };
-        
-        const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        });
-
-        if (!response.ok) {
-          console.error('Failed to save Second Customer Signer, status:', response.status);
-          const errorText = await response.text();
-          console.error('Error response:', errorText);
-        }
-      } else {
-        console.warn('No formData.id available, skipping save');
+  const handleSecondSignerContactSelected = (contact: SalesforceContact) => {
+    setFormData({
+      ...formData,
+      template: {
+        ...formData.template!,
+        customer_signature_name_2: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
+        customer_email_2: contact.Email || '',
+        customer_signature_2: contact.Title || '',
       }
-
-      setShowContactSelectionModal({ isOpen: false, type: 'signer' });
-    } catch (error) {
-      console.error('Error saving Second Customer Signer:', error);
-    } finally {
-      setIsSavingContact(false);
-    }
+    });
+    setShowContactSelectionModal({ isOpen: false, type: 'signer' });
   };
 
-
-
-  const handleContactSelectedForRole = async (contact: SalesforceContact, roleIndex: number) => {
+  const handleContactSelectedForRole = (contact: SalesforceContact, roleIndex: number) => {
     const newRoles = [...(formData.roles?.client_roles || [])];
-    newRoles[roleIndex] = { 
-      ...newRoles[roleIndex], 
+    newRoles[roleIndex] = {
+      ...newRoles[roleIndex],
       name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
       email: contact.Email || '',
       salesforce_contact_id: contact.Id,
@@ -267,249 +161,45 @@ export default function TeamRolesTab({
       roles: { ...formData.roles!, client_roles: newRoles }
     });
     setShowContactSelectionModal({ isOpen: false, type: 'signer' });
-    
+
     // Update parent component's selected contact state
     if (onContactChange) {
       onContactChange(contact);
     }
-    
-    // Save to database
-    await saveClientRoles();
   };
-
-
-
-  const saveClientRoles = async () => {
-    // Only auto-save if this tab is currently active
-    if (!isActiveTab) {
-      return;
-    }
-    
-    if (!formData.id) {
-      console.error('No SOW ID available for client roles save');
-      return;
-    }
-
-    setIsSavingClientRoles(true);
-    setClientRolesSaveError(null);
-    setClientRolesSaveSuccess(null);
-
-    try {
-      const requestBody = {
-        tab: 'Signers & Roles',
-        data: {
-          roles: formData.roles
-        }
-      };
-
-      const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to save client roles: ${response.statusText}`);
-      }
-      await response.json(); // Just consume the response
-      setClientRolesSaveSuccess('Client roles saved successfully!');
-      setTimeout(() => setClientRolesSaveSuccess(null), 3000);
-    } catch (error) {
-      setClientRolesSaveError('Failed to save client roles to database');
-      console.error('Error saving client roles:', error);
-    } finally {
-      setIsSavingClientRoles(false);
-    }
-  };
-
-  const saveClientRolesWithRoles = async (roles: SOWData['roles']['client_roles']) => {
-    // Only auto-save if this tab is currently active
-    if (!isActiveTab) {
-      return;
-    }
-    
-    if (!formData.id) {
-      console.error('No SOW ID available for client roles save');
-      return;
-    }
-
-    setIsSavingClientRoles(true);
-    setClientRolesSaveError(null);
-    setClientRolesSaveSuccess(null);
-
-    try {
-      const requestBody = {
-        tab: 'Signers & Roles',
-        data: {
-          roles: { ...formData.roles, client_roles: roles }
-        }
-      };
-
-      const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to save client roles: ${response.statusText}`);
-      }
-      await response.json(); // Just consume the response
-      setClientRolesSaveSuccess('Client roles saved successfully!');
-      setTimeout(() => setClientRolesSaveSuccess(null), 3000);
-    } catch (error) {
-      setClientRolesSaveError('Failed to save client roles to database');
-      console.error('Error saving client roles:', error);
-    } finally {
-      setIsSavingClientRoles(false);
-    }
-  };
-
-  // Debounced save for responsibilities
-  const debouncedSaveResponsibilities = (roleIndex: number, responsibilities: string) => {
-    // Only auto-save if this tab is currently active
-    if (!isActiveTab) {
-      return;
-    }
-    
-    // Clear existing timeout
-    if (responsibilitiesSaveTimeout) {
-      clearTimeout(responsibilitiesSaveTimeout);
-    }
-    
-    // Set new timeout for 1.5 second delay
-    const timeout = setTimeout(async () => {
-      const newRoles = [...(formData.roles?.client_roles || [])];
-      newRoles[roleIndex] = { ...newRoles[roleIndex], responsibilities };
-      const updatedFormData = {
-        ...formData,
-        roles: { ...formData.roles!, client_roles: newRoles }
-      };
-      setFormData(updatedFormData);
-      
-      // Save to database using the updated roles data
-      await saveClientRolesWithRoles(newRoles);
-      
-      // Clear the timeout state after save completes
-      setResponsibilitiesSaveTimeout(null);
-    }, 1500);
-    
-    setResponsibilitiesSaveTimeout(timeout);
-  };
-
 
   // Clear primary signer function
-  const clearPrimarySigner = async () => {
-    if (!formData.id) {
-      console.error('No SOW ID available');
-      return;
-    }
-
-    setIsClearingContact(true);
-    
-    try {
-      // Update local form data
-      const updatedFormData = {
-        ...formData,
-        template: {
-          ...formData.template!,
-          customer_signature: '',
-          customer_email: '',
-          customer_signature_name: ''
-        },
-        salesforce_contact_id: undefined
-      };
-      setFormData(updatedFormData);
-
-      // Save to database
-      const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tab: 'Signers & Roles',
-          data: {
-            template: {
-              customer_signature: '',
-              customer_email: '',
-              customer_signature_name: ''
-            },
-            salesforce_contact_id: null
-          }
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to clear primary signer: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error('Error clearing primary signer:', error);
-    } finally {
-      setIsClearingContact(false);
-    }
+  const clearPrimarySigner = () => {
+    setFormData({
+      ...formData,
+      template: {
+        ...formData.template!,
+        customer_signature: '',
+        customer_email: '',
+        customer_signature_name: ''
+      },
+      salesforce_contact_id: undefined
+    });
   };
 
   // Clear secondary signer function
-  const clearSecondarySigner = async () => {
-    if (!formData.id) {
-      console.error('No SOW ID available');
-      return;
-    }
-
-    setIsClearingContact(true);
-    
-    try {
-      // Update local form data
-      const updatedFormData = {
-        ...formData,
-        template: {
-          ...formData.template!,
-          customer_signature_name_2: '',
-          customer_email_2: '',
-          customer_signature_2: ''
-        }
-      };
-      setFormData(updatedFormData);
-
-      // Save to database
-      const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tab: 'Signers & Roles',
-          data: {
-            template: {
-              customer_signature_name_2: '',
-              customer_signature_2: ''
-            }
-          }
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to clear secondary signer: ${response.statusText}`);
+  const clearSecondarySigner = () => {
+    setFormData({
+      ...formData,
+      template: {
+        ...formData.template!,
+        customer_signature_name_2: '',
+        customer_email_2: '',
+        customer_signature_2: ''
       }
-    } catch (error) {
-      console.error('Error clearing secondary signer:', error);
-    } finally {
-      setIsClearingContact(false);
-    }
+    });
   };
 
-
-
   // Clear client role contact function
-  const clearRoleContact = async (roleIndex: number) => {
+  const clearRoleContact = (roleIndex: number) => {
     const newRoles = [...(formData.roles?.client_roles || [])];
-    newRoles[roleIndex] = { 
-      ...newRoles[roleIndex], 
+    newRoles[roleIndex] = {
+      ...newRoles[roleIndex],
       name: '',
       email: '',
       salesforce_contact_id: undefined,
@@ -520,9 +210,22 @@ export default function TeamRolesTab({
       ...formData,
       roles: { ...formData.roles!, client_roles: newRoles }
     });
-    
-    // Save to database
-    await saveClientRoles();
+  };
+
+  // Client roles as they stand today, plus whichever of the five standard
+  // slots (Task 2's mergeStandardClientRoles) aren't already present. Reference
+  // equality with `clientRoles` means "nothing to add" — used to hide the
+  // "Add standard roles" button once all five slots exist.
+  const clientRoles = formData.roles?.client_roles || [];
+  const mergedClientRoles = mergeStandardClientRoles(clientRoles);
+  const hasAllStandardRoles = mergedClientRoles === clientRoles;
+
+  const handleAddStandardRoles = () => {
+    if (hasAllStandardRoles) return;
+    setFormData({
+      ...formData,
+      roles: { ...formData.roles!, client_roles: mergedClientRoles }
+    });
   };
 
   // Contacts shown in the contact-selection modal, filtered by the search box.
@@ -541,14 +244,6 @@ export default function TeamRolesTab({
       <SectionHeader
         title="Signers & Client Roles"
         description="Choose the signers and define the client team's roles"
-        action={
-          <div className="text-sm text-gray-500 bg-blue-50 px-3 py-2 rounded-md">
-            <svg className="inline w-4 h-4 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            Changes are automatically saved
-          </div>
-        }
       />
 
       {/* Signatories Section - 3 Column Layout */}
@@ -860,21 +555,9 @@ export default function TeamRolesTab({
              <div className="relative">
                <Select
                  value={selectedLeanDataSignatory}
-                 onChange={async (e) => {
-                   setIsSavingLeanDataSignatory(true);
-                   setLeanDataSignatorySaveSuccess(null);
-                   try {
-                     await onLeanDataSignatoryChange(e.target.value);
-                     setLeanDataSignatorySaveSuccess('LeanData signatory saved successfully!');
-                     // Clear success message after 3 seconds
-                     setTimeout(() => setLeanDataSignatorySaveSuccess(null), 3000);
-                   } catch (error) {
-                     console.error('Error saving LeanData signatory:', error);
-                   } finally {
-                     setIsSavingLeanDataSignatory(false);
-                   }
+                 onChange={(e) => {
+                   void onLeanDataSignatoryChange(e.target.value);
                  }}
-                 disabled={isSavingLeanDataSignatory}
                  error={!selectedLeanDataSignatory || formData.template?.lean_data_name?.trim() === 'None Selected'}
                  className="mt-1"
                >
@@ -885,18 +568,10 @@ export default function TeamRolesTab({
                    </option>
                  ))}
                </Select>
-               {isSavingLeanDataSignatory && (
-                 <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                   <svg className="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                   </svg>
-                 </div>
-               )}
                             </div>
-               
+
                {/* Validation Error Message */}
-               {(!selectedLeanDataSignatory || 
+               {(!selectedLeanDataSignatory ||
                  (formData.template?.lean_data_name && formData.template.lean_data_name.trim() === 'None Selected')) && (
                  <div className="mt-2 bg-red-50 border border-red-200 rounded-md p-2">
                    <div className="flex items-center">
@@ -907,19 +582,7 @@ export default function TeamRolesTab({
                    </div>
                  </div>
                )}
-               
-               {/* Success Message */}
-               {leanDataSignatorySaveSuccess && (
-                 <div className="mt-2 bg-green-50 border border-green-200 rounded-md p-2">
-                   <div className="flex items-center">
-                     <svg className="h-4 w-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                     </svg>
-                     <span className="text-sm text-green-800">{leanDataSignatorySaveSuccess}</span>
-                   </div>
-                 </div>
-               )}
-               
+
              {selectedLeanDataSignatory && (
                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
                  <div className="font-medium text-gray-900">
@@ -938,33 +601,19 @@ export default function TeamRolesTab({
      
            {/* Client Roles */}
      <div className="bg-white shadow rounded-lg p-6">
-       <h3 className="text-lg font-semibold mb-4">Client Roles & Responsibilities</h3>
-       <p className="text-sm text-gray-600 mb-4">
-         Define the roles and responsibilities for the client team
-       </p>
-       
-       {/* Success/Error Messages */}
-       {clientRolesSaveSuccess && (
-         <div className="mb-4 bg-green-50 border border-green-200 rounded-md p-3">
-           <div className="flex items-center">
-             <svg className="h-4 w-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-             </svg>
-             <span className="text-sm text-green-800">{clientRolesSaveSuccess}</span>
-           </div>
+       <div className="flex items-start justify-between gap-4 mb-4">
+         <div>
+           <h3 className="text-lg font-semibold">Client Roles & Responsibilities</h3>
+           <p className="text-sm text-gray-600">
+             Define the roles and responsibilities for the client team
+           </p>
          </div>
-       )}
-       
-       {clientRolesSaveError && (
-         <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-3">
-           <div className="flex items-center">
-             <svg className="h-4 w-4 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-             </svg>
-             <span className="text-sm text-red-800">{clientRolesSaveError}</span>
-           </div>
-         </div>
-       )}
+         {!hasAllStandardRoles && (
+           <Button type="button" variant="secondary" onClick={handleAddStandardRoles}>
+             Add standard roles
+           </Button>
+         )}
+       </div>
         {(formData.roles?.client_roles?.length ?? 0) === 0 && (
           <EmptyState
             className="mb-4"
@@ -1073,16 +722,12 @@ export default function TeamRolesTab({
                       <Textarea
                         value={role.responsibilities}
                         onChange={(e) => {
-                          // Update local state immediately for responsive UI
                           const newRoles = [...(formData.roles?.client_roles || [])];
                           newRoles[index] = { ...role, responsibilities: e.target.value };
                           setFormData({
                             ...formData,
                             roles: { ...formData.roles!, client_roles: newRoles }
                           });
-                          
-                          // Debounced save to database (waits 1.5 seconds after user stops typing)
-                          debouncedSaveResponsibilities(index, e.target.value);
                         }}
                         rows={4}
                         className="mt-1"
@@ -1100,7 +745,6 @@ export default function TeamRolesTab({
                               ...formData,
                               roles: { ...formData.roles!, client_roles: newRoles }
                             });
-                            debouncedSaveResponsibilities(index, 'Executive Sponsor\nThe Executive Sponsor is the client sponsor for the project and acts as the strategic point of contact for the project.');
                           }}
                           className="text-sm text-blue-600 hover:text-blue-800 underline"
                         >
@@ -1116,7 +760,6 @@ export default function TeamRolesTab({
                               ...formData,
                               roles: { ...formData.roles!, client_roles: newRoles }
                             });
-                            debouncedSaveResponsibilities(index, 'Business Owner\nThe Business Lead provides input on the needs of Sales and/or Marketing, participates in relevant calls to confirm requirements.');
                           }}
                           className="text-sm text-blue-600 hover:text-blue-800 underline"
                         >
@@ -1132,7 +775,6 @@ export default function TeamRolesTab({
                               ...formData,
                               roles: { ...formData.roles!, client_roles: newRoles }
                             });
-                            debouncedSaveResponsibilities(index, 'Implementation Project Lead\nThe Project lead acts as the main point of contact for the Client, is responsible for driving the use cases, business requirements and ensuring delivery as outlined in the SOW.');
                           }}
                           className="text-sm text-blue-600 hover:text-blue-800 underline"
                         >
@@ -1148,7 +790,6 @@ export default function TeamRolesTab({
                               ...formData,
                               roles: { ...formData.roles!, client_roles: newRoles }
                             });
-                            debouncedSaveResponsibilities(index, 'LeanData Admin\nThe LeanData admin will be responsible for the control and administration of the LD system, helping build/test during implementation and serving ongoing configuration needs.');
                           }}
                           className="text-sm text-blue-600 hover:text-blue-800 underline"
                         >
@@ -1164,52 +805,23 @@ export default function TeamRolesTab({
                               ...formData,
                               roles: { ...formData.roles!, client_roles: newRoles }
                             });
-                            debouncedSaveResponsibilities(index, 'SFDC Admin / IT\nThe person with System Admin level permissions in SFDC who will assist in downloading LD, granting permissions, creating custom fields, and any other SFDC-related tasks.');
                           }}
                           className="text-sm text-blue-600 hover:text-blue-800 underline"
                         >
                           SFDC Admin / IT
                         </button>
                       </div>
-                      {/* Show saving indicator when debounced save is active */}
-                      {responsibilitiesSaveTimeout && (
-                        <div className="absolute top-2 right-2">
-                          <div className="flex items-center text-xs text-gray-500">
-                            <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Waiting...
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Show actual saving indicator */}
-                      {isSavingClientRoles && (
-                        <div className="absolute top-2 right-2">
-                          <div className="flex items-center text-xs text-blue-500">
-                            <svg className="animate-spin h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Saving...
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                   <div className="flex justify-end">
                     <button
                       type="button"
-                      onClick={async () => {
+                      onClick={() => {
                         const newRoles = formData.roles?.client_roles.filter((_, i) => i !== index) || [];
                         setFormData({
                           ...formData,
                           roles: { ...formData.roles!, client_roles: newRoles }
                         });
-                        
-                        // Save to database
-                        await saveClientRolesWithRoles(newRoles);
                       }}
                       className="text-red-600 hover:text-red-800 text-sm font-medium"
                     >
@@ -1229,7 +841,7 @@ export default function TeamRolesTab({
               <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
             </svg>
           }
-          onClick={async () => {
+          onClick={() => {
             const newRoles = [...(formData.roles?.client_roles || []), {
               role: '',
               name: '',
@@ -1240,37 +852,11 @@ export default function TeamRolesTab({
               ...formData,
               roles: { ...formData.roles!, client_roles: newRoles }
             });
-            
-            // Save to database
-            await saveClientRolesWithRoles(newRoles);
           }}
         >
           Add Client Role
         </Button>
       </div>
-
-      {/* Loading Modals */}
-      <LoadingModal 
-        isOpen={isSavingContact} 
-        operation="saving"
-        message="Saving contact selection to the database..."
-      />
-      
-      <LoadingModal 
-        isOpen={isClearingContact} 
-        operation="updating"
-        message="Clearing contact information..."
-      />
-      
-      
-
-
-      <LoadingModal 
-        isOpen={isSavingClientRoles} 
-        operation="saving"
-        message="Saving client roles to the database..."
-      />
-
     </section>
   );
-} 
+}

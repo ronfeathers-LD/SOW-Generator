@@ -76,7 +76,7 @@ export function sectionLabel(key: string | null | undefined): string | null {
  *   `projectDescription` prop ← `sow.projectDescription` ←
  *   `objectives.description` (map-api-response-to-display.ts) ←
  *   `objectives_description` (map-sow-response.ts). The edit UI
- *   (ObjectivesTab → tab-column-mapping.ts) writes BOTH
+ *   (ObjectivesEditor → tab-column-mapping.ts) writes BOTH
  *   `objectives_description` and `custom_objective_overview_content`, but the
  *   renderer only ever reads `objectives_description` — so that is the column
  *   a reviewer's comment is anchored against, and the one we snapshot.

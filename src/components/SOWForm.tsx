@@ -607,15 +607,17 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
     }
   }, [leanDataSignatories, initialData]);
 
+    // Updates local form data only; the global autosave loop (marked dirty via
+    // `updateFormData`) persists it, so there's no separate immediate PUT here.
     const handleLeanDataSignatoryChange = async (signatoryId: string): Promise<void> => {
     setSelectedLeanDataSignatory(signatoryId);
 
     if (signatoryId && leanDataSignatories) {
       const selectedSignatory = leanDataSignatories.find(s => s.id === signatoryId);
       if (selectedSignatory) {
-        // Update local form data
-        const updatedFormData = {
+        updateFormData({
           ...formData,
+          leandata_signatory_id: signatoryId,
           template: {
             ...formData.template!,
             lean_data_name: selectedSignatory.name,
@@ -624,39 +626,7 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
             lean_data_signature_name: selectedSignatory.name,
             lean_data_signature: selectedSignatory.title
           }
-        };
-        setFormData(updatedFormData);
-
-        // Save to database immediately
-    if (formData.id) {
-          try {
-            const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                tab: 'Signers & Roles',
-                data: {
-                  leandata_signatory_id: signatoryId,
-                  template: {
-                    lean_data_name: selectedSignatory.name,
-                    lean_data_title: selectedSignatory.title,
-                    lean_data_email: selectedSignatory.email,
-                    lean_data_signature_name: selectedSignatory.name,
-                    lean_data_signature: selectedSignatory.title
-                  }
-                }
-              })
-            });
-
-            if (!response.ok) {
-              console.error('Failed to save LeanData signatory:', response.statusText);
-          }
-        } catch (error) {
-            console.error('Error saving LeanData signatory:', error);
-          }
-        }
+        });
       }
     }
   };
@@ -1415,7 +1385,6 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
           selectedAccount={selectedAccount}
             selectedContact={selectedContact}
           getSalesforceLink={getSalesforceLink}
-          isActiveTab={activeTab === 'Signers & Roles'}
           onContactChange={(contact) => setSelectedContact(contact)}
         />
       )}

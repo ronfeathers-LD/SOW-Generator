@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
-import { WizardStepData } from '../ObjectivesWizard';
+import { WizardStepData } from './types';
 
 interface AIGenerationModalProps {
   isOpen: boolean;

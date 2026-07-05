@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
 import { GeneratedObjectives } from '@/lib/sow/objectives-content';
-import { WizardStepData } from '../ObjectivesWizard';
+import { WizardStepData } from './types';
 import DocumentSelectionStep from './DocumentSelectionStep';
 import AvomaSelectionStep from './AvomaSelectionStep';
 import AIGenerationModal from './AIGenerationModal';
