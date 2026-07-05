@@ -188,6 +188,13 @@ export function buildTabColumnUpdate(
           };
         }
       }
+
+      // Payment terms is a top-level `sows` column (not part of the billing_info
+      // JSONB blob), so it's read straight off the payload root.
+      if (d.payment_terms !== undefined) {
+        updateData.payment_terms = d.payment_terms;
+      }
+
       // (The Billing tab must never write the pricing_roles column. audit #102)
       break;
     }
