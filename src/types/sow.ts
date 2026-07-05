@@ -82,6 +82,8 @@ export interface SOWContentTemplate {
   is_active: boolean;
   sort_order: number;
   description?: string;
+  /** Segment code (LE/EE/MM/EC) this row's content is scoped to, or null/undefined for the global/default row (ENT roadmap Phase 3 §3). */
+  segment?: string | null;
 }
 
 export interface SOWData {

@@ -15,8 +15,21 @@
 -- `segment` semantics: NULL = global/default row (every existing row stays
 -- global, unaffected). A non-null value is a segment code (e.g. 'LE', 'EE',
 -- 'MM', 'EC') that this row's content should be preferred for. Deliberately
--- NO unique constraint on (section_name, segment) here — the live table's
+-- NO new unique constraint on (section_name, segment) here — the live table's
 -- true constraints are unverifiable given the drift above; uniqueness is
 -- instead enforced at the admin API layer (reject duplicate section+segment
 -- combinations on POST/PUT with 409).
 ALTER TABLE sow_content_templates ADD COLUMN IF NOT EXISTS segment TEXT NULL;
+
+-- Amendment (found during implementation of the admin surface for this
+-- feature): the live table also carries a pre-existing, drift-era
+-- `UNIQUE(section_name)` constraint (`sow_content_templates_section_name_key`)
+-- that is NOT recorded in any repo migration. Left in place, it blocks the
+-- entire point of this feature — inserting a second row for the same
+-- section_name (a segment variant) fails with a unique-violation before the
+-- application layer ever runs. It is dropped here, additively-safe (the
+-- table has no code path that inserts a second row for an existing
+-- section_name today, and the intended replacement uniqueness rule —
+-- (section_name, segment) among active rows — is enforced at the admin API
+-- layer per the design, not the DB, so no replacement DB constraint is added).
+ALTER TABLE sow_content_templates DROP CONSTRAINT IF EXISTS sow_content_templates_section_name_key;
