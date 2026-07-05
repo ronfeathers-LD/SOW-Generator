@@ -7,6 +7,7 @@ import { getSOWUrl } from '@/lib/utils/app-url';
 import { authOptions } from '@/lib/auth';
 import { canonicalizeContent } from '@/lib/sow-content';
 import { buildPricingRolesColumn } from '@/lib/sow/pricing-roles-column';
+import { STANDARD_CLIENT_ROLES } from '@/lib/sow/standard-client-roles';
 
 export async function POST(request: Request) {
   try {
@@ -81,7 +82,9 @@ export async function POST(request: Request) {
         avoma_transcription: data.objectives?.avoma_transcription || '',
         
         // Roles and Responsibilities
-        client_roles: data.roles?.client_roles || [],
+        // Seed the five standard client-role slots when the incoming payload
+        // carries none — never overwrite roles the client actually provided.
+        client_roles: (data.roles?.client_roles?.length ? data.roles.client_roles : STANDARD_CLIENT_ROLES),
         // Canonical object shape from day one — a bare array here left new
         // SOWs without discount/total config until the first Pricing-tab save
         // and forced every reader to branch on both shapes. (audit #104)
