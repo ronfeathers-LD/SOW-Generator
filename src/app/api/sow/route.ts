@@ -6,6 +6,7 @@ import { getSlackService } from '@/lib/slack';
 import { getSOWUrl } from '@/lib/utils/app-url';
 import { authOptions } from '@/lib/auth';
 import { canonicalizeContent } from '@/lib/sow-content';
+import { buildPricingRolesColumn } from '@/lib/sow/pricing-roles-column';
 
 export async function POST(request: Request) {
   try {
@@ -81,7 +82,10 @@ export async function POST(request: Request) {
         
         // Roles and Responsibilities
         client_roles: data.roles?.client_roles || [],
-        pricing_roles: data.pricing?.roles || [],
+        // Canonical object shape from day one — a bare array here left new
+        // SOWs without discount/total config until the first Pricing-tab save
+        // and forced every reader to branch on both shapes. (audit #104)
+        pricing_roles: buildPricingRolesColumn(data.pricing),
         billing_info: data.pricing?.billing || {},
         
         // Project Assumptions

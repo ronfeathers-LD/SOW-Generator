@@ -114,21 +114,27 @@ export default function DashboardClient({ stats, recentSOWs, pendingApprovals, d
         </div>
       </Card>
 
-      {/* Stats Strip */}
-      <Card padding="none" className="overflow-hidden">
-        <div className="flex divide-x divide-gray-200 dark:divide-dark-border">
-          {stat.map((s) => (
-            <Link
-              key={s.label}
-              href={s.href}
-              className={`group flex flex-1 flex-col items-center py-3 transition-colors hover:bg-gray-50 dark:hover:bg-dark-surface-alt ${s.rounded}`}
-            >
-              <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-dark-text-muted">{s.label}</span>
-              <span className={`text-xl font-bold transition-colors ${s.numberCls}`}>{s.value}</span>
-            </Link>
-          ))}
+      {/* All SOWs Stats */}
+      <div>
+        <div className="mb-3">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-dark-text">All SOWs</h2>
+          <p className="text-sm text-gray-600 dark:text-dark-text-muted">Org-wide totals</p>
         </div>
-      </Card>
+        <Card padding="none" className="overflow-hidden">
+          <div className="flex divide-x divide-gray-200 dark:divide-dark-border">
+            {stat.map((s) => (
+              <Link
+                key={s.label}
+                href={s.href}
+                className={`group flex flex-1 flex-col items-center py-3 transition-colors hover:bg-gray-50 dark:hover:bg-dark-surface-alt ${s.rounded}`}
+              >
+                <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-dark-text-muted">{s.label}</span>
+                <span className={`text-xl font-bold transition-colors ${s.numberCls}`}>{s.value}</span>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      </div>
 
       {/* Resume your drafts — the user's own unfinished SOWs, straight to edit. */}
       {draftSOWs.length > 0 && (
@@ -242,7 +248,14 @@ export default function DashboardClient({ stats, recentSOWs, pendingApprovals, d
               })}
             </div>
           ) : (
-            <p className="py-4 text-center text-gray-500 dark:text-dark-text-muted">No SOWs found</p>
+            <div className="py-8 text-center">
+              <p className="text-gray-500 dark:text-dark-text-muted">
+                You haven&apos;t created any SOWs yet.
+              </p>
+              <Link href="/sow/new" className={LINK}>
+                Create your first SOW →
+              </Link>
+            </div>
           )}
           <div className="mt-4">
             <Link href="/sow" className={LINK}>View all SOWs →</Link>

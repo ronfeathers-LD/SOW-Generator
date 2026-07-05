@@ -12,6 +12,9 @@ import type { SowTabKey } from './tab-payloads';
 
 const hasText = (v?: string | null): boolean => !!(v && String(v).trim());
 
+/** Legacy '999' sentinel (persisted by old saves) and '' both mean "unset". */
+const isUnset = (v?: string | null): boolean => !v || v === '999';
+
 /** Roll a set of required-field flags up into a tri-state status. */
 function tri(flags: boolean[]): StepStatus {
   const filled = flags.filter(Boolean).length;
@@ -33,8 +36,8 @@ export function getSectionStatus(
     case 'Project Overview':
       return tri([
         (t?.products?.length ?? 0) > 0,
-        hasText(t?.timeline_weeks) && t?.timeline_weeks !== '999',
-        hasText(t?.salesforce_tenants) && t?.salesforce_tenants !== '999',
+        !isUnset(t?.timeline_weeks),
+        !isUnset(t?.salesforce_tenants),
       ]);
 
     case 'Objectives':

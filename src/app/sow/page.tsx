@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { getStatusColor } from '@/lib/utils/statusUtils';
+import ConfirmActionModal from '@/components/ConfirmActionModal';
 
 interface SOW {
   id: string;
@@ -31,6 +32,7 @@ function SOWListContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingHide, setPendingHide] = useState<{ id: string; title: string } | null>(null);
   const [sortConfig, setSortConfig] = useState<{
     key: keyof SOW;
     direction: 'asc' | 'desc';
@@ -306,7 +308,7 @@ function SOWListContent() {
           {/* Hide/Unhide button - only show for non-hidden SOWs */}
           {!showHidden && (sow.status !== 'approved' || isAdmin) && (
             <button
-              onClick={() => handleHide(sow.id, sow.sow_title, sow.status)}
+              onClick={() => setPendingHide({ id: sow.id, title: sow.sow_title })}
               disabled={deletingId === sow.id}
               className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed p-1"
               title={sow.status === 'approved' && !isAdmin ? 'Approved SOWs cannot be hidden' : 'Hide SOW'}
@@ -356,19 +358,8 @@ function SOWListContent() {
     </tr>
   );
 
-  const handleHide = async (id: string, sowTitle: string, status: string) => {
-    // Enhanced confirmation dialog
-    const confirmMessage = `Are you sure you want to hide "${sowTitle}"?\n\n` +
-      `Status: ${getStatusLabel(status)}\n` +
-      `This action will hide this SOW and all its versions from the system.\n` +
-      `The data will be preserved but will no longer be visible.\n\n` +
-      `Type "HIDE" to confirm:`;
-    
-    const userInput = prompt(confirmMessage);
-    if (userInput !== 'HIDE') {
-      return;
-    }
-
+  const handleHide = async (id: string, sowTitle: string) => {
+    setPendingHide(null);
     setDeletingId(id);
     try {
       const response = await fetch(`/api/sow/${id}`, {
@@ -742,6 +733,17 @@ function SOWListContent() {
           </div>
         </div>
       </div>
+      <ConfirmActionModal
+        isOpen={pendingHide !== null}
+        title="Delete this SOW?"
+        message={`"${pendingHide?.title || 'This SOW'}" and all its versions will be hidden from the system.\nThe data is preserved and an admin can restore it later.`}
+        confirmLabel="Delete SOW"
+        requiredText="DELETE"
+        onConfirm={() => {
+          if (pendingHide) handleHide(pendingHide.id, pendingHide.title);
+        }}
+        onCancel={() => setPendingHide(null)}
+      />
     </div>
   );
 }

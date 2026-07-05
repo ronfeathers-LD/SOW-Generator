@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import CustomerSelectionWizard from '@/components/sow/CustomerSelectionWizard';
+import { composeSowTitle } from '@/lib/sow/compose-title';
 
 interface Account {
   id: string;
@@ -49,7 +50,7 @@ export default function NewSOWPage() {
         body: JSON.stringify({
           // Include customer information
           template: {
-            sow_title: `${selectedOpportunity.name} - ${customerName}`,
+            sow_title: composeSowTitle(selectedOpportunity.name, customerName),
             client_name: customerName,
             lean_data_name: 'None Selected',
             lean_data_title: 'None Selected',

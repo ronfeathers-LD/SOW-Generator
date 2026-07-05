@@ -401,6 +401,11 @@ export class ApprovalWorkflowService {
                 'Your approval was recorded, but marking the SOW as fully approved failed. Refresh to verify and contact an admin if the status does not update.'
             };
           }
+
+          // Notify on full approval. This used to live only on the direct
+          // PUT-status bypass path (removed, audit #56/#63), so the normal
+          // multi-stage flow never announced completion.
+          await this.sendFullApprovalNotification(sowId, approverId, supabase);
         }
       }
 
@@ -408,6 +413,152 @@ export class ApprovalWorkflowService {
     } catch (error) {
       console.error('Error in approveStage:', error);
       return { success: false, error: 'Internal server error' };
+    }
+  }
+
+  /**
+   * Admin override: approve every remaining stage of an in-review SOW at once,
+   * with a required reason. This is the ONLY sanctioned way to approve outside
+   * the normal per-stage flow — it keeps sow_approvals consistent (stages are
+   * marked approved, not skipped around) and writes an explicit audit entry,
+   * unlike the removed direct PUT-status bypass. (audit #56/#63)
+   */
+  static async forceApprove(
+    sowId: string,
+    adminId: string,
+    reason: string,
+    supabaseClient?: SupabaseClient
+  ): Promise<{ success: boolean; stages_overridden?: number; error?: string }> {
+    try {
+      const supabase = supabaseClient || await createServerSupabaseClient();
+
+      const { data: sowRow } = await supabase
+        .from('sows')
+        .select('status')
+        .eq('id', sowId)
+        .single();
+      if (!sowRow) {
+        return { success: false, error: 'SOW not found' };
+      }
+      if (sowRow.status !== 'in_review') {
+        return { success: false, error: 'Only SOWs in review can be force-approved' };
+      }
+
+      // Ensure a workflow exists so the override is recorded against real
+      // stage rows rather than an empty set.
+      const { data: existing } = await supabase
+        .from('sow_approvals')
+        .select('id, status')
+        .eq('sow_id', sowId)
+        .neq('status', 'rejected');
+
+      if (!existing || existing.length === 0) {
+        const init = await this.initiateWorkflow(sowId, supabase);
+        if (!init.success) {
+          return { success: false, error: init.error || 'Could not create the approval workflow to override' };
+        }
+      }
+
+      // Approve all pending stages as this admin, marked as an override.
+      const { data: overridden, error: overrideError } = await supabase
+        .from('sow_approvals')
+        .update({
+          status: 'approved',
+          approver_id: adminId,
+          comments: `[Admin override] ${reason.trim()}`,
+          approved_at: new Date().toISOString()
+        })
+        .eq('sow_id', sowId)
+        .eq('status', 'pending')
+        .select('id');
+
+      if (overrideError) {
+        console.error('Error force-approving stages:', overrideError);
+        return { success: false, error: 'Failed to approve the remaining stages' };
+      }
+
+      const { error: promoteError } = await supabase
+        .from('sows')
+        .update({ status: 'approved' })
+        .eq('id', sowId)
+        .eq('status', 'in_review');
+
+      if (promoteError) {
+        console.error('Error promoting force-approved SOW:', promoteError);
+        return { success: false, error: 'Stages were approved but promoting the SOW failed' };
+      }
+
+      await this.logAuditAction(
+        sowId,
+        'force_approved',
+        adminId,
+        'in_review',
+        'approved',
+        reason.trim(),
+        { admin_override: true, stages_overridden: overridden?.length ?? 0 },
+        supabase
+      );
+
+      await this.sendFullApprovalNotification(sowId, adminId, supabase);
+
+      return { success: true, stages_overridden: overridden?.length ?? 0 };
+    } catch (error) {
+      console.error('Error in forceApprove:', error);
+      return { success: false, error: 'Internal server error' };
+    }
+  }
+
+  /**
+   * Announce that a SOW has completed all approval stages. Fire-and-forget:
+   * notification failures never fail the approval itself.
+   */
+  private static async sendFullApprovalNotification(
+    sowId: string,
+    finalApproverId: string,
+    supabase: SupabaseClient
+  ): Promise<void> {
+    try {
+      const slackService = await getSlackService();
+      if (!slackService) return;
+
+      const { data: sow } = await supabase
+        .from('sows')
+        .select('client_name, author_id')
+        .eq('id', sowId)
+        .single();
+      if (!sow) return;
+
+      let authorName = 'Unknown User';
+      if (sow.author_id) {
+        const { data: author } = await supabase
+          .from('users')
+          .select('name, email')
+          .eq('id', sow.author_id)
+          .single();
+        if (author) authorName = author.name || author.email || 'Unknown User';
+      }
+
+      let approverName = 'Unknown Approver';
+      const { data: approver } = await supabase
+        .from('users')
+        .select('name, email')
+        .eq('id', finalApproverId)
+        .single();
+      if (approver) approverName = approver.name || approver.email || 'Unknown Approver';
+
+      const clientName = sow.client_name || 'Unknown Client';
+      const sowUrl = getSOWUrl(sowId);
+
+      await slackService.sendMessage(
+        `:white_check_mark: *SOW Approved*\n\n` +
+        `*Client:* ${clientName}\n` +
+        `*Submitted by:* ${authorName}\n` +
+        `*Final approval by:* ${approverName}\n\n` +
+        `:link: <${sowUrl}|View SOW>\n\n` +
+        `All approval stages are complete. This SOW is now ready for client signature.`
+      );
+    } catch (error) {
+      console.error('Full-approval notification failed:', error);
     }
   }
 

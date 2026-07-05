@@ -114,9 +114,9 @@ export function mapSowRowToResponse(sow: SowRow, extras: MapSowExtras = {}): Sow
       lean_data_title: leanDataSignatory?.title || sow.leandata_title || '',
       lean_data_email: leanDataSignatory?.email || sow.leandata_email || '',
       products: productNames,
-      regions: sow.regions || '999',
-      salesforce_tenants: sow.salesforce_tenants || '999',
-      timeline_weeks: sow.timeline_weeks || '999',
+      regions: sow.regions || '',
+      salesforce_tenants: sow.salesforce_tenants || '',
+      timeline_weeks: sow.timeline_weeks || '',
       units_consumption: sow.units_consumption || 'All units immediately',
       // BookIt Family Units
       orchestration_units: sow.orchestration_units || '',
