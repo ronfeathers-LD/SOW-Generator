@@ -3,6 +3,7 @@ import { SOWData } from '@/types/sow';
 import { Select, Textarea, Button, EmptyState, SectionHeader } from '@/components/ui/form';
 import { SalesforceAccount, SalesforceContact } from '@/lib/salesforce';
 import LoadingModal from '@/components/ui/LoadingModal';
+import { filterContacts } from '@/lib/utils/filter-contacts';
 
 interface TeamRolesTabProps {
   formData: Partial<SOWData>;
@@ -38,6 +39,7 @@ export default function TeamRolesTab({
     type: 'signer' | 'secondSigner' | 'role';
     roleIndex?: number;
   }>({ isOpen: false, type: 'signer' });
+  const [contactSearch, setContactSearch] = useState('');
   const [showSecondSignerSection, setShowSecondSignerSection] = useState<boolean>(false);
   
   // Loading states for contact operations
@@ -62,22 +64,6 @@ export default function TeamRolesTab({
       loadContacts(selectedAccount.Id);
     }
   }, [selectedAccount?.Id]); // Only depend on account ID
-
-  // Handle contact selection state separately
-  useEffect(() => {
-    if (selectedAccount?.Id) {
-      // Show contact selection if no contact is currently selected
-      // Check both selectedContact and formData for contact information
-      const hasContactInfo = selectedContact || 
-                           formData.template?.customer_signature_name || 
-                           formData.salesforce_contact_id;
-      
-      const shouldShowSelection = !hasContactInfo;
-      if (shouldShowSelection) {
-        setShowContactSelectionModal({ isOpen: true, type: 'signer' });
-      }
-    }
-  }, [selectedAccount?.Id, selectedContact, formData.template?.customer_signature_name, formData.salesforce_contact_id]);
 
   // Auto-show second signer section if there's already a second signer
   useEffect(() => {
@@ -104,6 +90,12 @@ export default function TeamRolesTab({
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
+  }, [showContactSelectionModal.isOpen]);
+
+  // Reset the contact search box whenever the modal opens or closes, so a
+  // stale query from a previous session doesn't hide contacts next time.
+  useEffect(() => {
+    setContactSearch('');
   }, [showContactSelectionModal.isOpen]);
 
   const loadContacts = async (accountId: string) => {
@@ -533,6 +525,16 @@ export default function TeamRolesTab({
     await saveClientRoles();
   };
 
+  // Contacts shown in the contact-selection modal, filtered by the search box.
+  // SalesforceContact has no `Name` field (just FirstName/LastName), so
+  // synthesize one for filterContacts to match against.
+  const filteredContacts = filterContacts(
+    availableContacts.map((contact) => ({
+      ...contact,
+      Name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
+    })),
+    contactSearch
+  );
 
   return (
     <section className="space-y-6">
@@ -676,9 +678,17 @@ export default function TeamRolesTab({
                             </div>
                           ) : availableContacts.length > 0 ? (
                             <>
+                              <input
+                                autoFocus
+                                type="text"
+                                placeholder="Search by name, email, or title…"
+                                value={contactSearch}
+                                onChange={(e) => setContactSearch(e.target.value)}
+                                className="mb-3 w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                              />
                               <div className="flex justify-between items-center mb-4">
                                 <p className="text-sm text-gray-600">
-                                  Found {availableContacts.length} contact{availableContacts.length !== 1 ? 's' : ''} for {selectedAccount.Name || selectedAccount.name}
+                                  Showing {filteredContacts.length} of {availableContacts.length} contact{availableContacts.length !== 1 ? 's' : ''} for {selectedAccount.Name || selectedAccount.name}
                                 </p>
                                 <button
                                   onClick={refreshContacts}
@@ -691,32 +701,40 @@ export default function TeamRolesTab({
                                   Refresh
                                 </button>
                               </div>
-                              <div className="space-y-2 max-h-96 overflow-y-auto">
-                                {availableContacts.map((contact) => (
-                                  <div
-                                    key={contact.Id}
-                                    className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
-                                    onClick={() => {
-                                      if (showContactSelectionModal.type === 'signer') {
-                                        handleContactSelected(contact);
-                                      } else if (showContactSelectionModal.type === 'secondSigner') {
-                                        handleSecondSignerContactSelected(contact);
-                                      } else if (showContactSelectionModal.type === 'role' && showContactSelectionModal.roleIndex !== undefined) {
-                                        handleContactSelectedForRole(contact, showContactSelectionModal.roleIndex);
-                                      }
-                                      setShowContactSelectionModal({ isOpen: false, type: 'signer' });
-                                    }}
-                                  >
-                                    <div className="font-medium text-gray-900">{contact.FirstName} {contact.LastName}</div>
-                                    <div className="text-sm text-gray-600 mt-1">
-                                      <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium mr-2">
-                                        {contact.Title}
-                                      </span>
-                                      <span>{contact.Email}</span>
+                              {filteredContacts.length > 0 ? (
+                                <div className="space-y-2 max-h-96 overflow-y-auto">
+                                  {filteredContacts.map((contact) => (
+                                    <div
+                                      key={contact.Id}
+                                      className="p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                                      onClick={() => {
+                                        if (showContactSelectionModal.type === 'signer') {
+                                          handleContactSelected(contact);
+                                        } else if (showContactSelectionModal.type === 'secondSigner') {
+                                          handleSecondSignerContactSelected(contact);
+                                        } else if (showContactSelectionModal.type === 'role' && showContactSelectionModal.roleIndex !== undefined) {
+                                          handleContactSelectedForRole(contact, showContactSelectionModal.roleIndex);
+                                        }
+                                        setShowContactSelectionModal({ isOpen: false, type: 'signer' });
+                                      }}
+                                    >
+                                      <div className="font-medium text-gray-900">{contact.FirstName} {contact.LastName}</div>
+                                      <div className="text-sm text-gray-600 mt-1">
+                                        <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium mr-2">
+                                          {contact.Title}
+                                        </span>
+                                        <span>{contact.Email}</span>
+                                      </div>
                                     </div>
-                                  </div>
-                                ))}
-                              </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                                  <p className="text-sm text-yellow-800">
+                                    No contacts match your search.
+                                  </p>
+                                </div>
+                              )}
                             </>
                           ) : (
                             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">

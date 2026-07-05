@@ -26,7 +26,7 @@ interface DiscountConfig {
 
 interface BillingPaymentTabProps {
   formData: Partial<SOWData>;
-  setFormData: (data: Partial<SOWData>) => void;
+  setFormData: (data: Partial<SOWData>, options?: { markDirty?: boolean }) => void;
   selectedAccount?: { Employee_Band__c?: string } | null;
 }
 
@@ -181,7 +181,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       );
     if (blank) {
       hasFirstAutoCalcRef.current = true;
-      autoCalculateHours();
+      autoCalculateHours({ fromMount: true });
     }
   // deps: formData.id, productsKey, pricingRoles.length
   }, [formData?.id, formData?.template?.products, pricingRoles.length]);
@@ -345,8 +345,12 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
     checkPricingMismatch();
   }, [pricingRoles, discountConfig, formData.pricing]);
 
-  // Auto-calculate hours based on selected products and units
-  const autoCalculateHours = async () => {
+  // Auto-calculate hours based on selected products and units.
+  // `fromMount: true` marks this as the passive mount-time recalculation (blank
+  // roles on load) rather than a user-triggered action (e.g. "Reset Role Hours"),
+  // so the write-back doesn't trip the unsaved-changes banner before the user has
+  // touched anything.
+  const autoCalculateHours = async (opts?: { fromMount?: boolean }) => {
     if (!formData.template?.products || formData.template.products.length === 0) {
       return;
     }
@@ -455,8 +459,8 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
           last_calculated: new Date().toISOString(),
         },
       };
-      setFormData(updatedFormData);
-      
+      setFormData(updatedFormData, { markDirty: !opts?.fromMount });
+
       // Clear the pricing mismatch flag since we've updated the pricing
       setHasPricingMismatch(false);
       
