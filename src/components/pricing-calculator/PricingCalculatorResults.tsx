@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { calculateAllHours, calculateRoleHoursDistribution, HOURS_CALCULATION_RULES } from '@/lib/hours-calculation-utils';
-import { DEFAULT_SEGMENT_RULES } from '@/lib/segment-rules';
+import { DEFAULT_SEGMENT_RULES, fetchSegmentRules, SegmentRulesMap } from '@/lib/segment-rules';
 
 interface CalculatorData {
   products: string[];
@@ -42,6 +42,21 @@ const STANDARD_ROLES: Omit<PricingRole, 'totalHours' | 'totalCost'>[] = [
 ];
 
 export default function PricingCalculatorResults({ data, scenarios }: PricingCalculatorResultsProps) {
+  // Segment rules (self-serve PM removal eligibility + segment hours). Never
+  // blocks rendering — state initializes to DEFAULT_SEGMENT_RULES and
+  // fetchSegmentRules() never throws.
+  const [segmentRules, setSegmentRules] = useState<SegmentRulesMap>(DEFAULT_SEGMENT_RULES);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchSegmentRules().then((rules) => {
+      if (!cancelled) setSegmentRules(rules);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Convert CalculatorData to SOWTemplate format for calculations
   const templateData = useMemo(() => ({
     products: data.products,
@@ -53,9 +68,9 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
   }), [data]);
 
   // Calculate hours using the existing utility
-  const hoursResult = useMemo(() => 
-    calculateAllHours(templateData, data.account_segment, DEFAULT_SEGMENT_RULES), // TODO(segment-rules Task 4): thread fetched rules
-    [templateData, data.account_segment]
+  const hoursResult = useMemo(() =>
+    calculateAllHours(templateData, data.account_segment, segmentRules),
+    [templateData, data.account_segment, segmentRules]
   );
 
   const { productHours, userGroupHours, accountSegmentHours, baseProjectHours, pmHours, totalUnits, shouldAddProjectManager } = hoursResult;
@@ -149,7 +164,7 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
         bookit_handoff_units: scenario.bookit_handoff_units,
       };
       
-      const scenarioHours = calculateAllHours(scenarioTemplate, scenario.account_segment, DEFAULT_SEGMENT_RULES); // TODO(segment-rules Task 4): thread fetched rules
+      const scenarioHours = calculateAllHours(scenarioTemplate, scenario.account_segment, segmentRules);
       const scenarioRoleDistribution = calculateRoleHoursDistribution(
         scenarioHours.baseProjectHours,
         scenarioHours.pmHours,
@@ -208,7 +223,7 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
         hours: scenarioHours
       };
     });
-  }, [scenarios, getRoleRate]);
+  }, [scenarios, getRoleRate, segmentRules]);
 
   if (data.products.length === 0) {
     return (

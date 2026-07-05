@@ -1,11 +1,11 @@
 'use client';
 
-
+import { useState, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
 // Note: Products are already sorted by sort_order when fetched from API
 import { calculateProductHoursForProduct, calculateAccountSegmentHours } from '@/lib/hours-calculation-utils';
 import { isLinksProductById, isRoutingProductById, isLeadToAccountProductById, isFormsProductById, isHandoffProductById, isNoCostProductById, isOtherProduct } from '@/lib/constants/products';
-import { DEFAULT_SEGMENT_RULES } from '@/lib/segment-rules';
+import { DEFAULT_SEGMENT_RULES, fetchSegmentRules, SegmentRulesMap } from '@/lib/segment-rules';
 
 interface Product {
   id: string;
@@ -27,6 +27,19 @@ export default function PricingCalculator({
   selectedAccount,
   products = [],
 }: PricingCalculatorProps) {
+  // Segment rules (segment-specific hours). Never blocks rendering — state
+  // initializes to DEFAULT_SEGMENT_RULES and fetchSegmentRules() never throws.
+  const [segmentRules, setSegmentRules] = useState<SegmentRulesMap>(DEFAULT_SEGMENT_RULES);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchSegmentRules().then((rules) => {
+      if (!cancelled) setSegmentRules(rules);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Calculate hours for each product using shared utility
   const calculateProductHours = (product: string): number => {
@@ -39,7 +52,7 @@ export default function PricingCalculator({
   };
 
   // Calculate account segment hours
-  const accountSegmentHours = calculateAccountSegmentHours(formData.account_segment || selectedAccount?.Employee_Band__c, DEFAULT_SEGMENT_RULES); // TODO(segment-rules Task 4): thread fetched rules
+  const accountSegmentHours = calculateAccountSegmentHours(formData.account_segment || selectedAccount?.Employee_Band__c, segmentRules);
 
   // Helper function to get shared BookIt user count (maximum across all BookIt products)
   const getSharedBookItUserCount = (): string => {

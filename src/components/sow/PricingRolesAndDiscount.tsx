@@ -3,7 +3,7 @@ import { PMHoursRequirementDisableRequest } from '@/types/sow';
 import PMHoursRemovalModal from './PMHoursRemovalModal';
 import PMHoursRemovalApprovalOverlay from './PMHoursRemovalApprovalOverlay';
 import { calculateAllHours, HOURS_CALCULATION_RULES, calculateProductHoursForProduct } from '@/lib/hours-calculation-utils';
-import { DEFAULT_SEGMENT_RULES } from '@/lib/segment-rules';
+import { isSelfServePmRemoval, SegmentRulesMap } from '@/lib/segment-rules';
 import { getDefaultRateForRole } from '@/lib/pricing-roles-config';
 import { getPricingSummary, toPricingRolesObject } from '@/lib/sow/pricing-summary';
 import { recalculateNeedsConfirm } from '@/lib/sow/recalculate-guard';
@@ -63,6 +63,7 @@ interface PricingRolesAndDiscountProps {
   onHoursCalculated?: () => void;
   selectedAccount?: { Employee_Band__c?: string } | null;
   pricingRolesConfig?: Array<{ role_name: string; default_rate: number; is_active: boolean; description?: string; sort_order?: number }>;
+  segmentRules: SegmentRulesMap;
   // Called after an Enterprise PM hours removal has been persisted server-side so
   // the parent can flip formData.pm_hours_requirement_disabled and stop the PM role
   // from being re-added in-session (Billing auto-calc / Pricing distribution).
@@ -83,6 +84,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   onHoursCalculated,
   selectedAccount,
   pricingRolesConfig: _pricingRolesConfig = [], // eslint-disable-line @typescript-eslint/no-unused-vars
+  segmentRules,
   onPMHoursRequirementDisabled,
   onManualPricingEdit,
 }) => {
@@ -128,9 +130,9 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   }, []);
 
   // Use shared utility to calculate all hours - memoized to prevent recalculation
-  const hoursResult = useMemo(() => 
-    calculateAllHours(formData.template || {}, typeof formData.account_segment === 'string' ? formData.account_segment : selectedAccount?.Employee_Band__c, DEFAULT_SEGMENT_RULES), // TODO(segment-rules Task 4): thread fetched rules
-    [formData.template, formData.account_segment, selectedAccount?.Employee_Band__c]
+  const hoursResult = useMemo(() =>
+    calculateAllHours(formData.template || {}, typeof formData.account_segment === 'string' ? formData.account_segment : selectedAccount?.Employee_Band__c, segmentRules),
+    [formData.template, formData.account_segment, selectedAccount?.Employee_Band__c, segmentRules]
   );
   const { productHours, userGroupHours, accountSegmentHours, baseProjectHours, totalUnits } = hoursResult;
 
@@ -139,11 +141,9 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
     (typeof formData.account_segment === 'string' && formData.account_segment) ||
     selectedAccount?.Employee_Band__c ||
     '';
-  // Enterprise segments (EE/LE) allow direct PM removal; every other segment
-  // (EC, MM, and any unknown/blank value) must go through the PMO approval flow.
-  // Defaulting unknown segments to "requires approval" prevents PM hours from being
-  // silently dropped without sign-off.
-  const isEnterpriseSegment = accountSegmentValue === 'EE' || accountSegmentValue === 'LE';
+  // Self-serve PM removal is segment_rules-driven (seeded: EE/LE). Unknown/blank
+  // segments require PMO approval so PM hours are never silently dropped.
+  const isEnterpriseSegment = isSelfServePmRemoval(segmentRules, accountSegmentValue);
 
   // Debug logging removed to prevent console spam
 

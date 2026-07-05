@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { classifySow } from './backfill-pm-consistency';
+import { DEFAULT_SEGMENT_RULES } from '@/lib/segment-rules';
 
 describe('classifySow', () => {
   it('flags an EE SOW where PM was removed but OS still carries the deduction', () => {
@@ -10,14 +11,14 @@ describe('classifySow', () => {
       orchestration_units: '19', bookit_forms_units: '19', bookit_handoff_units: '19',
       pricing_roles: { roles: [{ role: 'Onboarding Specialist', totalHours: 27, ratePerHour: 250 }], discount_type: 'none' },
     };
-    const r = classifySow(sow);
+    const r = classifySow(sow, DEFAULT_SEGMENT_RULES);
     expect(r.action).toBe('restore-os-set-flag');
     expect(r.osTarget).toBe(35);
   });
 
   it('leaves a consistent SOW alone', () => {
     const sow = { account_segment: 'EE', pm_hours_requirement_disabled: true, products: [], pricing_roles: { roles: [{ role: 'Onboarding Specialist', totalHours: 35, ratePerHour: 250 }] } };
-    expect(classifySow(sow).action).toBe('none');
+    expect(classifySow(sow, DEFAULT_SEGMENT_RULES).action).toBe('none');
   });
 
   it('leaves alone a SOW where OS hours are already at base (clean removal)', () => {
@@ -29,7 +30,7 @@ describe('classifySow', () => {
       orchestration_units: '19', bookit_forms_units: '19', bookit_handoff_units: '19',
       pricing_roles: { roles: [{ role: 'Onboarding Specialist', totalHours: 35, ratePerHour: 250 }], discount_type: 'none' },
     };
-    expect(classifySow(sow).action).toBe('none');
+    expect(classifySow(sow, DEFAULT_SEGMENT_RULES).action).toBe('none');
   });
 
   it('leaves alone a SOW that has a PM row (PM not removed)', () => {
@@ -43,7 +44,7 @@ describe('classifySow', () => {
         { role: 'Project Manager', totalHours: 16, ratePerHour: 250 },
       ], discount_type: 'none' },
     };
-    expect(classifySow(sow).action).toBe('none');
+    expect(classifySow(sow, DEFAULT_SEGMENT_RULES).action).toBe('none');
   });
 
   it('leaves alone a SOW that does not require PM (fewer than 3 products)', () => {
@@ -54,7 +55,7 @@ describe('classifySow', () => {
       orchestration_units: '10',
       pricing_roles: { roles: [{ role: 'Onboarding Specialist', totalHours: 20, ratePerHour: 250 }], discount_type: 'none' },
     };
-    expect(classifySow(sow).action).toBe('none');
+    expect(classifySow(sow, DEFAULT_SEGMENT_RULES).action).toBe('none');
   });
 
   it('computes pmHoursRemoved correctly as (base - currentOsHours) * 2', () => {
@@ -66,7 +67,7 @@ describe('classifySow', () => {
       orchestration_units: '19', bookit_forms_units: '19', bookit_handoff_units: '19',
       pricing_roles: { roles: [{ role: 'Onboarding Specialist', totalHours: 27, ratePerHour: 250 }], discount_type: 'none' },
     };
-    const r = classifySow(sow);
+    const r = classifySow(sow, DEFAULT_SEGMENT_RULES);
     expect(r.pmHoursRemoved).toBe(16);
   });
 
@@ -83,7 +84,7 @@ describe('classifySow', () => {
       orchestration_units: '19', bookit_forms_units: '19', bookit_handoff_units: '19',
       pricing_roles: { roles: [], discount_type: 'none' },
     };
-    expect(classifySow(sow).action).toBe('none');
+    expect(classifySow(sow, DEFAULT_SEGMENT_RULES).action).toBe('none');
   });
 
   it('leaves alone a SOW where pricing has roles but no Onboarding Specialist row', () => {
@@ -96,7 +97,7 @@ describe('classifySow', () => {
       orchestration_units: '19', bookit_forms_units: '19', bookit_handoff_units: '19',
       pricing_roles: { roles: [{ role: 'Implementation Engineer', totalHours: 20, ratePerHour: 200 }], discount_type: 'none' },
     };
-    expect(classifySow(sow).action).toBe('none');
+    expect(classifySow(sow, DEFAULT_SEGMENT_RULES).action).toBe('none');
   });
 
   it('leaves alone a SOW where the Onboarding Specialist row has 0 hours', () => {
@@ -108,6 +109,6 @@ describe('classifySow', () => {
       orchestration_units: '19', bookit_forms_units: '19', bookit_handoff_units: '19',
       pricing_roles: { roles: [{ role: 'Onboarding Specialist', totalHours: 0, ratePerHour: 250 }], discount_type: 'none' },
     };
-    expect(classifySow(sow).action).toBe('none');
+    expect(classifySow(sow, DEFAULT_SEGMENT_RULES).action).toBe('none');
   });
 });
