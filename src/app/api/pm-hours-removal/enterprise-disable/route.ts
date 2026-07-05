@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { PMHoursRemovalService } from '@/lib/pm-hours-removal-service';
 import { authOptions } from '@/lib/auth';
+import { loadSegmentRules } from '@/lib/segment-rules-server';
+import { isSelfServePmRemoval } from '@/lib/segment-rules';
 
 // POST - Directly disable the PM hours requirement for an Enterprise SOW.
 // Enterprise accounts skip the PMO approval flow, so there is no request to
@@ -34,7 +36,7 @@ export async function POST(request: Request) {
 
     const { data: sow } = await supabase
       .from('sows')
-      .select('status, author_id')
+      .select('status, author_id, account_segment')
       .eq('id', sowId)
       .single();
 
@@ -53,6 +55,17 @@ export async function POST(request: Request) {
       return NextResponse.json({
         error: 'You can only remove PM hours for SOWs you created',
       }, { status: 403 });
+    }
+
+    // Segment gate: only self-serve segments (seeded: EE/LE) may disable directly.
+    // Everyone else must use the PMO approval flow. The client UI enforces this
+    // too, but the server is the authority.
+    const rules = await loadSegmentRules(supabase);
+    if (!isSelfServePmRemoval(rules, sow.account_segment)) {
+      return NextResponse.json(
+        { error: 'This account segment requires PMO approval to remove PM hours' },
+        { status: 403 }
+      );
     }
 
     const result = await PMHoursRemovalService.disablePMHoursRequirementDirect(
