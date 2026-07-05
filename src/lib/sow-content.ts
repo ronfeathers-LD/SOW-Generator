@@ -317,6 +317,31 @@ export function resolveTemplatesForSegment(
   return resolved;
 }
 
+/**
+ * Pick one row for `sectionName` out of a (possibly multi-row, post
+ * drop-UNIQUE(section_name)) templates array. Prefers the GLOBAL row
+ * (`segment` null/undefined); falls back to any row (e.g. a segment-only
+ * variant with no global counterpart) if no global row exists.
+ *
+ * This is deliberately segment-UNAWARE: callers (ContentEditingTab,
+ * SOWObjectivesPage, useSOWContent) only ever pass a sectionName — none of
+ * them know the SOW's segment, and this function has no way to find out
+ * from a client component. Global-preferred is the correct default for
+ * editor placeholder/default content; segment-aware resolution belongs to
+ * `resolveTemplatesForSegment`, used where the SOW's segment IS known
+ * (e.g. the PDF route).
+ */
+export function getGlobalOrAnyTemplate(
+  templates: SOWContentTemplate[],
+  sectionName: string
+): SOWContentTemplate | null {
+  return (
+    templates.find((t) => t.section_name === sectionName && !t.segment) ??
+    templates.find((t) => t.section_name === sectionName) ??
+    null
+  );
+}
+
 export async function getContentTemplate(sectionName: string): Promise<SOWContentTemplate | null> {
   try {
     const response = await fetch('/api/sow-content-templates');
@@ -324,11 +349,9 @@ export async function getContentTemplate(sectionName: string): Promise<SOWConten
       console.error('Error fetching content templates:', response.statusText);
       return null;
     }
-    
+
     const templates = await response.json();
-    const template = templates.find((t: SOWContentTemplate) => t.section_name === sectionName);
-    
-    return template || null;
+    return getGlobalOrAnyTemplate(templates, sectionName);
   } catch (error) {
     console.error('Error in getContentTemplate:', error);
     return null;

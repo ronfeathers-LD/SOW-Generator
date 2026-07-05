@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   canonicalizeContent,
   canonicalizeContentColumns,
+  getContentTemplate,
+  getGlobalOrAnyTemplate,
   renderSectionHtml,
   resolveTemplatesForSegment,
   sectionLabel,
@@ -297,6 +299,63 @@ describe('renderSectionHtml / SOW_SECTION_RENDER_TRANSFORMS (#351)', () => {
       expect(renderSectionHtml(key, null)).toBeNull();
       expect(renderSectionHtml(key, undefined)).toBeNull();
     }
+  });
+});
+
+describe('getGlobalOrAnyTemplate / getContentTemplate (variant-safe, final-review fix)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('getGlobalOrAnyTemplate prefers the global row when a global + LE row both exist', () => {
+    const templates = [
+      { section_name: 'out-of-scope', segment: 'LE', default_content: 'LE variant' } as any,
+      { section_name: 'out-of-scope', segment: null, default_content: 'global default' } as any,
+    ];
+    const result = getGlobalOrAnyTemplate(templates, 'out-of-scope');
+    expect(result?.default_content).toBe('global default');
+  });
+
+  it('getGlobalOrAnyTemplate falls back to the only available row when no global row exists', () => {
+    const templates = [
+      { section_name: 'out-of-scope', segment: 'LE', default_content: 'LE variant' } as any,
+    ];
+    const result = getGlobalOrAnyTemplate(templates, 'out-of-scope');
+    expect(result?.default_content).toBe('LE variant');
+  });
+
+  it('getGlobalOrAnyTemplate returns null when no row matches the section', () => {
+    const templates = [
+      { section_name: 'scope', segment: null, default_content: 'global scope' } as any,
+    ];
+    expect(getGlobalOrAnyTemplate(templates, 'out-of-scope')).toBeNull();
+  });
+
+  it('getContentTemplate returns the global row when a global + LE row both exist', async () => {
+    const templates = [
+      { section_name: 'out-of-scope', segment: 'LE', default_content: 'LE variant' },
+      { section_name: 'out-of-scope', segment: null, default_content: 'global default' },
+    ];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: async () => templates })
+    );
+
+    const result = await getContentTemplate('out-of-scope');
+    expect(result?.default_content).toBe('global default');
+  });
+
+  it('getContentTemplate returns the LE row when only an LE row exists (no global fallback available)', async () => {
+    const templates = [
+      { section_name: 'out-of-scope', segment: 'LE', default_content: 'LE variant' },
+    ];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: async () => templates })
+    );
+
+    const result = await getContentTemplate('out-of-scope');
+    expect(result?.default_content).toBe('LE variant');
   });
 });
 
