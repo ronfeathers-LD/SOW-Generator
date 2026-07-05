@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ChangelogService } from '@/lib/changelog-service';
+import { buildPricingRolesColumn } from '@/lib/sow/pricing-roles-column';
 
 export async function POST(
   request: Request,
@@ -66,7 +67,8 @@ export async function POST(
         
         // Preserve business data with safe defaults
         client_roles: originalSOW.client_roles ?? [],
-        pricing_roles: originalSOW.pricing_roles ?? [],
+        // Canonical empty object, not a bare array, when the original had none. (audit #104)
+        pricing_roles: originalSOW.pricing_roles ?? buildPricingRolesColumn(null),
         billing_info: originalSOW.billing_info ?? {},
       })
       .select()

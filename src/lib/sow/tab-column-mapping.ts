@@ -11,6 +11,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { canonicalizeContentColumns } from '@/lib/sow-content';
+import { buildPricingRolesColumn, type PricingInput } from '@/lib/sow/pricing-roles-column';
 
 /** Thrown for an unknown tab key so callers can map it to a 400. */
 export class InvalidTabError extends Error {
@@ -193,47 +194,10 @@ export function buildTabColumnUpdate(
 
     case 'Pricing':
       if (d.pricing) {
-        const pricingData: {
-          roles: Array<{ role: string; ratePerHour: number; totalHours: number; [key: string]: unknown }>;
-          subtotal?: number;
-          discount_total?: number;
-          total_amount?: number;
-          discount_type?: string;
-          discount_amount?: number;
-          discount_percentage?: number;
-          auto_calculated?: boolean;
-          last_calculated?: string;
-        } = {
-          roles: d.pricing.roles || [],
-          subtotal: d.pricing.subtotal,
-          discount_total: d.pricing.discount_total,
-          total_amount: d.pricing.total_amount,
-          discount_type: d.pricing.discount_type,
-          discount_amount: d.pricing.discount_amount,
-          discount_percentage: d.pricing.discount_percentage,
-          auto_calculated: d.pricing.auto_calculated,
-          last_calculated: d.pricing.last_calculated,
-        };
-
-        // Recompute monetary totals server-side from roles + discount config —
-        // never trust client-supplied subtotal/discount_total/total_amount.
-        // (audit #88) Formula matches PricingRolesAndDiscount.tsx.
-        const roleList = pricingData.roles || [];
-        const subtotal = roleList.reduce(
-          (sum, r) => sum + (Number(r.ratePerHour) || 0) * (Number(r.totalHours) || 0),
-          0
-        );
-        let discountTotal = 0;
-        if (pricingData.discount_type === 'fixed') {
-          discountTotal = Math.min(subtotal, Number(pricingData.discount_amount) || 0);
-        } else if (pricingData.discount_type === 'percentage') {
-          discountTotal = subtotal * ((Number(pricingData.discount_percentage) || 0) / 100);
-        }
-        pricingData.subtotal = subtotal;
-        pricingData.discount_total = discountTotal;
-        pricingData.total_amount = Math.max(0, subtotal - discountTotal);
-
-        updateData.pricing_roles = pricingData;
+        // Canonical object shape with server-side recomputed totals — never
+        // trust client-supplied subtotal/discount_total/total_amount.
+        // (audit #88, #104)
+        updateData.pricing_roles = buildPricingRolesColumn(d.pricing);
       }
       break;
 
