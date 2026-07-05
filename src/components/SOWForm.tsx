@@ -333,6 +333,14 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  // Always-current mirror of `isSaving`, read inside the autosave debounce
+  // timer below so the fire-time check isn't a stale closure over a value
+  // captured when the timer was scheduled.
+  const isSavingRef = useRef(isSaving);
+  isSavingRef.current = isSaving;
+  // Set when the debounce timer fires while a save is already in flight; the
+  // in-flight-completion effect below runs one trailing save when it settles.
+  const pendingSaveRef = useRef(false);
 
   // Ref to get current pricing data from BillingPaymentTab
   const pricingRef = useRef<{ getCurrentPricingData?: () => PricingData }>(null);
@@ -978,6 +986,38 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
     }
   };
 
+  // Global autosave: replaces the old "Save all changes" button. 1500ms after
+  // the last dirtying edit (any `updateFormData` call that doesn't pass
+  // `markDirty: false`), persist automatically via the same `handleSaveAll`
+  // used by tab-switch flush-save. Restarts on every edit because `formData`
+  // is a dependency, so the timer always measures from the *last* change.
+  useEffect(() => {
+    if (!hasUnsavedChanges || !initialData?.id) return;
+
+    const timer = setTimeout(() => {
+      // A save may already be in flight (e.g. kicked off by a tab switch).
+      // Don't stack a second concurrent save-all; queue one trailing save to
+      // run once the in-flight save settles, so these edits aren't dropped.
+      if (isSavingRef.current) {
+        pendingSaveRef.current = true;
+      } else {
+        void handleSaveAll();
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData, hasUnsavedChanges, initialData?.id]);
+
+  // Run the queued trailing save once an in-flight save settles.
+  useEffect(() => {
+    if (!isSaving && pendingSaveRef.current) {
+      pendingSaveRef.current = false;
+      void handleSaveAll();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSaving]);
+
   const tabs = useMemo(() => {
     const allTabs = [
       { key: 'Customer Information', label: 'Customer Information' },
@@ -1445,9 +1485,11 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
         />
       )}
 
-      {/* Unified footer: Back · save status · Save all · Next — a single bottom
-          bar that replaces the old separate nav row + floating save control.
-          The top 4-phase bar is the sole progress indicator (no "Step N of M"). */}
+      {/* Unified footer: Back · save status · Next — a single bottom bar that
+          replaces the old separate nav row + floating save control. Saving is
+          now fully automatic (global autosave), so there is no save button —
+          the status indicator is the sole source of truth. The top 4-phase
+          bar is the sole progress indicator (no "Step N of M"). */}
       {(() => {
         const nextKey = !restrictedTab && currentStepIndex < wizardKeys.length - 1 ? wizardKeys[currentStepIndex + 1] : null;
         const nextPhase = nextKey ? PHASES.find((p) => p.sections.includes(nextKey)) : null;
@@ -1467,11 +1509,6 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
         // the action is the in-card "Submit for Review" — so hide the footer
         // Next rather than show a dead, permanently-disabled button.
         const showNextButton = !!nextKey;
-        const saveIcon = (
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
-        );
         return (
           <div className="mt-2 flex items-center justify-between gap-4 border-t border-gray-200 pt-6 dark:border-dark-border">
             {!restrictedTab ? (
@@ -1505,9 +1542,6 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
                   <span className="text-gray-400 dark:text-dark-text-subtle">All changes saved</span>
                 )}
               </span>
-              <Button variant="secondary" onClick={handleSaveAll} loading={isSaving} leftIcon={saveIcon}>
-                {restrictedTab ? (pricingOnly ? 'Save Pricing' : 'Save Signers') : 'Save all changes'}
-              </Button>
               {!restrictedTab && showNextButton && (
                 <Button variant="primary" onClick={onNextClick} disabled={nextBtnDisabled} loading={nextBtnLoading}>
                   {nextBtnLabel}

@@ -831,7 +831,7 @@ export default function CustomerInformationTab({
           <div className="ml-3">
             <h3 className="text-sm font-medium text-green-800">Customer Information</h3>
             <div className="mt-2 text-sm text-green-700">
-              <p>All customer information will be automatically saved when you click the save button.</p>
+              <p>Changes are saved automatically.</p>
             </div>
           </div>
         </div>
