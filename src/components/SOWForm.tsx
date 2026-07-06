@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { SOWData, SOWTemplate } from '@/types/sow';
 import { SalesforceAccount, SalesforceContact } from '@/lib/salesforce';
 import ProjectOverviewTab from './sow/ProjectOverviewTab';
@@ -86,6 +87,7 @@ interface SOWFormProps {
 }
 
 export default function SOWForm({ initialData, restrictedTab, status }: SOWFormProps) {
+  const router = useRouter();
   // Two mutually exclusive single-tab modes. `pricingOnly` is kept as a derived
   // local so the many existing pricing checks below read unchanged.
   const pricingOnly = restrictedTab === 'Pricing';
@@ -1111,14 +1113,25 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
 
       const result = await response.json();
 
-      // Show success message
-      alert(`SOW "${initialData.template?.sow_title || 'SOW'}" deleted successfully${result.hiddenVersions ? ` along with ${result.hiddenVersions} version(s)` : ''}.`);
+      // Show a non-blocking success toast instead of a native alert(). A blocking
+      // alert() halts JS execution on this page until a human (or an automation
+      // harness that auto-handles JS dialogs) dismisses it — anything that
+      // doesn't explicitly do so leaves the tab frozen indefinitely, which is
+      // what made this look like a post-redirect hang (#388). The redirect
+      // itself also now uses the Next.js router instead of a full
+      // `window.location.href` reload, which avoids re-fetching and
+      // re-compiling the whole app shell on the destination page.
+      setNotification({
+        type: 'success',
+        message: `SOW "${initialData.template?.sow_title || 'SOW'}" deleted successfully${result.hiddenVersions ? ` along with ${result.hiddenVersions} version(s)` : ''}.`
+      });
 
-      // Redirect to the SOW list page
-      window.location.href = '/sow';
+      // Give the toast a brief moment to be visible before navigating away.
+      setTimeout(() => router.push('/sow'), 1200);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete SOW';
-      alert(`Error: ${errorMessage}`);
+      setNotification({ type: 'error', message: `Error: ${errorMessage}` });
+      setTimeout(() => setNotification(null), 5000);
     }
   };
 
