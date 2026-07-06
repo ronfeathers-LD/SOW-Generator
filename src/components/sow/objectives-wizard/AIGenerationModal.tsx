@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
 import { WizardStepData } from './types';
@@ -221,12 +221,26 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
     };
   }, [messageTimer]);
 
-  // Auto-start generation when modal opens
+  // Guards the auto-run below so a failed attempt runs ONCE instead of
+  // retrying forever. Without this, `isGenerating` flipping back to `false`
+  // in generateObjectives' `finally` block (after either success or failure)
+  // re-satisfies `isOpen && !isGenerating` and the effect immediately fires
+  // again — hammering the API every time the fetch round-trips. The ref is
+  // reset when the modal closes so reopening it auto-generates fresh; a
+  // manual "Try again" click bypasses the ref entirely (explicit user action).
+  const hasAutoRunRef = useRef(false);
+
+  // Auto-start generation once when modal opens; never re-fire on its own.
   useEffect(() => {
-    if (isOpen && !isGenerating) {
+    if (!isOpen) {
+      hasAutoRunRef.current = false;
+      return;
+    }
+    if (!hasAutoRunRef.current) {
+      hasAutoRunRef.current = true;
       generateObjectives();
     }
-  }, [isOpen, isGenerating, generateObjectives]);
+  }, [isOpen, generateObjectives]);
 
   if (!isOpen) return null;
 
