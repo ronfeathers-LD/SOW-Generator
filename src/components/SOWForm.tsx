@@ -1265,7 +1265,7 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
       {!restrictedTab && (
         <>
           <nav aria-label="Progress" className="mb-8">
-            <ol className="flex list-none items-center pl-0">
+            <ol className="flex flex-wrap list-none items-center gap-y-3 pl-0">
               {PHASES.map((phase, i) => {
                 const roll = phaseRollup(phase.sections);
                 const isActive = i === activePhaseIndex;
@@ -1285,7 +1285,7 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
                       <button
                         type="button"
                         onClick={() => handleTabChange(phase.sections[0])}
-                        className="group flex items-center gap-2.5"
+                        className="group flex flex-shrink-0 items-center gap-2.5"
                       >
                         <span className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-colors ${badge}`}>
                           {done ? (
@@ -1304,7 +1304,7 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
                     {i < PHASES.length - 1 && (
                       <li
                         aria-hidden
-                        className={`mx-3 h-px min-w-[1.5rem] flex-1 transition-colors duration-500 ${done ? 'bg-[#26D07C]' : 'bg-gray-200 dark:bg-dark-border'}`}
+                        className={`mx-3 h-px min-w-[1.5rem] flex-1 basis-6 transition-colors duration-500 ${done ? 'bg-[#26D07C]' : 'bg-gray-200 dark:bg-dark-border'}`}
                       />
                     )}
                   </React.Fragment>
