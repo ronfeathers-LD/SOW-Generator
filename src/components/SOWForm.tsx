@@ -1265,7 +1265,12 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
       {!restrictedTab && (
         <>
           <nav aria-label="Progress" className="mb-8">
-            <ol className="flex flex-wrap list-none items-center gap-y-3 pl-0">
+            {/* gap-x-3 is a deliberate belt-and-suspenders: it guarantees a
+                real gap between one step's label and the next step's circle
+                via flex `column-gap`, which — unlike the connector's own
+                margin — still applies even if the connector element between
+                them fails to render (see the non-empty child note below). */}
+            <ol className="flex flex-wrap list-none items-center gap-x-3 gap-y-3 pl-0">
               {PHASES.map((phase, i) => {
                 const roll = phaseRollup(phase.sections);
                 const isActive = i === activePhaseIndex;
@@ -1304,8 +1309,16 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
                     {i < PHASES.length - 1 && (
                       <li
                         aria-hidden
-                        className={`mx-3 h-px min-w-[1.5rem] flex-1 basis-6 transition-colors duration-500 ${done ? 'bg-[#26D07C]' : 'bg-gray-200 dark:bg-dark-border'}`}
-                      />
+                        className={`h-px min-w-[1.5rem] flex-1 basis-6 transition-colors duration-500 ${done ? 'bg-[#26D07C]' : 'bg-gray-200 dark:bg-dark-border'}`}
+                      >
+                        {/* Non-empty child is load-bearing: globals.css has a
+                            (rich-text-editor-oriented) `li:empty { display:
+                            none !important }` rule with no scoping class, so
+                            an empty <li> here — used purely as a divider bar
+                            — gets nuked site-wide and silently collapses to
+                            zero width no matter what sizing classes it has. */}
+                        <span aria-hidden className="hidden" />
+                      </li>
                     )}
                   </React.Fragment>
                 );
