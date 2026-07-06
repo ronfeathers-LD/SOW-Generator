@@ -241,15 +241,13 @@ p {
   border-bottom: none !important;
 }
 
-/* Breadcrumb Navigation - Remove List Markers */
-nav[aria-label="Breadcrumb"] ol,
-nav[aria-label="Breadcrumb"] ol li {
-  list-style: none !important;
-  list-style-type: none !important;
-  padding-left: 0 !important;
-  margin-left: 0 !important;
-}
-
+/* Breadcrumb Navigation — layout only.
+   The list-marker/padding/margin reset that used to live here is gone: it was
+   only ever needed to undo the rich-text list rules further down in this file
+   (formerly bare `ul`/`ol`/`li`, now scoped to .sow-content/.prose/
+   .wysiwyg-content). Tailwind's own preflight already zeroes list-style/
+   margin/padding on ol/ul, which is all this nav's plain <ol> needs. What
+   remains here is genuine breadcrumb layout, unrelated to that leak. */
 nav[aria-label="Breadcrumb"] li {
   display: inline-flex !important;
   align-items: center;
@@ -259,16 +257,6 @@ nav[aria-label="Breadcrumb"] li {
 nav[aria-label="Breadcrumb"] ol li::before,
 nav[aria-label="Breadcrumb"] ol li::after {
   content: none !important;
-}
-
-/* Phase Stepper (SOWForm progress nav) — same leak as Breadcrumb above: the
-   bare `ol { padding-left: 2em !important }` rule further down (scoped for
-   rich-text SOW content lists, but written without a scoping class) also
-   matches this nav's <ol>, overriding its `pl-0` and shifting the whole
-   stepper right by 32px. */
-nav[aria-label="Progress"] ol {
-  list-style: none !important;
-  padding-left: 0 !important;
 }
 
 /* Content-managed section image sizing */
@@ -399,24 +387,38 @@ nav[aria-label="Progress"] ol {
   padding-left: 1.5em !important;
 }
 
-/* Additional fallback styles for list items */
-li {
+/* Rich-text content fallback styles for list items.
+   Scoped to the known rendered-rich-text containers — .sow-content (SOW
+   section pages), .prose / .wysiwyg-content (WYSIWYG previews: admin
+   ai-prompts, AI-generated objectives, revision diffs) — instead of bare
+   `li`/`ul`/`ol`, which used to match every list on every page (nav
+   breadcrumbs, the phase stepper, footer link lists, etc.) and required
+   patching each victim individually (see nav[aria-label="Breadcrumb"] and
+   nav[aria-label="Progress"] overrides below, both now redundant — removed). */
+.sow-content li,
+.prose li,
+.wysiwyg-content li {
   display: list-item;
 }
 
-ul {
+.sow-content ul,
+.prose ul,
+.wysiwyg-content ul {
   list-style-type: disc;
   padding-left: 1.5em;
 }
 
-ol {
+.sow-content ol,
+.prose ol,
+.wysiwyg-content ol {
   list-style-type: decimal;
   padding-left: 1.5em;
 }
 
 /* Fix for paragraph tags inside list items (TipTap editor issue) */
 .sow-content li p,
-li p,
+.prose li p,
+.wysiwyg-content li p,
 .ProseMirror li p {
   margin: 0 !important;
   padding: 0 !important;
@@ -425,7 +427,8 @@ li p,
 
 /* Ensure proper spacing for list items with nested content */
 .sow-content li,
-li {
+.prose li,
+.wysiwyg-content li {
   margin: 0.25em 0 !important;
   padding: 0 !important;
 }
@@ -433,8 +436,10 @@ li {
 /* Remove any default margins from paragraphs inside lists */
 .sow-content ul li p,
 .sow-content ol li p,
-ul li p,
-ol li p {
+.prose ul li p,
+.prose ol li p,
+.wysiwyg-content ul li p,
+.wysiwyg-content ol li p {
   margin: 0 !important;
   padding: 0 !important;
   display: inline !important;
@@ -450,34 +455,41 @@ ol li p {
 
 /* Handle empty list items and ensure proper list spacing */
 .sow-content li:empty,
-li:empty {
+.prose li:empty,
+.wysiwyg-content li:empty {
   display: none !important;
 }
 
 .sow-content li:blank,
-li:blank {
+.prose li:blank,
+.wysiwyg-content li:blank {
   display: none !important;
 }
 
 /* Ensure list items with only whitespace are hidden */
 .sow-content li:only-child:empty,
-li:only-child:empty {
+.prose li:only-child:empty,
+.wysiwyg-content li:only-child:empty {
   display: none !important;
 }
 
 /* Fix spacing between list items */
 .sow-content ul li + li,
 .sow-content ol li + li,
-ul li + li,
-ol li + li {
+.prose ul li + li,
+.prose ol li + li,
+.wysiwyg-content ul li + li,
+.wysiwyg-content ol li + li {
   margin-top: 0.25em !important;
 }
 
 /* Ensure proper list marker alignment */
 .sow-content ul,
 .sow-content ol,
-ul,
-ol {
+.prose ul,
+.prose ol,
+.wysiwyg-content ul,
+.wysiwyg-content ol {
   list-style-position: outside !important;
   padding-left: 2em !important;
 }

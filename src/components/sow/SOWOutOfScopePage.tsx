@@ -41,13 +41,13 @@ export default function SOWOutOfScopePage({
             </p>
           </div>
           
-          <div id="sow-content-out-of-scope" className="text-base leading-relaxed">
+          <div id="sow-content-out-of-scope" className="text-base leading-relaxed sow-content">
             <h2 className="text-2xl font-bold mb-6 mt-6">OUT OF SCOPE</h2>
             <SOWSectionContent sectionKey="out_of_scope" html={content} />
           </div>
         </div>
       ) : (
-        <div id="sow-content-out-of-scope" className="text-base leading-relaxed">
+        <div id="sow-content-out-of-scope" className="text-base leading-relaxed sow-content">
           <h2 className="text-2xl font-bold mb-6 mt-6">OUT OF SCOPE</h2>
           <SOWSectionContent sectionKey="out_of_scope" html={content} />
         </div>
