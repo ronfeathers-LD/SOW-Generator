@@ -16,7 +16,10 @@ interface ContentHandlerContext {
   formData: Partial<SOWData>;
   setFormData: (data: Partial<SOWData>) => void;
   normalizeContent: (content: string) => string;
-  checkUnsavedChanges: (sectionName: string, currentContent: string, templateContent: string) => void;
+  /** Optional legacy hook for callers that still track their own per-section
+   * "unsaved changes" indicator. Not needed when the caller relies on the
+   * global autosave (e.g. ContentEditingTab as of #393). */
+  checkUnsavedChanges?: (sectionName: string, currentContent: string, templateContent: string) => void;
 }
 
 export const createContentHandler = (
@@ -48,7 +51,9 @@ export const createContentHandler = (
       [editedKey]: isEdited
     });
 
-    checkUnsavedChanges(sectionName, content, baseline);
+    if (checkUnsavedChanges) {
+      checkUnsavedChanges(sectionName, content, baseline);
+    }
   };
 };
 

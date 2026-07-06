@@ -1452,7 +1452,6 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
         <ContentEditingTab
           formData={formData}
           setFormData={updateFormData}
-          onUnsavedChanges={setHasUnsavedChanges}
         />
       )}
 

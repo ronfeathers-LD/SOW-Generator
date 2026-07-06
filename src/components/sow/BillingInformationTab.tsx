@@ -32,10 +32,6 @@ export default function BillingInformationTab({
   const [billingError, setBillingError] = useState<string | null>(null);
   const [billingSuccess, setBillingSuccess] = useState<string | null>(null);
 
-  // Loading states for billing contact operations
-  const [isSavingBillingContact, setIsSavingBillingContact] = useState(false);
-  const [isClearingBillingContact, setIsClearingBillingContact] = useState(false);
-
   // Clear billing error when selectedAccount is available
   useEffect(() => {
     if (selectedAccount && billingError) {
@@ -79,108 +75,31 @@ export default function BillingInformationTab({
     await loadContacts(selectedAccount.Id);
   };
 
-  const handleBillingContactSelected = async (contact: SalesforceContact) => {
-    setIsSavingBillingContact(true);
+  // All mutations below go through `setFormData` only, which the parent wires
+  // to `updateFormData` — that marks the form dirty and the global autosave
+  // loop in SOWForm persists it, so nothing here needs its own PUT.
 
-    try {
-      // Update local form data for billing contact
-      setFormData({
-        ...formData,
-        template: {
-          ...formData.template!,
-          billing_contact_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
-          billing_email: contact.Email || '',
-        },
-      });
-
-      // Asynchronously save the Billing Contact selection via tab-update
-      if (formData.id) {
-        const requestBody = {
-          tab: 'Billing Information',
-          data: {
-            template: {
-              billing_contact_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
-              billing_email: contact.Email || '',
-              // Preserve existing billing company information
-              billing_company_name: formData.template?.billing_company_name || '',
-              billing_address: formData.template?.billing_address || '',
-              purchase_order_number: formData.template?.purchase_order_number || '',
-            },
-          },
-        };
-
-        const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        });
-
-        if (!response.ok) {
-          console.error('Failed to save Billing Contact, status:', response.status);
-          const errorText = await response.text();
-          console.error('Error response:', errorText);
-        }
-      } else {
-        console.warn('No formData.id available, skipping save');
-      }
-
-      setShowBillingContactSelection(false);
-    } catch (error) {
-      console.error('Error saving Billing Contact:', error);
-    } finally {
-      setIsSavingBillingContact(false);
-    }
+  const handleBillingContactSelected = (contact: SalesforceContact) => {
+    setFormData({
+      ...formData,
+      template: {
+        ...formData.template!,
+        billing_contact_name: `${contact.FirstName || ''} ${contact.LastName || ''}`.trim(),
+        billing_email: contact.Email || '',
+      },
+    });
+    setShowBillingContactSelection(false);
   };
 
-  const clearBillingContact = async () => {
-    setIsClearingBillingContact(true);
-
-    try {
-      // Update local form data
-      setFormData({
-        ...formData,
-        template: {
-          ...formData.template!,
-          billing_contact_name: '',
-          billing_email: '',
-        },
-      });
-
-      // Save to database
-      if (formData.id) {
-        const requestBody = {
-          tab: 'Billing Information',
-          data: {
-            template: {
-              billing_contact_name: '',
-              billing_email: '',
-              // Preserve existing billing company information
-              billing_company_name: formData.template?.billing_company_name || '',
-              billing_address: formData.template?.billing_address || '',
-              purchase_order_number: formData.template?.purchase_order_number || '',
-            },
-          },
-        };
-
-        const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        });
-
-        if (!response.ok) {
-          console.error('Failed to clear Billing Contact, status:', response.status);
-        }
-      }
-    } catch (error) {
-      console.error('Error clearing Billing Contact:', error);
-    } finally {
-      setIsClearingBillingContact(false);
-    }
+  const clearBillingContact = () => {
+    setFormData({
+      ...formData,
+      template: {
+        ...formData.template!,
+        billing_contact_name: '',
+        billing_email: '',
+      },
+    });
   };
 
   // Billing information functions
@@ -218,38 +137,9 @@ export default function BillingInformationTab({
         },
       };
 
-      // Update local state
+      // Update local state — this marks the form dirty and the global
+      // autosave loop in SOWForm persists it.
       setFormData(updatedFormData as SOWData);
-
-      // Save to database
-      if (formData.id) {
-        try {
-          const saveResponse = await fetch(`/api/sow/${formData.id}/tab-update`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              tab: 'Billing Information',
-              data: {
-                template: {
-                  billing_company_name: billingInfo.companyName || formData.template?.client_name || '',
-                  billing_address: billingInfo.billingAddress || '',
-                  billing_contact_name: existingBillingContact || billingInfo.billingContact || '',
-                  billing_email: existingBillingEmail || billingInfo.billingEmail || '',
-                },
-              },
-            }),
-          });
-
-          if (!saveResponse.ok) {
-            console.warn('Failed to save billing info to database, but local state was updated');
-          }
-        } catch (saveError) {
-          console.warn('Error saving billing info to database:', saveError);
-          // Don't fail the whole operation if save fails
-        }
-      }
 
       setBillingSuccess('Billing information loaded from Salesforce successfully!');
       setTimeout(() => setBillingSuccess(null), 3000);
@@ -478,8 +368,6 @@ export default function BillingInformationTab({
       {/* Loading Modals */}
       <LoadingModal isOpen={isLoadingContacts} operation="loading" message="Fetching contacts from Salesforce..." />
       <LoadingModal isOpen={isLoadingBilling} operation="loading" message="Loading billing information..." />
-      <LoadingModal isOpen={isSavingBillingContact} operation="saving" message="Saving billing contact selection..." />
-      <LoadingModal isOpen={isClearingBillingContact} operation="updating" message="Clearing billing contact information..." />
     </section>
   );
 }

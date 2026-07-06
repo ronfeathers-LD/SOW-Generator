@@ -291,62 +291,12 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
 
   // This effect was causing infinite re-renders - removed
 
-  // Manual save function - called when user clicks "Save Pricing"
-  // Note: Currently auto-save is handled elsewhere, keeping this for future manual save button
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const savePricingRoles = async () => {
-    if (!formData.id || pricingRoles.length === 0) {
-      return;
-    }
-
-    try {
-      const subtotal = pricingRoles.reduce((sum, role) => sum + role.totalCost, 0);
-      let discountTotal = 0;
-      if (discountConfig.type === 'fixed') {
-        discountTotal = discountConfig.amount || 0;
-      } else if (discountConfig.type === 'percentage') {
-        discountTotal = subtotal * ((discountConfig.percentage || 0) / 100);
-      }
-      const totalAmount = Math.max(0, subtotal - discountTotal); // never persist a negative total (#166)
-
-      const requestBody = {
-        tab: 'Pricing',
-        data: {
-          pricing: {
-            roles: pricingRoles.map(role => ({
-              role: role.role,
-              ratePerHour: role.ratePerHour,
-              defaultRate: role.defaultRate,
-              totalHours: role.totalHours,
-              description: role.description,
-            })),
-            discount_type: discountConfig.type,
-            discount_amount: discountConfig.type === 'fixed' ? (discountConfig.amount || null) : null,
-            discount_percentage: discountConfig.type === 'percentage' ? (discountConfig.percentage || null) : null,
-            subtotal,
-            discount_total: discountTotal,
-            total_amount: totalAmount,
-            auto_calculated: false,
-            last_calculated: new Date().toISOString(),
-          }
-        }
-      };
-
-      const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        console.error('Failed to save pricing roles:', response.statusText);
-      }
-    } catch (error) {
-      console.error('Error saving pricing roles:', error);
-    }
-  };
+  // NOTE: pricing changes are persisted exclusively through `setFormData`
+  // (e.g. in `autoCalculateHours` below, and via the callbacks passed to
+  // `PricingRolesAndDiscount`) — the global autosave loop in SOWForm picks
+  // those up. There is no dedicated tab-update PUT for pricing anymore; a
+  // dead, never-invoked `savePricingRoles` direct-PUT helper that duplicated
+  // this was removed here (#393).
 
   // Flag when the in-memory pricing table differs from the saved pricing — i.e. the
   // user has unsaved manual adjustments. Compared via the single read model
