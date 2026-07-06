@@ -261,6 +261,16 @@ nav[aria-label="Breadcrumb"] ol li::after {
   content: none !important;
 }
 
+/* Phase Stepper (SOWForm progress nav) — same leak as Breadcrumb above: the
+   bare `ol { padding-left: 2em !important }` rule further down (scoped for
+   rich-text SOW content lists, but written without a scoping class) also
+   matches this nav's <ol>, overriding its `pl-0` and shifting the whole
+   stepper right by 32px. */
+nav[aria-label="Progress"] ol {
+  list-style: none !important;
+  padding-left: 0 !important;
+}
+
 /* Content-managed section image sizing */
 .sow-content img,
 #sow-content-project-phases img,
