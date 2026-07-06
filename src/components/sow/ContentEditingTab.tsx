@@ -1,20 +1,17 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { SOWData } from '@/types/sow';
-import { Button } from '@/components/ui/form';
 import { getContentTemplate } from '@/lib/sow-content';
 import { createAllContentHandlers } from '@/lib/utils/contentHandlers';
 import TipTapEditor from '../TipTapEditor';
-import LoadingModal from '../ui/LoadingModal';
 
 interface ContentEditingTabProps {
   formData: Partial<SOWData>;
   setFormData: (data: Partial<SOWData>) => void;
-  onUnsavedChanges?: (hasUnsavedChanges: boolean) => void;
 }
 
-const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setFormData, onUnsavedChanges }: ContentEditingTabProps) {
+const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setFormData }: ContentEditingTabProps) {
 
   // Original templates from database (never change)
   const [originalIntroTemplate, setOriginalIntroTemplate] = useState<string>('');
@@ -23,17 +20,11 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
   const [originalObjectivesDisclosureTemplate, setOriginalObjectivesDisclosureTemplate] = useState<string>('');
   const [originalAssumptionsTemplate, setOriginalAssumptionsTemplate] = useState<string>('');
   const [originalProjectPhasesTemplate, setOriginalProjectPhasesTemplate] = useState<string>('');
-  
+
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(true);
   const [activeSection, setActiveSection] = useState('intro');
-  const [saving, setSaving] = useState<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState<Record<string, 'success' | 'error' | null>>({});
-  const [unsavedChanges, setUnsavedChanges] = useState<Record<string, boolean>>({});
   const [initializedSections, setInitializedSections] = useState<Set<string>>(new Set());
-  
-  // Ref to track when we need to notify parent after save
-  const shouldNotifyParent = useRef(false);
 
   useEffect(() => {
     async function loadTemplates() {
@@ -80,14 +71,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
     loadTemplates();
   }, []); // Only run once when component mounts
 
-  // Function to clear all unsaved changes and notify parent
-  const clearAllUnsavedChanges = useCallback(() => {
-    setUnsavedChanges({});
-    if (onUnsavedChanges) {
-      onUnsavedChanges(false);
-    }
-  }, [onUnsavedChanges]);
-
   // Mark section as initialized when it becomes active
   useEffect(() => {
     if (!loading && !initializing && activeSection) {
@@ -99,14 +82,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
     }
   }, [activeSection, loading, initializing]);
 
-  // Clear unsaved changes when initialization is complete
-  useEffect(() => {
-    if (!loading && !initializing) {
-      // Clear any existing unsaved changes to start with a clean state
-      clearAllUnsavedChanges();
-    }
-  }, [loading, initializing, clearAllUnsavedChanges]);
-
   // Function to normalize content for comparison (removes HTML tags and normalizes whitespace)
   const normalizeContent = (content: string): string => {
     if (!content) return '';
@@ -114,60 +89,36 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
     return content.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
   };
 
-  // Function to check if a section has unsaved changes
-  const checkUnsavedChanges = (sectionName: string, currentContent: string, templateContent: string) => {
-    const normalizedCurrent = normalizeContent(currentContent);
-    const normalizedTemplate = normalizeContent(templateContent);
-    const hasChanges = normalizedCurrent !== normalizedTemplate && normalizedCurrent !== '';
-    setUnsavedChanges(prev => ({ ...prev, [sectionName]: hasChanges }));
-  };
-
-  // Effect to notify parent about unsaved changes after state updates
-  useEffect(() => {
-    if (onUnsavedChanges && !loading && !initializing) {
-      const anyUnsavedChanges = Object.values(unsavedChanges).some(Boolean);
-      onUnsavedChanges(anyUnsavedChanges);
-    }
-  }, [unsavedChanges, onUnsavedChanges, loading, initializing]);
-
-  // Effect to notify parent after successful save
-  useEffect(() => {
-    if (shouldNotifyParent.current && onUnsavedChanges) {
-      onUnsavedChanges(false); // No unsaved changes after successful save
-      shouldNotifyParent.current = false;
-    }
-  }, [unsavedChanges, onUnsavedChanges]);
-
   // Memoize the initialization logic to prevent unnecessary recalculations
   const initializationUpdates = useMemo(() => {
     if (!loading && !initializing && formData.id) {
       const updates: Partial<SOWData> = {};
-      
+
       if (!formData.custom_intro_content && originalIntroTemplate) {
         updates.custom_intro_content = originalIntroTemplate;
       }
-      
+
       if (!formData.custom_scope_content && originalScopeTemplate) {
         updates.custom_scope_content = originalScopeTemplate;
       }
-      
+
       if (!formData.custom_out_of_scope_content && originalOutOfScopeTemplate) {
         updates.custom_out_of_scope_content = originalOutOfScopeTemplate;
       }
-      
+
       if (!formData.custom_objectives_disclosure_content && originalObjectivesDisclosureTemplate) {
         updates.custom_objectives_disclosure_content = originalObjectivesDisclosureTemplate;
       }
-      
+
       if (!formData.custom_assumptions_content && originalAssumptionsTemplate) {
         updates.custom_assumptions_content = originalAssumptionsTemplate;
       }
-      
+
       if (!formData.custom_project_phases_content && originalProjectPhasesTemplate) {
         updates.custom_project_phases_content = originalProjectPhasesTemplate;
       }
-      
-      
+
+
       return updates;
     }
     return {};
@@ -181,7 +132,10 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
     }
   }, [initializationUpdates, setFormData, formData]);
 
-  // Create all content handlers using the factory
+  // Create all content handlers using the factory. All mutations (edits and
+  // resets) go through `setFormData` only, which the parent wires to
+  // `updateFormData` — that marks the form dirty and the global autosave
+  // loop in SOWForm persists it. There is no per-section save here anymore.
   const templates = {
     originalIntroTemplate,
     originalScopeTemplate,
@@ -198,7 +152,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
     formData,
     setFormData,
     normalizeContent,
-    checkUnsavedChanges
   };
 
   const { handlers, resetHandlers } = createAllContentHandlers(context);
@@ -221,64 +174,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
     resetProjectPhasesContent,
     resetOutOfScopeContent
   } = resetHandlers;
-
-  const saveSection = async (sectionName: string) => {
-    if (!formData.id) {
-      setSaveStatus({ ...saveStatus, [sectionName]: 'error' });
-      return;
-    }
-
-    setSaving(sectionName);
-    try {
-      const requestData = {
-        tab: 'Content Editing',
-        data: {
-          custom_intro_content: formData.custom_intro_content,
-          custom_scope_content: formData.custom_scope_content,
-          custom_objectives_disclosure_content: formData.custom_objectives_disclosure_content,
-          custom_assumptions_content: formData.custom_assumptions_content,
-          custom_project_phases_content: formData.custom_project_phases_content,
-          custom_out_of_scope_content: formData.custom_out_of_scope_content,
-          intro_content_edited: formData.intro_content_edited,
-          scope_content_edited: formData.scope_content_edited,
-          objectives_disclosure_content_edited: formData.objectives_disclosure_content_edited,
-          assumptions_content_edited: formData.assumptions_content_edited,
-          project_phases_content_edited: formData.project_phases_content_edited,
-          out_of_scope_content_edited: formData.out_of_scope_content_edited,
-        }
-      };
-      
-      const response = await fetch(`/api/sow/${formData.id}/tab-update`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-      });
-
-      if (response.ok) {
-        setSaveStatus({ ...saveStatus, [sectionName]: 'success' });
-        // Clear unsaved changes for this section
-        setUnsavedChanges(prev => {
-          const newState = { ...prev, [sectionName]: false };
-          return newState;
-        });
-        
-        // Mark that we need to notify parent after state update
-        shouldNotifyParent.current = true;
-        setTimeout(() => {
-          setSaveStatus({ ...saveStatus, [sectionName]: null });
-        }, 3000);
-      } else {
-        setSaveStatus({ ...saveStatus, [sectionName]: 'error' });
-      }
-    } catch (error) {
-      console.error(`Error saving ${sectionName} content:`, error);
-      setSaveStatus({ ...saveStatus, [sectionName]: 'error' });
-    } finally {
-      setSaving(null);
-    }
-  };
 
   if (loading) {
     return (
@@ -313,25 +208,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                     Customized
                   </span>
                 )}
-                {unsavedChanges.intro && (
-                  <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
-                    Unsaved Changes
-                  </span>
-                )}
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={() => saveSection('intro')}
-                  loading={saving === 'intro'}
-                >
-                  {saving === 'intro' ? 'Saving...' : 'Save'}
-                </Button>
-                {saveStatus.intro === 'success' && (
-                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
-                )}
-                {saveStatus.intro === 'error' && (
-                  <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Error</span>
-                )}
                 <button
                   type="button"
                   onClick={resetIntroContent}
@@ -341,7 +217,7 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                 </button>
               </div>
             </div>
-            
+
             <div className="mb-4">
               <p className="mt-2 text-sm text-gray-500">
                 NOTE: the variable {'{clientName}'} will be replaced with the actual client name.
@@ -375,25 +251,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                     Customized
                   </span>
                 )}
-                {unsavedChanges.scope && (
-                  <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
-                    Unsaved Changes
-                  </span>
-                )}
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={() => saveSection('scope')}
-                  loading={saving === 'scope'}
-                >
-                  {saving === 'scope' ? 'Saving...' : 'Save'}
-                </Button>
-                {saveStatus.scope === 'success' && (
-                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
-                )}
-                {saveStatus.scope === 'error' && (
-                  <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Error</span>
-                )}
                 <button
                   type="button"
                   onClick={resetScopeContent}
@@ -403,13 +260,13 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                 </button>
               </div>
             </div>
-            
+
             <div className="mb-4">
               <p className="text-sm text-gray-600 mb-4">
                 Customize the scope content for this SOW. This will override the default template.
               </p>
             </div>
-            
+
             <div className="mb-4">
               <p className="mt-2 text-sm text-gray-500">
                 NOTE: {'{deliverables}'} is a placeholder which will be replaced with the actual deliverables list.
@@ -443,25 +300,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                     Customized
                   </span>
                 )}
-                {unsavedChanges['out-of-scope'] && (
-                  <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
-                    Unsaved Changes
-                  </span>
-                )}
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={() => saveSection('out-of-scope')}
-                  loading={saving === 'out-of-scope'}
-                >
-                  {saving === 'out-of-scope' ? 'Saving...' : 'Save'}
-                </Button>
-                {saveStatus['out-of-scope'] === 'success' && (
-                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
-                )}
-                {saveStatus['out-of-scope'] === 'error' && (
-                  <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Error</span>
-                )}
                 <button
                   type="button"
                   onClick={resetOutOfScopeContent}
@@ -471,13 +309,13 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                 </button>
               </div>
             </div>
-            
+
             <div className="mb-4">
               <p className="text-sm text-gray-600 mb-4">
                 Customize the out of scope content for this SOW. This will override the default template.
               </p>
             </div>
-            
+
             <TipTapEditor
               value={formData.custom_out_of_scope_content || ''}
               onChange={handleOutOfScopeContentChange}
@@ -506,25 +344,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                     Customized
                   </span>
                 )}
-                {unsavedChanges['objectives-disclosure'] && (
-                  <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
-                    Unsaved Changes
-                  </span>
-                )}
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={() => saveSection('objectives-disclosure')}
-                  loading={saving === 'objectives-disclosure'}
-                >
-                  {saving === 'objectives-disclosure' ? 'Saving...' : 'Save'}
-                </Button>
-                {saveStatus['objectives-disclosure'] === 'success' && (
-                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
-                )}
-                {saveStatus['objectives-disclosure'] === 'error' && (
-                  <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Error</span>
-                )}
                 <button
                   type="button"
                   onClick={resetObjectivesDisclosureContent}
@@ -534,7 +353,7 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                 </button>
               </div>
             </div>
-            
+
             <div className="mb-4">
               <TipTapEditor
                 value={formData.custom_objectives_disclosure_content || ''}
@@ -568,25 +387,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                     Customized
                   </span>
                 )}
-                {unsavedChanges.assumptions && (
-                  <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
-                    Unsaved Changes
-                  </span>
-                )}
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={() => saveSection('assumptions')}
-                  loading={saving === 'assumptions'}
-                >
-                  {saving === 'assumptions' ? 'Saving...' : 'Save'}
-                </Button>
-                {saveStatus.assumptions === 'success' && (
-                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
-                )}
-                {saveStatus.assumptions === 'error' && (
-                  <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Error</span>
-                )}
                 <button
                   type="button"
                   onClick={resetAssumptionsContent}
@@ -596,7 +396,7 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                 </button>
               </div>
             </div>
-            
+
             <div className="mb-4">
               <TipTapEditor
                 value={formData.custom_assumptions_content || ''}
@@ -630,25 +430,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                     Customized
                   </span>
                 )}
-                {unsavedChanges['project-phases'] && (
-                  <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
-                    Unsaved Changes
-                  </span>
-                )}
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={() => saveSection('project-phases')}
-                  loading={saving === 'project-phases'}
-                >
-                  {saving === 'project-phases' ? 'Saving...' : 'Save'}
-                </Button>
-                {saveStatus['project-phases'] === 'success' && (
-                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Saved!</span>
-                )}
-                {saveStatus['project-phases'] === 'error' && (
-                  <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Error</span>
-                )}
                 <button
                   type="button"
                   onClick={resetProjectPhasesContent}
@@ -658,7 +439,7 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                 </button>
               </div>
             </div>
-            
+
             <div className="mb-4">
               <TipTapEditor
                 value={formData.custom_project_phases_content || ''}
@@ -720,11 +501,6 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
                         ✏️
                       </span>
                     )}
-                    {unsavedChanges[section.id] && (
-                      <span className="text-red-600 text-xs" title="Unsaved changes">
-                        ●
-                      </span>
-                    )}
                   </div>
                 </div>
               </button>
@@ -736,7 +512,7 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
       {/* Main Content Area */}
       <div className="flex-1">
         {renderSection(activeSection)}
-        
+
         {/* Information Panel */}
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h4 className="text-sm font-medium text-blue-900 mb-2">About Content Editing</h4>
@@ -745,20 +521,12 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
             <li>• Any changes to the default content will be flagged during approval</li>
             <li>• Use placeholders like {'{clientName}'} and {'{deliverables}'} for dynamic content</li>
             <li>• You can reset to the default template at any time</li>
-            <li>• <strong>Save each section individually using the Save button in each section header</strong></li>
+            <li>• Changes are saved automatically as you type</li>
           </ul>
         </div>
       </div>
-      
-      {/* Loading Modal for Content Saving */}
-      <LoadingModal 
-        isOpen={saving !== null} 
-        operation="saving"
-        message={`Saving ${saving ? sections.find(s => s.id === saving)?.name || 'content' : 'content'}...`}
-      />
     </div>
   );
 });
 
 export default ContentEditingTab;
-           
