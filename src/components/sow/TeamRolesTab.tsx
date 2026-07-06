@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SOWData } from '@/types/sow';
-import { Select, Textarea, Button, EmptyState, SectionHeader } from '@/components/ui/form';
+import { Select, Textarea, Input, Button, EmptyState, SectionHeader } from '@/components/ui/form';
 import { SalesforceAccount, SalesforceContact } from '@/lib/salesforce';
 import { filterContacts } from '@/lib/utils/filter-contacts';
 import { mergeStandardClientRoles } from '@/lib/sow/standard-client-roles';
@@ -607,6 +607,9 @@ export default function TeamRolesTab({
            <p className="text-sm text-gray-600">
              Define the roles and responsibilities for the client team
            </p>
+           <p className="text-xs text-gray-500 mt-1">
+             Standard roles are pre-filled as a starting point — edit, remove, or add roles to match the engagement.
+           </p>
          </div>
          {!hasAllStandardRoles && (
            <Button type="button" variant="secondary" onClick={handleAddStandardRoles}>
@@ -623,6 +626,25 @@ export default function TeamRolesTab({
         )}
         {formData.roles?.client_roles?.map((role, index) => (
           <div key={`client-role-${index}-${role.role || 'role'}-${role.email || 'no-email'}`} className="border border-gray-200 rounded-md p-4 mb-4">
+            <div className="mb-4">
+              <label htmlFor={`client-role-name-${index}`} className="block text-sm font-medium text-gray-700">
+                Role
+              </label>
+              <Input
+                id={`client-role-name-${index}`}
+                value={role.role}
+                onChange={(e) => {
+                  const newRoles = [...(formData.roles?.client_roles || [])];
+                  newRoles[index] = { ...role, role: e.target.value };
+                  setFormData({
+                    ...formData,
+                    roles: { ...formData.roles!, client_roles: newRoles }
+                  });
+                }}
+                placeholder="e.g. Executive Sponsor"
+                className="mt-1 text-base font-semibold text-gray-900"
+              />
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               {/* Contact Selection - Left Side (40%) */}
               <div className="lg:col-span-2">
@@ -733,84 +755,6 @@ export default function TeamRolesTab({
                         className="mt-1"
                         placeholder="Describe the responsibilities for this role..."
                       />
-                      {/* Quick fill options */}
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            // Update only the specific role at this index
-                            const newRoles = [...(formData.roles?.client_roles || [])];
-                            newRoles[index] = { ...newRoles[index], responsibilities: 'Executive Sponsor\nThe Executive Sponsor is the client sponsor for the project and acts as the strategic point of contact for the project.' };
-                            setFormData({
-                              ...formData,
-                              roles: { ...formData.roles!, client_roles: newRoles }
-                            });
-                          }}
-                          className="text-sm text-blue-600 hover:text-blue-800 underline"
-                        >
-                          Executive Sponsor
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            // Update only the specific role at this index
-                            const newRoles = [...(formData.roles?.client_roles || [])];
-                            newRoles[index] = { ...newRoles[index], responsibilities: 'Business Owner\nThe Business Lead provides input on the needs of Sales and/or Marketing, participates in relevant calls to confirm requirements.' };
-                            setFormData({
-                              ...formData,
-                              roles: { ...formData.roles!, client_roles: newRoles }
-                            });
-                          }}
-                          className="text-sm text-blue-600 hover:text-blue-800 underline"
-                        >
-                          Business Owner
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            // Update only the specific role at this index
-                            const newRoles = [...(formData.roles?.client_roles || [])];
-                            newRoles[index] = { ...newRoles[index], responsibilities: 'Implementation Project Lead\nThe Project lead acts as the main point of contact for the Client, is responsible for driving the use cases, business requirements and ensuring delivery as outlined in the SOW.' };
-                            setFormData({
-                              ...formData,
-                              roles: { ...formData.roles!, client_roles: newRoles }
-                            });
-                          }}
-                          className="text-sm text-blue-600 hover:text-blue-800 underline"
-                        >
-                          Implementation Project Lead
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            // Update only the specific role at this index
-                            const newRoles = [...(formData.roles?.client_roles || [])];
-                            newRoles[index] = { ...newRoles[index], responsibilities: 'LeanData Admin\nThe LeanData admin will be responsible for the control and administration of the LD system, helping build/test during implementation and serving ongoing configuration needs.' };
-                            setFormData({
-                              ...formData,
-                              roles: { ...formData.roles!, client_roles: newRoles }
-                            });
-                          }}
-                          className="text-sm text-blue-600 hover:text-blue-800 underline"
-                        >
-                          LeanData Admin
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            // Update only the specific role at this index
-                            const newRoles = [...(formData.roles?.client_roles || [])];
-                            newRoles[index] = { ...newRoles[index], responsibilities: 'SFDC Admin / IT\nThe person with System Admin level permissions in SFDC who will assist in downloading LD, granting permissions, creating custom fields, and any other SFDC-related tasks.' };
-                            setFormData({
-                              ...formData,
-                              roles: { ...formData.roles!, client_roles: newRoles }
-                            });
-                          }}
-                          className="text-sm text-blue-600 hover:text-blue-800 underline"
-                        >
-                          SFDC Admin / IT
-                        </button>
-                      </div>
                     </div>
                   </div>
                   <div className="flex justify-end">
