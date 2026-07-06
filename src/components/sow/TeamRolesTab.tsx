@@ -154,7 +154,9 @@ export default function TeamRolesTab({
       email: contact.Email || '',
       salesforce_contact_id: contact.Id,
       contact_title: contact.Title,
-      role: contact.Title || '' // Auto-populate role with contact title
+      // Note: role.role is the role NAME (e.g. "Executive Sponsor") and must
+      // never be overwritten by the contact's Salesforce title — that goes
+      // in contact_title, shown separately as "Title: ..." in the card.
     };
     setFormData({
       ...formData,
@@ -204,7 +206,8 @@ export default function TeamRolesTab({
       email: '',
       salesforce_contact_id: undefined,
       contact_title: '',
-      role: ''
+      // role.role (the role NAME, e.g. "Executive Sponsor") is left as-is —
+      // clearing the assigned contact should not blank the role slot itself.
     };
     setFormData({
       ...formData,
