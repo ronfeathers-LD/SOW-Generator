@@ -43,19 +43,19 @@ export default function SOWScopePage({
             </p>
           </div>
           
-          <div id="sow-content-scope" className="text-base leading-relaxed">
+          <div id="sow-content-scope" className="text-base leading-relaxed sow-content">
             <SOWSectionContent sectionKey="scope" html={content} />
           </div>
         </div>
       ) : (
-        <div id="sow-content-scope" className="text-base leading-relaxed">
+        <div id="sow-content-scope" className="text-base leading-relaxed sow-content">
           <SOWSectionContent sectionKey="scope" html={content} />
         </div>
       )}
 
       {/* Deliverables Content */}
       {customDeliverablesContent && (
-        <div id="sow-content-deliverables" className="mt-6 text-base leading-relaxed">
+        <div id="sow-content-deliverables" className="mt-6 text-base leading-relaxed sow-content">
           <SOWSectionContent sectionKey="deliverables" html={customDeliverablesContent} />
         </div>
       )}
