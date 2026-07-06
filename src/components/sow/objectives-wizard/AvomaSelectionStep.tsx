@@ -247,7 +247,8 @@ const AvomaSelectionStep: React.FC<AvomaSelectionStepProps> = ({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Step 2: Avoma Call Selection</h3>
+        {/* No heading here: the embedding panel (AiGenerationPanel) already
+            renders an "Avoma calls" section label above this component. */}
         <p className="text-sm text-gray-600 mb-4">
           Search for and select relevant Avoma recordings that contain project requirements and objectives.
         </p>

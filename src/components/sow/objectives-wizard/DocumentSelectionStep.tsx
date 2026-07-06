@@ -73,7 +73,8 @@ const DocumentSelectionStep: React.FC<DocumentSelectionStepProps> = ({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Step 1: Document Selection</h3>
+        {/* No heading here: the embedding panel (AiGenerationPanel) already
+            renders a "Documents" section label above this component. */}
         <p className="text-sm text-gray-600 mb-4">
           Select Google Drive documents that contain relevant information for generating project objectives.
           {customerName && isPreloading && (
