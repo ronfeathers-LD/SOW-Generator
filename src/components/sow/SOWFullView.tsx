@@ -538,6 +538,7 @@ export default function SOWFullView({
                       number_of_units: sow.number_of_units || '',
                       regions: sow.regions || '',
                       salesforce_tenants: sow.salesforce_tenants || '',
+                      salesforce_tenant_names: sow.salesforce_tenant_names || '',
                       timeline_weeks: sow.timeline_weeks || '',
                       start_date: new Date(sow.startDate),
                       end_date: null,

@@ -610,6 +610,7 @@ export class ChangelogService {
       'number_of_units': 'Number of Units',
       'regions': 'Regions',
       'salesforce_tenants': 'Salesforce Tenants',
+      'salesforce_tenant_names': 'Tenant Names',
       'units_consumption': 'Units Consumption',
       'orchestration_units': 'Orchestration Units',
       'bookit_forms_units': 'BookIt Forms Units',

@@ -115,6 +115,7 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
             number_of_units: initialData.template?.number_of_units || '',
             regions: initialData.template?.regions || '',
             salesforce_tenants: initialData.template?.salesforce_tenants || '',
+            salesforce_tenant_names: initialData.template?.salesforce_tenant_names || '',
             timeline_weeks: initialData.template?.timeline_weeks || '8',
             units_consumption: initialData.template?.units_consumption || 'All units immediately',
             
@@ -204,6 +205,7 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
             number_of_units: '',
             regions: '',
             salesforce_tenants: '',
+            salesforce_tenant_names: '',
             timeline_weeks: '8',
             units_consumption: 'All units immediately',
             

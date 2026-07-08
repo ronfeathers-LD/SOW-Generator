@@ -470,6 +470,21 @@ export default function ProjectOverviewTab({
               })}
               placeholder="Enter number of Salesforce tenants"
             />
+            <label className="block text-sm font-medium text-gray-700 mt-3 mb-2">
+              Tenant Names
+            </label>
+            <Input
+              type="text"
+              value={formData.template?.salesforce_tenant_names || ''}
+              onChange={(e) => setFormData({
+                ...formData,
+                template: { ...formData.template!, salesforce_tenant_names: e.target.value || '' }
+              })}
+              placeholder="e.g. Prod; UAT sandbox 'uat2'; Dev"
+            />
+            <p className="mt-2 text-sm text-gray-500">
+              Name each tenant/sandbox in scope
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
