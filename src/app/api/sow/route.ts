@@ -51,6 +51,7 @@ export async function POST(request: Request) {
 
     const defaultIntroContent = templateMap.get('intro') || '';
     const defaultScopeContent = templateMap.get('scope') || '';
+    const defaultOutOfScopeContent = templateMap.get('out-of-scope') || '';
     const defaultObjectivesDisclosureContent = templateMap.get('objectives-disclosure') || '';
     const defaultAssumptionsContent = templateMap.get('assumptions') || '';
     const defaultProjectPhasesContent = templateMap.get('project-phases') || '';
@@ -139,6 +140,7 @@ export async function POST(request: Request) {
         // (sanitized, byte-stable) form — see canonicalizeContent (#346).
         custom_intro_content: canonicalizeContent(data.custom_intro_content || defaultIntroContent),
         custom_scope_content: canonicalizeContent(data.custom_scope_content || defaultScopeContent),
+        custom_out_of_scope_content: canonicalizeContent(data.custom_out_of_scope_content || defaultOutOfScopeContent),
         custom_objectives_disclosure_content: canonicalizeContent(data.custom_objectives_disclosure_content || defaultObjectivesDisclosureContent),
         custom_assumptions_content: canonicalizeContent(data.custom_assumptions_content || defaultAssumptionsContent),
         custom_project_phases_content: canonicalizeContent(data.custom_project_phases_content || defaultProjectPhasesContent),
@@ -147,6 +149,7 @@ export async function POST(request: Request) {
         custom_key_objectives_content: canonicalizeContent(data.custom_key_objectives_content || ''),
         intro_content_edited: data.intro_content_edited || false,
         scope_content_edited: data.scope_content_edited || false,
+        out_of_scope_content_edited: data.out_of_scope_content_edited || false,
         objectives_disclosure_content_edited: data.objectives_disclosure_content_edited || false,
         assumptions_content_edited: data.assumptions_content_edited || false,
         project_phases_content_edited: data.project_phases_content_edited || false,
