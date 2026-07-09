@@ -119,6 +119,7 @@ export function buildTabPayload(
         ai_generated_objective_overview_content: formData.ai_generated_objective_overview_content,
         ai_generated_key_objectives_content: formData.ai_generated_key_objectives_content,
         ai_generated_deliverables_content: formData.ai_generated_deliverables_content,
+        ai_generated_scope_content: formData.ai_generated_scope_content,
       };
 
     case 'Signers & Roles':

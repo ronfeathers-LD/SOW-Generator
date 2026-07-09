@@ -27,3 +27,12 @@ describe('mapApiResponseToSOWData payment_terms', () => {
     expect(result.payment_terms).toBe('');
   });
 });
+
+describe('mapApiResponseToSOWData ai_generated_scope_content', () => {
+  it('maps ai_generated_scope_content through', () => {
+    const result = mapApiResponseToSOWData(
+      responseWith({ ai_generated_scope_content: '<h3>Acquire</h3>' })
+    );
+    expect(result.ai_generated_scope_content).toBe('<h3>Acquire</h3>');
+  });
+});

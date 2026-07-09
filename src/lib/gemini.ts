@@ -1,5 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import type { SvfScopeGroup, SvfSolutionGroup, FlatSolutions } from '@/lib/sow/svf-pillars';
+import { buildSolutionsAndScopeContract } from '@/lib/gemini/svf-contract';
 
 interface GeminiBulletPoint {
   title: string;
@@ -16,7 +18,10 @@ interface TranscriptionAnalysisResponse {
   customerName: string;
   objectiveOverview: string;
   overcomingActions: string[];
-  solutions: Record<string, string[]>;
+  // Back-compat: solutions may be the legacy flat map OR the new pillar array.
+  solutions: FlatSolutions | SvfSolutionGroup[];
+  // New (optional): in-scope use cases grouped by pillar. Absent on old/fallback responses.
+  scopeItems?: SvfScopeGroup[];
   isFallback: boolean;
   error?: string;
 }
@@ -328,20 +333,8 @@ Please provide a professional, 2-3 sentence project description that captures th
     // 2. Editable content analysis guidance (from database)
     // 3. Dynamic data (transcript, customer info, etc.)
     
-    // Build the solutions object - products are now pre-sorted by the API route
-    let solutionsTemplate;
-    
-    if (selectedProducts && selectedProducts.length > 0) {
-      // Products are already sorted by database sort_order from the API route
-      solutionsTemplate = selectedProducts.map(product => `    "${product}": [
-      "Specific solution item related to ${product}, as discussed in the transcript."
-    ]`).join(',\n');
-    } else {
-      solutionsTemplate = `    "productName1": [
-      "Specific solution item related to productName1, as discussed in the transcript."
-    ]`;
-    }
-    
+    const svfContract = buildSolutionsAndScopeContract(selectedProducts || []);
+
     const jsonStructure = `
 IMPORTANT: You must respond with valid JSON in exactly this format:
 {
@@ -352,14 +345,12 @@ IMPORTANT: You must respond with valid JSON in exactly this format:
     "Another objective or action.",
     "A third objective or action."
   ],
-  "solutions": {
-${solutionsTemplate}
-  },
+  "scopeItems": [],
+  "solutions": [],
   "isFallback": false
 }
 
-CRITICAL: 
-The solutions object must maintain the EXACT order of products as shown above. Do not reorder, rename, or change the existing product names. Additionally, you must analyze the transcript for any other solutions, features, or related requirements discussed, and create new keys for each of these items within the solutions object (e.g., 'Reporting').
+${svfContract}
 
 Input Variables Available:
 - customerName: "${customerName}"
