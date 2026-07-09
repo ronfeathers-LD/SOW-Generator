@@ -178,6 +178,7 @@ export function mapSowRowToResponse(sow: SowRow, extras: MapSowExtras = {}): Sow
     ai_generated_objective_overview_content: sow.ai_generated_objective_overview_content || null,
     ai_generated_key_objectives_content: sow.ai_generated_key_objectives_content || null,
     ai_generated_deliverables_content: sow.ai_generated_deliverables_content || null,
+    ai_generated_scope_content: sow.ai_generated_scope_content || null,
     // Include submission tracking
     submitted_by: sow.submitted_by || null,
     submitted_at: sow.submitted_at || null,

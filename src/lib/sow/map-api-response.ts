@@ -135,5 +135,6 @@ export function mapApiResponseToSOWData(data: SowApiResponse): SOWData {
     ai_generated_objective_overview_content: data.ai_generated_objective_overview_content || null,
     ai_generated_key_objectives_content: data.ai_generated_key_objectives_content || null,
     ai_generated_deliverables_content: data.ai_generated_deliverables_content || null,
+    ai_generated_scope_content: data.ai_generated_scope_content || null,
   };
 }

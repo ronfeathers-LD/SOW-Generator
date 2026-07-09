@@ -129,6 +129,7 @@ export function buildTabColumnUpdate(
       if (d.ai_generated_objective_overview_content !== undefined) updateData.ai_generated_objective_overview_content = d.ai_generated_objective_overview_content;
       if (d.ai_generated_key_objectives_content !== undefined) updateData.ai_generated_key_objectives_content = d.ai_generated_key_objectives_content;
       if (d.ai_generated_deliverables_content !== undefined) updateData.ai_generated_deliverables_content = d.ai_generated_deliverables_content;
+      if (d.ai_generated_scope_content !== undefined) updateData.ai_generated_scope_content = d.ai_generated_scope_content;
       break;
 
     case 'Signers & Roles': {
