@@ -172,7 +172,9 @@ export async function POST(
       billing_info: sowData.billing_info || '',
       start_date: sowData.start_date || '',
       timeline_weeks: sowData.template?.timeline_weeks || sowData.timeline_weeks || '',
-      timeline_phases: sowData.template?.timeline_phases ?? sowData.timeline_phases ?? [],
+      // The top-level timeline_phases column is canonical (autosave updates it).
+      // The template JSONB is a stale creation snapshot — do not read phases from it.
+      timeline_phases: sowData.timeline_phases ?? [],
       products: sowData.products || [],
       number_of_units: sowData.number_of_units || '',
       regions: sowData.regions || '',

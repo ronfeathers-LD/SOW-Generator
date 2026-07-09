@@ -125,7 +125,7 @@ export function renderTimelinePhaseBarHtml(
     return `<div style="position:relative;height:32px;width:100%;margin-bottom:8px;">${blocks}</div>`;
   }).join('');
   const descriptions = sorted.map((phase) =>
-    `<li style="font-size:11px;color:#374151;margin-bottom:2px;"><strong>${escapePhaseHtml(phase.name)}</strong>${phase.description ? ' — ' + escapePhaseHtml(phase.description) : ''} <span style="color:#6b7280;">(${formatPhaseDuration(phase.durationWeeks)})</span></li>`
+    `<li style="font-size:11px;color:#374151;margin-bottom:2px;"><strong>${escapePhaseHtml(phase.name)}</strong>${phase.description ? ' - ' + escapePhaseHtml(phase.description) : ''} <span style="color:#6b7280;">(${formatPhaseDuration(phase.durationWeeks)})</span></li>`
   ).join('');
   return `
     <h3 style="font-size:16px;font-weight:600;margin:16px 0 12px;">Project Timeline</h3>

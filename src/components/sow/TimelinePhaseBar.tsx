@@ -46,7 +46,7 @@ export default function TimelinePhaseBar({ phases, timelineWeeks }: TimelinePhas
                     key={`${phase.name}-${i}`}
                     className="absolute top-0 h-9 rounded border border-gray-700 bg-gray-100 px-2 flex items-center overflow-hidden"
                     style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
-                    title={`${phase.name} — ${formatPhaseDuration(phase.durationWeeks)}`}
+                    title={`${phase.name} - ${formatPhaseDuration(phase.durationWeeks)}`}
                   >
                     <span className="text-xs font-semibold text-gray-800 truncate">{phase.name}</span>
                   </div>
@@ -65,7 +65,7 @@ export default function TimelinePhaseBar({ phases, timelineWeeks }: TimelinePhas
           {sorted.map((phase, i) => (
             <li key={`${phase.name}-desc-${i}`} className="text-xs text-gray-700">
               <span className="font-semibold">{phase.name}</span>
-              {phase.description ? ` — ${phase.description}` : ''}
+              {phase.description ? ` - ${phase.description}` : ''}
               {' '}<span className="text-gray-500">({formatPhaseDuration(phase.durationWeeks)})</span>
             </li>
           ))}
