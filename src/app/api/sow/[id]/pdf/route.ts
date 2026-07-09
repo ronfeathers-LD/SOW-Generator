@@ -172,6 +172,7 @@ export async function POST(
       billing_info: sowData.billing_info || '',
       start_date: sowData.start_date || '',
       timeline_weeks: sowData.template?.timeline_weeks || sowData.timeline_weeks || '',
+      timeline_phases: sowData.template?.timeline_phases ?? sowData.timeline_phases ?? [],
       products: sowData.products || [],
       number_of_units: sowData.number_of_units || '',
       regions: sowData.regions || '',
