@@ -116,6 +116,7 @@ export function mapSowRowToResponse(sow: SowRow, extras: MapSowExtras = {}): Sow
       products: productNames,
       regions: sow.regions || '',
       salesforce_tenants: sow.salesforce_tenants || '',
+      salesforce_tenant_names: sow.salesforce_tenant_names || '',
       timeline_weeks: sow.timeline_weeks || '',
       units_consumption: sow.units_consumption || 'All units immediately',
       // BookIt Family Units

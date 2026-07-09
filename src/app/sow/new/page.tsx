@@ -59,6 +59,7 @@ export default function NewSOWPage() {
             number_of_units: '',
             regions: '',
             salesforce_tenants: '',
+            salesforce_tenant_names: '',
             timeline_weeks: '',
             units_consumption: '',
             // Include opportunity information (now required)

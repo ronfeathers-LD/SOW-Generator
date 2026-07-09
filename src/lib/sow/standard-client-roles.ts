@@ -1,7 +1,7 @@
 import type { ClientRole } from '@/types/sow';
 
 /**
- * The five standard client-role slots seeded onto every new SOW's
+ * The seven standard client-role slots seeded onto every new SOW's
  * client_roles list. `name`/`email` are left blank for the customer to fill
  * in; `responsibilities` carries concise canned guidance (adapted from the
  * quick-fill strings in TeamRolesTab.tsx where a matching role exists).
@@ -37,13 +37,25 @@ export const STANDARD_CLIENT_ROLES: ClientRole[] = [
     email: '',
     responsibilities: 'The person with System Admin level permissions in SFDC who will assist in downloading LD, granting permissions, creating custom fields, and any other SFDC-related tasks.',
   },
+  {
+    role: 'MAP Administrator',
+    name: '',
+    email: '',
+    responsibilities: 'Administers the marketing automation platform; owns form and webhook changes needed for scheduling flows.',
+  },
+  {
+    role: 'Web Developer',
+    name: '',
+    email: '',
+    responsibilities: 'Implements website-side changes (forms, scripts, routing snippets) required for scheduling deployments.',
+  },
 ];
 
 /**
- * Returns `existing` plus whichever of the five standard role slots are
+ * Returns `existing` plus whichever of the seven standard role slots are
  * missing (matched case-insensitively on trimmed `role`). Existing entries
  * are never modified, removed, or reordered — standard slots are appended
- * after them. Returns the SAME array reference when all five are already
+ * after them. Returns the SAME array reference when all seven are already
  * present, so callers can use reference equality as a no-op signal.
  */
 export function mergeStandardClientRoles(existing: ClientRole[]): ClientRole[] {

@@ -3,13 +3,15 @@ import { STANDARD_CLIENT_ROLES, mergeStandardClientRoles } from './standard-clie
 import type { ClientRole } from '@/types/sow';
 
 describe('STANDARD_CLIENT_ROLES', () => {
-  it('has the five slots, in order, with empty name/email and canned responsibilities', () => {
+  it('has the seven slots, in order, with empty name/email and canned responsibilities', () => {
     expect(STANDARD_CLIENT_ROLES.map(r => r.role)).toEqual([
       'Executive Sponsor',
       'Project Manager',
       'LeanData Administrator',
       'Owner of Business Requirements',
       'SFDC System Team Point of Contact',
+      'MAP Administrator',
+      'Web Developer',
     ]);
     STANDARD_CLIENT_ROLES.forEach(r => {
       expect(r.name).toBe('');
@@ -17,10 +19,17 @@ describe('STANDARD_CLIENT_ROLES', () => {
       expect(r.responsibilities.length).toBeGreaterThan(0);
     });
   });
+
+  it('includes the scheduling-project roles', () => {
+    const names = STANDARD_CLIENT_ROLES.map(r => r.role);
+    expect(names).toContain('MAP Administrator');
+    expect(names).toContain('Web Developer');
+    expect(names.indexOf('MAP Administrator')).toBeGreaterThan(names.indexOf('SFDC System Team Point of Contact'));
+  });
 });
 
 describe('mergeStandardClientRoles', () => {
-  it('returns all 5 standard slots in order when existing is empty', () => {
+  it('returns all 7 standard slots in order when existing is empty', () => {
     const result = mergeStandardClientRoles([]);
     expect(result.map(r => r.role)).toEqual(STANDARD_CLIENT_ROLES.map(r => r.role));
   });
@@ -37,18 +46,20 @@ describe('mergeStandardClientRoles', () => {
     expect(result[0]).toEqual(existing[0]);
     expect(result[1]).toEqual(existing[1]);
 
-    // Only the 4 missing standard slots were appended.
-    expect(result.length).toBe(existing.length + 4);
+    // Only the 6 missing standard slots were appended.
+    expect(result.length).toBe(existing.length + 6);
     const appendedRoles = result.slice(existing.length).map(r => r.role);
     expect(appendedRoles).toEqual([
       'Project Manager',
       'LeanData Administrator',
       'Owner of Business Requirements',
       'SFDC System Team Point of Contact',
+      'MAP Administrator',
+      'Web Developer',
     ]);
   });
 
-  it('returns the same array reference when all 5 standard slots are already present', () => {
+  it('returns the same array reference when all 7 standard slots are already present', () => {
     const existing: ClientRole[] = STANDARD_CLIENT_ROLES.map(r => ({ ...r, name: 'Someone' }));
     const result = mergeStandardClientRoles(existing);
     expect(result).toBe(existing);

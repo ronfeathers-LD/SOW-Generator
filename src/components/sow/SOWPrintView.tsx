@@ -93,6 +93,7 @@ export default function SOWPrintView({ sow, salesforceData, products, showPricin
                 number_of_units: sow.number_of_units || '',
                 regions: sow.regions || '',
                 salesforce_tenants: sow.salesforce_tenants || '',
+                salesforce_tenant_names: sow.salesforce_tenant_names || '',
                 timeline_weeks: sow.timeline_weeks || '',
                 start_date: sow.startDate ? new Date(sow.startDate) : new Date(),
                 end_date: null,
@@ -319,7 +320,7 @@ export default function SOWPrintView({ sow, salesforceData, products, showPricin
               />
 
               <p className="mb-2 text-sm text-gray-700">LeanData shall notify Customer when costs are projected to exceed this estimate, providing the opportunity for Customer and LeanData to resolve jointly how to proceed. Hours listed above are to be consumed by the end date and cannot be extended.</p>
-              <p className="mb-2 text-sm text-gray-700">Any additional requests or mutually agreed-upon additional hours required to complete the tasks shall be documented in a change order Exhibit to this SOW and signed by both parties. <span className="font-bold">Additional hours will be billed at the Rate/Hr.</span></p>
+              <p className="mb-2 text-sm text-gray-700">Any additional requests or mutually agreed-upon additional hours required to complete the tasks shall be documented in a change order Exhibit to this SOW and signed by both parties. <span className="font-bold">Additional hours will be billed at the Standard Rate/Hr.</span></p>
               
               {/* Billing Information */}
               <div className="mt-8 p-6 bg-gray-50 rounded-lg">
@@ -332,12 +333,19 @@ export default function SOWPrintView({ sow, salesforceData, products, showPricin
                   )}
                 </div>
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                  {sow.payment_terms && (
+                    <>
+                      <dt className="font-semibold text-gray-700">Payment Terms:</dt>
+                      <dd className="text-gray-900">{sow.payment_terms}</dd>
+                    </>
+                  )}
+
                   <dt className="font-semibold text-gray-700">Company Name:</dt>
                   <dd className="text-gray-900">{sow.template?.billing_company_name || 'N/A'}</dd>
-                  
+
                   <dt className="font-semibold text-gray-700">Billing Contact Name:</dt>
                   <dd className="text-gray-900">{sow.template?.billing_contact_name || 'N/A'}</dd>
-                  
+
                   <dt className="font-semibold text-gray-700">Billing Address:</dt>
                   <dd className="text-gray-900">
                     {(sow.template?.billing_address || 'N/A')
@@ -346,19 +354,12 @@ export default function SOWPrintView({ sow, salesforceData, products, showPricin
                         <span key={idx} className="block">{line.trim()}</span>
                       ))}
                   </dd>
-                  
+
                   <dt className="font-semibold text-gray-700">Billing Email:</dt>
                   <dd className="text-gray-900">{sow.template?.billing_email || 'N/A'}</dd>
-                  
+
                   <dt className="font-semibold text-gray-700">Purchase Order Number:</dt>
                   <dd className="text-gray-900">{sow.template?.purchase_order_number || 'N/A'}</dd>
-
-                  {sow.payment_terms && (
-                    <>
-                      <dt className="font-semibold text-gray-700">Payment Terms:</dt>
-                      <dd className="text-gray-900">{sow.payment_terms}</dd>
-                    </>
-                  )}
                 </dl>
               </div>
             </div>

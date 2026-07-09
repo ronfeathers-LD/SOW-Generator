@@ -106,6 +106,7 @@ export function mapApiResponseToDisplaySOW(data: SowDisplayApiResponse): Display
     number_of_units: data.template?.number_of_units || data.number_of_units || '',
     regions: data.template?.regions || data.regions || '',
     salesforce_tenants: data.template?.salesforce_tenants || data.salesforce_tenants || '',
+    salesforce_tenant_names: data.template?.salesforce_tenant_names || data.salesforce_tenant_names || '',
     timeline_weeks: data.template?.timeline_weeks || data.timeline_weeks || '',
     units_consumption: data.template?.units_consumption || data.units_consumption || '',
     orchestration_units: data.template?.orchestration_units || data.orchestration_units || data.template?.number_of_units || '',

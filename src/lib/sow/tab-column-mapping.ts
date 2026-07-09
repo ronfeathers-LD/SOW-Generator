@@ -44,6 +44,7 @@ export function buildTabColumnUpdate(
         if (d.template.sow_title !== undefined) updateData.sow_title = d.template.sow_title;
         if (d.template.regions !== undefined) updateData.regions = d.template.regions;
         if (d.template.salesforce_tenants !== undefined) updateData.salesforce_tenants = d.template.salesforce_tenants;
+        if (d.template.salesforce_tenant_names !== undefined) updateData.salesforce_tenant_names = d.template.salesforce_tenant_names;
         if (d.template.timeline_weeks !== undefined) updateData.timeline_weeks = d.template.timeline_weeks;
         if (d.template.units_consumption !== undefined) updateData.units_consumption = d.template.units_consumption;
 

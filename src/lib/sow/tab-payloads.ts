@@ -88,6 +88,7 @@ export function buildTabPayload(
           products: template?.products || [],
           regions: template?.regions,
           salesforce_tenants: template?.salesforce_tenants,
+          salesforce_tenant_names: template?.salesforce_tenant_names,
           timeline_weeks: template?.timeline_weeks,
           units_consumption: template?.units_consumption,
           // BookIt Family Units

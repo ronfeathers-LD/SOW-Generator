@@ -176,6 +176,7 @@ export async function POST(
       number_of_units: sowData.number_of_units || '',
       regions: sowData.regions || '',
       salesforce_tenants: sowData.salesforce_tenants || '',
+      salesforce_tenant_names: sowData.salesforce_tenant_names || '',
       units_consumption: sowData.units_consumption || '',
       orchestration_units: sowData.orchestration_units || '',
       bookit_forms_units: sowData.bookit_forms_units || '',
