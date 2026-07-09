@@ -117,6 +117,7 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
             salesforce_tenants: initialData.template?.salesforce_tenants || '',
             salesforce_tenant_names: initialData.template?.salesforce_tenant_names || '',
             timeline_weeks: initialData.template?.timeline_weeks || '8',
+            timeline_phases: initialData.template?.timeline_phases || [],
             units_consumption: initialData.template?.units_consumption || 'All units immediately',
             
             // BookIt Family Units
@@ -207,6 +208,7 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
             salesforce_tenants: '',
             salesforce_tenant_names: '',
             timeline_weeks: '8',
+            timeline_phases: [],
             units_consumption: 'All units immediately',
             
             // BookIt Family Units

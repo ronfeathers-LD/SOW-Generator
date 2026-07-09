@@ -9,6 +9,7 @@ import SOWProjectPhasesPage from '@/components/sow/SOWProjectPhasesPage';
 import SOWAssumptionsPage from '@/components/sow/SOWAssumptionsPage';
 import AppendixChangeRequestForm from '@/components/sow/AppendixChangeRequestForm';
 import PricingDisplay from '@/components/sow/PricingDisplay';
+import TimelinePhaseBar from '@/components/sow/TimelinePhaseBar';
 import { DisplaySOW, Product, SalesforceData } from '@/types/sow-display';
 import { getPricingSummary } from '@/lib/sow/pricing-summary';
 
@@ -225,60 +226,8 @@ export default function SOWPrintView({ sow, salesforceData, products, showPricin
               <h2 className="text-3xl font-bold mb-6">5. PRICING</h2>
               
               {/* Project Timeline Display */}
-              {sow.timeline_weeks && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Project Timeline</h3>
-                  <div className="formatSOWTable">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Phase</th>
-                          <th>Description</th>
-                          <th>Duration</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(() => {
-                          const totalWeeks = parseFloat(sow.timeline_weeks) || 0;
-                          
-                          const formatDuration = (weeks: number) => {
-                            if (weeks < 1) {
-                              const days = Math.ceil(weeks * 7);
-                              return `${days} ${days === 1 ? 'day' : 'days'}`;
-                            } else {
-                              const roundedWeeks = Math.round(weeks * 10) / 10;
-                              return `${roundedWeeks} ${roundedWeeks === 1 ? 'week' : 'weeks'}`;
-                            }
-                          };
-                          
-                          const phaseDurations = {
-                            engage: 0.125, discovery: 0.25, build: 0.25, 
-                            test: 0.125, deploy: 0.125, hypercare: 0.125
-                          };
-                          
-                          const phases = [
-                            { name: 'ENGAGE', description: 'Project kickoff and planning', duration: totalWeeks * phaseDurations.engage },
-                            { name: 'DISCOVERY', description: 'Requirements gathering and analysis', duration: totalWeeks * phaseDurations.discovery },
-                            { name: 'BUILD', description: 'Solution development and configuration', duration: totalWeeks * phaseDurations.build },
-                            { name: 'TEST', description: 'Quality assurance and validation', duration: totalWeeks * phaseDurations.test },
-                            { name: 'DEPLOY', description: 'Production deployment and go-live', duration: totalWeeks * phaseDurations.deploy },
-                            { name: 'HYPERCARE', description: 'Post-deployment support and transition', duration: totalWeeks * phaseDurations.hypercare }
-                          ];
-                          
-                          return phases.map((phase, index) => (
-                            <tr key={phase.name}>
-                              <td>{index + 1}. {phase.name}</td>
-                              <td>{phase.description}</td>
-                              <td>{formatDuration(phase.duration)}</td>
-                            </tr>
-                          ));
-                        })()}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-              
+              <TimelinePhaseBar phases={sow.timeline_phases} timelineWeeks={sow.timeline_weeks} />
+
               <div className="mb-6 p-4 bg-gray-50 rounded-lg border-l-4 border-green-500">
                 <p className="text-gray-700">
                   The tasks above will be completed on a <strong>time and material basis</strong>, using the LeanData standard workday of 8 hours for a duration of <strong>{sow.timeline_weeks ? (() => {

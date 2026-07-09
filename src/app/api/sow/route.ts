@@ -8,6 +8,7 @@ import { authOptions } from '@/lib/auth';
 import { canonicalizeContent, DEFAULT_PAYMENT_TERMS, resolveTemplatesForSegment } from '@/lib/sow-content';
 import { buildPricingRolesColumn } from '@/lib/sow/pricing-roles-column';
 import { STANDARD_CLIENT_ROLES } from '@/lib/sow/standard-client-roles';
+import { defaultTimelinePhases } from '@/lib/sow/timeline-phases';
 
 export async function POST(request: Request) {
   try {
@@ -126,6 +127,7 @@ export async function POST(request: Request) {
         salesforce_tenants: data.template?.salesforce_tenants || '',
         salesforce_tenant_names: data.template?.salesforce_tenant_names || '',
         timeline_weeks: data.template?.timeline_weeks || '',
+        timeline_phases: data.template?.timeline_phases ?? defaultTimelinePhases(data.template?.timeline_weeks || ''),
         units_consumption: data.template?.units_consumption || '',
         
         // BookIt Family Units

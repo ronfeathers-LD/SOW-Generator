@@ -108,6 +108,7 @@ export function mapApiResponseToDisplaySOW(data: SowDisplayApiResponse): Display
     salesforce_tenants: data.template?.salesforce_tenants || data.salesforce_tenants || '',
     salesforce_tenant_names: data.template?.salesforce_tenant_names || data.salesforce_tenant_names || '',
     timeline_weeks: data.template?.timeline_weeks || data.timeline_weeks || '',
+    timeline_phases: data.template?.timeline_phases ?? [],
     units_consumption: data.template?.units_consumption || data.units_consumption || '',
     orchestration_units: data.template?.orchestration_units || data.orchestration_units || data.template?.number_of_units || '',
     bookit_forms_units: data.template?.bookit_forms_units || data.bookit_forms_units || '',

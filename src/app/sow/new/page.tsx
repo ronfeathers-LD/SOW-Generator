@@ -61,6 +61,7 @@ export default function NewSOWPage() {
             salesforce_tenants: '',
             salesforce_tenant_names: '',
             timeline_weeks: '',
+            timeline_phases: [],
             units_consumption: '',
             // Include opportunity information (now required)
             opportunity_id: selectedOpportunity.id,

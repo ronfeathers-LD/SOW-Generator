@@ -71,6 +71,11 @@ export function buildTabColumnUpdate(
       if (d.template?.products !== undefined) {
         updateData.products = d.template.products;
       }
+
+      // Timeline phases - JSONB field
+      if (d.template?.timeline_phases !== undefined) {
+        updateData.timeline_phases = d.template.timeline_phases;
+      }
       break;
 
     case 'Customer Information':
