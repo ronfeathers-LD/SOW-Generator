@@ -106,6 +106,7 @@ export interface DisplaySOW {
   salesforce_tenants?: string;
   salesforce_tenant_names?: string;
   timeline_weeks?: string;
+  timeline_phases?: import('@/lib/sow/timeline-phases').TimelinePhase[];
   units_consumption?: string;
   orchestration_units?: string;
   bookit_forms_units?: string;
