@@ -1,4 +1,5 @@
 import { SalesforceAccount, SalesforceContact } from '@/lib/salesforce';
+import type { TimelinePhase } from '@/lib/sow/timeline-phases';
 
 export interface BillingInfo {
   company_name: string;
@@ -49,6 +50,7 @@ export interface SOWTemplate {
   salesforce_tenants: string;
   salesforce_tenant_names?: string;
   timeline_weeks: string;
+  timeline_phases?: TimelinePhase[];
   units_consumption: string;
   
   // BookIt Family Units

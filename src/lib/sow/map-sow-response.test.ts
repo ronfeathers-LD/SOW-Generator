@@ -40,6 +40,18 @@ describe('mapSowRowToResponse salesforce_tenant_names', () => {
   });
 });
 
+describe('mapSowRowToResponse timeline_phases', () => {
+  it('passes stored timeline_phases through onto template', () => {
+    const phases = [{ name: 'Engage', description: 'x', startWeek: 0, durationWeeks: 2 }];
+    const result = mapSowRowToResponse(rowWith({ timeline_phases: phases }));
+    expect(result.template.timeline_phases).toEqual(phases);
+  });
+  it('maps a NULL timeline_phases to an empty array on the template', () => {
+    const result = mapSowRowToResponse(rowWith({ timeline_phases: null }));
+    expect(result.template.timeline_phases).toEqual([]);
+  });
+});
+
 describe('mapSowRowToResponse payment_terms', () => {
   it('passes an empty payment_terms through as empty (no sentinel default)', () => {
     const result = mapSowRowToResponse(rowWith({ payment_terms: '' }));

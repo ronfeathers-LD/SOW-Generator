@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SOWData } from '@/types/sow';
-import { Card, SectionHeader, Input, Select } from '@/components/ui/form';
+import { Card, SectionHeader, Input, Select, Button, EmptyState } from '@/components/ui/form';
+import { defaultTimelinePhases, timelinePhasesExceedWeeks, type TimelinePhase } from '@/lib/sow/timeline-phases';
 import { isRoutingProductById, isLeadToAccountProductById, isFormsProductById, isLinksProductById, isHandoffProductById, isOtherProduct, productRequiresUnits } from '@/lib/constants/products';
 import { 
   findProductByIdOrName, 
@@ -508,6 +509,180 @@ export default function ProjectOverviewTab({
               placeholder="Enter timeline in weeks"
             />
           </div>
+
+          {/* Timeline Phases — editable breakdown of the timeline into named phases
+              (distinct from the Content tab's "Project Phases, Activities & Artifacts"
+              section). Drives the shared timeline visual rendered elsewhere; no
+              fee/hours fields here by design (see @/lib/sow/timeline-phases). */}
+          <div className="md:col-span-2">
+            {(() => {
+              const phases: TimelinePhase[] = formData.template?.timeline_phases ?? [];
+              const timelineWeeks = formData.template?.timeline_weeks || '';
+
+              const setPhases = (next: TimelinePhase[]) =>
+                setFormData({
+                  ...formData,
+                  template: { ...formData.template!, timeline_phases: next },
+                });
+
+              const updatePhase = (index: number, patch: Partial<TimelinePhase>) => {
+                const next = [...phases];
+                next[index] = { ...next[index], ...patch };
+                setPhases(next);
+              };
+
+              const removePhase = (index: number) => {
+                setPhases(phases.filter((_, i) => i !== index));
+              };
+
+              const movePhase = (index: number, direction: -1 | 1) => {
+                const target = index + direction;
+                if (target < 0 || target >= phases.length) return;
+                const next = [...phases];
+                [next[index], next[target]] = [next[target], next[index]];
+                setPhases(next);
+              };
+
+              const addPhase = () => {
+                setPhases([...phases, { name: '', description: '', startWeek: 0, durationWeeks: 1 }]);
+              };
+
+              const resetFromTimeline = () => {
+                setPhases(defaultTimelinePhases(timelineWeeks));
+              };
+
+              const exceedsTimeline = timelinePhasesExceedWeeks(phases, timelineWeeks);
+
+              return (
+                <div className="mt-2 pt-4 border-t border-gray-200 dark:border-dark-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-dark-text">
+                      Timeline Phases
+                    </label>
+                    <Button type="button" variant="secondary" size="sm" onClick={resetFromTimeline}>
+                      Reset from timeline
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-dark-text-muted mb-3">
+                    Break the timeline into named phases (e.g. Discovery, Build, Deploy) with their own
+                    start week and duration. These drive the timeline visual shown on the SOW.
+                  </p>
+
+                  {phases.length === 0 && (
+                    <EmptyState
+                      className="mb-3"
+                      title="No custom phases"
+                      description="The default six-phase timeline is used until you add or reset phases."
+                    />
+                  )}
+
+                  {phases.map((phase, index) => (
+                    <div
+                      key={index}
+                      className="grid grid-cols-1 md:grid-cols-12 gap-2 mb-2 items-start border border-gray-200 dark:border-dark-border rounded-md p-3"
+                    >
+                      <div className="md:col-span-3">
+                        <label className="block text-xs font-medium text-gray-500 dark:text-dark-text-muted mb-1">
+                          Name
+                        </label>
+                        <Input
+                          type="text"
+                          value={phase.name}
+                          onChange={(e) => updatePhase(index, { name: e.target.value })}
+                          placeholder="e.g. Discovery"
+                        />
+                      </div>
+                      <div className="md:col-span-4">
+                        <label className="block text-xs font-medium text-gray-500 dark:text-dark-text-muted mb-1">
+                          Description
+                        </label>
+                        <Input
+                          type="text"
+                          value={phase.description}
+                          onChange={(e) => updatePhase(index, { description: e.target.value })}
+                          placeholder="e.g. Requirements gathering and analysis"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-medium text-gray-500 dark:text-dark-text-muted mb-1">
+                          Start (wk)
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.5"
+                          value={phase.startWeek}
+                          onChange={(e) => updatePhase(index, { startWeek: parseFloat(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-medium text-gray-500 dark:text-dark-text-muted mb-1">
+                          Duration (wk)
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.5"
+                          value={phase.durationWeeks}
+                          onChange={(e) => updatePhase(index, { durationWeeks: parseFloat(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="md:col-span-1 flex md:flex-col items-center justify-end md:justify-center gap-1 pt-1 md:pt-5">
+                        <button
+                          type="button"
+                          onClick={() => movePhase(index, -1)}
+                          disabled={index === 0}
+                          className="text-xs px-1 text-gray-500 hover:text-gray-800 dark:text-dark-text-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                          aria-label="Move phase up"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => movePhase(index, 1)}
+                          disabled={index === phases.length - 1}
+                          className="text-xs px-1 text-gray-500 hover:text-gray-800 dark:text-dark-text-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                          aria-label="Move phase down"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removePhase(index)}
+                          className="text-xs text-red-600 hover:text-red-800 font-medium"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    leftIcon={
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    }
+                    onClick={addPhase}
+                  >
+                    Add phase
+                  </Button>
+
+                  {exceedsTimeline && (
+                    <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
+                      Warning: one or more phases extend past the {timelineWeeks}-week timeline.
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <span className="inline-flex items-center">
