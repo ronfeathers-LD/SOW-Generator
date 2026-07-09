@@ -1440,7 +1440,7 @@ export class PDFGenerator {
                     LeanData shall notify Customer when costs are projected to exceed this estimate, providing the opportunity for Customer and LeanData to resolve jointly how to proceed. Hours listed above are to be consumed by the end date and cannot be extended.
                   </p>
                   <p style="margin: 0; font-size: 14px; line-height: 1.5;">
-                    Any additional requests or mutually agreed-upon additional hours required to complete the tasks shall be documented in a change order Exhibit to this SOW and signed by both parties. Additional hours will be billed at the Rate/Hr.
+                    Any additional requests or mutually agreed-upon additional hours required to complete the tasks shall be documented in a change order Exhibit to this SOW and signed by both parties. Additional hours will be billed at the Standard Rate/Hr.
                   </p>
                 </div>
               </div>
@@ -1453,6 +1453,12 @@ export class PDFGenerator {
               <h3>Billing Information</h3>
               <div class="billing-info">
                 <div class="billing-grid">
+                  ${sowData.payment_terms ? `
+                  <div>
+                    <div class="billing-label">Payment Terms:</div>
+                    <div class="billing-value">${sowData.payment_terms}</div>
+                  </div>
+                  ` : ''}
                   <div>
                     <div class="billing-label">Company Name:</div>
                     <div class="billing-value">${billingInfo?.company_name || 'N/A'}</div>
@@ -1473,12 +1479,6 @@ export class PDFGenerator {
                     <div class="billing-label">Purchase Order Number:</div>
                     <div class="billing-value">${billingInfo?.po_number || 'N/A'}</div>
                   </div>
-                  ${sowData.payment_terms ? `
-                  <div>
-                    <div class="billing-label">Payment Terms:</div>
-                    <div class="billing-value">${sowData.payment_terms}</div>
-                  </div>
-                  ` : ''}
                 </div>
               </div>
             </div>

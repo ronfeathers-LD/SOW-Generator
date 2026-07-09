@@ -33,7 +33,7 @@ export const SOW_SECTION_CONTENT_COLUMNS = {
  * thereafter via the Billing Information tab.
  */
 export const DEFAULT_PAYMENT_TERMS =
-  'Billed monthly, as incurred; payment due upon receipt.';
+  'Billed monthly, as incurred. Monthly fees shall be due upon receipt and sent to the following Customer contact:';
 
 export type SOWSectionKey = keyof typeof SOW_SECTION_CONTENT_COLUMNS;
 export type SOWSectionContentColumn =
