@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AvomaClient } from '@/lib/avoma';
 import { analyzeTranscription } from '@/lib/gemini';
+import { solutionsToDeliverablesText } from '@/lib/sow/svf-content';
 
 export async function POST(request: NextRequest) {
   try {
@@ -80,6 +81,11 @@ export async function POST(request: NextRequest) {
     // Create a summary
     const summary = `Analyzed ${validTranscripts.length} meeting transcript${validTranscripts.length > 1 ? 's' : ''} and generated objectives and solutions.`;
 
+    // Solutions may be the legacy flat map OR the new pillar array (back-compat,
+    // see src/lib/sow/svf-pillars.ts SolutionsField). The shared builder handles
+    // both shapes and returns formatted lines (pillar/product headers + bullets).
+    const deliverableLines = solutionsToDeliverablesText(analysisResult.solutions);
+
     // Convert TranscriptionAnalysisResponse to the expected format
     const bulletPoints = [
       {
@@ -92,13 +98,11 @@ export async function POST(request: NextRequest) {
         description: action,
         category: "actions"
       })),
-      ...Object.entries(analysisResult.solutions).flatMap(([category, solutions]) =>
-        solutions.map(solution => ({
-          title: category,
-          description: solution,
-          category: "solutions"
-        }))
-      )
+      ...deliverableLines.map(line => ({
+        title: "Solutions",
+        description: line,
+        category: "solutions"
+      }))
     ];
 
     return NextResponse.json({

@@ -5,6 +5,9 @@ import SalesforceIntegration from '@/components/SalesforceIntegration';
 import OpportunityLookup from '@/components/OpportunityLookup';
 import LoadingModal from '@/components/ui/LoadingModal';
 import { SalesforceAccount, SalesforceOpportunity } from '@/lib/salesforce';
+import { solutionsToDeliverablesHtml } from '@/lib/sow/svf-content';
+import type { SolutionsField } from '@/lib/sow/svf-pillars';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 
 interface AvomaMeeting {
   id: string;
@@ -25,7 +28,7 @@ interface PreviewResult {
   customerName: string;
   objectiveOverview: string;
   overcomingActions: string[];
-  solutions: Record<string, string[]>;
+  solutions: SolutionsField;
   detectedProducts: string[];
   transcriptionsUsed: number;
   meetingTitles: string[];
@@ -499,24 +502,15 @@ export default function PreviewSOWPage() {
             )}
 
             {/* Solutions */}
-            {Object.keys(previewResult.solutions).length > 0 && (
+            {solutionsToDeliverablesHtml(previewResult.solutions) && (
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Solutions</h3>
-                <div className="space-y-4">
-                  {Object.entries(previewResult.solutions).map(([product, items]) => (
-                    <div key={product} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                      <h4 className="font-medium text-gray-900 mb-2">{product}</h4>
-                      <ul className="space-y-1">
-                        {items.map((item, idx) => (
-                          <li key={idx} className="flex items-start text-sm text-gray-700">
-                            <span className="text-blue-600 mr-2">•</span>
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
+                <div
+                  className="bg-gray-50 border border-gray-200 rounded-lg p-4 prose max-w-none dark:prose-invert"
+                  dangerouslySetInnerHTML={{
+                    __html: sanitizeHtml(solutionsToDeliverablesHtml(previewResult.solutions)),
+                  }}
+                />
               </div>
             )}
 
