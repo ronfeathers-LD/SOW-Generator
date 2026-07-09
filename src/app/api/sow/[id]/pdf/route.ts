@@ -171,9 +171,9 @@ export async function POST(
       pricing_discount_percentage: (sowData.pricing_roles && typeof sowData.pricing_roles === 'object' && !Array.isArray(sowData.pricing_roles)) ? sowData.pricing_roles.discount_percentage || 0 : 0,
       billing_info: sowData.billing_info || '',
       start_date: sowData.start_date || '',
-      timeline_weeks: sowData.template?.timeline_weeks || sowData.timeline_weeks || '',
-      // The top-level timeline_phases column is canonical (autosave updates it).
-      // The template JSONB is a stale creation snapshot — do not read phases from it.
+      // The top-level timeline_weeks/timeline_phases columns are canonical (autosave updates them).
+      // The template JSONB is a stale creation snapshot - do not read timeline fields from it (issue #417).
+      timeline_weeks: sowData.timeline_weeks || '',
       timeline_phases: sowData.timeline_phases ?? [],
       products: sowData.products || [],
       number_of_units: sowData.number_of_units || '',
