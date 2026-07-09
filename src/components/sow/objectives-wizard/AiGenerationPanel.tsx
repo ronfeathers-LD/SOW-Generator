@@ -189,6 +189,7 @@ export default function AiGenerationPanel({
       deliverables: string[];
       keyObjectivesHtml?: string;
       deliverablesHtml?: string;
+      scopeHtml?: string;
     }) => {
       onGenerated({
         overview: generated.overview,
@@ -196,6 +197,7 @@ export default function AiGenerationPanel({
         deliverablesHtml: generated.deliverablesHtml || '',
         keyObjectives: generated.keyObjectives,
         deliverables: generated.deliverables,
+        scopeHtml: generated.scopeHtml || '',
       });
       setIsModalOpen(false);
       setIsExpanded(false);
