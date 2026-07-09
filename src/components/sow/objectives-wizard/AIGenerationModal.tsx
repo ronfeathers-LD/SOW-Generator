@@ -2,6 +2,12 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { SOWData } from '@/types/sow';
 import { SalesforceAccount } from '@/lib/salesforce';
 import { WizardStepData } from './types';
+import {
+  solutionsToDeliverablesHtml,
+  solutionsToDeliverablesText,
+  scopeGroupsToHtml,
+  escapeHtml,
+} from '@/lib/sow/svf-content';
 
 interface AIGenerationModalProps {
   isOpen: boolean;
@@ -12,6 +18,7 @@ interface AIGenerationModalProps {
     deliverables: string[];
     keyObjectivesHtml?: string;
     deliverablesHtml?: string;
+    scopeHtml?: string;
   }) => void;
   wizardData: WizardStepData;
   formData: Partial<SOWData>;
@@ -149,47 +156,16 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
         painPoints = result.overcomingActions;
       }
 
-      // Escape AI-generated text before interpolating into HTML — the model
-      // output is derived from untrusted transcripts/docs. (audit #79)
-      const esc = (s: unknown) =>
-        String(s ?? '')
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#39;');
-
-      // Convert solutions object to HTML format for proper rendering
-      let deliverablesHtml = '';
-      if (result.solutions && typeof result.solutions === 'object') {
-        Object.entries(result.solutions).forEach(([category, items]) => {
-          if (Array.isArray(items)) {
-            deliverablesHtml += `<h3 class="text-lg font-semibold mb-3 mt-4">${esc(category)}</h3>`;
-            deliverablesHtml += '<ul class="list-disc pl-6 mb-4">';
-            items.forEach((item: string) => {
-              deliverablesHtml += `<li class="mb-1">${esc(item)}</li>`;
-            });
-            deliverablesHtml += '</ul>';
-          }
-        });
-      }
-
-      // Also create a plain text version for backward compatibility
-      const deliverables: string[] = [];
-      if (result.solutions && typeof result.solutions === 'object') {
-        Object.entries(result.solutions).forEach(([category, items]) => {
-          if (Array.isArray(items)) {
-            deliverables.push(`${category}:`);
-            items.forEach((item: string) => {
-              deliverables.push(`  • ${item}`);
-            });
-          }
-        });
-      }
+      // Deliverables + scope HTML come from shared builders that accept BOTH
+      // the legacy flat solutions map and the new SVF pillar array. (P4a)
+      const deliverablesHtml = solutionsToDeliverablesHtml(result.solutions);
+      const deliverables = solutionsToDeliverablesText(result.solutions);
+      const scopeHtml = scopeGroupsToHtml(result.scopeItems);
 
       // Convert key objectives to HTML format for proper rendering
-      const keyObjectivesHtml = painPoints.length > 0 ?
-        `<ul class="list-disc pl-6 mb-4">${painPoints.map(obj => `<li class="mb-1">${esc(obj)}</li>`).join('')}</ul>` : '';
+      const keyObjectivesHtml = painPoints.length > 0
+        ? `<ul class="list-disc pl-6 mb-4">${painPoints.map((obj) => `<li class="mb-1">${escapeHtml(obj)}</li>`).join('')}</ul>`
+        : '';
 
       // Call the success callback with generated content
       onSuccess({
@@ -198,6 +174,7 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
         deliverables: deliverables,
         keyObjectivesHtml: keyObjectivesHtml,
         deliverablesHtml: deliverablesHtml,
+        scopeHtml: scopeHtml,
       });
 
       // Close the modal
