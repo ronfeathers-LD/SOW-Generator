@@ -57,6 +57,36 @@ describe('solutionsToDeliverablesHtml', () => {
     expect(html).toContain('&lt;script&gt;');
     expect(html).not.toContain('<script>');
   });
+
+  it('renders all four pillars in canonical SVF order regardless of scrambled input order', () => {
+    const html = solutionsToDeliverablesHtml([
+      { pillar: 'Expand', products: { ExpandProduct: ['Grow usage'] } },
+      { pillar: 'Retain', products: { RetainProduct: ['Keep it healthy'] } },
+      { pillar: 'Adopt', products: { AdoptProduct: ['Drive adoption'] } },
+      { pillar: 'Acquire', products: { AcquireProduct: ['Win new revenue'] } },
+    ]);
+    const acquireIdx = html.indexOf('Acquire');
+    const adoptIdx = html.indexOf('Adopt');
+    const retainIdx = html.indexOf('Retain');
+    const expandIdx = html.indexOf('Expand');
+    expect(acquireIdx).toBeGreaterThanOrEqual(0);
+    expect(acquireIdx).toBeLessThan(adoptIdx);
+    expect(adoptIdx).toBeLessThan(retainIdx);
+    expect(retainIdx).toBeLessThan(expandIdx);
+  });
+
+  it('elides flat-shape products with no items or only whitespace items', () => {
+    expect(solutionsToDeliverablesHtml({ Routing: [] })).toBe('');
+    expect(solutionsToDeliverablesHtml({ Routing: ['  '] })).toBe('');
+  });
+
+  it('escapes an adversarial product NAME nested under a pillar (array shape)', () => {
+    const html = solutionsToDeliverablesHtml([
+      { pillar: 'Acquire', products: { '<script>x</script>': ['ok'] } },
+    ]);
+    expect(html).toContain('&lt;script&gt;x&lt;/script&gt;');
+    expect(html).not.toContain('<script>x</script>');
+  });
 });
 
 describe('solutionsToDeliverablesText', () => {
@@ -95,5 +125,28 @@ describe('scopeGroupsToHtml', () => {
     expect(html).toContain('&lt;b&gt;Win&lt;/b&gt;');
     expect(html).toContain('<h3');
     expect(html).toContain('<li');
+  });
+
+  it('renders all four pillars in canonical SVF order regardless of scrambled input order', () => {
+    const html = scopeGroupsToHtml([
+      { pillar: 'Expand', items: ['Expand item'] },
+      { pillar: 'Retain', items: ['Retain item'] },
+      { pillar: 'Adopt', items: ['Adopt item'] },
+      { pillar: 'Acquire', items: ['Acquire item'] },
+    ]);
+    const acquireIdx = html.indexOf('Acquire');
+    const adoptIdx = html.indexOf('Adopt');
+    const retainIdx = html.indexOf('Retain');
+    const expandIdx = html.indexOf('Expand');
+    expect(acquireIdx).toBeGreaterThanOrEqual(0);
+    expect(acquireIdx).toBeLessThan(adoptIdx);
+    expect(adoptIdx).toBeLessThan(retainIdx);
+    expect(retainIdx).toBeLessThan(expandIdx);
+  });
+
+  it('escapes an adversarial item string containing a script tag (untyped item path)', () => {
+    const html = scopeGroupsToHtml([{ pillar: 'Acquire', items: ['<script>alert(1)</script>'] }]);
+    expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(html).not.toContain('<script>alert(1)</script>');
   });
 });

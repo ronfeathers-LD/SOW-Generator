@@ -238,6 +238,8 @@ export default function PreviewSOWPage() {
     }
   }, [selectedMeetingIds, selectedAccount, selectedOpportunity]);
 
+  const solutionsHtml = previewResult ? solutionsToDeliverablesHtml(previewResult.solutions) : '';
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -502,13 +504,13 @@ export default function PreviewSOWPage() {
             )}
 
             {/* Solutions */}
-            {solutionsToDeliverablesHtml(previewResult.solutions) && (
+            {solutionsHtml && (
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Solutions</h3>
                 <div
                   className="bg-gray-50 border border-gray-200 rounded-lg p-4 prose max-w-none dark:prose-invert"
                   dangerouslySetInnerHTML={{
-                    __html: sanitizeHtml(solutionsToDeliverablesHtml(previewResult.solutions)),
+                    __html: sanitizeHtml(solutionsHtml),
                   }}
                 />
               </div>

@@ -11,7 +11,7 @@ export function buildSolutionsAndScopeContract(selectedProducts: string[]): stri
   const productList =
     selectedProducts && selectedProducts.length > 0
       ? selectedProducts.map((p) => `"${p}"`).join(', ')
-      : '(none selected — infer products discussed in the transcript)';
+      : '(none selected: infer products discussed in the transcript)';
 
   const pillarDefs = SVF_PILLARS.map((p) => `- ${p.name}: ${p.definition}`).join('\n');
 
