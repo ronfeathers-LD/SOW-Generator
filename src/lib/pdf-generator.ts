@@ -4,6 +4,7 @@ import { parseObjectives } from './utils/parse-objectives';
 import { sortProducts, resolveProductNames } from './utils/productSorting';
 import { processContent } from './text-to-html';
 import { sanitizeHtml } from './sanitize-html';
+import { renderTimelinePhaseBarHtml, type TimelinePhase } from './sow/timeline-phases';
 import fs from 'fs';
 import path from 'path';
 
@@ -198,6 +199,7 @@ interface SOWData {
   billing_info?: string | BillingInfo;
   start_date?: string;
   timeline_weeks?: string;
+  timeline_phases?: TimelinePhase[];
   products?: string[] | string;
   number_of_units?: string;
   regions?: string;
@@ -1235,58 +1237,7 @@ export class PDFGenerator {
             <!-- Project Timeline -->
             ${sowData.timeline_weeks && sowData.timeline_weeks !== '999' ? `
             <div class="content">
-              <h3>Project Timeline</h3>
-              ${(() => {
-                const totalWeeks = parseFloat(sowData.timeline_weeks) || 0;
-                
-                // Helper function to format duration with appropriate units
-                const formatDuration = (weeks: number) => {
-                  if (weeks < 1) {
-                    // Convert to days and round up to nearest day
-                    const days = Math.ceil(weeks * 7);
-                    return `${days} ${days === 1 ? 'day' : 'days'}`;
-                  } else {
-                    // Round to 1 decimal place for weeks
-                    const roundedWeeks = Math.round(weeks * 10) / 10;
-                    return `${roundedWeeks} ${roundedWeeks === 1 ? 'week' : 'weeks'}`;
-                  }
-                };
-                
-                const phaseDurations = {
-                  engage: 0.125, discovery: 0.25, build: 0.25, 
-                  test: 0.125, deploy: 0.125, hypercare: 0.125
-                };
-                
-                const phases = [
-                  { name: 'ENGAGE', description: 'Project kickoff and planning', duration: totalWeeks * phaseDurations.engage },
-                  { name: 'DISCOVERY', description: 'Requirements gathering and analysis', duration: totalWeeks * phaseDurations.discovery },
-                  { name: 'BUILD', description: 'Solution development and configuration', duration: totalWeeks * phaseDurations.build },
-                  { name: 'TEST', description: 'Quality assurance and validation', duration: totalWeeks * phaseDurations.test },
-                  { name: 'DEPLOY', description: 'Production deployment and go-live', duration: totalWeeks * phaseDurations.deploy },
-                  { name: 'HYPERCARE', description: 'Post-deployment support and transition', duration: totalWeeks * phaseDurations.hypercare }
-                ];
-                
-                return `
-                  <table class="content-table">
-                    <thead>
-                      <tr style="background-color: #26D07C; color: #ffffff;">
-                        <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">Phase</th>
-                        <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">Description</th>
-                        <th style="border-bottom: 1px solid #d1d5db; padding: 12px; text-align: left; font-weight: bold; color: #ffffff; text-transform: uppercase; font-size: 12px;">Duration</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${phases.map((phase, index) => `
-                        <tr>
-                          <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; vertical-align: top;">${index + 1}. ${phase.name}</td>
-                          <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; vertical-align: top;">${phase.description}</td>
-                          <td style="border-bottom: 1px solid #e5e7eb; padding: 16px; color: #374151; vertical-align: top;">${formatDuration(phase.duration)}</td>
-                        </tr>
-                      `).join('')}
-                    </tbody>
-                  </table>
-                `;
-              })()}
+              ${renderTimelinePhaseBarHtml(sowData.timeline_phases, sowData.timeline_weeks)}
             </div>
             ` : `
             <div class="content">

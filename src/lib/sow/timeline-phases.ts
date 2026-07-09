@@ -96,3 +96,42 @@ export function timelinePhasesExceedWeeks(
   if (total <= 0) return false;
   return phases.some((p) => p.startWeek + p.durationWeeks > total + 1e-9);
 }
+
+function escapePhaseHtml(s: string): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/** PDF/Puppeteer HTML-string mirror of TimelinePhaseBar (grayscale-safe, no JS). */
+export function renderTimelinePhaseBarHtml(
+  phases: TimelinePhase[] | null | undefined,
+  timelineWeeks: string | number | null | undefined
+): string {
+  const total = parseTimelineWeeks(timelineWeeks);
+  const effective = effectiveTimelinePhases(phases ?? null, timelineWeeks);
+  if (total <= 0 || effective.length === 0) return '';
+
+  // Sort by startWeek ascending (mirrors TimelinePhaseBar) so custom user-reordered
+  // phases still pack into the minimum number of rows and render left-to-right.
+  const sorted = [...effective].sort((a, b) => a.startWeek - b.startWeek);
+
+  const rows = packPhasesIntoRows(sorted);
+  const bars = rows.map((row) => {
+    const blocks = row.map((phase) => {
+      const { leftPct, widthPct } = phaseGeometry(phase, total);
+      return `<div style="position:absolute;top:0;height:32px;left:${leftPct}%;width:${widthPct}%;border:1px solid #374151;background:#f3f4f6;padding:0 6px;display:flex;align-items:center;overflow:hidden;border-radius:3px;"><span style="font-size:11px;font-weight:600;color:#1f2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapePhaseHtml(phase.name)}</span></div>`;
+    }).join('');
+    return `<div style="position:relative;height:32px;width:100%;margin-bottom:8px;">${blocks}</div>`;
+  }).join('');
+  const descriptions = sorted.map((phase) =>
+    `<li style="font-size:11px;color:#374151;margin-bottom:2px;"><strong>${escapePhaseHtml(phase.name)}</strong>${phase.description ? ' — ' + escapePhaseHtml(phase.description) : ''} <span style="color:#6b7280;">(${formatPhaseDuration(phase.durationWeeks)})</span></li>`
+  ).join('');
+  return `
+    <h3 style="font-size:16px;font-weight:600;margin:16px 0 12px;">Project Timeline</h3>
+    <div style="border:1px solid #d1d5db;border-radius:6px;padding:16px;">
+      <div>${bars}</div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#6b7280;margin-top:4px;"><span>Week 0</span><span>Week ${Math.round(total * 10) / 10}</span></div>
+      <ul style="margin-top:12px;padding-left:0;list-style:none;">${descriptions}</ul>
+    </div>`;
+}

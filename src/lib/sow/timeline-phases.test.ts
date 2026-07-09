@@ -7,6 +7,7 @@ import {
   phaseGeometry,
   packPhasesIntoRows,
   timelinePhasesExceedWeeks,
+  renderTimelinePhaseBarHtml,
 } from './timeline-phases';
 
 describe('DEFAULT_TIMELINE_PHASE_SPEC', () => {
@@ -104,5 +105,33 @@ describe('timelinePhasesExceedWeeks', () => {
   });
   it('is false when timeline_weeks is unset (nothing to exceed)', () => {
     expect(timelinePhasesExceedWeeks([{ name: '', description: '', startWeek: 0, durationWeeks: 5 }], '')).toBe(false);
+  });
+});
+
+describe('renderTimelinePhaseBarHtml', () => {
+  it('returns an empty string when timeline_weeks is unset/invalid', () => {
+    expect(renderTimelinePhaseBarHtml(null, '')).toBe('');
+    expect(renderTimelinePhaseBarHtml(null, '999')).toBe(''); // legacy sentinel
+    expect(renderTimelinePhaseBarHtml(null, '0')).toBe('');
+    expect(renderTimelinePhaseBarHtml(null, 'abc')).toBe('');
+  });
+
+  it('contains each default phase name for a 16-week timeline with no stored phases', () => {
+    const html = renderTimelinePhaseBarHtml(null, '16');
+    expect(html).not.toBe('');
+    for (const spec of DEFAULT_TIMELINE_PHASE_SPEC) {
+      expect(html).toContain(spec.name);
+    }
+    expect(html).toContain('Week 0');
+    expect(html).toContain('Week 16');
+  });
+
+  it('HTML-escapes an injected phase name so it cannot break out as markup', () => {
+    const phases = [
+      { name: '<script>alert(1)</script>', description: 'x', startWeek: 0, durationWeeks: 16 },
+    ];
+    const html = renderTimelinePhaseBarHtml(phases, '16');
+    expect(html).not.toContain('<script>alert(1)</script>');
+    expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
   });
 });
