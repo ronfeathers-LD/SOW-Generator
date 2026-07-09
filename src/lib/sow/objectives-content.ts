@@ -13,6 +13,7 @@ export interface GeneratedObjectives {
   deliverablesHtml: string;
   keyObjectives: string[];
   deliverables: string[];
+  scopeHtml: string;
 }
 
 /**
@@ -79,6 +80,11 @@ export function aiGenerationPatch(gen: GeneratedObjectives): Record<string, unkn
     custom_deliverables_content: gen.deliverablesHtml,
     ai_generated_deliverables_content: gen.deliverablesHtml,
     deliverables_content_edited: false,
+
+    // Scope (SVF pillar-organized, generated alongside deliverables)
+    custom_scope_content: gen.scopeHtml,
+    ai_generated_scope_content: gen.scopeHtml,
+    scope_content_edited: false,
 
     // Legacy deliverables array
     deliverables: gen.deliverables.join('\n'),

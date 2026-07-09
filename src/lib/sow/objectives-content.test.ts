@@ -70,3 +70,19 @@ describe('aiGenerationPatch', () => {
     expect(patch.deliverables).toBe('');
   });
 });
+
+describe('aiGenerationPatch — scope', () => {
+  it('fans scopeHtml out to the custom/ai_generated/edited triple', () => {
+    const patch = aiGenerationPatch({
+      overview: 'o',
+      keyObjectivesHtml: '<ul></ul>',
+      deliverablesHtml: '<h3></h3>',
+      keyObjectives: [],
+      deliverables: [],
+      scopeHtml: '<h3>Acquire</h3><ul><li>x</li></ul>',
+    });
+    expect(patch.custom_scope_content).toBe('<h3>Acquire</h3><ul><li>x</li></ul>');
+    expect(patch.ai_generated_scope_content).toBe('<h3>Acquire</h3><ul><li>x</li></ul>');
+    expect(patch.scope_content_edited).toBe(false);
+  });
+});
