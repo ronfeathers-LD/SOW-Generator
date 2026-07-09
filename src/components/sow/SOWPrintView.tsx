@@ -93,6 +93,7 @@ export default function SOWPrintView({ sow, salesforceData, products, showPricin
                 number_of_units: sow.number_of_units || '',
                 regions: sow.regions || '',
                 salesforce_tenants: sow.salesforce_tenants || '',
+                salesforce_tenant_names: sow.salesforce_tenant_names || '',
                 timeline_weeks: sow.timeline_weeks || '',
                 start_date: sow.startDate ? new Date(sow.startDate) : new Date(),
                 end_date: null,

@@ -202,6 +202,7 @@ interface SOWData {
   number_of_units?: string;
   regions?: string;
   salesforce_tenants?: string;
+  salesforce_tenant_names?: string;
   units_consumption?: string;
   orchestration_units?: string;
   bookit_forms_units?: string;
@@ -1111,6 +1112,7 @@ export class PDFGenerator {
                   return '';
                 })()}
                 <li>Salesforce Tenants: ${sowData.salesforce_tenants || 'N/A'}</li>
+                ${sowData.salesforce_tenant_names ? `<li>Tenant Names: ${sowData.salesforce_tenant_names}</li>` : ''}
                 <li>Timeline: ${sowData.timeline_weeks ? `${sowData.timeline_weeks} weeks` : 'N/A'}</li>
                 <li>Start and End date: The start date of this SOW is one week after subscription start date and ends based on the number of weeks</li>
                 <li>Units consumption: ${sowData.units_consumption || 'N/A'}</li>

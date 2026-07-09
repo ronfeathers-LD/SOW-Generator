@@ -23,6 +23,7 @@ interface SOWObjectivesPageProps {
     number_of_units?: string;
     regions?: string;
     salesforce_tenants?: string;
+    salesforce_tenant_names?: string;
     timeline_weeks?: string;
     start_date?: Date | null;
     end_date?: Date | null;
@@ -188,6 +189,11 @@ export default function SOWObjectivesPage({
             <li>
               Salesforce Tenants: {projectDetails.salesforce_tenants || 'N/A'}
             </li>
+            {projectDetails.salesforce_tenant_names && (
+              <li>
+                Tenant Names: {projectDetails.salesforce_tenant_names}
+              </li>
+            )}
             <li>
               Timeline: {projectDetails.timeline_weeks ? (() => {
                 const totalWeeks = parseFloat(projectDetails.timeline_weeks) || 0;

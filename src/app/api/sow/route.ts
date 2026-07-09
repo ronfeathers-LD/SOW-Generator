@@ -124,6 +124,7 @@ export async function POST(request: Request) {
         number_of_units: data.template?.number_of_units || '',
         regions: data.template?.regions || '',
         salesforce_tenants: data.template?.salesforce_tenants || '',
+        salesforce_tenant_names: data.template?.salesforce_tenant_names || '',
         timeline_weeks: data.template?.timeline_weeks || '',
         units_consumption: data.template?.units_consumption || '',
         

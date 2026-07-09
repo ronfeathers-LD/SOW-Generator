@@ -9,6 +9,7 @@ import {
   isFormsProductSelected, 
   isHandoffProductSelected 
 } from '@/lib/utils/productCompatibility';
+import { groupProductsByCategory, type CategoryRow } from '@/lib/sow/product-groups';
 
 interface Product {
   id: string;
@@ -29,6 +30,7 @@ export default function ProjectOverviewTab({
   setFormData,
 }: ProjectOverviewTabProps) {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
@@ -76,6 +78,8 @@ export default function ProjectOverviewTab({
           const data = await response.json();
           setProducts(data);
         }
+        const catRes = await fetch('/api/admin/product-categories');
+        if (catRes.ok) setCategories(await catRes.json());
       } catch (error) {
         console.error('Error fetching products:', error);
       } finally {
@@ -189,34 +193,13 @@ export default function ProjectOverviewTab({
   }, [selectedProducts, products]);
 
 
-  // Group products by category from database
-  const groupProducts = (products: Product[]) => {
-    const groups = {
-      FlowBuilder: {
-        title: 'FlowBuilder & Orchestration',
-        icon: '⚡',
-        color: 'blue',
-        products: products.filter(p => p.category === 'FlowBuilder')
-      },
-      BookIt: {
-        title: 'BookIt Family',
-        icon: '📋',
-        color: 'green',
-        products: products.filter(p => p.category === 'BookIt')
-      },
-      Other: {
-        title: 'Other Products',
-        icon: '🔧',
-        color: 'gray',
-        products: products.filter(p => p.category === 'Other')
-      }
-    };
-
-    // Only return groups that have products
-    return Object.entries(groups).filter(([, group]) => group.products.length > 0);
-  };
-
   // Helper function to get the corresponding unit field name for a product
+  // NOTE: the generic "other_products_units" field only applies to products in the
+  // 'Other' category. A product in a new, uncataloged category (e.g. "Integrations")
+  // that has requires_units=true will fall through to `null` here and get no unit
+  // field / validation — this is a known limitation, not a bug. Extending unit-field
+  // coverage to arbitrary categories is out of scope for the category-driven grouping
+  // change (see product-groups.ts); revisit if a new category needs its own units.
   const getUnitFieldName = (productId: string): string | null => {
     if (isRoutingProductById(productId) || isLeadToAccountProductById(productId)) {
       return 'orchestration_units';
@@ -487,6 +470,21 @@ export default function ProjectOverviewTab({
               })}
               placeholder="Enter number of Salesforce tenants"
             />
+            <label className="block text-sm font-medium text-gray-700 mt-3 mb-2">
+              Tenant Names
+            </label>
+            <Input
+              type="text"
+              value={formData.template?.salesforce_tenant_names || ''}
+              onChange={(e) => setFormData({
+                ...formData,
+                template: { ...formData.template!, salesforce_tenant_names: e.target.value || '' }
+              })}
+              placeholder="e.g. Prod; UAT sandbox 'uat2'; Dev"
+            />
+            <p className="mt-2 text-sm text-gray-500">
+              Name each tenant/sandbox in scope
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -562,8 +560,8 @@ export default function ProjectOverviewTab({
                       No products available.
                     </div>
                   ) : (
-                    groupProducts(products).map(([groupKey, group]) => (
-                      <div key={groupKey} className="space-y-3">
+                    groupProductsByCategory(products, categories).map((group) => (
+                      <div key={group.key} className="space-y-3">
                         {/* Group Header */}
                         <div className="flex items-center space-x-2">
                           <span className="text-lg">{group.icon}</span>
@@ -642,7 +640,7 @@ export default function ProjectOverviewTab({
                         {/* Required unit counts for this group — shown inline,
                             attached beneath the group's product chips. */}
                         {(() => {
-                          const unitFields = unitFieldsForGroup(groupKey);
+                          const unitFields = unitFieldsForGroup(group.key);
                           if (unitFields.length === 0) return null;
                           const rail =
                             group.color === 'green'

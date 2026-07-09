@@ -104,6 +104,7 @@ export interface DisplaySOW {
   number_of_units?: string;
   regions?: string;
   salesforce_tenants?: string;
+  salesforce_tenant_names?: string;
   timeline_weeks?: string;
   units_consumption?: string;
   orchestration_units?: string;

@@ -26,6 +26,20 @@ describe('mapSowRowToResponse tenant/timeline/regions defaults', () => {
   });
 });
 
+describe('mapSowRowToResponse salesforce_tenant_names', () => {
+  it('passes salesforce_tenant_names through to the template', () => {
+    const result = mapSowRowToResponse(
+      rowWith({ salesforce_tenant_names: "Prod; UAT 'uat2'" })
+    );
+    expect(result.template.salesforce_tenant_names).toBe("Prod; UAT 'uat2'");
+  });
+
+  it('defaults missing salesforce_tenant_names to empty string', () => {
+    const result = mapSowRowToResponse(rowWith({ salesforce_tenant_names: null }));
+    expect(result.template.salesforce_tenant_names).toBe('');
+  });
+});
+
 describe('mapSowRowToResponse payment_terms', () => {
   it('passes an empty payment_terms through as empty (no sentinel default)', () => {
     const result = mapSowRowToResponse(rowWith({ payment_terms: '' }));
