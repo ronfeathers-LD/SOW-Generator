@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   canonicalizeContent,
   canonicalizeContentColumns,
+  DEFAULT_PAYMENT_TERMS,
   getContentTemplate,
   getGlobalOrAnyTemplate,
   renderSectionHtml,
@@ -190,6 +191,12 @@ describe('section registry', () => {
     expect(sectionLabel('not_a_real_key')).toBe('not_a_real_key');
     expect(sectionLabel(null)).toBeNull();
     expect(sectionLabel(undefined)).toBeNull();
+  });
+
+  it('DEFAULT_PAYMENT_TERMS leads with the monthly-billing + "following Customer contact" language', () => {
+    expect(DEFAULT_PAYMENT_TERMS).toBe(
+      'Billed monthly, as incurred. Monthly fees shall be due upon receipt and sent to the following Customer contact:'
+    );
   });
 });
 
