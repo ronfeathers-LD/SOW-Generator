@@ -2,6 +2,7 @@
 
 import { useSOWContent } from '@/lib/hooks/useSOWContent';
 import SOWSectionContent from '@/components/sow/SOWSectionContent';
+import CustomizedContentNotice from '@/components/sow/CustomizedContentNotice';
 import { DetailedSkeleton } from '@/components/ui/LoadingSkeletons';
 
 interface SOWObjectivesDisclosurePageProps {
@@ -24,14 +25,8 @@ export default function SOWObjectivesDisclosurePage({
 
   return (
     <div className="max-w-none text-left">
-      {isEdited && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-          <p className="text-sm text-yellow-800">
-            <strong>Note:</strong> This content has been customized from the default template.
-          </p>
-        </div>
-      )}
-      
+      {isEdited && <CustomizedContentNotice />}
+
       <SOWSectionContent
         sectionKey="objectives_disclosure"
         id="sow-content-objectives-disclosure"

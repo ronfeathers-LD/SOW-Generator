@@ -25,12 +25,12 @@ export interface GeneratedObjectives {
  * Legacy mirrors (objectives.description, objectives.key_objectives) are
  * composed by the caller since they require previous state.
  *
- * @param field - The field being edited: 'overview', 'keyObjectives', or 'deliverables'
+ * @param field - The field being edited: 'overview', 'keyObjectives', 'deliverables', or 'scope'
  * @param html - The edited HTML content
  * @returns Form data patch with custom content and edited flag
  */
 export function manualEditPatch(
-  field: 'overview' | 'keyObjectives' | 'deliverables',
+  field: 'overview' | 'keyObjectives' | 'deliverables' | 'scope',
   html: string
 ): Record<string, unknown> {
   switch (field) {
@@ -48,6 +48,11 @@ export function manualEditPatch(
       return {
         custom_deliverables_content: html,
         deliverables_content_edited: true,
+      };
+    case 'scope':
+      return {
+        custom_scope_content: html,
+        scope_content_edited: true,
       };
   }
 }
