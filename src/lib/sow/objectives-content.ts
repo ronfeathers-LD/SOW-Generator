@@ -22,6 +22,12 @@ export interface GeneratedObjectives {
  * Sets the matching `custom_*_content` to `html`, sets the matching `*_edited`
  * flag to `true`, and does NOT touch `ai_generated_*` fields.
  *
+ * Exception: for `scope`, clearing the editor (empty/whitespace-only `html`)
+ * clears `scope_content_edited` back to `false` instead of setting it —
+ * blank scope content falls back to the default template (via
+ * useSOWContent), so it isn't "customized" and shouldn't trip the
+ * customized-content flag or the approval check.
+ *
  * Legacy mirrors (objectives.description, objectives.key_objectives) are
  * composed by the caller since they require previous state.
  *
@@ -52,7 +58,7 @@ export function manualEditPatch(
     case 'scope':
       return {
         custom_scope_content: html,
-        scope_content_edited: true,
+        scope_content_edited: html.trim() !== '',
       };
   }
 }

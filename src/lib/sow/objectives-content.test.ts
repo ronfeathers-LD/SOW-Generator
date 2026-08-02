@@ -29,6 +29,12 @@ describe('manualEditPatch', () => {
     expect(patch.scope_content_edited).toBe(true);
     expect(patch).not.toHaveProperty('ai_generated_scope_content');
   });
+
+  it('scope: clearing the editor (empty string) clears the edited flag', () => {
+    const patch = manualEditPatch('scope', '');
+    expect(patch.custom_scope_content).toBe('');
+    expect(patch.scope_content_edited).toBe(false);
+  });
 });
 
 describe('aiGenerationPatch', () => {
