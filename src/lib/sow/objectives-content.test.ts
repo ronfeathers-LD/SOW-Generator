@@ -22,6 +22,19 @@ describe('manualEditPatch', () => {
     expect(patch.deliverables_content_edited).toBe(true);
     expect(patch).not.toHaveProperty('ai_generated_deliverables_content');
   });
+
+  it('scope: sets the custom field and marks it edited', () => {
+    const patch = manualEditPatch('scope', '<p>x</p>');
+    expect(patch.custom_scope_content).toBe('<p>x</p>');
+    expect(patch.scope_content_edited).toBe(true);
+    expect(patch).not.toHaveProperty('ai_generated_scope_content');
+  });
+
+  it('scope: clearing the editor (empty string) clears the edited flag', () => {
+    const patch = manualEditPatch('scope', '');
+    expect(patch.custom_scope_content).toBe('');
+    expect(patch.scope_content_edited).toBe(false);
+  });
 });
 
 describe('aiGenerationPatch', () => {

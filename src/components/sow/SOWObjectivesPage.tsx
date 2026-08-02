@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import SOWSectionContent from '@/components/sow/SOWSectionContent';
+import CustomizedContentNotice from '@/components/sow/CustomizedContentNotice';
 import { getContentTemplate } from '@/lib/sow-content';
 import { processContent } from '@/lib/text-to-html';
 import { Product } from '@/lib/constants/products';
@@ -251,42 +252,18 @@ export default function SOWObjectivesPage({
       )}
 
       {/* Warning Badge for Edited Content - positioned above the Objectives content */}
-      {isEdited ? (
-        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-          <div className="mb-3 p-2 bg-yellow-100 border border-yellow-300 rounded">
-            <p className="text-sm text-yellow-800 font-medium">
-              ⚠️ <strong>Note:</strong> This content has been customized from the default template.
-            </p>
-          </div>
-          
-          {loading ? (
-            <div className="animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-              <div className="h-32 bg-gray-200 rounded"></div>
-            </div>
-          ) : (
-            <SOWSectionContent
-              sectionKey="objectives_disclosure"
-              className="text-base leading-relaxed sow-content"
-              html={objectivesDisclosureContent}
-            />
-          )}
+      {isEdited && <CustomizedContentNotice />}
+      {loading ? (
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-32 bg-gray-200 rounded"></div>
         </div>
       ) : (
-        <>
-          {loading ? (
-            <div className="animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-              <div className="h-32 bg-gray-200 rounded"></div>
-            </div>
-          ) : (
-            <SOWSectionContent
-              sectionKey="objectives_disclosure"
-              className="text-base leading-relaxed sow-content"
-              html={objectivesDisclosureContent}
-            />
-          )}
-        </>
+        <SOWSectionContent
+          sectionKey="objectives_disclosure"
+          className="text-base leading-relaxed sow-content"
+          html={objectivesDisclosureContent}
+        />
       )}
     </div>
   );

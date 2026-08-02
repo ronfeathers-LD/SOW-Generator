@@ -2,6 +2,7 @@
 
 import { useSOWContent } from '@/lib/hooks/useSOWContent';
 import SOWSectionContent from '@/components/sow/SOWSectionContent';
+import CustomizedContentNotice from '@/components/sow/CustomizedContentNotice';
 
 interface SOWOutOfScopePageProps {
   customContent?: string;
@@ -33,25 +34,11 @@ export default function SOWOutOfScopePage({
 
   return (
     <div className="max-w-none text-left">
-      {isEdited ? (
-        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-          <div className="mb-3 p-2 bg-yellow-100 border border-yellow-300 rounded">
-            <p className="text-sm text-yellow-800 font-medium">
-              ⚠️ <strong>Note:</strong> This content has been customized from the default template.
-            </p>
-          </div>
-          
-          <div id="sow-content-out-of-scope" className="text-base leading-relaxed sow-content">
-            <h2 className="text-2xl font-bold mb-6 mt-6">OUT OF SCOPE</h2>
-            <SOWSectionContent sectionKey="out_of_scope" html={content} />
-          </div>
-        </div>
-      ) : (
-        <div id="sow-content-out-of-scope" className="text-base leading-relaxed sow-content">
-          <h2 className="text-2xl font-bold mb-6 mt-6">OUT OF SCOPE</h2>
-          <SOWSectionContent sectionKey="out_of_scope" html={content} />
-        </div>
-      )}
+      {isEdited && <CustomizedContentNotice />}
+      <div id="sow-content-out-of-scope" className="text-base leading-relaxed sow-content">
+        <h2 className="text-2xl font-bold mb-6 mt-6">OUT OF SCOPE</h2>
+        <SOWSectionContent sectionKey="out_of_scope" html={content} />
+      </div>
     </div>
   );
 }

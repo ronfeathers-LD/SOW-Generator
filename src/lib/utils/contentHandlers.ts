@@ -90,7 +90,8 @@ export const CONTENT_SECTIONS: ContentHandlerConfig[] = [
     sectionName: 'scope',
     templateKey: 'originalScopeTemplate',
     contentKey: 'custom_scope_content',
-    editedKey: 'scope_content_edited'
+    editedKey: 'scope_content_edited',
+    aiBaselineKey: 'ai_generated_scope_content'
   },
   {
     sectionName: 'out-of-scope',

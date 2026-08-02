@@ -2,6 +2,7 @@
 
 import { useSOWContent } from '@/lib/hooks/useSOWContent';
 import SOWSectionContent from '@/components/sow/SOWSectionContent';
+import CustomizedContentNotice from '@/components/sow/CustomizedContentNotice';
 
 interface SOWScopePageProps {
   customContent?: string;
@@ -35,23 +36,10 @@ export default function SOWScopePage({
 
   return (
     <div className="max-w-none text-left">
-      {isEdited ? (
-        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-          <div className="mb-3 p-2 bg-yellow-100 border border-yellow-300 rounded">
-            <p className="text-sm text-yellow-800 font-medium">
-              ⚠️ <strong>Note:</strong> This content has been customized from the default template.
-            </p>
-          </div>
-          
-          <div id="sow-content-scope" className="text-base leading-relaxed sow-content">
-            <SOWSectionContent sectionKey="scope" html={content} />
-          </div>
-        </div>
-      ) : (
-        <div id="sow-content-scope" className="text-base leading-relaxed sow-content">
-          <SOWSectionContent sectionKey="scope" html={content} />
-        </div>
-      )}
+      {isEdited && <CustomizedContentNotice />}
+      <div id="sow-content-scope" className="text-base leading-relaxed sow-content">
+        <SOWSectionContent sectionKey="scope" html={content} />
+      </div>
 
       {/* Deliverables Content */}
       {customDeliverablesContent && (
