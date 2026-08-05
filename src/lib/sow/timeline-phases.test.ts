@@ -8,6 +8,7 @@ import {
   packPhasesIntoRows,
   timelinePhasesExceedWeeks,
   renderTimelinePhaseBarHtml,
+  interiorWeekTicks,
 } from './timeline-phases';
 
 describe('DEFAULT_TIMELINE_PHASE_SPEC', () => {
@@ -108,6 +109,21 @@ describe('timelinePhasesExceedWeeks', () => {
   });
 });
 
+describe('interiorWeekTicks', () => {
+  it('returns interior whole weeks, excluding 0 and the final week', () => {
+    expect(interiorWeekTicks(4)).toEqual([1, 2, 3]);
+    expect(interiorWeekTicks(4.5)).toEqual([1, 2, 3, 4]);
+    expect(interiorWeekTicks(1)).toEqual([]);
+    expect(interiorWeekTicks(0)).toEqual([]);
+    expect(interiorWeekTicks(NaN)).toEqual([]);
+  });
+
+  it('steps up on long timelines so labels do not crowd', () => {
+    const ticks = interiorWeekTicks(24);
+    expect(ticks).toEqual([3, 6, 9, 12, 15, 18, 21]);
+  });
+});
+
 describe('renderTimelinePhaseBarHtml', () => {
   it('returns an empty string when timeline_weeks is unset/invalid', () => {
     expect(renderTimelinePhaseBarHtml(null, '')).toBe('');
@@ -124,6 +140,16 @@ describe('renderTimelinePhaseBarHtml', () => {
     }
     expect(html).toContain('Week 0');
     expect(html).toContain('Week 16');
+  });
+
+  it('renders the numbered green phase table matching the other SOW tables', () => {
+    const html = renderTimelinePhaseBarHtml(null, '8');
+    expect(html).toContain('#26D07C');
+    expect(html).toContain('>Phase<');
+    expect(html).toContain('>Description<');
+    expect(html).toContain('>Duration<');
+    expect(html).toContain('1. Engage');
+    expect(html).toContain('6. Hypercare');
   });
 
   it('HTML-escapes an injected phase name so it cannot break out as markup', () => {
