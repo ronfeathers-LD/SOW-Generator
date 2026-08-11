@@ -216,6 +216,58 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
   // Used to control info message about auto-calc
   const [justAutoCalculated, setJustAutoCalculated] = useState(false);
 
+  // Discount edits must write through to formData or the global autosave loop
+  // in SOWForm never fires: it keys off hasUnsavedChanges, which only flips
+  // when setFormData is called. Previously the raw setDiscountConfig setter
+  // was passed straight to PricingRolesAndDiscount, so a discount-only edit
+  // only ever touched this component's local state and was silently dropped
+  // on reload (it "saved" only if the user also touched a role hour/rate,
+  // which goes through onManualPricingEdit below). Mirrors the same
+  // subtotal/discount/total shape used by autoCalculateHours and
+  // getCurrentPricingData above.
+  const handleDiscountChange = (next: DiscountConfig) => {
+    setDiscountConfig(next);
+
+    const subtotal = pricingRoles.reduce((sum, role) => sum + role.totalCost, 0);
+    let discountTotal = 0;
+    if (next.type === 'fixed') {
+      discountTotal = next.amount || 0;
+    } else if (next.type === 'percentage') {
+      discountTotal = subtotal * ((next.percentage || 0) / 100);
+    }
+    const totalAmount = Math.max(0, subtotal - discountTotal); // never persist a negative total (#166)
+
+    setFormData({
+      ...formData,
+      pricing: {
+        ...(formData.pricing || {}),
+        // roles/billing are required fields on SOWData['pricing']; fall back the
+        // same way autoCalculateHours does below so a discount edit on a SOW with
+        // no pricing block yet still produces a valid, savable pricing object.
+        roles: formData.pricing?.roles || pricingRoles.map(role => ({
+          role: role.role,
+          ratePerHour: role.ratePerHour,
+          defaultRate: role.defaultRate,
+          totalHours: role.totalHours,
+          description: role.description,
+        })),
+        billing: formData.pricing?.billing || {
+          company_name: '',
+          billing_contact: '',
+          billing_address: '',
+          billing_email: '',
+          po_number: '',
+        },
+        subtotal,
+        discount_total: discountTotal,
+        total_amount: totalAmount,
+        discount_type: next.type,
+        discount_amount: next.type === 'fixed' ? (next.amount || null) : null,
+        discount_percentage: next.type === 'percentage' ? (next.percentage || null) : null,
+      },
+    });
+  };
+
   // Slightly modify autoCalculateHours to set the info flag
   const autoCalculateHoursWithFlag = async () => {
     setJustAutoCalculated(false); // reset
@@ -510,7 +562,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
           pricingRoles={pricingRoles}
           setPricingRoles={setPricingRoles}
           discountConfig={discountConfig}
-          setDiscountConfig={setDiscountConfig}
+          setDiscountConfig={handleDiscountChange}
           autoCalculateHours={autoCalculateHoursWithFlag}
           isAutoCalculating={isAutoCalculating}
           onHoursCalculated={() => {
@@ -523,8 +575,32 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
             setFormData({ ...formData, pm_hours_requirement_disabled: true })
           }
           onManualPricingEdit={() => {
-            if (!formData.pricing) return;
-            setFormData({ ...formData, pricing: { ...formData.pricing, auto_calculated: false } });
+            // Fall back to {} rather than bailing out on a SOW with no pricing
+            // block yet — bailing here silently dropped the dirty-mark and
+            // auto_calculated flag for the very first manual edit. roles/billing
+            // are required fields on SOWData['pricing'], so backfill them the
+            // same way handleDiscountChange / autoCalculateHours do.
+            setFormData({
+              ...formData,
+              pricing: {
+                ...(formData.pricing || {}),
+                roles: formData.pricing?.roles || pricingRoles.map(role => ({
+                  role: role.role,
+                  ratePerHour: role.ratePerHour,
+                  defaultRate: role.defaultRate,
+                  totalHours: role.totalHours,
+                  description: role.description,
+                })),
+                billing: formData.pricing?.billing || {
+                  company_name: '',
+                  billing_contact: '',
+                  billing_address: '',
+                  billing_email: '',
+                  po_number: '',
+                },
+                auto_calculated: false,
+              },
+            });
           }}
         />
 

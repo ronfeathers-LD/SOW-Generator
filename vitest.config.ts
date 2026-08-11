@@ -7,6 +7,14 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
+  // tsconfig.json sets compilerOptions.jsx = "preserve" (Next.js's own SWC/Babel
+  // transform expects that). Vite (this version bundles via Rolldown/oxc) reads
+  // that same tsconfig and, left alone, also leaves JSX untransformed — which
+  // breaks parsing any .test.tsx file. Force the oxc transform to compile JSX
+  // for tests without touching the app-wide tsconfig setting.
+  oxc: {
+    jsx: { runtime: 'automatic' },
+  },
   test: {
     // isomorphic-dompurify carries its own jsdom, so plain node is enough.
     environment: 'node',
