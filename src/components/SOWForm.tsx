@@ -1537,7 +1537,14 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
                     Saved at {lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                   </span>
                 ) : (
-                  <span className="text-gray-400 dark:text-dark-text-subtle">All changes saved</span>
+                  // "No changes yet", not "All changes saved". This branch means
+                  // nothing has been saved this session — it is reached both when
+                  // the user genuinely hasn't edited anything AND when an edit
+                  // failed to mark the form dirty, so no save was ever attempted.
+                  // The old copy read as a save confirmation in the second case,
+                  // which is exactly how the dropped-discount bug (#428) stayed
+                  // invisible. Only "Saved at <time>" confirms a save.
+                  <span className="text-gray-400 dark:text-dark-text-subtle">No changes yet</span>
                 )}
               </span>
               {!restrictedTab && showNextButton && (
