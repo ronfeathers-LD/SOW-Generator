@@ -46,7 +46,7 @@ export default function BillingInformationTab({
     }
   }, [selectedAccount?.Id]);
 
-  const loadContacts = async (accountId: string) => {
+  const loadContacts = async (accountId: string, forceRefresh = false) => {
     setIsLoadingContacts(true);
     try {
       const response = await fetch('/api/salesforce/account-contacts', {
@@ -56,6 +56,7 @@ export default function BillingInformationTab({
         },
         body: JSON.stringify({
           accountId: accountId,
+          forceRefresh,
         }),
       });
 
@@ -70,9 +71,11 @@ export default function BillingInformationTab({
     }
   };
 
+  // Force a refresh so Refresh bypasses the server's 30-minute contact cache.
   const refreshContacts = async () => {
-    if (!selectedAccount?.Id) return;
-    await loadContacts(selectedAccount.Id);
+    const accountId = selectedAccount?.Id || selectedAccount?.id;
+    if (!accountId) return;
+    await loadContacts(accountId, true);
   };
 
   // All mutations below go through `setFormData` only, which the parent wires

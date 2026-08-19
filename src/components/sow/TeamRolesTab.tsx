@@ -70,7 +70,7 @@ export default function TeamRolesTab({
     setContactSearch('');
   }, [showContactSelectionModal.isOpen]);
 
-  const loadContacts = async (accountId: string) => {
+  const loadContacts = async (accountId: string, forceRefresh = false) => {
     setIsLoadingContacts(true);
     try {
       const doFetch = async () => fetch('/api/salesforce/account-contacts', {
@@ -80,6 +80,7 @@ export default function TeamRolesTab({
         },
         body: JSON.stringify({
           accountId: accountId,
+          forceRefresh,
         }),
       });
 
@@ -111,9 +112,15 @@ export default function TeamRolesTab({
     }
   };
 
+  // `selectedAccount` is a SalesforceAccount, which carries the record ID as
+  // `Id`; the lowercase `id` is only populated on some API-shaped responses.
+  // Reading `id` alone made this handler return early and the Refresh button
+  // do nothing. Force a refresh so we bypass the server's 30-minute contact
+  // cache — that cache is the whole reason someone clicks Refresh.
   const refreshContacts = async () => {
-    if (!selectedAccount?.id) return;
-    await loadContacts(selectedAccount.id);
+    const accountId = selectedAccount?.Id || selectedAccount?.id;
+    if (!accountId) return;
+    await loadContacts(accountId, true);
   };
 
   // All mutations below go through `setFormData` only, which the parent wires
