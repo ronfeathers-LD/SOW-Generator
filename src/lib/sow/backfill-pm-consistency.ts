@@ -1,9 +1,14 @@
 /**
  * Pure classifier for detecting SOWs left in an inconsistent PM-removal state.
  *
- * "Stranded deduction" class: the PM row was deleted from pricing_roles but the
- * Onboarding Specialist was never restored to full base hours (OS = base − pmHours/2
- * instead of base), and pm_hours_requirement_disabled is still false.
+ * "Stranded deduction" class: an Onboarding Specialist row carries less than
+ * baseProjectHours (OS = base − pmHours/2 instead of base) but no Project
+ * Manager row exists to account for the missing half, and
+ * pm_hours_requirement_disabled is still false. This can happen either because
+ * the PM row was deleted without restoring OS, or because the deduction was
+ * applied and a PM row was never written in the first place (the GWI
+ * incident — see classifySow's doc comment for why this check is
+ * deliberately independent of `shouldAddProjectManager`).
  *
  * This module has NO side-effects and NO database I/O. It is consumed by
  * scripts/backfill-pm-removal-consistency.js to identify and fix affected rows.
@@ -67,6 +72,21 @@ function extractRoles(pricingRoles: unknown): PricingRoleRow[] {
   return Array.isArray(container.roles) ? (container.roles as PricingRoleRow[]) : [];
 }
 
+/**
+ * Extract `auto_calculated` from the object-shape pricing_roles column
+ * (`{ roles, ..., auto_calculated }` — see migration 031 and
+ * BillingPaymentTab's write-back). Returns `undefined` for the legacy
+ * bare-array shape or when the flag isn't present, matching the "no record of
+ * a manual edit" convention `recalculateNeedsConfirm` uses client-side.
+ */
+function extractAutoCalculated(pricingRoles: unknown): boolean | undefined {
+  if (!pricingRoles || Array.isArray(pricingRoles) || typeof pricingRoles !== 'object') {
+    return undefined;
+  }
+  const container = pricingRoles as Record<string, unknown>;
+  return typeof container.auto_calculated === 'boolean' ? container.auto_calculated : undefined;
+}
+
 // ---------------------------------------------------------------------------
 // Classifier
 // ---------------------------------------------------------------------------
@@ -76,13 +96,29 @@ function extractRoles(pricingRoles: unknown): PricingRoleRow[] {
  *
  * Returns `{ action: 'none' }` for SOWs that are already consistent:
  *   - pm_hours_requirement_disabled is already true
- *   - the rule engine says PM is not required for this SOW
  *   - a Project Manager row is present in pricing_roles
- *   - the Onboarding Specialist's hours are at or above base (clean removal)
+ *   - pricing_roles.auto_calculated is explicitly false (a manual edit
+ *     explains a below-base OS value on its own; not our bug to "fix")
+ *   - the Onboarding Specialist's hours are at or above base (clean removal,
+ *     or a SOW that was never priced at all)
  *
  * Returns `{ action: 'restore-os-set-flag', osTarget, pmHoursRemoved }` for
- * SOWs that are stranded: no PM row, PM would be required, and OS hours are
- * below base — meaning the deduction was applied but never reversed.
+ * SOWs that are stranded: no PM row and OS hours are below base — meaning the
+ * deduction was applied but never reversed.
+ *
+ * Deliberately independent of `shouldAddProjectManager`: an Onboarding
+ * Specialist row with `0 < hours < baseProjectHours` and no Project Manager
+ * row is inconsistent whether or not PM is warranted TODAY, because with no
+ * PM row the OS should always carry the full base — that's true regardless of
+ * whether the current product/unit mix happens to warrant a PM. Gating on
+ * `shouldAddProjectManager` used to make this classifier blind to exactly the
+ * SOWs stranded by the BookIt-Links product-count bug (hours-calculation-utils
+ * defect B): those SOWs had the deduction applied while PM incorrectly looked
+ * warranted (Links wasn't excluded from the product count), and now that the
+ * bug is fixed, `shouldAddProjectManager` correctly evaluates to false for
+ * them — so the old early return would have frozen them at the wrong number
+ * forever instead of healing them. See the GWI production incident (SOW
+ * dbe7bba9-39ce-43f5-bcb4-f141d6d71ffc, v3).
  *
  * @param rules Segment rules (extra hours per segment) used to reconstruct
  *   baseProjectHours exactly as the SOW form would have computed it at the
@@ -95,8 +131,38 @@ export function classifySow(sow: SowRowInput, rules: SegmentRulesMap): ClassifyR
     return { action: 'none' };
   }
 
+  const roles = extractRoles(sow.pricing_roles);
+  const hasPMRow = roles.some(r => r.role === 'Project Manager');
+
+  // PM row is present → pricing is correct (PM removal, if any, is the
+  // explicit flow's job — this classifier never second-guesses a present row).
+  if (hasPMRow) {
+    return { action: 'none' };
+  }
+
+  // A manual edit (auto_calculated === false) explains a below-base OS value
+  // on its own — don't flag hand-tuned pricing as stranded.
+  if (extractAutoCalculated(sow.pricing_roles) === false) {
+    return { action: 'none' };
+  }
+
+  // No PM row.  Check whether the OS carries a stale deduction.
+  //
+  // Guard: only flag SOWs where an OS row ACTUALLY EXISTS with hours > 0.
+  // When pricing is empty or the OS row is absent, currentOsHours resolves to 0
+  // (< base), which would be a false positive — those SOWs were never priced,
+  // not stranded.  See dry-run evidence: 9 of 11 flagged SOWs had OS = 0.
+  const osRole = roles.find(r => r.role === 'Onboarding Specialist');
+  const currentOsHours = toNum(osRole?.totalHours);
+
+  if (!osRole || currentOsHours <= 0) {
+    return { action: 'none' };
+  }
+
   // Reconstruct the template-like object from top-level SOW columns — exactly
-  // the same fields the SOW form passes to calculateAllHours.
+  // the same fields the SOW form passes to calculateAllHours — only once we
+  // know we might need baseProjectHours (the checks above are cheap and don't
+  // need it).
   const template = {
     products: sow.products ?? [],
     number_of_units: sow.number_of_units ?? undefined,
@@ -108,36 +174,11 @@ export function classifySow(sow: SowRowInput, rules: SegmentRulesMap): ClassifyR
     units_consumption: sow.units_consumption ?? undefined,
   };
 
-  const { baseProjectHours, shouldAddProjectManager } = calculateAllHours(
-    template,
-    sow.account_segment ?? undefined,
-    rules
-  );
+  const { baseProjectHours } = calculateAllHours(template, sow.account_segment ?? undefined, rules);
 
-  // Rule engine says PM is not required → no inconsistency possible.
-  if (!shouldAddProjectManager) {
-    return { action: 'none' };
-  }
-
-  const roles = extractRoles(sow.pricing_roles);
-  const hasPMRow = roles.some(r => r.role === 'Project Manager');
-
-  // PM row is present → pricing is correct.
-  if (hasPMRow) {
-    return { action: 'none' };
-  }
-
-  // No PM row but PM is required.  Check whether the OS carries the deduction.
-  //
-  // Guard: only flag SOWs where an OS row ACTUALLY EXISTS with hours > 0.
-  // When pricing is empty or the OS row is absent, currentOsHours resolves to 0
-  // (< base), which would be a false positive — those SOWs were never priced,
-  // not stranded.  See dry-run evidence: 9 of 11 flagged SOWs had OS = 0.
-  const osRole = roles.find(r => r.role === 'Onboarding Specialist');
-  const currentOsHours = toNum(osRole?.totalHours);
-
-  if (osRole && currentOsHours > 0 && currentOsHours < baseProjectHours) {
-    // OS hours are below base → PM was stripped without restoring OS.
+  if (currentOsHours < baseProjectHours) {
+    // OS hours are below base → PM was stripped (or the deduction was applied
+    // without a PM row ever being written) without restoring OS.
     // pmHoursRemoved = (base - currentOsHours) * 2 because the deduction
     // applied to OS was pmHours / 2 (see calculateRoleHoursDistribution).
     const pmHoursRemoved = (baseProjectHours - currentOsHours) * 2;
@@ -148,6 +189,6 @@ export function classifySow(sow: SowRowInput, rules: SegmentRulesMap): ClassifyR
     };
   }
 
-  // OS hours ≥ base → PM was removed cleanly (OS already restored). No action.
+  // OS hours ≥ base → consistent (PM removed cleanly, or PM never warranted). No action.
   return { action: 'none' };
 }

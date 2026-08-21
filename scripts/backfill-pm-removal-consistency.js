@@ -2,18 +2,36 @@
  * Backfill script: heal SOWs with a stranded PM-removal deduction.
  *
  * Problem: before the single-source-of-truth refactor, removing a Project Manager
- * on an Enterprise SOW could leave the database row in an inconsistent state —
- * the PM role deleted from pricing_roles but the Onboarding Specialist's hours
- * still carrying the half-PM deduction (OS at base − pmHours/2 instead of base),
- * and pm_hours_requirement_disabled still false.  Those SOWs don't self-heal on
- * the next save because the flag is false, so the form re-adds the PM.
+ * on an Enterprise SOW (or, separately, the BookIt-Links product-count bug in
+ * hours-calculation-utils.ts) could leave the database row in an inconsistent
+ * state — no PM role in pricing_roles but the Onboarding Specialist's hours
+ * still carrying the half-PM deduction (OS at base − pmHours/2 instead of
+ * base), and pm_hours_requirement_disabled still false.  Those SOWs don't
+ * self-heal on the next save because the flag is false, so the form re-adds
+ * the PM.
+ *
+ * Scope: a survey of all 224 production SOWs (2026-08-21) flagged 12 as
+ * stranded. The decision was made NOT to bulk-repair already-approved SOWs —
+ * only specific SOW ids get fixed, one at a time, via --sow-id. A bare
+ * --apply is refused so a blanket rewrite of every flagged SOW (several of
+ * them already approved) can never happen by accident; --all is the explicit
+ * opt-in for that blanket mode.
  *
  * Usage:
- *   # Dry-run (default, read-only):
+ *   # Dry-run, survey everything the classifier would flag (default, read-only):
  *   node scripts/backfill-pm-removal-consistency.js
  *
- *   # Apply fixes:
- *   node scripts/backfill-pm-removal-consistency.js --apply
+ *   # Dry-run restricted to specific SOW ids (still read-only):
+ *   node scripts/backfill-pm-removal-consistency.js --sow-id=<uuid>
+ *   node scripts/backfill-pm-removal-consistency.js --sow-id=<uuid1>,<uuid2>
+ *   node scripts/backfill-pm-removal-consistency.js --sow-id=<uuid1> --sow-id=<uuid2>
+ *
+ *   # Apply fixes to specific SOW ids ONLY (the normal, safe apply path):
+ *   node scripts/backfill-pm-removal-consistency.js --apply --sow-id=<uuid1>,<uuid2>
+ *
+ *   # Apply fixes to EVERY flagged SOW (blanket mode — requires the explicit
+ *   # --all opt-in; a bare `--apply` with no ids and no --all is refused):
+ *   node scripts/backfill-pm-removal-consistency.js --apply --all
  *
  * Required env vars:
  *   NEXT_PUBLIC_SUPABASE_URL
@@ -147,23 +165,6 @@ function calculateAccountSegmentHours(segment, rules) {
   return rules[normalizeSegment(segment)]?.extraHours ?? 0;
 }
 
-function shouldAddPM(sow) {
-  // INTENTIONALLY mirrors the deployed app's behavior in shouldAddProjectManager
-  // (src/lib/hours-calculation-utils.ts).  That function attempts to filter out
-  // BookIt Links via:
-  //   products.filter(product => product !== PRODUCT_IDS.BOOKIT_LINKS)
-  // where PRODUCT_IDS.BOOKIT_LINKS is the SLUG string 'bookit-links'.  Because
-  // DB products are UUIDs, the slug-vs-UUID comparison is always false — the
-  // filter is a no-op and BookIt Links IS counted toward the ≥3-product PM
-  // threshold in the running app.
-  //
-  // Do NOT add a UUID exclusion here to "fix" that: correcting the business rule
-  // is out of scope for this backfill.  The backfill's job is to find SOWs that
-  // are actually stranded in production, so it must match deployed reality exactly.
-  const products = sow.products || [];
-  return products.length >= 3 || getTotalUnits(sow) >= 200;
-}
-
 function getBaseProjectHours(sow, rules) {
   return calculateProductHours(sow.products || [])
     + calculateUserGroupHours(sow)
@@ -187,20 +188,35 @@ function toNum(v) {
 }
 
 /**
+ * Extract auto_calculated from the object-shape pricing_roles column. Returns
+ * undefined for the legacy bare-array shape or when the flag isn't present.
+ */
+function extractAutoCalculated(pricingRoles) {
+  if (!pricingRoles || Array.isArray(pricingRoles) || typeof pricingRoles !== 'object') return undefined;
+  return typeof pricingRoles.auto_calculated === 'boolean' ? pricingRoles.auto_calculated : undefined;
+}
+
+/**
  * @param {object} sow - Row from the sows table (flat).
  * @param {object} rules - Segment rules map (segment -> { extraHours, ... }),
  *   loaded via loadSegmentRules() above.
  * @returns {{ action: string, osTarget?: number, pmHoursRemoved?: number }}
+ *
+ * Deliberately independent of shouldAddProjectManager — see the doc comment on
+ * classifySow in src/lib/sow/backfill-pm-consistency.ts (the two must agree;
+ * this file mirrors that one in plain JS so the backfill script has no
+ * build/compile-step dependency).
  */
 function classifySow(sow, rules) {
   if (sow.pm_hours_requirement_disabled) return { action: 'none' };
-  if (!shouldAddPM(sow))                 return { action: 'none' };
 
   const roles  = extractRoles(sow.pricing_roles);
   const hasPM  = roles.some(r => r.role === 'Project Manager');
   if (hasPM) return { action: 'none' };
 
-  const base          = getBaseProjectHours(sow, rules);
+  // A manual edit explains a below-base OS value on its own — don't flag it.
+  if (extractAutoCalculated(sow.pricing_roles) === false) return { action: 'none' };
+
   const osRole        = roles.find(r => r.role === 'Onboarding Specialist');
   const currentOsHrs  = toNum(osRole?.totalHours);
 
@@ -208,7 +224,11 @@ function classifySow(sow, rules) {
   // When pricing is empty or the OS row is absent, currentOsHrs resolves to 0
   // (< base), which would be a false positive — those SOWs were never priced,
   // not stranded.  See dry-run evidence: 9 of 11 flagged SOWs had OS = 0.
-  if (osRole && currentOsHrs > 0 && currentOsHrs < base) {
+  if (!osRole || currentOsHrs <= 0) return { action: 'none' };
+
+  const base = getBaseProjectHours(sow, rules);
+
+  if (currentOsHrs < base) {
     return {
       action: 'restore-os-set-flag',
       osTarget: base,
@@ -271,9 +291,41 @@ function restoreOsHours(pricingRoles, osTarget) {
 // Main
 // ---------------------------------------------------------------------------
 
-const APPLY = process.argv.includes('--apply');
+/**
+ * Parse one or more --sow-id flags into a flat, de-duplicated list of ids.
+ * Accepts repeated flags (--sow-id=a --sow-id=b) and/or comma-separated
+ * values (--sow-id=a,b) in any combination.
+ */
+function parseSowIds(argv) {
+  const ids = [];
+  for (const arg of argv) {
+    const match = arg.match(/^--sow-id=(.+)$/);
+    if (match) {
+      ids.push(...match[1].split(',').map(s => s.trim()).filter(Boolean));
+    }
+  }
+  return [...new Set(ids)];
+}
+
+const APPLY   = process.argv.includes('--apply');
+const ALL     = process.argv.includes('--all');
+const SOW_IDS = parseSowIds(process.argv.slice(2));
 
 async function main() {
+  // Guard: a bare `--apply` with no id scoping would rewrite every flagged
+  // SOW — several of which are already-approved and explicitly NOT to be
+  // touched by policy decision. Require either an explicit id list or the
+  // explicit --all opt-in for blanket mode. This check runs before any DB
+  // I/O so a mistyped invocation can't do anything.
+  if (APPLY && SOW_IDS.length === 0 && !ALL) {
+    console.error(
+      '\nERROR: --apply requires either --sow-id=<uuid>[,<uuid>...] (repeatable) ' +
+      'to scope the fix to specific SOWs, or the explicit --all flag to apply to ' +
+      'every SOW the classifier flags. Refusing to run a blanket apply by default.\n'
+    );
+    process.exit(1);
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -286,12 +338,15 @@ async function main() {
     auth: { persistSession: false },
   });
 
-  console.log(`\n=== PM-Removal Consistency Backfill  [${APPLY ? 'APPLY' : 'DRY-RUN'}] ===\n`);
+  const scopeLabel = SOW_IDS.length > 0 ? `SCOPED to ${SOW_IDS.length} SOW id(s)` : 'ALL SOWs';
+  console.log(`\n=== PM-Removal Consistency Backfill  [${APPLY ? 'APPLY' : 'DRY-RUN'}] [${scopeLabel}] ===\n`);
 
   const rules = await loadSegmentRules(client);
 
-  // Fetch only the columns the classifier and writer need.
-  const { data: sows, error } = await client
+  // Fetch only the columns the classifier and writer need. When --sow-id is
+  // given, restrict the query itself to that id set — the smaller blast
+  // radius holds even if something downstream forgets to check SOW_IDS again.
+  let query = client
     .from('sows')
     .select([
       'id', 'sow_title', 'client_name', 'account_segment',
@@ -303,6 +358,12 @@ async function main() {
       'pricing_roles',
     ].join(', '))
     .not('status', 'in', '("hidden","deleted")');
+
+  if (SOW_IDS.length > 0) {
+    query = query.in('id', SOW_IDS);
+  }
+
+  const { data: sows, error } = await query;
 
   if (error) {
     console.error('Failed to fetch SOWs:', error);

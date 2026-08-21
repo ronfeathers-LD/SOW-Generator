@@ -2,9 +2,10 @@ import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } f
 import { SOWData } from '@/types/sow';
 import PricingRolesAndDiscount from '@/components/sow/PricingRolesAndDiscount';
 import LoadingModal from '@/components/ui/LoadingModal';
-import { calculateAllHours, calculateRoleHoursDistribution } from '@/lib/hours-calculation-utils';
+import { calculateAllHours } from '@/lib/hours-calculation-utils';
 import { DEFAULT_SEGMENT_RULES, fetchSegmentRules, SegmentRulesMap } from '@/lib/segment-rules';
 import { getPricingSummary, toPricingRolesObject } from '@/lib/sow/pricing-summary';
+import { applyCalculatedHours } from '@/lib/sow/apply-calculated-hours';
 import { getPricingRolesConfig, getDefaultRateForRole, getDescriptionForRole, PricingRoleConfig } from '@/lib/pricing-roles-config';
 import { SectionHeader } from '@/components/ui/form';
 
@@ -390,60 +391,28 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
       const hoursResult = calculateAllHours(formData.template, selectedAccount?.Employee_Band__c, segmentRules);
       const { baseProjectHours, pmHours, shouldAddProjectManager } = hoursResult;
 
-      // Calculate role hours distribution (Onboarding Specialist allocation only;
-      // PM is no longer auto-managed here — see note below).
-      const roleDistribution = calculateRoleHoursDistribution(
+      // Derive the new roles table via the pure, unit-tested function that keeps
+      // the Onboarding Specialist deduction and the Project Manager row in
+      // lockstep (see apply-calculated-hours.ts — this is the fix for the GWI
+      // incident, where the deduction was applied with no PM row at all,
+      // silently losing pmHours from the total). PM presence is driven by
+      // whether PM is warranted AND has not been explicitly removed; the
+      // removal flows always set pm_hours_requirement_disabled /
+      // pm_hours_removal_approved together server-side in the same write that
+      // strips the PM row (pm-hours-removal-service.ts applyPMRemoval), so
+      // honoring those flags here can't resurrect a role a removal just deleted.
+      const updatedRoles = applyCalculatedHours({
+        roles: pricingRoles,
         baseProjectHours,
         pmHours,
         shouldAddProjectManager,
-        formData.pm_hours_requirement_disabled
-      );
-      
-      // If no roles exist, create default roles
-      let updatedRoles = pricingRoles.length === 0 ? [] : [...pricingRoles];
-      
-      // Ensure Onboarding Specialist exists
-      const hasOnboardingSpecialist = updatedRoles.some(role => role.role === 'Onboarding Specialist');
-      if (!hasOnboardingSpecialist) {
-        const defaultRate = getDefaultRateForRole('Onboarding Specialist', pricingRolesConfig);
-        const description = getDescriptionForRole('Onboarding Specialist', pricingRolesConfig);
-        const onboardingRole: PricingRole = {
-          id: Math.random().toString(36).substr(2, 9),
-          role: 'Onboarding Specialist',
-          description: description,
-          ratePerHour: defaultRate,
-          defaultRate: defaultRate,
-          totalHours: roleDistribution.onboardingSpecialistHours,
-          totalCost: defaultRate * roleDistribution.onboardingSpecialistHours,
-        };
-        updatedRoles.push(onboardingRole);
-      } else {
-        // Update existing Onboarding Specialist role
-        updatedRoles = updatedRoles.map(role => {
-          if (role.role === 'Onboarding Specialist') {
-            // Onboarding Specialist gets distributed hours
-            const defaultRate = getDefaultRateForRole('Onboarding Specialist', pricingRolesConfig);
-            const description = getDescriptionForRole('Onboarding Specialist', pricingRolesConfig);
-            // Preserve the user's custom rate (don't override it with default)
-            const currentRate = role.ratePerHour;
-            return {
-              ...role,
-              description: description || role.description, // Update description if available
-              ratePerHour: currentRate,
-              defaultRate: defaultRate,
-              totalHours: roleDistribution.onboardingSpecialistHours,
-              totalCost: currentRate * roleDistribution.onboardingSpecialistHours,
-            };
-          }
-          return role;
-        });
-      }
-
-      // NOTE: The Project Manager role is intentionally NOT auto-added/updated/removed
-      // here. Auto re-adding the PM role on every calc is what stranded an "Onboarding
-      // Specialist Deduction" after a PM removal. PM presence is now driven solely by
-      // the stored table and the explicit PM removal flow (PricingRolesAndDiscount).
-      // An explicit, user-initiated PM re-derivation is a separate later task.
+        pmRemoval: {
+          pm_hours_requirement_disabled: formData.pm_hours_requirement_disabled,
+          pm_hours_removed: formData.pm_hours_removed,
+          pm_hours_removal_approved: formData.pm_hours_removal_approved,
+        },
+        pricingRolesConfig,
+      });
 
       // Update pricing roles and then calculate totals in the same render cycle
       setPricingRoles(updatedRoles);
