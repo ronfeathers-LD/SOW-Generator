@@ -26,9 +26,18 @@ interface SlackNotificationConfig {
   iconEmoji?: string;
 }
 
-const STAGE_TEXT_PREFIX = ':construction: *[STAGE]* ';
+export const STAGE_TEXT_PREFIX = ':construction: *[STAGE]* ';
 const STAGE_CONTEXT_TEXT =
   ':construction: *Sent from the STAGING environment — this is test traffic, not a real notification.*';
+
+/**
+ * Prefix a plain text message as staging traffic. Exported so other outbound
+ * Slack paths (e.g. direct messages, which don't go through markSlackPayloadForStage)
+ * can apply the same marker without duplicating the string.
+ */
+export function markSlackTextForStage(text: string): string {
+  return `${STAGE_TEXT_PREFIX}${text}`;
+}
 
 /**
  * Pure decoration: marks a Slack webhook payload as staging traffic.
@@ -47,7 +56,7 @@ export function markSlackPayloadForStage(payload: SlackMessage): SlackMessage {
   };
 
   if (typeof marked.text === 'string') {
-    marked.text = `${STAGE_TEXT_PREFIX}${marked.text}`;
+    marked.text = markSlackTextForStage(marked.text);
   }
 
   if (Array.isArray(marked.blocks)) {

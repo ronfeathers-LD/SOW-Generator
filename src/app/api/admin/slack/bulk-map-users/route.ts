@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { SlackUserMappingService } from '@/lib/slack-user-mapping-service';
+import { getSlackBotToken } from '@/lib/slack-bot-token';
 
 export async function POST() {
   try {
@@ -11,20 +12,7 @@ export async function POST() {
     }
 
     // Get Slack bot token from environment or database
-    let botToken = process.env.SLACK_BOT_TOKEN;
-    if (!botToken) {
-      const { createServiceRoleClient } = await import('@/lib/supabase-server');
-      const supabase = createServiceRoleClient();
-      
-      const { data: slackConfig } = await supabase
-        .from('slack_config')
-        .select('bot_token')
-        .order('id', { ascending: false })
-        .limit(1)
-        .single();
-      
-      botToken = slackConfig?.bot_token;
-    }
+    const botToken = await getSlackBotToken();
 
     if (!botToken) {
       return NextResponse.json({ 

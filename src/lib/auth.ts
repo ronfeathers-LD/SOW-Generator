@@ -112,17 +112,9 @@ export const authOptions: NextAuthOptions = {
               const { SlackUserMappingService } = await import('./slack-user-mapping-service');
               
               // Get Slack bot token from database or environment
-              let botToken = process.env.SLACK_BOT_TOKEN;
-              if (!botToken) {
-                const { data: slackConfig } = await supabaseServer
-                  .from('slack_config')
-                  .select('bot_token')
-                  .order('id', { ascending: false })
-                  .limit(1)
-                  .single();
-                botToken = slackConfig?.bot_token;
-              }
-              
+              const { getSlackBotToken } = await import('./slack-bot-token');
+              const botToken = await getSlackBotToken();
+
               if (botToken) {
                 SlackUserMappingService.initialize(botToken);
                 await SlackUserMappingService.mapUserAtLogin(dbUser.email);
