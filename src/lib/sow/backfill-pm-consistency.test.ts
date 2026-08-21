@@ -47,13 +47,91 @@ describe('classifySow', () => {
     expect(classifySow(sow, DEFAULT_SEGMENT_RULES).action).toBe('none');
   });
 
-  it('leaves alone a SOW that does not require PM (fewer than 3 products)', () => {
+  it('flags a stranded SOW even when PM is not currently warranted (sequencing-trap fix)', () => {
+    // Only 2 products (fewer than the 3-product PM threshold) and few units, so
+    // shouldAddProjectManager is false today. That must NOT exempt this SOW:
+    // with no PM row, OS should always carry the full base regardless of
+    // whether PM happens to be warranted right now. Gating this classifier on
+    // shouldAddProjectManager is exactly what let the GWI-style SOWs (stranded
+    // by the BookIt-Links product-count bug) freeze at the wrong number forever
+    // once that bug was fixed and shouldAddProjectManager started correctly
+    // returning false for them. Shape matches "Verato" from the production
+    // scan (2 products, 15-ish units, stale deduction that predates a product
+    // change — not tied to any pmHours the current mix could ever produce).
     const sow = {
       account_segment: 'EE',
       pm_hours_requirement_disabled: false,
       products: ['b1f01145-94a9-4000-9f89-59555afedf03', '6dde4839-6d67-4821-a7c7-18c227ffcc93'],
       orchestration_units: '10',
       pricing_roles: { roles: [{ role: 'Onboarding Specialist', totalHours: 20, ratePerHour: 250 }], discount_type: 'none' },
+    };
+    const r = classifySow(sow, DEFAULT_SEGMENT_RULES);
+    expect(r.action).toBe('restore-os-set-flag');
+    expect(r.osTarget).toBe(25); // 15 (routing) + 10 (forms)
+    expect(r.pmHoursRemoved).toBe(10); // (25 - 20) * 2 — a derived reporting figure, not a validation gate
+  });
+
+  it('flags a stranded SOW with a single product, never PM-eligible even under the old buggy rule (Branch-style)', () => {
+    // Shape matches "Branch" from the production scan: 1 product, 50 units.
+    // Never crossed the 3-product threshold under either the old (buggy) or
+    // fixed shouldAddProjectManager, and never crosses 200 units. The
+    // classifier must not require the deduction to correspond to any
+    // plausible pmHours/2 for the current (or any past) product mix — a
+    // below-base OS with no PM row is stranded regardless of why it got there.
+    const sow = {
+      account_segment: 'LE',
+      pm_hours_requirement_disabled: false,
+      products: ['6dde4839-6d67-4821-a7c7-18c227ffcc93'], // BookIt for Forms only
+      bookit_forms_units: '50',
+      pricing_roles: { roles: [{ role: 'Onboarding Specialist', totalHours: 10, ratePerHour: 250 }], discount_type: 'none' },
+    };
+    const r = classifySow(sow, DEFAULT_SEGMENT_RULES);
+    expect(r.action).toBe('restore-os-set-flag');
+    expect(r.osTarget).toBe(15); // 10 (forms) + 5 (50-unit user group)
+    expect(r.pmHoursRemoved).toBe(10); // (15 - 10) * 2 — again just a reporting figure
+  });
+
+  it('the exact GWI regression case: Forms + Links + Handoff-with-SmartRep, 120 units, MM segment', () => {
+    // Production evidence: SOW dbe7bba9-39ce-43f5-bcb4-f141d6d71ffc v3. Before
+    // the BookIt-Links product-count fix, this SOW's shouldAddProjectManager
+    // evaluated to true (Links wasn't excluded), so the deduction was applied
+    // (base 31, pmHours 14, OS = 31 - 7 = 24) but the PM row was never written.
+    // Post-fix, shouldAddProjectManager now correctly evaluates to false for
+    // these 2 real products — the classifier must still catch this as stranded.
+    const sow = {
+      account_segment: 'MM',
+      pm_hours_requirement_disabled: false,
+      products: [
+        '6dde4839-6d67-4821-a7c7-18c227ffcc93', // BookIt for Forms
+        'dbe57330-23a9-42bc-bef2-5bbfbcef4e09', // BookIt Links
+        '159b4183-ee40-4255-a7d0-968b1482e451', // BookIt Handoff (with SmartRep)
+      ],
+      bookit_forms_units: '120', bookit_links_units: '120', bookit_handoff_units: '120',
+      pricing_roles: { roles: [{ role: 'Onboarding Specialist', totalHours: 24, ratePerHour: 250 }], discount_type: 'none' },
+    };
+    const r = classifySow(sow, DEFAULT_SEGMENT_RULES);
+    expect(r.action).toBe('restore-os-set-flag');
+    expect(r.osTarget).toBe(31);
+    expect(r.pmHoursRemoved).toBe(14);
+  });
+
+  it('leaves alone a stranded-looking SOW when pricing_roles.auto_calculated is explicitly false (manual edit)', () => {
+    // Confirmed against the production scan: "Canva" is exactly this shape —
+    // auto_calculated: false, with a below-base OS deficit that matches no
+    // valid pmHours/2 for any product mix. Without this guard it would have
+    // been a false positive; the manual edit fully explains the deficit, so
+    // it must not be flagged. Same base shape as the sequencing-trap case
+    // above, but the pricing table was hand-edited since the last auto-calc.
+    const sow = {
+      account_segment: 'EE',
+      pm_hours_requirement_disabled: false,
+      products: ['b1f01145-94a9-4000-9f89-59555afedf03', '6dde4839-6d67-4821-a7c7-18c227ffcc93'],
+      orchestration_units: '10',
+      pricing_roles: {
+        roles: [{ role: 'Onboarding Specialist', totalHours: 20, ratePerHour: 250 }],
+        discount_type: 'none',
+        auto_calculated: false,
+      },
     };
     expect(classifySow(sow, DEFAULT_SEGMENT_RULES).action).toBe('none');
   });

@@ -443,6 +443,37 @@ export class SlackUserLookupService {
   }
 
   /**
+   * Get the OAuth scopes granted to the bot token, read from the
+   * `x-oauth-scopes` response header on auth.test. Used by the admin "Test
+   * Bot Token" flow to confirm the scopes DMs need (chat:write, im:write)
+   * are actually granted before relying on them in production.
+   */
+  static async getTokenScopes(): Promise<string[] | null> {
+    if (!this.botToken) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/auth.test`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.botToken}`,
+        },
+      });
+
+      const scopesHeader = response.headers.get('x-oauth-scopes');
+      if (!scopesHeader) {
+        return [];
+      }
+
+      return scopesHeader.split(',').map(scope => scope.trim()).filter(Boolean);
+    } catch (error) {
+      console.error('Error fetching Slack token scopes:', error);
+      return null;
+    }
+  }
+
+  /**
    * Get workspace info for display purposes
    */
   static async getWorkspaceInfo(): Promise<{ name: string; domain: string } | null> {

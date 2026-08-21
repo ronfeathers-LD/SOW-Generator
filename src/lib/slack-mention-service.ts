@@ -4,6 +4,7 @@ import { SlackUserLookupService, SlackUser } from './slack-user-lookup';
 import { SlackService } from './slack';
 import { getEmailService } from './email';
 import { createServerSupabaseClient } from './supabase-server';
+import { getSlackBotToken } from './slack-bot-token';
 import { filterValidLeandataEmails, logInvalidEmailWarning } from './utils/email-domain-validation';
 import { getSOWUrl } from './utils/app-url';
 
@@ -63,26 +64,8 @@ export class SlackMentionService {
       }
 
       // Initialize Slack user lookup service
-      let botToken = process.env.SLACK_BOT_TOKEN;
-      if (!botToken) {
-        // Try to get bot token from database
-        try {
-          const { createServiceRoleClient } = await import('./supabase-server');
-          const supabase = createServiceRoleClient();
-          
-          const { data: slackConfig } = await supabase
-            .from('slack_config')
-            .select('bot_token')
-            .order('id', { ascending: false })
-            .limit(1)
-            .single();
-          
-          botToken = slackConfig?.bot_token;
-        } catch (error) {
-          console.warn('Failed to get bot token from database:', error);
-        }
-      }
-      
+      const botToken = await getSlackBotToken();
+
       if (!botToken) {
         console.warn('SLACK_BOT_TOKEN not configured - cannot lookup users for mentions');
         return false;
@@ -248,26 +231,8 @@ export class SlackMentionService {
     error?: string;
   }> {
     try {
-      let botToken = process.env.SLACK_BOT_TOKEN;
-      if (!botToken) {
-        // Try to get bot token from database
-        try {
-          const { createServiceRoleClient } = await import('./supabase-server');
-          const supabase = createServiceRoleClient();
-          
-          const { data: slackConfig } = await supabase
-            .from('slack_config')
-            .select('bot_token')
-            .order('id', { ascending: false })
-            .limit(1)
-            .single();
-          
-          botToken = slackConfig?.bot_token;
-        } catch (error) {
-          console.warn('Failed to get bot token from database:', error);
-        }
-      }
-      
+      const botToken = await getSlackBotToken();
+
       if (!botToken) {
         return {
           success: false,
