@@ -13,6 +13,7 @@ import {
 import { requiresPMApproval } from './approval-workflow-rules';
 import { canApproveStage } from './utils/approval-permissions';
 import { getSlackService } from './slack';
+import { sendSlackDirectMessage, resolveSlackUserIdForAppUser } from './slack-dm';
 import { getEmailService } from './email';
 import { getSOWUrl } from './utils/app-url';
 import { filterValidLeandataEmails } from './utils/email-domain-validation';
@@ -557,6 +558,31 @@ export class ApprovalWorkflowService {
         `:link: <${sowUrl}|View SOW>\n\n` +
         `All approval stages are complete. This SOW is now ready for client signature.`
       );
+
+      // DM the author directly. They're usually not in the notification
+      // channel, so an in-channel post alone would never reach them. Skip a
+      // self-DM when the author is the one who just gave final approval.
+      // Entirely fire-and-forget: a DM failure must never affect the
+      // approval result, which has already succeeded by this point.
+      try {
+        if (sow.author_id && sow.author_id !== finalApproverId) {
+          const authorSlackId = await resolveSlackUserIdForAppUser(sow.author_id, supabase);
+          if (authorSlackId) {
+            const dmText =
+              `:white_check_mark: *Your SOW is fully approved*\n` +
+              `*Client:* ${clientName}\n` +
+              `*Final approval by:* ${approverName}\n` +
+              `:link: <${sowUrl}|View SOW>\n` +
+              `All approval stages are complete. This SOW is now ready for client signature.`;
+            const dmResult = await sendSlackDirectMessage(authorSlackId, dmText);
+            if (!dmResult.ok) {
+              console.error(`Failed to DM SOW author about full approval: ${dmResult.error}`);
+            }
+          }
+        }
+      } catch (dmError) {
+        console.error('Full-approval author DM failed:', dmError);
+      }
     } catch (error) {
       console.error('Full-approval notification failed:', error);
     }
