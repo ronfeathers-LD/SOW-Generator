@@ -5,7 +5,6 @@
 
 import { SOWTemplate } from '@/types/sow';
 import {
-  PRODUCT_IDS,
   PRODUCT_IDS_BY_CATEGORY,
   isRoutingProductById,
   isLeadToAccountProductById,
@@ -184,7 +183,10 @@ export function calculateAllHours(
  * Note: BookIt Links is excluded from product count as it's not counted as an object
  */
 export function shouldAddProjectManager(template: Partial<SOWTemplate>): boolean {
-  const products = (template?.products || []).filter(product => product !== PRODUCT_IDS.BOOKIT_LINKS);
+  // `template.products` holds product UUIDs, not the PRODUCT_IDS slugs, so the
+  // exclusion must go through the UUID helper (isLinksProductById) — comparing
+  // against PRODUCT_IDS.BOOKIT_LINKS here was a permanent no-op (#GWI incident).
+  const products = (template?.products || []).filter(product => !isLinksProductById(product));
   const totalUnits = calculateTotalUnits(template);
   return products.length >= 3 || totalUnits >= 200;
 }
