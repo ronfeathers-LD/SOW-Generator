@@ -37,6 +37,10 @@ export default function SOWPrintView({ sow, salesforceData, products, showPricin
               title={sow.sowTitle || 'SOW Title Not Available'}
               clientName={salesforceData?.account_data?.name || sow.clientName || 'Client Name Not Available'}
               companyLogo={sow.companyLogo}
+              clientCompany={{
+                name: sow.template?.billing_company_name || salesforceData?.account_data?.name || sow.clientName,
+                address: sow.template?.billing_address,
+              }}
               clientSignature={{
                 // Blank stays blank — SOWTitlePage renders a muted "To be
                 // provided" line. A missing customer signer is allowed at

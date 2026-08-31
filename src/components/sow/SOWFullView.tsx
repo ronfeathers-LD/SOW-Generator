@@ -488,6 +488,10 @@ export default function SOWFullView({
                     title={sow.sowTitle || 'SOW Title Not Available'}
                     clientName={salesforceData?.account_data?.name || sow.clientName}
                     companyLogo={sow.companyLogo}
+                    clientCompany={{
+                      name: sow.template?.billing_company_name || salesforceData?.account_data?.name || sow.clientName,
+                      address: sow.template?.billing_address,
+                    }}
                     clientSignature={{
                       // Blank stays blank — see SOWTitlePage. The approver
                       // banner above the workflow is what flags a missing signer.
