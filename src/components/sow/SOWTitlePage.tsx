@@ -1,6 +1,6 @@
 
 import Image from 'next/image';
-import { formatAddressLines } from '@/lib/sow/format-address';
+import { customerSignatureBlock } from '@/lib/sow/signature-block';
 
 interface SOWTitlePageProps {
   title: string;
@@ -34,32 +34,9 @@ interface SOWTitlePageProps {
 }
 
 /**
- * Legacy sentinel strings. Older callers passed these in place of a blank
- * value, so a SOW saved before they were removed can still carry them.
- * Treated as "not provided" rather than printed onto the document.
- */
-const PLACEHOLDER_VALUES = new Set([
-  'Not Entered',
-  'Title Not Entered',
-  'Email Not Entered',
-  'None Selected',
-]);
-
-const providedOrNull = (value?: string | null): string | null => {
-  const trimmed = (value ?? '').trim();
-  if (trimmed === '' || PLACEHOLDER_VALUES.has(trimmed)) return null;
-  return trimmed;
-};
-
-/**
- * Printed identity under a customer signature line.
- *
- * A customer signer is not required to submit a SOW for approval, so a blank
- * one is a legitimate state — not an error. When no individual has been named,
- * the block falls back to the customer's company name and billing address,
- * which reads as a normal unsigned contract: the entity is known, the
- * individual signs on the line above. Reviewers learn about the missing signer
- * from the approval banner and the Slack notification, not from the document.
+ * Printed identity under a customer signature line. What to print is decided
+ * by `customerSignatureBlock`, shared with the PDF generator's own template so
+ * the two renderers cannot drift; this only marks it up.
  */
 function SignatureDetails({
   signature,
@@ -68,42 +45,18 @@ function SignatureDetails({
   signature?: { name: string; title: string; email: string };
   company?: { name?: string; address?: string };
 }) {
-  const name = providedOrNull(signature?.name);
-  const title = providedOrNull(signature?.title);
-  const email = providedOrNull(signature?.email);
-
-  if (!name && !title && !email) {
-    const companyName = providedOrNull(company?.name);
-    const lines = formatAddressLines(providedOrNull(company?.address));
-    if (!companyName && lines.length === 0) return null;
-    return (
-      <>
-        {companyName && <strong>{companyName}</strong>}
-        {lines.map((line, index) => (
-          <span key={index}>
-            {(companyName || index > 0) && <br />}
-            {line}
-          </span>
-        ))}
-      </>
-    );
-  }
+  const { heading, lines } = customerSignatureBlock({ signer: signature, company });
+  if (heading === null) return null;
 
   return (
     <>
-      <strong>{name}</strong>
-      {title && (
-        <>
-          {name && <br />}
-          <span>{title}</span>
-        </>
-      )}
-      {email && (
-        <>
-          {(name || title) && <br />}
-          <span>{email}</span>
-        </>
-      )}
+      <strong>{heading}</strong>
+      {lines.map((line) => (
+        <span key={line}>
+          <br />
+          {line}
+        </span>
+      ))}
     </>
   );
 }
