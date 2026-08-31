@@ -6,6 +6,7 @@ import { getEmailService } from '@/lib/email';
 import { getSOWUrl } from '@/lib/utils/app-url';
 import { authOptions } from '@/lib/auth';
 import { mapSowRowToResponse } from '@/lib/sow/map-sow-response';
+import { customerSignerWarning } from '@/lib/sow/signer-status';
 
 export async function GET(
   request: Request,
@@ -344,7 +345,7 @@ export async function PUT(
           // Get SOW details for the notification
           const { data: sowDetails } = await supabase
             .from('sows')
-            .select('client_name, author_id, template, sow_title')
+            .select('client_name, author_id, template, sow_title, client_signer_name, client_title')
             .eq('id', id)
             .single();
 
@@ -370,12 +371,29 @@ export async function PUT(
             const sowTitle = sowDetails.sow_title || 'Untitled SOW';
             const sowUrl = getSOWUrl(id);
 
+            // The customer signer is not a submit gate, so a SOW can arrive
+            // for approval with it blank. Call that out here — approvers decide
+            // whether to let it through (same warning shown on the SOW page).
+            const signerTemplate = (sowDetails.template ?? null) as Record<string, unknown> | null;
+            const signerWarning = customerSignerWarning({
+              name:
+                (signerTemplate?.customer_signature_name as string | undefined) ||
+                sowDetails.client_signer_name,
+              title:
+                (signerTemplate?.customer_signature as string | undefined) ||
+                sowDetails.client_title,
+            });
+            const signerWarningLine = signerWarning
+              ? `:warning: *No customer signer:* ${signerWarning} Approve only if that's intentional.\n\n`
+              : '';
+
             // Skip notifications for Hula Truck
             if (clientName.toLowerCase() !== 'hula truck') {
               await slackService.sendMessage(
                 `:memo: *New SOW Submitted for Review*\n\n` +
                 `*Client:* ${clientName}\n` +
                 `*Submitted by:* ${submitterName}\n\n` +
+                signerWarningLine +
                 `:link: <${sowUrl}|Review SOW>\n\n` +
                 `Please review and approve/reject this SOW when ready.`
               );

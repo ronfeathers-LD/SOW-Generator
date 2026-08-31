@@ -44,6 +44,7 @@ export function buildChecklistInput(formData: Partial<SOWData>): ChecklistSOWDat
       responsibilities: r.responsibilities,
     })),
     clientEmail: formData.template?.customer_email,
+    clientSignerName: formData.client_signer_name,
     salesforce_tenants: formData.template?.salesforce_tenants,
     objective_overview_content_edited: formData.objective_overview_content_edited,
     key_objectives_content_edited: formData.key_objectives_content_edited,
@@ -51,6 +52,8 @@ export function buildChecklistInput(formData: Partial<SOWData>): ChecklistSOWDat
     template: {
       customer_email: formData.template?.customer_email,
       billing_email: formData.template?.billing_email,
+      customer_signature_name: formData.template?.customer_signature_name,
+      customer_signature: formData.template?.customer_signature,
     },
   };
 }
