@@ -177,7 +177,7 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
         {/* Client Signature */}
         <div>
           <p className="my-2 text-sm">This SOW is accepted by {clientName}:</p>
-          <div className="grid grid-cols-2 gap-4 items-end">
+          <div className="grid grid-cols-2 gap-8 items-start">
             {/* Signature Line */}
             <div className="flex flex-col items-start">
               <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
@@ -186,9 +186,9 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
               </div>
             </div>
             {/* Date Line */}
-            <div className="flex flex-col items-left">
-              <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-              <div className="text-sm mt-2 text-left">DATE<br /><br /><br /></div>
+            <div className="flex flex-col items-start">
+              <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
+              <div className="text-sm mt-2 text-left">DATE</div>
             </div>
           </div>
         </div>
@@ -196,18 +196,18 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
         {/* Second Client Signature (if provided) */}
         {clientSignature2 && clientSignature2.name && clientSignature2.name.trim() && (
           <div>
-            <div className="grid grid-cols-2 gap-8 items-end">
+            <div className="grid grid-cols-2 gap-8 items-start">
               {/* Signature Line */}
               <div className="flex flex-col items-start">
-                <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
+                <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
                 <div className="text-sm mt-2 text-left" data-testid="customer-signature-2">
                   <SignatureDetails signature={clientSignature2} />
                 </div>
               </div>
               {/* Date Line */}
-              <div className="flex flex-col items-left">
-                <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                <div className="text-sm mt-2 text-left">DATE<br /><br /><br /></div>
+              <div className="flex flex-col items-start">
+                <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
+                <div className="text-sm mt-2 text-left">DATE</div>
               </div>
             </div>
           </div>
@@ -216,7 +216,7 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
         {/* LeanData Signature */}
         <div>
           <p className="my-2 text-sm">This SOW is accepted by LeanData, Inc.:</p>
-          <div className="grid grid-cols-2 gap-8 items-end">
+          <div className="grid grid-cols-2 gap-8 items-start">
             {/* Signature Line */}
             <div className="flex flex-col items-start">
               <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
@@ -245,9 +245,9 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
               </div>
             </div>
             {/* Date Line */}
-            <div className="flex flex-col items-left">
-              <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-              <div className="text-sm mt-2 text-left">DATE<br /><br /><br /></div>
+            <div className="flex flex-col items-start">
+              <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
+              <div className="text-sm mt-2 text-left">DATE</div>
             </div>
           </div>
         </div>
