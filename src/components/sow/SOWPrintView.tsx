@@ -38,9 +38,12 @@ export default function SOWPrintView({ sow, salesforceData, products, showPricin
               clientName={salesforceData?.account_data?.name || sow.clientName || 'Client Name Not Available'}
               companyLogo={sow.companyLogo}
               clientSignature={{
-                name: sow.clientSignerName || 'Not Entered',
-                title: sow.clientTitle || 'Title Not Entered',
-                email: sow.clientEmail || 'Email Not Entered',
+                // Blank stays blank — SOWTitlePage renders a muted "To be
+                // provided" line. A missing customer signer is allowed at
+                // submit time, so it must not print as a red error.
+                name: sow.clientSignerName || '',
+                title: sow.clientTitle || '',
+                email: sow.clientEmail || '',
                 date: sow.signatureDate || ''
               }}
               clientSignature2={sow.customer_signature_name_2 ? {
