@@ -5,6 +5,14 @@ interface SOWTitlePageProps {
   title: string;
   clientName: string;
   companyLogo?: string;
+  /**
+   * Billing identity for the customer, used as the printed signature block
+   * when no individual signer has been named yet.
+   */
+  clientCompany?: {
+    name?: string;
+    address?: string;
+  };
   clientSignature?: {
     name: string;
     title: string;
@@ -43,39 +51,69 @@ const providedOrNull = (value?: string | null): string | null => {
 };
 
 /**
- * Printed name / title / email under a customer signature line.
+ * Addresses are stored as a single comma-separated string (see the Billing
+ * Information tab), and rendered one part per line — matching how the billing
+ * section of the print view already breaks them up.
+ */
+function addressLines(address?: string | null): string[] {
+  const provided = providedOrNull(address);
+  if (!provided) return [];
+  return provided
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part !== '');
+}
+
+/**
+ * Printed identity under a customer signature line.
  *
  * A customer signer is not required to submit a SOW for approval, so a blank
- * one is a legitimate state — not an error. It renders as a single muted line
- * rather than three lines of red "Not Entered", which read as a broken
- * document on something a customer eventually sees. Reviewers are told about
- * the blank through the approval banner and the Slack notification instead.
+ * one is a legitimate state — not an error. When no individual has been named,
+ * the block falls back to the customer's company name and billing address,
+ * which reads as a normal unsigned contract: the entity is known, the
+ * individual signs on the line above. Reviewers learn about the missing signer
+ * from the approval banner and the Slack notification, not from the document.
  */
 function SignatureDetails({
   signature,
+  company,
 }: {
   signature?: { name: string; title: string; email: string };
+  company?: { name?: string; address?: string };
 }) {
   const name = providedOrNull(signature?.name);
   const title = providedOrNull(signature?.title);
   const email = providedOrNull(signature?.email);
 
   if (!name && !title && !email) {
-    return <span className="italic text-gray-400">To be provided</span>;
+    const companyName = providedOrNull(company?.name);
+    const lines = addressLines(company?.address);
+    if (!companyName && lines.length === 0) return null;
+    return (
+      <>
+        {companyName && <strong>{companyName}</strong>}
+        {lines.map((line, index) => (
+          <span key={index}>
+            {(companyName || index > 0) && <br />}
+            {line}
+          </span>
+        ))}
+      </>
+    );
   }
 
   return (
     <>
-      <strong>{name ?? <span className="font-normal italic text-gray-400">To be provided</span>}</strong>
+      <strong>{name}</strong>
       {title && (
         <>
-          <br />
+          {name && <br />}
           <span>{title}</span>
         </>
       )}
       {email && (
         <>
-          <br />
+          {(name || title) && <br />}
           <span>{email}</span>
         </>
       )}
@@ -87,6 +125,7 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
   title,
   clientName,
   companyLogo,
+  clientCompany,
   clientSignature,
   clientSignature2,
   leanDataSignature
@@ -143,7 +182,7 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
             <div className="flex flex-col items-start">
               <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
               <div className="text-sm mt-2 text-left" data-testid="customer-signature">
-                <SignatureDetails signature={clientSignature} />
+                <SignatureDetails signature={clientSignature} company={clientCompany} />
               </div>
             </div>
             {/* Date Line */}
