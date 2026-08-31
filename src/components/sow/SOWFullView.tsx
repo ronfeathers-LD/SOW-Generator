@@ -489,9 +489,11 @@ export default function SOWFullView({
                     clientName={salesforceData?.account_data?.name || sow.clientName}
                     companyLogo={sow.companyLogo}
                     clientSignature={{
-                      name: findSignatory(salesforceData?.contacts_data)?.name || sow.clientSignerName || sow.clientSignature?.name || 'Not Entered',
-                      title: findSignatory(salesforceData?.contacts_data)?.title || sow.clientSignature?.title || sow.clientTitle || 'Title Not Entered',
-                      email: findSignatory(salesforceData?.contacts_data)?.email || sow.clientSignature?.email || sow.clientEmail || 'Email Not Entered',
+                      // Blank stays blank — see SOWTitlePage. The approver
+                      // banner above the workflow is what flags a missing signer.
+                      name: findSignatory(salesforceData?.contacts_data)?.name || sow.clientSignerName || sow.clientSignature?.name || '',
+                      title: findSignatory(salesforceData?.contacts_data)?.title || sow.clientSignature?.title || sow.clientTitle || '',
+                      email: findSignatory(salesforceData?.contacts_data)?.email || sow.clientSignature?.email || sow.clientEmail || '',
                       date: sow.signatureDate || ''
                     }}
                     clientSignature2={sow.customer_signature_name_2 ? {

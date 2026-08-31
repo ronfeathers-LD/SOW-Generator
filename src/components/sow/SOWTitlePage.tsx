@@ -24,6 +24,65 @@ interface SOWTitlePageProps {
   };
 }
 
+/**
+ * Legacy sentinel strings. Older callers passed these in place of a blank
+ * value, so a SOW saved before they were removed can still carry them.
+ * Treated as "not provided" rather than printed onto the document.
+ */
+const PLACEHOLDER_VALUES = new Set([
+  'Not Entered',
+  'Title Not Entered',
+  'Email Not Entered',
+  'None Selected',
+]);
+
+const providedOrNull = (value?: string | null): string | null => {
+  const trimmed = (value ?? '').trim();
+  if (trimmed === '' || PLACEHOLDER_VALUES.has(trimmed)) return null;
+  return trimmed;
+};
+
+/**
+ * Printed name / title / email under a customer signature line.
+ *
+ * A customer signer is not required to submit a SOW for approval, so a blank
+ * one is a legitimate state — not an error. It renders as a single muted line
+ * rather than three lines of red "Not Entered", which read as a broken
+ * document on something a customer eventually sees. Reviewers are told about
+ * the blank through the approval banner and the Slack notification instead.
+ */
+function SignatureDetails({
+  signature,
+}: {
+  signature?: { name: string; title: string; email: string };
+}) {
+  const name = providedOrNull(signature?.name);
+  const title = providedOrNull(signature?.title);
+  const email = providedOrNull(signature?.email);
+
+  if (!name && !title && !email) {
+    return <span className="italic text-gray-400">To be provided</span>;
+  }
+
+  return (
+    <>
+      <strong>{name ?? <span className="font-normal italic text-gray-400">To be provided</span>}</strong>
+      {title && (
+        <>
+          <br />
+          <span>{title}</span>
+        </>
+      )}
+      {email && (
+        <>
+          <br />
+          <span>{email}</span>
+        </>
+      )}
+    </>
+  );
+}
+
 const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
   title,
   clientName,
@@ -83,25 +142,8 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
             {/* Signature Line */}
             <div className="flex flex-col items-start">
               <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
-              <div className="text-sm mt-2 text-left">
-                                  {[
-                    <strong key="name" className={!clientSignature?.name || clientSignature.name === 'Not Entered' ? 'text-red-600 font-bold' : ''}>
-                      {clientSignature?.name || '<FIRSTNAME LASTNAME>'}
-                    </strong>,
-                    <br key="break" />,
-                    <span key="title" className={!clientSignature?.title || clientSignature?.title === 'Title Not Entered' ? 'text-red-600 font-bold' : ''}>
-                      {clientSignature?.title || '<TITLE>'}
-                    </span>
-                  ].filter(Boolean).map((item, index) => (
-                    <span key={`client-signature-${index}`}>
-                      {item}
-                      {index < 1 && clientSignature?.name && clientSignature?.title && ' '}
-                    </span>
-                  ))}
-                <br />
-                <span className={!clientSignature?.email || clientSignature?.email === 'Email Not Entered' ? 'text-red-600 font-bold' : ''}>
-                  {clientSignature?.email || '<EMAIL>'}
-                </span>
+              <div className="text-sm mt-2 text-left" data-testid="customer-signature">
+                <SignatureDetails signature={clientSignature} />
               </div>
             </div>
             {/* Date Line */}
@@ -119,25 +161,8 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
               {/* Signature Line */}
               <div className="flex flex-col items-start">
                 <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                <div className="text-sm mt-2 text-left">
-                  {[
-                    <strong key="name" className={!clientSignature2.name || clientSignature2.name === 'Not Entered' ? 'text-red-600 font-bold' : ''}>
-                      {clientSignature2.name || '<FIRSTNAME LASTNAME>'}
-                    </strong>,
-                    <br key="break" />,
-                    <span key="title" className={!clientSignature2.title || clientSignature2.title === 'Title Not Entered' ? 'text-red-600 font-bold' : ''}>
-                      {clientSignature2.title || '<TITLE>'}
-                    </span>
-                  ].filter(Boolean).map((item, index) => (
-                    <span key={`client-signature2-${index}`}>
-                      {item}
-                      {index < 1 && clientSignature2.name && clientSignature2.title && ' '}
-                    </span>
-                  ))}
-                  <br />
-                  <span className={!clientSignature2.email || clientSignature2.email === 'Email Not Entered' ? 'text-red-600 font-bold' : ''}>
-                    {clientSignature2.email || '<EMAIL>'}
-                  </span>
+                <div className="text-sm mt-2 text-left" data-testid="customer-signature-2">
+                  <SignatureDetails signature={clientSignature2} />
                 </div>
               </div>
               {/* Date Line */}
