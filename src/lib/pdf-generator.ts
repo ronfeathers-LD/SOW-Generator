@@ -4,6 +4,8 @@ import { parseObjectives } from './utils/parse-objectives';
 import { sortProducts, resolveProductNames } from './utils/productSorting';
 import { processContent } from './text-to-html';
 import { sanitizeHtml } from './sanitize-html';
+import { customerSignatureBlock, providedOrNull } from './sow/signature-block';
+import { formatAddressLines } from './sow/format-address';
 import { renderTimelinePhaseBarHtml, type TimelinePhase } from './sow/timeline-phases';
 import fs from 'fs';
 import path from 'path';
@@ -41,6 +43,45 @@ interface ChangeOrderPDFData {
  * Get LeanData logo base64 data for PDF generation
  * Using base64 encoded logo for better reliability
  */
+/**
+ * Plain-text values are interpolated directly into the PDF's HTML string, so
+ * they must be escaped. (Rich content goes through sanitizeHtml instead.)
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * "Name, Title" for the change-order signature blocks, which lay signers out as
+ * a label/value list rather than a signature line. Without this a signer-less
+ * SOW renders a bare ", ". Falls back to the account name when given one.
+ */
+function nameAndTitleLine(
+  name?: string | null,
+  title?: string | null,
+  fallback?: string | null
+): string {
+  const parts = [providedOrNull(name), providedOrNull(title)].filter(
+    (part): part is string => part !== null
+  );
+  const line = parts.length > 0 ? parts.join(', ') : providedOrNull(fallback) ?? '';
+  return escapeHtml(line);
+}
+
+/** Render a signature block's lines as the PDF template's markup. */
+function renderSignatureBlock(block: { heading: string | null; lines: string[] }): string {
+  if (block.heading === null) return '';
+  return [
+    `<strong>${escapeHtml(block.heading)}</strong>`,
+    ...block.lines.map((line) => escapeHtml(line)),
+  ].join('<br>');
+}
+
 function getLeanDataLogoUrl(): string {
   try {
     // Path to the local logo file
@@ -982,9 +1023,24 @@ export class PDFGenerator {
                     <div>
                       <div class="signature-line"></div>
                       <div class="signature-info left">
-                        <strong>${sowData.client_signer_name || 'Client Representative'}</strong><br>
-                        ${sowData.client_title || 'Title'}<br>
-                        ${sowData.client_email || 'Email'}
+                        ${renderSignatureBlock(customerSignatureBlock({
+                          signer: {
+                            name: sowData.client_signer_name,
+                            title: sowData.client_title,
+                            email: sowData.client_email,
+                          },
+                          company: {
+                            // The Billing Information tab writes to the
+                            // `billing_info` JSONB column (see tab-column-mapping);
+                            // the flat billing_* columns are not populated by it,
+                            // so billingInfo is the real source here.
+                            name:
+                              billingInfo?.company_name ||
+                              sowData.billing_company_name ||
+                              sowData.client_name,
+                            address: billingInfo?.billing_address || sowData.billing_address,
+                          },
+                        }))}
                       </div>
                     </div>
                     <div>
@@ -1001,9 +1057,13 @@ export class PDFGenerator {
                     <div>
                       <div class="signature-line"></div>
                       <div class="signature-info left">
-                        <strong>${sowData.customer_signature_name_2}</strong><br>
-                        ${sowData.customer_signature_2 || 'Title'}<br>
-                        ${sowData.customer_email_2 || 'Email'}
+                        ${renderSignatureBlock(customerSignatureBlock({
+                          signer: {
+                            name: sowData.customer_signature_name_2,
+                            title: sowData.customer_signature_2,
+                            email: sowData.customer_email_2,
+                          },
+                        }))}
                       </div>
                     </div>
                     <div>
@@ -1422,7 +1482,9 @@ export class PDFGenerator {
                   </div>
                   <div>
                     <div class="billing-label">Billing Address:</div>
-                    <div class="billing-value">${billingInfo?.billing_address || 'N/A'}</div>
+                    <div class="billing-value">${
+                      formatAddressLines(billingInfo?.billing_address).map((line) => escapeHtml(line)).join('<br>') || 'N/A'
+                    }</div>
                   </div>
                   <div>
                     <div class="billing-label">Billing Email:</div>
@@ -1939,7 +2001,7 @@ export class PDFGenerator {
             <h3>Approved by ${clientName}:</h3>
             <div class="signature-field">
                 <label>Name:</label>
-                <div class="signature-value">${client_signer_name}, ${client_signer_title}</div>
+                <div class="signature-value">${nameAndTitleLine(client_signer_name, client_signer_title, changeOrderData.sow?.client_name)}</div>
             </div>
             <div class="signature-field">
                 <label>Signature:</label>
@@ -1951,7 +2013,7 @@ export class PDFGenerator {
             </div>
             <div class="signature-field">
                 <label>Email:</label>
-                <div class="signature-value">${client_signer_email}</div>
+                <div class="signature-value">${escapeHtml(providedOrNull(client_signer_email) ?? '')}</div>
             </div>
         </div>
 
@@ -1959,7 +2021,7 @@ export class PDFGenerator {
             <h3>Approved by LeanData, Inc.:</h3>
             <div class="signature-field">
                 <label>Name:</label>
-                <div class="signature-value">${leandata_signer_name}, ${leandata_signer_title}</div>
+                <div class="signature-value">${nameAndTitleLine(leandata_signer_name, leandata_signer_title)}</div>
             </div>
             <div class="signature-field">
                 <label>Signature:</label>
@@ -1971,7 +2033,7 @@ export class PDFGenerator {
             </div>
             <div class="signature-field">
                 <label>Email:</label>
-                <div class="signature-value">${leandata_signer_email}</div>
+                <div class="signature-value">${escapeHtml(providedOrNull(leandata_signer_email) ?? '')}</div>
             </div>
         </div>
     </div>
