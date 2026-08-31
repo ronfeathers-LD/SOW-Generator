@@ -3,6 +3,8 @@
  * Used by PreSubmitChecklistModal to gate SOW submission.
  */
 
+import { customerSignerWarning } from '@/lib/sow/signer-status';
+
 export type ChecklistItemType = 'automated' | 'manual';
 
 export interface CheckResult {
@@ -28,6 +30,8 @@ export interface ChecklistSOWData {
     responsibilities?: string;
   }>;
   clientEmail?: string;
+  /** Customer signer name, as stored at the top level of the SOW row. */
+  clientSignerName?: string;
   salesforce_tenants?: string;
   objective_overview_content_edited?: boolean;
   key_objectives_content_edited?: boolean;
@@ -36,6 +40,8 @@ export interface ChecklistSOWData {
   template?: {
     customer_email?: string;
     billing_email?: string;
+    customer_signature_name?: string;
+    customer_signature?: string;
   };
 }
 
@@ -168,6 +174,27 @@ const automatedChecks: ChecklistItem[] = [
           passed: false,
           detail:
             'The deliverables have not been modified from the AI-generated content. Review and edit them on the Objectives tab before submitting.',
+        };
+      }
+      return { passed: true };
+    },
+  },
+  {
+    // The customer signer is not a submit gate (it can be confirmed later), so
+    // this is a warning only. Approvers see the same warning on the SOW page
+    // and in the Slack submit notification.
+    id: 'signer-present',
+    type: 'automated',
+    label: 'Customer signer is filled in',
+    check: (sow) => {
+      const warning = customerSignerWarning({
+        name: sow.template?.customer_signature_name || sow.clientSignerName,
+        title: sow.template?.customer_signature,
+      });
+      if (warning) {
+        return {
+          passed: false,
+          detail: `${warning} Approvers will be notified that this SOW was submitted without a signer.`,
         };
       }
       return { passed: true };
