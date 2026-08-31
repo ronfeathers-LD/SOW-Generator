@@ -81,15 +81,13 @@ export function validateSOWForApproval(sowData: { [key: string]: unknown }): SOW
   }
 
   // Signers & Roles Tab validation
-  if (!sowData.client_signer_name || ((sowData.client_signer_name as string) || '').trim() === '') {
-    missingFields.push('Customer Signer');
-  }
-  // Check if signer has a title from template
-  const signerTitle = (sowData.template as Record<string, unknown>)?.customer_signature;
-  if (!signerTitle || ((signerTitle as string) || '').trim() === '') {
-    missingFields.push('Customer Signer Title');
-  }
-  // Check LeanData signatory - look for leandata_name in template (which gets set when signatory is selected)
+  //
+  // The CUSTOMER signer (name + title) is intentionally not gated here: a SOW
+  // may be submitted for approval before the signing contact is confirmed.
+  // It is still surfaced as a non-blocking warning to the submitter (the
+  // pre-submission checklist) and to approvers (Slack + the in-review banner)
+  // via `@/lib/sow/signer-status`. The LeanData signatory below stays required
+  // — that one is always knowable internally.
   const leanDataName = (sowData.template as Record<string, unknown>)?.lean_data_name;
   if (!leanDataName || ((leanDataName as string) || '').trim() === '' || (leanDataName as string).trim() === 'None Selected') {
     missingFields.push('LeanData Signatory');

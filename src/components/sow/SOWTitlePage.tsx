@@ -1,10 +1,19 @@
 
 import Image from 'next/image';
+import { formatAddressLines } from '@/lib/sow/format-address';
 
 interface SOWTitlePageProps {
   title: string;
   clientName: string;
   companyLogo?: string;
+  /**
+   * Billing identity for the customer, used as the printed signature block
+   * when no individual signer has been named yet.
+   */
+  clientCompany?: {
+    name?: string;
+    address?: string;
+  };
   clientSignature?: {
     name: string;
     title: string;
@@ -24,10 +33,86 @@ interface SOWTitlePageProps {
   };
 }
 
+/**
+ * Legacy sentinel strings. Older callers passed these in place of a blank
+ * value, so a SOW saved before they were removed can still carry them.
+ * Treated as "not provided" rather than printed onto the document.
+ */
+const PLACEHOLDER_VALUES = new Set([
+  'Not Entered',
+  'Title Not Entered',
+  'Email Not Entered',
+  'None Selected',
+]);
+
+const providedOrNull = (value?: string | null): string | null => {
+  const trimmed = (value ?? '').trim();
+  if (trimmed === '' || PLACEHOLDER_VALUES.has(trimmed)) return null;
+  return trimmed;
+};
+
+/**
+ * Printed identity under a customer signature line.
+ *
+ * A customer signer is not required to submit a SOW for approval, so a blank
+ * one is a legitimate state — not an error. When no individual has been named,
+ * the block falls back to the customer's company name and billing address,
+ * which reads as a normal unsigned contract: the entity is known, the
+ * individual signs on the line above. Reviewers learn about the missing signer
+ * from the approval banner and the Slack notification, not from the document.
+ */
+function SignatureDetails({
+  signature,
+  company,
+}: {
+  signature?: { name: string; title: string; email: string };
+  company?: { name?: string; address?: string };
+}) {
+  const name = providedOrNull(signature?.name);
+  const title = providedOrNull(signature?.title);
+  const email = providedOrNull(signature?.email);
+
+  if (!name && !title && !email) {
+    const companyName = providedOrNull(company?.name);
+    const lines = formatAddressLines(providedOrNull(company?.address));
+    if (!companyName && lines.length === 0) return null;
+    return (
+      <>
+        {companyName && <strong>{companyName}</strong>}
+        {lines.map((line, index) => (
+          <span key={index}>
+            {(companyName || index > 0) && <br />}
+            {line}
+          </span>
+        ))}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <strong>{name}</strong>
+      {title && (
+        <>
+          {name && <br />}
+          <span>{title}</span>
+        </>
+      )}
+      {email && (
+        <>
+          {(name || title) && <br />}
+          <span>{email}</span>
+        </>
+      )}
+    </>
+  );
+}
+
 const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
   title,
   clientName,
   companyLogo,
+  clientCompany,
   clientSignature,
   clientSignature2,
   leanDataSignature
@@ -79,35 +164,18 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
         {/* Client Signature */}
         <div>
           <p className="my-2 text-sm">This SOW is accepted by {clientName}:</p>
-          <div className="grid grid-cols-2 gap-4 items-end">
+          <div className="grid grid-cols-2 gap-8 items-start">
             {/* Signature Line */}
             <div className="flex flex-col items-start">
               <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
-              <div className="text-sm mt-2 text-left">
-                                  {[
-                    <strong key="name" className={!clientSignature?.name || clientSignature.name === 'Not Entered' ? 'text-red-600 font-bold' : ''}>
-                      {clientSignature?.name || '<FIRSTNAME LASTNAME>'}
-                    </strong>,
-                    <br key="break" />,
-                    <span key="title" className={!clientSignature?.title || clientSignature?.title === 'Title Not Entered' ? 'text-red-600 font-bold' : ''}>
-                      {clientSignature?.title || '<TITLE>'}
-                    </span>
-                  ].filter(Boolean).map((item, index) => (
-                    <span key={`client-signature-${index}`}>
-                      {item}
-                      {index < 1 && clientSignature?.name && clientSignature?.title && ' '}
-                    </span>
-                  ))}
-                <br />
-                <span className={!clientSignature?.email || clientSignature?.email === 'Email Not Entered' ? 'text-red-600 font-bold' : ''}>
-                  {clientSignature?.email || '<EMAIL>'}
-                </span>
+              <div className="text-sm mt-2 text-left" data-testid="customer-signature">
+                <SignatureDetails signature={clientSignature} company={clientCompany} />
               </div>
             </div>
             {/* Date Line */}
-            <div className="flex flex-col items-left">
-              <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-              <div className="text-sm mt-2 text-left">DATE<br /><br /><br /></div>
+            <div className="flex flex-col items-start">
+              <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
+              <div className="text-sm mt-2 text-left">DATE</div>
             </div>
           </div>
         </div>
@@ -115,35 +183,18 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
         {/* Second Client Signature (if provided) */}
         {clientSignature2 && clientSignature2.name && clientSignature2.name.trim() && (
           <div>
-            <div className="grid grid-cols-2 gap-8 items-end">
+            <div className="grid grid-cols-2 gap-8 items-start">
               {/* Signature Line */}
               <div className="flex flex-col items-start">
-                <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                <div className="text-sm mt-2 text-left">
-                  {[
-                    <strong key="name" className={!clientSignature2.name || clientSignature2.name === 'Not Entered' ? 'text-red-600 font-bold' : ''}>
-                      {clientSignature2.name || '<FIRSTNAME LASTNAME>'}
-                    </strong>,
-                    <br key="break" />,
-                    <span key="title" className={!clientSignature2.title || clientSignature2.title === 'Title Not Entered' ? 'text-red-600 font-bold' : ''}>
-                      {clientSignature2.title || '<TITLE>'}
-                    </span>
-                  ].filter(Boolean).map((item, index) => (
-                    <span key={`client-signature2-${index}`}>
-                      {item}
-                      {index < 1 && clientSignature2.name && clientSignature2.title && ' '}
-                    </span>
-                  ))}
-                  <br />
-                  <span className={!clientSignature2.email || clientSignature2.email === 'Email Not Entered' ? 'text-red-600 font-bold' : ''}>
-                    {clientSignature2.email || '<EMAIL>'}
-                  </span>
+                <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
+                <div className="text-sm mt-2 text-left" data-testid="customer-signature-2">
+                  <SignatureDetails signature={clientSignature2} />
                 </div>
               </div>
               {/* Date Line */}
-              <div className="flex flex-col items-left">
-                <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-                <div className="text-sm mt-2 text-left">DATE<br /><br /><br /></div>
+              <div className="flex flex-col items-start">
+                <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
+                <div className="text-sm mt-2 text-left">DATE</div>
               </div>
             </div>
           </div>
@@ -152,7 +203,7 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
         {/* LeanData Signature */}
         <div>
           <p className="my-2 text-sm">This SOW is accepted by LeanData, Inc.:</p>
-          <div className="grid grid-cols-2 gap-8 items-end">
+          <div className="grid grid-cols-2 gap-8 items-start">
             {/* Signature Line */}
             <div className="flex flex-col items-start">
               <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
@@ -181,9 +232,9 @@ const SOWTitlePage: React.FC<SOWTitlePageProps> = ({
               </div>
             </div>
             {/* Date Line */}
-            <div className="flex flex-col items-left">
-              <div className="w-full border-b border-gray-400 mb-2 h-8"></div>
-              <div className="text-sm mt-2 text-left">DATE<br /><br /><br /></div>
+            <div className="flex flex-col items-start">
+              <div className="w-full border-b border-gray-400 mb-2 mt-8 h-8"></div>
+              <div className="text-sm mt-2 text-left">DATE</div>
             </div>
           </div>
         </div>

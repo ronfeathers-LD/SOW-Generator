@@ -31,3 +31,31 @@ describe('pre-submit tenants-check (#200)', () => {
     expect(tenantsResult('1abc').passed).toBe(false);
   });
 });
+
+describe('pre-submit signer-present check', () => {
+  const runSignerCheck = (sow: ChecklistSOWData) =>
+    runAutomatedChecks(sow).find(({ item }) => item.id === 'signer-present')!.result;
+
+  it('warns (without blocking) when no customer signer is entered', () => {
+    const result = runSignerCheck({});
+    expect(result.passed).toBe(false);
+    expect(result.detail).toMatch(/Approvers will be notified/);
+  });
+
+  it('passes when the template carries a signer name and title', () => {
+    expect(
+      runSignerCheck({
+        template: { customer_signature_name: 'Dana Reyes', customer_signature: 'VP RevOps' },
+      }).passed
+    ).toBe(true);
+  });
+
+  it('falls back to the top-level clientSignerName', () => {
+    expect(
+      runSignerCheck({
+        clientSignerName: 'Dana Reyes',
+        template: { customer_signature: 'VP RevOps' },
+      }).passed
+    ).toBe(true);
+  });
+});

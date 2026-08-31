@@ -28,6 +28,8 @@ import type { ApprovalComment } from '@/components/sow/CommentThread';
 import { useTextSelection } from '@/lib/hooks/useTextSelection';
 import { useAnchoredHighlights } from '@/lib/hooks/useAnchoredHighlights';
 import { countOpenTopLevel } from '@/lib/comment-filters';
+import { customerSignerWarning } from '@/lib/sow/signer-status';
+import { formatAddressLines } from '@/lib/sow/format-address';
 import { anchorToRange, type SelectionAnchor } from '@/lib/selection-anchor';
 import type { SOWSectionKey } from '@/lib/sow-content';
 import { DisplaySOW, Product, SalesforceData } from '@/types/sow-display';
@@ -113,6 +115,12 @@ export default function SOWFullView({
   const isSowAuthor = !!sow.author_id && sow.author_id === session?.user?.id;
   const canEditSigners = isSowAuthor || isAdmin || isManager || isPmo;
   const pmIncluded = getPricingSummary(sow.pricingRoles).pmIncluded;
+  // Reads the SOW's own stored signer fields (not the Salesforce fallback the
+  // title page renders) — that's what the eventual contract carries.
+  const missingSignerWarning = customerSignerWarning({
+    name: sow.template?.customer_signature_name || sow.clientSignerName || sow.clientSignature?.name,
+    title: sow.template?.customer_signature || sow.clientSignature?.title || sow.clientTitle,
+  });
   const router = useRouter();
 
   // ── Anchored comments (#349): select text in a section → comment on it ──
@@ -481,10 +489,16 @@ export default function SOWFullView({
                     title={sow.sowTitle || 'SOW Title Not Available'}
                     clientName={salesforceData?.account_data?.name || sow.clientName}
                     companyLogo={sow.companyLogo}
+                    clientCompany={{
+                      name: sow.template?.billing_company_name || salesforceData?.account_data?.name || sow.clientName,
+                      address: sow.template?.billing_address,
+                    }}
                     clientSignature={{
-                      name: findSignatory(salesforceData?.contacts_data)?.name || sow.clientSignerName || sow.clientSignature?.name || 'Not Entered',
-                      title: findSignatory(salesforceData?.contacts_data)?.title || sow.clientSignature?.title || sow.clientTitle || 'Title Not Entered',
-                      email: findSignatory(salesforceData?.contacts_data)?.email || sow.clientSignature?.email || sow.clientEmail || 'Email Not Entered',
+                      // Blank stays blank — see SOWTitlePage. The approver
+                      // banner above the workflow is what flags a missing signer.
+                      name: findSignatory(salesforceData?.contacts_data)?.name || sow.clientSignerName || sow.clientSignature?.name || '',
+                      title: findSignatory(salesforceData?.contacts_data)?.title || sow.clientSignature?.title || sow.clientTitle || '',
+                      email: findSignatory(salesforceData?.contacts_data)?.email || sow.clientSignature?.email || sow.clientEmail || '',
                       date: sow.signatureDate || ''
                     }}
                     clientSignature2={sow.customer_signature_name_2 ? {
@@ -742,11 +756,12 @@ export default function SOWFullView({
 
                         <dt className="font-semibold text-gray-700">Billing Address:</dt>
                         <dd className="text-gray-900">
-                          {(sow.template?.billing_address || 'N/A')
-                            .split(',')
-                            .map((line: string, idx: number) => (
-                              <span key={idx} className="block">{line.trim()}</span>
-                            ))}
+                          {(formatAddressLines(sow.template?.billing_address).length > 0
+                            ? formatAddressLines(sow.template?.billing_address)
+                            : ['N/A']
+                          ).map((line: string, idx: number) => (
+                            <span key={idx} className="block">{line}</span>
+                          ))}
                         </dd>
 
                         <dt className="font-semibold text-gray-700">Billing Email:</dt>
@@ -852,6 +867,28 @@ export default function SOWFullView({
                         )}
                       </div>
                       
+                      {/* The customer signer is not a submit gate, so a SOW can
+                          reach approval blank. Approvers decide whether that's
+                          acceptable — this only makes sure they know. */}
+                      {missingSignerWarning && (
+                        <div className="rounded-lg border-l-4 border-amber-400 bg-amber-50 p-4">
+                          <div className="flex items-start gap-3">
+                            <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            <div>
+                              <p className="text-sm font-semibold text-amber-800">
+                                Submitted without a customer signer
+                              </p>
+                              <p className="mt-1 text-sm text-amber-700">
+                                {missingSignerWarning} Approving is still allowed — the signer can be
+                                added later from Edit Signers — but confirm this is intentional first.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <MultiStepApprovalWorkflow
                         sowId={sow.id}
                         sowTitle={sow.sowTitle || 'Untitled SOW'}
