@@ -1030,8 +1030,15 @@ export class PDFGenerator {
                             email: sowData.client_email,
                           },
                           company: {
-                            name: sowData.billing_company_name || sowData.client_name,
-                            address: sowData.billing_address,
+                            // The Billing Information tab writes to the
+                            // `billing_info` JSONB column (see tab-column-mapping);
+                            // the flat billing_* columns are not populated by it,
+                            // so billingInfo is the real source here.
+                            name:
+                              billingInfo?.company_name ||
+                              sowData.billing_company_name ||
+                              sowData.client_name,
+                            address: billingInfo?.billing_address || sowData.billing_address,
                           },
                         }))}
                       </div>
