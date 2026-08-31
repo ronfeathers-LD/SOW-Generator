@@ -12,6 +12,7 @@ import PricingDisplay from '@/components/sow/PricingDisplay';
 import TimelinePhaseBar from '@/components/sow/TimelinePhaseBar';
 import { DisplaySOW, Product, SalesforceData } from '@/types/sow-display';
 import { getPricingSummary } from '@/lib/sow/pricing-summary';
+import { formatAddressLines } from '@/lib/sow/format-address';
 
 interface SOWPrintViewProps {
   sow: DisplaySOW;
@@ -304,11 +305,12 @@ export default function SOWPrintView({ sow, salesforceData, products, showPricin
 
                   <dt className="font-semibold text-gray-700">Billing Address:</dt>
                   <dd className="text-gray-900">
-                    {(sow.template?.billing_address || 'N/A')
-                      .split(',')
-                      .map((line: string, idx: number) => (
-                        <span key={idx} className="block">{line.trim()}</span>
-                      ))}
+                    {(formatAddressLines(sow.template?.billing_address).length > 0
+                      ? formatAddressLines(sow.template?.billing_address)
+                      : ['N/A']
+                    ).map((line: string, idx: number) => (
+                      <span key={idx} className="block">{line}</span>
+                    ))}
                   </dd>
 
                   <dt className="font-semibold text-gray-700">Billing Email:</dt>

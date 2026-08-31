@@ -29,6 +29,7 @@ import { useTextSelection } from '@/lib/hooks/useTextSelection';
 import { useAnchoredHighlights } from '@/lib/hooks/useAnchoredHighlights';
 import { countOpenTopLevel } from '@/lib/comment-filters';
 import { customerSignerWarning } from '@/lib/sow/signer-status';
+import { formatAddressLines } from '@/lib/sow/format-address';
 import { anchorToRange, type SelectionAnchor } from '@/lib/selection-anchor';
 import type { SOWSectionKey } from '@/lib/sow-content';
 import { DisplaySOW, Product, SalesforceData } from '@/types/sow-display';
@@ -755,11 +756,12 @@ export default function SOWFullView({
 
                         <dt className="font-semibold text-gray-700">Billing Address:</dt>
                         <dd className="text-gray-900">
-                          {(sow.template?.billing_address || 'N/A')
-                            .split(',')
-                            .map((line: string, idx: number) => (
-                              <span key={idx} className="block">{line.trim()}</span>
-                            ))}
+                          {(formatAddressLines(sow.template?.billing_address).length > 0
+                            ? formatAddressLines(sow.template?.billing_address)
+                            : ['N/A']
+                          ).map((line: string, idx: number) => (
+                            <span key={idx} className="block">{line}</span>
+                          ))}
                         </dd>
 
                         <dt className="font-semibold text-gray-700">Billing Email:</dt>

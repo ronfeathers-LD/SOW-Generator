@@ -1,5 +1,6 @@
 
 import Image from 'next/image';
+import { formatAddressLines } from '@/lib/sow/format-address';
 
 interface SOWTitlePageProps {
   title: string;
@@ -51,20 +52,6 @@ const providedOrNull = (value?: string | null): string | null => {
 };
 
 /**
- * Addresses are stored as a single comma-separated string (see the Billing
- * Information tab), and rendered one part per line — matching how the billing
- * section of the print view already breaks them up.
- */
-function addressLines(address?: string | null): string[] {
-  const provided = providedOrNull(address);
-  if (!provided) return [];
-  return provided
-    .split(',')
-    .map((part) => part.trim())
-    .filter((part) => part !== '');
-}
-
-/**
  * Printed identity under a customer signature line.
  *
  * A customer signer is not required to submit a SOW for approval, so a blank
@@ -87,7 +74,7 @@ function SignatureDetails({
 
   if (!name && !title && !email) {
     const companyName = providedOrNull(company?.name);
-    const lines = addressLines(company?.address);
+    const lines = formatAddressLines(providedOrNull(company?.address));
     if (!companyName && lines.length === 0) return null;
     return (
       <>

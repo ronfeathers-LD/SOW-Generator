@@ -64,15 +64,17 @@ describe('SOWTitlePage — customer signature block', () => {
     expect(el.textContent).toContain('Acme Corp');
     expect(el.textContent).toContain('123 Market St');
     expect(el.textContent).toContain('Suite 400');
-    expect(el.textContent).toContain('San Francisco');
-    expect(el.textContent).toContain('CA 94105');
+    expect(el.textContent).toContain('San Francisco, CA 94105');
     expect(el.textContent).not.toContain('Not Entered');
     expect(el.textContent).not.toContain('To be provided');
   });
 
-  it('splits the address onto one line per comma-separated part', () => {
+  it('formats the address conventionally rather than one part per comma', () => {
     const el = customerBlock(render({ name: '', title: '', email: '', date: '' }));
-    expect(el.querySelectorAll('br').length).toBe(4); // company + 4 address parts
+    // "123 Market St, Suite 400, San Francisco, CA 94105" becomes three lines,
+    // not four — see format-address.
+    expect(el.querySelectorAll('br')).toHaveLength(3);
+    expect(el.textContent).toContain('San Francisco, CA 94105');
   });
 
   it('never paints the customer signature block red when blank', () => {
