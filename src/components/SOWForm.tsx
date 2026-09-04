@@ -91,7 +91,7 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
   // Two mutually exclusive single-tab modes. `pricingOnly` is kept as a derived
   // local so the many existing pricing checks below read unchanged.
   const pricingOnly = restrictedTab === 'Pricing';
-  const [formData, setFormData] = useState<Partial<SOWData>>(
+  const [formData, setFormDataRaw] = useState<Partial<SOWData>>(
     initialData
       ? {
           ...initialData,
@@ -360,8 +360,11 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
   // programmatic writes that aren't user edits (e.g. BillingPaymentTab's mount-time
   // auto-calc), so the "unsaved changes" banner doesn't fire before the user has
   // touched anything.
-  const updateFormData = (newData: Partial<SOWData>, options?: { markDirty?: boolean }) => {
-    setFormData(newData);
+  const updateFormData = (
+    newData: Partial<SOWData> | ((prev: Partial<SOWData>) => Partial<SOWData>),
+    options?: { markDirty?: boolean },
+  ) => {
+    setFormDataRaw(newData);
     if (options?.markDirty !== false) {
       setHasUnsavedChanges(true);
     }
@@ -513,7 +516,7 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
         setSelectedContact(contactData);
         
         // Also ensure the form data is properly set
-        setFormData(prevData => ({
+        setFormDataRaw(prevData => ({
           ...prevData,
           template: {
             ...prevData.template!,
@@ -541,7 +544,7 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
       
       // Set form data for second signer if it exists
       if (initialData.template?.customer_signature_name_2) {
-        setFormData(prevData => ({
+        setFormDataRaw(prevData => ({
           ...prevData,
           template: {
             ...prevData.template!,
@@ -597,7 +600,7 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
         if (defaultSignatory) {
           setSelectedLeanDataSignatory(defaultSignatory.id);
           // Update form data with the selected signatory
-          setFormData(prevData => ({
+          setFormDataRaw(prevData => ({
             ...prevData,
             template: {
               ...prevData.template!,
@@ -637,6 +640,11 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
     }
   };
 
+  // Both logo handlers go through `updateFormData` so the edit marks the form
+  // dirty; the raw setter left autosave unarmed and the new/removed logo was
+  // silently dropped on reload. The FileReader callback also lands
+  // asynchronously, so it updates from `prev` rather than the `formData` it
+  // closed over at click time.
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -644,20 +652,20 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
-        setFormData({
-          ...formData,
-          template: { ...formData.template!, company_logo: base64String },
-        });
+        updateFormData(prev => ({
+          ...prev,
+          template: { ...prev.template!, company_logo: base64String },
+        }));
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handleLogoRemove = () => {
-    setFormData({
-      ...formData,
-      template: { ...formData.template!, company_logo: '' },
-    });
+    updateFormData(prev => ({
+      ...prev,
+      template: { ...prev.template!, company_logo: '' },
+    }));
   };
 
 
@@ -739,8 +747,9 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
     // Reset selected opportunity when account changes
     setSelectedOpportunity(null);
     
-    // Auto-populate customer information with account details
-    setFormData({
+    // Auto-populate customer information with account details. `client_name`
+    // is only persisted by the tab save, so this must mark the form dirty.
+    updateFormData({
       ...formData,
       template: {
         ...formData.template,
@@ -822,8 +831,10 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
     setSelectedOpportunity(opportunity);
     
     if (opportunity) {
-      // Store opportunity information in form data
-      setFormData({
+      // Store opportunity information in form data. The opportunity columns on
+      // `sows` are written by the tab save, not by the salesforce-data POST
+      // below, so this must mark the form dirty.
+      updateFormData({
         ...formData,
         template: {
           ...formData.template,
@@ -875,7 +886,7 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
       }
       } else {
       // Clear opportunity information when deselected
-      setFormData({
+      updateFormData({
         ...formData,
         template: {
           ...formData.template,
