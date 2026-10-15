@@ -26,7 +26,8 @@ export async function POST(request: NextRequest) {
       if (body?.useFormData) {
         username = body.username;
         password = body.password;
-        securityToken = body.securityToken;
+        // The form round-trips the stored token, which may be encrypted
+        securityToken = body.securityToken ? decryptSecret(body.securityToken) : undefined;
         loginUrl = body.loginUrl;
       }
     } catch {

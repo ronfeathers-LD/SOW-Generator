@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
-import { encryptSecret } from '@/lib/crypto-utils';
+import { encryptSecretIfPlain } from '@/lib/crypto-utils';
 
 // Helper function to check admin access
 async function checkAdminAccess() {
@@ -87,8 +87,8 @@ export async function POST(request: NextRequest) {
       .from('salesforce_configs')
       .insert({
         username,
-        password: encryptSecret(password),
-        security_token: securityToken ? encryptSecret(securityToken) : null,
+        password: encryptSecretIfPlain(password),
+        security_token: securityToken ? encryptSecretIfPlain(securityToken) : null,
         login_url: loginUrl || 'https://login.salesforce.com',
         is_active: isActive !== false, // Default to true
       })
@@ -151,8 +151,8 @@ export async function PUT(request: NextRequest) {
       .from('salesforce_configs')
       .update({
         username,
-        password,
-        security_token: securityToken || null,
+        password: encryptSecretIfPlain(password),
+        security_token: securityToken ? encryptSecretIfPlain(securityToken) : null,
         login_url: loginUrl || 'https://login.salesforce.com',
         is_active: isActive !== false,
       })
