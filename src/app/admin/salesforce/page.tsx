@@ -3,11 +3,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
+type AuthMethod = 'password' | 'client_credentials';
+
 interface SalesforceConfig {
   id: string;
   username: string;
   password: string;
   security_token?: string;
+  auth_method?: AuthMethod;
+  client_id?: string;
+  client_secret?: string;
   login_url: string;
   is_active: boolean;
   last_tested?: string;
@@ -34,6 +39,8 @@ export default function SalesforceAdminPage() {
         const configWithOriginals = {
           ...data.config,
           password: '', // Always start with empty password for security
+          client_secret: '', // Same for the consumer secret (never returned by the API)
+          auth_method: data.config.auth_method || 'password',
           originalUsername: data.config.username,
           originalPassword: '', // Don't store original password in state
           originalSecurityToken: data.config.security_token,
@@ -47,7 +54,10 @@ export default function SalesforceAdminPage() {
           username: '',
           password: '',
           security_token: '',
-          login_url: 'https://login.salesforce.com',
+          auth_method: 'client_credentials',
+          client_id: '',
+          client_secret: '',
+          login_url: '',
           is_active: true,
         });
       }
@@ -68,6 +78,8 @@ export default function SalesforceAdminPage() {
         setConfig(prev => ({
           ...data.config,
           password: prev?.password || '', // Preserve current password
+          client_secret: prev?.client_secret || '', // Preserve current consumer secret
+          auth_method: data.config.auth_method || 'password',
           originalUsername: data.config.username,
           originalPassword: prev?.password || '', // Preserve current password
           originalSecurityToken: data.config.security_token,
@@ -100,6 +112,9 @@ export default function SalesforceAdminPage() {
           username: config?.username,
           password: config?.password,
           securityToken: config?.security_token,
+          authMethod,
+          clientId: config?.client_id,
+          clientSecret: config?.client_secret,
           loginUrl: config?.login_url,
           isActive: config?.is_active,
         }),
@@ -126,13 +141,9 @@ export default function SalesforceAdminPage() {
     setMessage(null);
 
     try {
-      // Check if form has unsaved changes
-      const hasChanges = config && (
-        config.username !== config.original_username ||
-        config.password !== config.original_password ||
-        config.security_token !== config.original_security_token ||
-        config.login_url !== config.original_login_url
-      );
+      // Use form data when the secret for the selected method has been entered;
+      // otherwise the server tests the stored credentials.
+      const hasChanges = !!(isClientCredentials ? config?.client_secret : config?.password);
 
       const response = await fetch('/api/admin/salesforce/test', {
         method: 'POST',
@@ -140,9 +151,12 @@ export default function SalesforceAdminPage() {
           'Content-Type': 'application/json',
         },
         body: hasChanges ? JSON.stringify({
+          authMethod,
           username: config?.username,
           password: config?.password,
           securityToken: config?.security_token,
+          clientId: config?.client_id,
+          clientSecret: config?.client_secret,
           loginUrl: config?.login_url,
           useFormData: true
         }) : undefined,
@@ -168,6 +182,10 @@ export default function SalesforceAdminPage() {
   };
 
 
+
+  const authMethod: AuthMethod = config?.auth_method === 'client_credentials' ? 'client_credentials' : 'password';
+  const isClientCredentials = authMethod === 'client_credentials';
+  const inputClass = 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500';
 
   if (isLoading) {
     return (
@@ -199,69 +217,133 @@ export default function SalesforceAdminPage() {
             </div>
           )}
 
+          {/* Auth method */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Authentication Method
+            </label>
+            <select
+              value={authMethod}
+              onChange={(e) => setConfig(prev => prev ? { ...prev, auth_method: e.target.value as AuthMethod } : null)}
+              className={inputClass}
+            >
+              <option value="client_credentials">OAuth client credentials (recommended)</option>
+              <option value="password">Username + password + token</option>
+            </select>
+            <p className="mt-1 text-sm text-gray-500">
+              {isClientCredentials
+                ? 'Uses a Connected App consumer key and secret. The run-as user is set on the Connected App in Salesforce. Required for Integration-license users, which cannot get a security token.'
+                : 'Signs in as a user with a password and security token.'}
+            </p>
+          </div>
+
           {/* Login URL */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Salesforce Login URL
+              {isClientCredentials ? 'Salesforce My Domain URL *' : 'Salesforce Login URL'}
             </label>
             <input
               type="text"
-              value={config?.login_url || 'https://login.salesforce.com'}
+              value={isClientCredentials ? (config?.login_url || '') : (config?.login_url || 'https://login.salesforce.com')}
               onChange={(e) => setConfig(prev => prev ? { ...prev, login_url: e.target.value } : null)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="https://your-org.my.salesforce.com"
+              required={isClientCredentials}
+              className={inputClass}
+              placeholder={isClientCredentials ? 'https://leandata.my.salesforce.com' : 'https://your-org.my.salesforce.com'}
             />
             <p className="mt-1 text-sm text-gray-500">
-              Enter your Salesforce login URL. For your dev org, use: https://ronfeathersdevorg-dev-ed.my.salesforce.com (not the lightning.force.com URL)
+              {isClientCredentials
+                ? "Client credentials needs your org's My Domain URL, not login.salesforce.com or test.salesforce.com."
+                : 'Enter your Salesforce login URL. For your dev org, use: https://ronfeathersdevorg-dev-ed.my.salesforce.com (not the lightning.force.com URL)'}
             </p>
           </div>
 
           {/* Username */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Username *
+              {isClientCredentials ? 'Run-as Username *' : 'Username *'}
             </label>
             <input
               type="text"
               value={config?.username || ''}
               onChange={(e) => setConfig(prev => prev ? { ...prev, username: e.target.value } : null)}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="your-email@company.com"
+              className={inputClass}
+              placeholder={isClientCredentials ? 'integration-user@company.com' : 'your-email@company.com'}
             />
+            {isClientCredentials && (
+              <p className="mt-1 text-sm text-gray-500">
+                Label only. The actual run-as user is configured on the Connected App in Salesforce.
+              </p>
+            )}
           </div>
 
-          {/* Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Password *
-            </label>
-            <input
-              type="password"
-              value={config?.password || ''}
-              onChange={(e) => setConfig(prev => prev ? { ...prev, password: e.target.value } : null)}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Your Salesforce password"
-            />
-          </div>
+          {isClientCredentials ? (
+            <>
+              {/* Consumer Key */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Consumer Key *
+                </label>
+                <input
+                  type="text"
+                  value={config?.client_id || ''}
+                  onChange={(e) => setConfig(prev => prev ? { ...prev, client_id: e.target.value } : null)}
+                  required
+                  className={inputClass}
+                  placeholder="Connected App consumer key"
+                />
+              </div>
 
-          {/* Security Token */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Security Token
-            </label>
-            <input
-              type="password"
-              value={config?.security_token || ''}
-              onChange={(e) => setConfig(prev => prev ? { ...prev, security_token: e.target.value } : null)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Your security token (optional)"
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              Get your security token from Setup → My Personal Information → Reset My Security Token
-            </p>
-          </div>
+              {/* Consumer Secret */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Consumer Secret *
+                </label>
+                <input
+                  type="password"
+                  value={config?.client_secret || ''}
+                  onChange={(e) => setConfig(prev => prev ? { ...prev, client_secret: e.target.value } : null)}
+                  required
+                  className={inputClass}
+                  placeholder="Connected App consumer secret"
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Password *
+                </label>
+                <input
+                  type="password"
+                  value={config?.password || ''}
+                  onChange={(e) => setConfig(prev => prev ? { ...prev, password: e.target.value } : null)}
+                  required
+                  className={inputClass}
+                  placeholder="Your Salesforce password"
+                />
+              </div>
+
+              {/* Security Token */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Security Token
+                </label>
+                <input
+                  type="password"
+                  value={config?.security_token || ''}
+                  onChange={(e) => setConfig(prev => prev ? { ...prev, security_token: e.target.value } : null)}
+                  className={inputClass}
+                  placeholder="Your security token (optional)"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Get your security token from Setup → My Personal Information → Reset My Security Token
+                </p>
+              </div>
+            </>
+          )}
 
           {/* Active Status */}
           <div className="flex items-center">
@@ -291,11 +373,11 @@ export default function SalesforceAdminPage() {
           )}
 
           {/* Test Mode Info */}
-          {config?.id && !config?.password && (
+          {config?.id && !(isClientCredentials ? config?.client_secret : config?.password) && (
             <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
               <h3 className="text-sm font-medium text-blue-800 mb-2">Test Mode</h3>
               <p className="text-sm text-blue-700">
-                Test buttons will use stored credentials from the database. Enter a password to test with form data instead.
+                Test buttons will use stored credentials from the database. Enter a {isClientCredentials ? 'consumer secret' : 'password'} to test with form data instead.
               </p>
             </div>
           )}
@@ -313,7 +395,7 @@ export default function SalesforceAdminPage() {
             <button
               type="button"
               onClick={handleTestConnection}
-              disabled={isTesting || !config?.username || (!config?.password && !config?.id)}
+              disabled={isTesting || !config?.username || (!(isClientCredentials ? config?.client_secret : config?.password) && !config?.id)}
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-400"
             >
               {isTesting ? 'Testing...' : 'Test Connection'}

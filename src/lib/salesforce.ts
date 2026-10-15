@@ -280,27 +280,69 @@ export class SalesforceClient {
   }
 
   /**
-   * Authenticate with Salesforce using OAuth2 (for production)
+   * Authenticate with the OAuth 2.0 client credentials flow (Connected App
+   * consumer key + secret; the run-as user is configured in Salesforce). This
+   * is for API-only Integration-license users, which cannot get a security token.
+   *
+   * Requires the org's My Domain URL: the generic login/test hosts do not serve
+   * client credentials. cleanLoginUrl() is deliberately NOT used here because it
+   * rewrites *.my.salesforce.com to the generic login hosts.
    */
-  async authenticateWithOAuth2(
+  async authenticateWithClientCredentials(
     clientId: string,
     clientSecret: string,
-    redirectUri: string,
-    code: string
+    loginUrl: string
   ): Promise<void> {
-    try {
-      await this.conn.authorize({
-        clientId,
-        clientSecret,
-        redirectUri,
-        code,
-        grant_type: 'authorization_code'
-      });
-              // OAuth2 authentication successful
-    } catch (error) {
-      console.error('Salesforce OAuth2 authentication failed:', error);
-      throw new Error('Failed to authenticate with Salesforce OAuth2');
+    let baseUrl = (loginUrl || '').trim().replace(/\/+$/, '');
+    if (!/^https?:\/\//.test(baseUrl)) {
+      baseUrl = 'https://' + baseUrl;
     }
+
+    let host = '';
+    try {
+      host = new URL(baseUrl).hostname.toLowerCase();
+    } catch {
+      throw new Error('Invalid Salesforce login URL for client credentials login');
+    }
+    if (host === 'login.salesforce.com' || host === 'test.salesforce.com') {
+      throw new Error(
+        "Client credentials login needs your org's My Domain URL (for example https://leandata.my.salesforce.com), not login.salesforce.com or test.salesforce.com."
+      );
+    }
+
+    const response = await fetch(`${baseUrl}/services/oauth2/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+      }).toString(),
+    });
+
+    const body = (await response.json().catch(() => ({}))) as {
+      access_token?: string;
+      instance_url?: string;
+      error?: string;
+      error_description?: string;
+    };
+
+    if (!response.ok) {
+      const detail = [body.error, body.error_description].filter(Boolean).join(': ');
+      throw new Error(
+        `Salesforce client credentials login failed (${response.status})${detail ? `: ${detail}` : ''}`
+      );
+    }
+
+    if (!body.access_token || !body.instance_url) {
+      throw new Error('Salesforce client credentials login succeeded but returned no access token or instance URL');
+    }
+
+    // Same API version as the password login: jsforce's default.
+    this.conn = new jsforce.Connection({
+      instanceUrl: body.instance_url,
+      accessToken: body.access_token,
+    });
   }
 
   /**

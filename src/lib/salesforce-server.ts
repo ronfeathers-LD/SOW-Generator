@@ -4,7 +4,10 @@ import { decryptSecret } from './crypto-utils';
 
 export interface SalesforceConfigRow {
   username: string;
-  password: string;
+  password?: string | null;
+  auth_method?: 'password' | 'client_credentials' | null;
+  client_id?: string | null;
+  client_secret?: string | null;
   security_token?: string | null;
   login_url?: string | null;
   is_active?: boolean;
@@ -31,7 +34,8 @@ export async function getActiveSalesforceConfig(
   const config = data as SalesforceConfigRow;
   return {
     ...config,
-    password: decryptSecret(config.password),
+    password: config.password ? decryptSecret(config.password) : config.password,
+    client_secret: config.client_secret ? decryptSecret(config.client_secret) : config.client_secret,
     security_token: config.security_token ? decryptSecret(config.security_token) : config.security_token,
   };
 }
@@ -50,6 +54,20 @@ export async function getAuthenticatedSalesforceClient(
   }
 
   const client = createSalesforceClient(config.login_url || undefined);
+
+  if (config.auth_method === 'client_credentials') {
+    if (!config.client_id || !config.client_secret || !config.login_url) {
+      throw new Error(
+        'Salesforce client credentials config is incomplete: consumer key, consumer secret and login URL (My Domain) are all required'
+      );
+    }
+    await client.authenticateWithClientCredentials(config.client_id, config.client_secret, config.login_url);
+    return client;
+  }
+
+  if (!config.password) {
+    throw new Error('Salesforce password config has no password');
+  }
   await client.authenticate(
     config.username,
     config.password,
