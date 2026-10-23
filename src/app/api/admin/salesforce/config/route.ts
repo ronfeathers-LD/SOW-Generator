@@ -2,7 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
-import { encryptSecret } from '@/lib/crypto-utils';
+import { encryptSecretIfPlain } from '@/lib/crypto-utils';
+import { validateSalesforceConfigInput, stripSalesforceSecrets } from '@/lib/salesforce-config-validation';
+
+// Build the DB columns for a validated config. Secrets are encrypted at rest (audit #92);
+// getActiveSalesforceConfig transparently decrypts them on read.
+function toColumns(v: Extract<ReturnType<typeof validateSalesforceConfigInput>, { ok: true }>['value']) {
+  return {
+    auth_method: v.authMethod,
+    username: v.username,
+    password: v.password ? encryptSecretIfPlain(v.password) : null,
+    security_token: v.securityToken ? encryptSecretIfPlain(v.securityToken) : null,
+    client_id: v.clientId,
+    client_secret: v.clientSecret ? encryptSecretIfPlain(v.clientSecret) : null,
+    login_url: v.loginUrl,
+  };
+}
 
 // Helper function to check admin access
 async function checkAdminAccess() {
@@ -40,10 +55,9 @@ export async function GET() {
       return NextResponse.json({ error: 'No Salesforce configuration found' }, { status: 404 });
     }
 
-    // Don't return the password in the response
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...safeConfig } = config;
-    
+    // Never return secrets in the response
+    const safeConfig = stripSalesforceSecrets(config);
+
     // Return snake_case data directly
     return NextResponse.json({ config: safeConfig });
   } catch (error) {
@@ -66,13 +80,11 @@ export async function POST(request: NextRequest) {
     const supabase = await createServerSupabaseClient();
     
     const body = await request.json();
-    const { username, password, securityToken, loginUrl, isActive } = body;
+    const { isActive } = body;
 
-    if (!username || !password) {
-      return NextResponse.json(
-        { error: 'Username and password are required' },
-        { status: 400 }
-      );
+    const validation = validateSalesforceConfigInput(body);
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
     // Deactivate any existing configurations
@@ -81,24 +93,18 @@ export async function POST(request: NextRequest) {
       .update({ is_active: false })
       .eq('is_active', true);
 
-    // Create new configuration. Secrets are encrypted at rest (audit #92);
-    // getActiveSalesforceConfig transparently decrypts them on read.
     const { data: config } = await supabase
       .from('salesforce_configs')
       .insert({
-        username,
-        password: encryptSecret(password),
-        security_token: securityToken ? encryptSecret(securityToken) : null,
-        login_url: loginUrl || 'https://login.salesforce.com',
+        ...toColumns(validation.value),
         is_active: isActive !== false, // Default to true
       })
       .select()
       .single();
 
-    // Don't return the password in the response
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...safeConfig } = config;
-    
+    // Never return secrets in the response
+    const safeConfig = stripSalesforceSecrets(config);
+
     // Return snake_case data directly
     return NextResponse.json({ config: safeConfig }, { status: 201 });
   } catch (error) {
@@ -121,7 +127,7 @@ export async function PUT(request: NextRequest) {
     const supabase = await createServerSupabaseClient();
     
     const body = await request.json();
-    const { id, username, password, securityToken, loginUrl, isActive } = body;
+    const { id, isActive } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -130,11 +136,9 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    if (!username || !password) {
-      return NextResponse.json(
-        { error: 'Username and password are required' },
-        { status: 400 }
-      );
+    const validation = validateSalesforceConfigInput(body);
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
     // Deactivate other configurations if this one is being activated
@@ -150,20 +154,16 @@ export async function PUT(request: NextRequest) {
     const { data: config } = await supabase
       .from('salesforce_configs')
       .update({
-        username,
-        password,
-        security_token: securityToken || null,
-        login_url: loginUrl || 'https://login.salesforce.com',
+        ...toColumns(validation.value),
         is_active: isActive !== false,
       })
       .eq('id', id)
       .select()
       .single();
 
-    // Don't return the password in the response
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...safeConfig } = config;
-    
+    // Never return secrets in the response
+    const safeConfig = stripSalesforceSecrets(config);
+
     // Return snake_case data directly
     return NextResponse.json({ config: safeConfig });
   } catch (error) {

@@ -46,6 +46,14 @@ export function decryptSecret(value: string | null | undefined): string {
   return Buffer.concat([decipher.update(enc), decipher.final()]).toString('utf8');
 }
 
+/**
+ * Encrypt a secret unless it is already encrypted. The admin form round-trips
+ * the stored (encrypted) security token, so re-saving must not double-encrypt.
+ */
+export function encryptSecretIfPlain(value: string): string {
+  return isEncrypted(value) ? value : encryptSecret(value);
+}
+
 /** Whether a stored value is already encrypted. */
 export function isEncrypted(value: string | null | undefined): boolean {
   return typeof value === 'string' && value.startsWith(PREFIX);
