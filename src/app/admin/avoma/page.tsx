@@ -49,6 +49,18 @@ export default function AvomaAdminPage() {
     }
   };
 
+  const refreshTestStatus = async () => {
+    try {
+      const response = await fetch('/api/admin/avoma/config');
+      if (response.ok) {
+        const data = await response.json();
+        setConfig(prev => prev ? { ...prev, last_tested: data.config.last_tested, last_error: data.config.last_error } : prev);
+      }
+    } catch (error) {
+      console.error('Error refreshing test status:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -109,8 +121,8 @@ export default function AvomaAdminPage() {
           type: 'success', 
           text: 'Avoma connection test successful!' 
         });
-        // Reload config to get updated last_tested timestamp
-        await loadConfig();
+        // Refresh only the test status; a full reload would overwrite unsaved form values
+        await refreshTestStatus();
       } else {
         throw new Error(data.error || 'Connection test failed');
       }
