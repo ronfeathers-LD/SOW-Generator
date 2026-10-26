@@ -167,8 +167,7 @@ export default function SalesforceAdminPage() {
           type: 'success', 
           text: `Salesforce connection test successful! ${hasChanges ? '(using form data)' : '(using stored credentials)'}` 
         });
-        // Reload config to get updated last_tested timestamp, but preserve the password
-        await reloadConfigPreservingPassword();
+        // Don't reload config here: it would overwrite the unsaved form values being tested
       } else {
         const data = await response.json();
         throw new Error(data.details || 'Connection test failed');
