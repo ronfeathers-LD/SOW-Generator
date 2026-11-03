@@ -7,6 +7,7 @@ import { getSOWUrl } from '@/lib/utils/app-url';
 import { authOptions } from '@/lib/auth';
 import { mapSowRowToResponse } from '@/lib/sow/map-sow-response';
 import { customerSignerWarning } from '@/lib/sow/signer-status';
+import { describeRequiredApprovals } from '@/lib/approval-workflow-rules';
 
 export async function GET(
   request: Request,
@@ -345,7 +346,7 @@ export async function PUT(
           // Get SOW details for the notification
           const { data: sowDetails } = await supabase
             .from('sows')
-            .select('client_name, author_id, template, sow_title, client_signer_name, client_title')
+            .select('client_name, author_id, template, sow_title, client_signer_name, client_title, pricing_roles')
             .eq('id', id)
             .single();
 
@@ -387,12 +388,17 @@ export async function PUT(
               ? `:warning: *No customer signer:* ${signerWarning} Approve only if that's intentional.\n\n`
               : '';
 
+            // Name the stages this SOW needs, so PMO can tell at a glance when
+            // a submit has nothing for them (no Project Manager hours).
+            const approvalsNeeded = describeRequiredApprovals(sowDetails);
+
             // Skip notifications for Hula Truck
             if (clientName.toLowerCase() !== 'hula truck') {
               await slackService.sendMessage(
                 `:memo: *New SOW Submitted for Review*\n\n` +
                 `*Client:* ${clientName}\n` +
-                `*Submitted by:* ${submitterName}\n\n` +
+                `*Submitted by:* ${submitterName}\n` +
+                `*Approvals needed:* ${approvalsNeeded}\n\n` +
                 signerWarningLine +
                 `:link: <${sowUrl}|Review SOW>\n\n` +
                 `Please review and approve/reject this SOW when ready.`
@@ -425,7 +431,8 @@ export async function PUT(
                     clientName,
                     'sowapprovalscommercial@leandata.com',
                     submitterName,
-                    ccEmails
+                    ccEmails,
+                    approvalsNeeded
                   );
                 }
               }
