@@ -132,3 +132,16 @@ export function shouldIncludeStage(
   }
 }
 
+
+/**
+ * The approvals line for the submit-for-review Slack post and email, naming the
+ * stages this SOW actually needs. Without it every submit read as a PMO ask,
+ * including SOWs with no Project Manager hours that never get a PMO stage.
+ */
+export function describeRequiredApprovals(sow: {
+  pricing_roles?: PricingRolesField;
+}): string {
+  return requiresPMApproval(sow)
+    ? 'Professional Services, Project Management (PMO), Sr. Leadership'
+    : 'Professional Services, Sr. Leadership. No PMO review needed (no Project Manager hours).';
+}

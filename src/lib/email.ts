@@ -244,7 +244,8 @@ class EmailService {
     clientName: string,
     approverEmail: string,
     authorName: string,
-    ccEmails: string[] = []
+    ccEmails: string[] = [],
+    approvalsNeeded = ''
   ): Promise<boolean> {
     // Validate approver email domain
     if (!approverEmail || typeof approverEmail !== 'string') {
@@ -271,6 +272,7 @@ class EmailService {
             <p><strong>Client:</strong> {{clientName}}</p>
             <p><strong>Submitted by:</strong> {{authorName}}</p>
             <p><strong>Status:</strong> Awaiting Approval</p>
+            <p><strong>Approvals needed:</strong> {{approvalsNeeded}}</p>
           </div>
           
           <div style="text-align: center; margin: 30px 0;">
@@ -293,7 +295,8 @@ class EmailService {
       sowTitle,
       clientName,
       authorName,
-      sowUrl
+      sowUrl,
+      approvalsNeeded
     }, ccEmails);
   }
 
