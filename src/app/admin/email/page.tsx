@@ -12,6 +12,8 @@ interface EmailConfig {
   username?: string;
   password?: string;
   api_key?: string;
+  has_password?: boolean;
+  has_api_key?: boolean;
   from_email: string;
   from_name: string;
   is_active: boolean;
@@ -203,7 +205,7 @@ export default function EmailConfigPage() {
                       type="password"
                       value={config.password || ''}
                       onChange={(e) => setConfig({ ...config, password: e.target.value })}
-                      placeholder="16-character app password"
+                      placeholder={config.has_password ? "Saved. Leave blank to keep it" : "16-character app password"}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -264,7 +266,7 @@ export default function EmailConfigPage() {
                       type="password"
                       value={config.password || ''}
                       onChange={(e) => setConfig({ ...config, password: e.target.value })}
-                      placeholder="your-password"
+                      placeholder={config.has_password ? "Saved. Leave blank to keep it" : "your-password"}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -285,7 +287,7 @@ export default function EmailConfigPage() {
                     type="password"
                     value={config.api_key || ''}
                     onChange={(e) => setConfig({ ...config, api_key: e.target.value })}
-                    placeholder="SG.your-api-key"
+                    placeholder={config.has_api_key ? "Saved. Leave blank to keep it" : "SG.your-api-key"}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -305,7 +307,7 @@ export default function EmailConfigPage() {
                     type="password"
                     value={config.api_key || ''}
                     onChange={(e) => setConfig({ ...config, api_key: e.target.value })}
-                    placeholder="key-your-api-key"
+                    placeholder={config.has_api_key ? "Saved. Leave blank to keep it" : "key-your-api-key"}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
