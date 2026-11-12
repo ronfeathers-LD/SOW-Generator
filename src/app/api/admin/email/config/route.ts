@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { secretsForSave, stripEmailConfigSecrets } from '@/lib/email-config-secrets';
 
 // GET - Retrieve email configuration
 export async function GET() {
@@ -37,7 +38,8 @@ export async function GET() {
       return new NextResponse('Failed to fetch email configuration', { status: 500 });
     }
 
-    return NextResponse.json({ config: config || null });
+    // Never send the stored password or API key to the browser.
+    return NextResponse.json({ config: config ? stripEmailConfigSecrets(config) : null });
   } catch (error) {
     console.error('Error in email config GET:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
@@ -71,20 +73,31 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Missing required fields', { status: 400 });
     }
 
+    // The page never receives the saved secrets, so a blank field means "keep
+    // the saved one". Resolve that before validating.
+    const { data: existing } = await supabase
+      .from('email_config')
+      .select('password, api_key')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const secrets = secretsForSave(config, existing);
+
     // Validate provider-specific fields
-    if (config.provider === 'gmail' && (!config.username || !config.password)) {
+    if (config.provider === 'gmail' && (!config.username || !secrets.password)) {
       return new NextResponse('Gmail requires username and password', { status: 400 });
     }
 
-    if (config.provider === 'smtp' && (!config.host || !config.port || !config.username || !config.password)) {
+    if (config.provider === 'smtp' && (!config.host || !config.port || !config.username || !secrets.password)) {
       return new NextResponse('SMTP requires host, port, username, and password', { status: 400 });
     }
 
-    if (config.provider === 'sendgrid' && !config.api_key) {
+    if (config.provider === 'sendgrid' && !secrets.api_key) {
       return new NextResponse('SendGrid requires API key', { status: 400 });
     }
 
-    if (config.provider === 'mailgun' && !config.api_key) {
+    if (config.provider === 'mailgun' && !secrets.api_key) {
       return new NextResponse('Mailgun requires API key', { status: 400 });
     }
 
@@ -102,8 +115,8 @@ export async function POST(request: NextRequest) {
         host: config.host,
         port: config.port,
         username: config.username,
-        password: config.password,
-        api_key: config.api_key,
+        password: secrets.password,
+        api_key: secrets.api_key,
         from_email: config.from_email,
         from_name: config.from_name,
         is_active: config.is_active
@@ -118,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      config: newConfig,
+      config: newConfig ? stripEmailConfigSecrets(newConfig) : null,
       message: 'Email configuration saved successfully' 
     });
   } catch (error) {

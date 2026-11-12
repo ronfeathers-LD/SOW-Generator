@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import { logInvalidEmailWarning } from './utils/email-domain-validation';
 import { getSOWUrl, getPMHoursRemovalUrl } from './utils/app-url';
 import { isStagingDeploy } from './deploy-env';
+import { decryptEmailSecrets, plaintextSecretsToEncrypt } from './email-config-secrets';
 
 const STAGE_SUBJECT_PREFIX = '[STAGE] ';
 const STAGE_BANNER_TEXT =
@@ -679,14 +680,27 @@ export async function getEmailService(): Promise<EmailService | null> {
       let emailConfig: EmailConfig;
 
       if (config) {
+        // Rows saved before encryption hold a plaintext secret: re-save it
+        // encrypted. Best effort; sending still works if this write fails.
+        try {
+          const toEncrypt = plaintextSecretsToEncrypt(config);
+          if (toEncrypt) {
+            const { error: encryptError } = await supabase.from('email_config').update(toEncrypt).eq('id', config.id);
+            if (encryptError) console.error('Could not encrypt stored email secrets:', encryptError.message);
+          }
+        } catch (encryptErr) {
+          // e.g. SF_CRED_ENCRYPTION_KEY unset: never let this stop email going out.
+          console.error('Could not encrypt stored email secrets:', encryptErr instanceof Error ? encryptErr.message : encryptErr);
+        }
+        const secrets = decryptEmailSecrets(config);
         // Use database config
         emailConfig = {
           provider: config.provider as 'gmail' | 'sendgrid' | 'mailgun',
           host: config.host,
           port: config.port,
           username: config.username,
-          password: config.password,
-          apiKey: config.api_key,
+          password: secrets.password,
+          apiKey: secrets.apiKey,
           fromEmail: config.from_email,
           fromName: config.from_name,
           isActive: config.is_active
