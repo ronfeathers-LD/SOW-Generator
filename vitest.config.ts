@@ -26,9 +26,5 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_ANON_KEY: 'test-anon-key',
     },
     include: ['src/**/*.test.{ts,tsx}'],
-    // src/lib/utils/__tests__/ predates any test runner in this repo and uses
-    // jest APIs (jest.resetModules, jest.spyOn) without jest being installed —
-    // those files have never been runnable. Excluded until ported to vitest.
-    exclude: ['src/**/__tests__/**'],
   },
 });

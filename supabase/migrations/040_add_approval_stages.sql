@@ -1,3 +1,17 @@
+-- Production's approval_stages already has sort_order (the app reads it), but
+-- 003 created the table with the wrong name, stage_order. 003 is a no-op on the
+-- real databases (CREATE TABLE IF NOT EXISTS), so only a fresh local stack has
+-- the wrong name. Rename it there; a no-op wherever sort_order already exists.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_schema = 'public' AND table_name = 'approval_stages' AND column_name = 'stage_order')
+     AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_schema = 'public' AND table_name = 'approval_stages' AND column_name = 'sort_order') THEN
+    ALTER TABLE public.approval_stages RENAME COLUMN stage_order TO sort_order;
+  END IF;
+END $$;
+
 -- Migration: Add new approval stages
 -- Safe to run on existing database
 -- Created: Multi-step approval implementation
