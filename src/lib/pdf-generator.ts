@@ -1646,7 +1646,7 @@ export class PDFGenerator {
         
         // Set content and wait for any dynamic content to load
         // Setting page content...
-        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+        await page.setContent(htmlContent, { waitUntil: 'load' });
         // Page content set successfully
         
         // Set viewport for consistent rendering (optimized for smaller PDF size)
