@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 
-interface Account {
+export interface Account {
   id: string;
   name: string;
   billingCity?: string;
@@ -18,7 +18,7 @@ interface Account {
   };
 }
 
-interface Opportunity {
+export interface Opportunity {
   id: string;
   name: string;
   amount?: number;

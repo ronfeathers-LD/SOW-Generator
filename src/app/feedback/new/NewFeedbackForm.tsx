@@ -4,11 +4,10 @@ import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ImageAttachments from '@/components/feedback/ImageAttachments';
+import type { FeedbackType } from '@/lib/github-issues';
 
 const MAX_TITLE_LENGTH = 200;
 const MAX_DESCRIPTION_LENGTH = 5000;
-
-type FeedbackType = 'bug' | 'feature';
 
 const TYPE_OPTIONS: { value: FeedbackType; emoji: string; label: string; hint: string }[] = [
   { value: 'bug', emoji: '🐞', label: 'Bug', hint: 'Something is broken or behaving wrong' },

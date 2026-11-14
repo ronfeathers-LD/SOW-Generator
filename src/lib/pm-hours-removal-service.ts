@@ -11,7 +11,7 @@ const fallbackSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-interface PricingRoleRow {
+export interface PricingRoleRow {
   role?: string;
   totalHours?: number | string;
   ratePerHour?: number | string;

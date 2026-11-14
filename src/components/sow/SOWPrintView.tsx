@@ -10,7 +10,8 @@ import SOWAssumptionsPage from '@/components/sow/SOWAssumptionsPage';
 import AppendixChangeRequestForm from '@/components/sow/AppendixChangeRequestForm';
 import PricingDisplay from '@/components/sow/PricingDisplay';
 import TimelinePhaseBar from '@/components/sow/TimelinePhaseBar';
-import { DisplaySOW, Product, SalesforceData } from '@/types/sow-display';
+import { DisplaySOW, SalesforceData } from '@/types/sow-display';
+import type { Product } from '@/lib/constants/products';
 import { getPricingSummary } from '@/lib/sow/pricing-summary';
 import { formatAddressLines } from '@/lib/sow/format-address';
 

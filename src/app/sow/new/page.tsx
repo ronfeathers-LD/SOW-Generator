@@ -2,33 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import CustomerSelectionWizard from '@/components/sow/CustomerSelectionWizard';
+import CustomerSelectionWizard, { type Account, type Opportunity } from '@/components/sow/CustomerSelectionWizard';
 import { composeSowTitle } from '@/lib/sow/compose-title';
-
-interface Account {
-  id: string;
-  name: string;
-  billingCity?: string;
-  billingState?: string;
-  billingCountry?: string;
-  industry?: string;
-  numberOfEmployees?: number;
-  Employee_Band__c?: string;
-  accountSegment?: string;
-  Owner?: {
-    Name: string;
-    Email: string;
-  };
-}
-
-interface Opportunity {
-  id: string;
-  name: string;
-  amount?: number;
-  closeDate?: string;
-  stageName: string;
-  description?: string;
-}
 
 export default function NewSOWPage() {
   const router = useRouter();

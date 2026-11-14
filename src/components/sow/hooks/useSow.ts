@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DisplaySOW, Product, SalesforceData } from '@/types/sow-display';
+import { DisplaySOW, SalesforceData } from '@/types/sow-display';
+import type { Product } from '@/lib/constants/products';
 import { mapApiResponseToDisplaySOW } from '@/lib/sow/map-api-response-to-display';
 
 export interface UseSowResult {
