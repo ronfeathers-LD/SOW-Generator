@@ -23,11 +23,12 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     const supabase = await createServerSupabaseClient();
     const { data: sow, error } = await supabase
       .from('sows')
       .select('*')
-      .eq('id', (await params).id)
+      .eq('id', id)
       .eq('is_hidden', false) // Prevent access to hidden SOWs
       .single();
 
@@ -41,44 +42,59 @@ export async function GET(
 
 
 
-    // Fetch LeanData signatory if one is selected
-    let leanDataSignatory = null;
-    if (sow.leandata_signatory_id) {
-      const { data: signatory, error: signatoryError } = await supabase
-        .from('lean_data_signatories')
+    // The signatory, Avoma recordings, submitter and Salesforce data lookups
+    // depend only on the SOW row (or its id), not on each other, so run them
+    // concurrently.
+    const [signatoryResult, recordingsResult, submitterResult, salesforceResult] = await Promise.all([
+      // LeanData signatory if one is selected
+      sow.leandata_signatory_id
+        ? supabase
+            .from('lean_data_signatories')
+            .select('*')
+            .eq('id', sow.leandata_signatory_id)
+            .eq('is_active', true)
+            .single()
+        : null,
+      // Avoma recordings for this SOW
+      supabase
+        .from('avoma_recordings')
         .select('*')
-        .eq('id', sow.leandata_signatory_id)
-        .eq('is_active', true)
-        .single();
-      
-      if (!signatoryError && signatory) {
-        leanDataSignatory = signatory;
-      }
+        .eq('sow_id', id)
+        .order('created_at', { ascending: true }),
+      // Submission information if SOW was submitted for review
+      sow.submitted_by
+        ? supabase
+            .from('users')
+            .select('name, email')
+            .eq('id', sow.submitted_by)
+            .single()
+        : null,
+      // Salesforce data for this SOW
+      supabase
+        .from('sow_salesforce_data')
+        .select('*')
+        .eq('sow_id', id)
+        .single(),
+    ]);
+
+    let leanDataSignatory = null;
+    if (signatoryResult && !signatoryResult.error && signatoryResult.data) {
+      leanDataSignatory = signatoryResult.data;
     }
 
-    // Fetch Avoma recordings for this SOW
-    const { data: avomaRecordings, error: recordingsError } = await supabase
-      .from('avoma_recordings')
-      .select('*')
-      .eq('sow_id', (await params).id)
-      .order('created_at', { ascending: true });
-
+    const { data: avomaRecordings, error: recordingsError } = recordingsResult;
     if (recordingsError) {
       console.error('Error fetching Avoma recordings:', recordingsError);
     }
 
-    // Fetch submission information if SOW was submitted for review
     let submittedByName = null;
-    if (sow.submitted_by) {
-      const { data: submitter, error: submitterError } = await supabase
-        .from('users')
-        .select('name, email')
-        .eq('id', sow.submitted_by)
-        .single();
-      
-      if (!submitterError && submitter) {
-        submittedByName = submitter.name || submitter.email || 'Unknown User';
-      }
+    if (submitterResult && !submitterResult.error && submitterResult.data) {
+      submittedByName = submitterResult.data.name || submitterResult.data.email || 'Unknown User';
+    }
+
+    const { data: salesforceData, error: salesforceError } = salesforceResult;
+    if (salesforceError && salesforceError.code !== 'PGRST116') {
+      console.error('Error fetching Salesforce data:', salesforceError);
     }
 
     // Map the raw row into the nested response shape via the single canonical
@@ -122,17 +138,6 @@ export async function GET(
       }
     }
     
-    // Fetch Salesforce data for this SOW
-    const { data: salesforceData, error: salesforceError } = await supabase
-      .from('sow_salesforce_data')
-      .select('*')
-      .eq('sow_id', (await params).id)
-      .single();
-
-    if (salesforceError && salesforceError.code !== 'PGRST116') {
-      console.error('Error fetching Salesforce data:', salesforceError);
-    }
-
     // Sync client_name from Salesforce if it's different
     if (salesforceData?.account_data?.name && salesforceData.account_data.name !== sow.client_name) {
       try {
@@ -142,7 +147,7 @@ export async function GET(
             client_name: salesforceData.account_data.name,
             updated_at: new Date().toISOString()
           })
-          .eq('id', (await params).id);
+          .eq('id', id);
         
         // Update the transformed data to reflect the change
         transformedSow.client_name = salesforceData.account_data.name;
@@ -343,103 +348,92 @@ export async function PUT(
       try {
         const slackService = await getSlackService();
         if (slackService) {
-          // Get SOW details for the notification
-          const { data: sowDetails } = await supabase
-            .from('sows')
-            .select('client_name, author_id, template, sow_title, client_signer_name, client_title, pricing_roles')
-            .eq('id', id)
-            .single();
+          // The row the update just returned already carries every column the
+          // notification needs, and nothing since (snapshot capture, workflow
+          // init) writes them, so no re-fetch.
+          const sowDetails = updatedSOW;
 
-          if (sowDetails) {
-            // Get the current user who is submitting for review (not the original author)
-            let submitterName = 'Unknown User';
-            if (session?.user?.email) {
-              const { data: submitter } = await supabase
-                .from('users')
-                .select('name, email')
-                .eq('email', session.user.email)
-                .single();
-              if (submitter) {
-                submitterName = submitter.name || submitter.email || 'Unknown User';
-              } else {
-                // Fallback to session email if user not found in database
-                submitterName = session.user.email;
-              }
+          // Get the current user who is submitting for review (not the original author)
+          let submitterName = 'Unknown User';
+          if (session?.user?.email) {
+            const { data: submitter } = await supabase
+              .from('users')
+              .select('name, email')
+              .eq('email', session.user.email)
+              .single();
+            if (submitter) {
+              submitterName = submitter.name || submitter.email || 'Unknown User';
+            } else {
+              // Fallback to session email if user not found in database
+              submitterName = session.user.email;
             }
+          }
 
-            // Get SOW title from either direct field or template
-            const clientName = sowDetails.client_name || 'Unknown Client';
-            const sowTitle = sowDetails.sow_title || 'Untitled SOW';
-            const sowUrl = getSOWUrl(id);
+          // Get SOW title from either direct field or template
+          const clientName = sowDetails.client_name || 'Unknown Client';
+          const sowTitle = sowDetails.sow_title || 'Untitled SOW';
+          const sowUrl = getSOWUrl(id);
 
-            // The customer signer is not a submit gate, so a SOW can arrive
-            // for approval with it blank. Call that out here — approvers decide
-            // whether to let it through (same warning shown on the SOW page).
-            const signerTemplate = (sowDetails.template ?? null) as Record<string, unknown> | null;
-            const signerWarning = customerSignerWarning({
-              name:
-                (signerTemplate?.customer_signature_name as string | undefined) ||
-                sowDetails.client_signer_name,
-              title:
-                (signerTemplate?.customer_signature as string | undefined) ||
-                sowDetails.client_title,
-            });
-            const signerWarningLine = signerWarning
-              ? `:warning: *No customer signer:* ${signerWarning} Approve only if that's intentional.\n\n`
-              : '';
+          // The customer signer is not a submit gate, so a SOW can arrive
+          // for approval with it blank. Call that out here — approvers decide
+          // whether to let it through (same warning shown on the SOW page).
+          const signerTemplate = (sowDetails.template ?? null) as Record<string, unknown> | null;
+          const signerWarning = customerSignerWarning({
+            name:
+              (signerTemplate?.customer_signature_name as string | undefined) ||
+              sowDetails.client_signer_name,
+            title:
+              (signerTemplate?.customer_signature as string | undefined) ||
+              sowDetails.client_title,
+          });
+          const signerWarningLine = signerWarning
+            ? `:warning: *No customer signer:* ${signerWarning} Approve only if that's intentional.\n\n`
+            : '';
 
-            // Name the stages this SOW needs, so PMO can tell at a glance when
-            // a submit has nothing for them (no Project Manager hours).
-            const approvalsNeeded = describeRequiredApprovals(sowDetails);
+          // Name the stages this SOW needs, so PMO can tell at a glance when
+          // a submit has nothing for them (no Project Manager hours).
+          const approvalsNeeded = describeRequiredApprovals(sowDetails);
 
-            // Skip notifications for Hula Truck
-            if (clientName.toLowerCase() !== 'hula truck') {
-              await slackService.sendMessage(
-                `:memo: *New SOW Submitted for Review*\n\n` +
-                `*Client:* ${clientName}\n` +
-                `*Submitted by:* ${submitterName}\n` +
-                `*Approvals needed:* ${approvalsNeeded}\n\n` +
-                signerWarningLine +
-                `:link: <${sowUrl}|Review SOW>\n\n` +
-                `Please review and approve/reject this SOW when ready.`
-              );
-            }
+          // Skip notifications for Hula Truck
+          if (clientName.toLowerCase() !== 'hula truck') {
+            await slackService.sendMessage(
+              `:memo: *New SOW Submitted for Review*\n\n` +
+              `*Client:* ${clientName}\n` +
+              `*Submitted by:* ${submitterName}\n` +
+              `*Approvals needed:* ${approvalsNeeded}\n\n` +
+              signerWarningLine +
+              `:link: <${sowUrl}|Review SOW>\n\n` +
+              `Please review and approve/reject this SOW when ready.`
+            );
+          }
 
-            // Send email notification to commercial approvals team with account owner in CC
-            try {
-              const emailService = await getEmailService();
-              if (emailService) {
-                // Skip email notifications for Hula Truck
-                if (clientName.toLowerCase() !== 'hula truck') {
-                  // Get account owner email from SOW data
-                  const { data: sowWithOwner } = await supabase
-                    .from('sows')
-                    .select('salesforce_account_owner_email')
-                    .eq('id', id)
-                    .single();
-
-                  // Prepare CC emails (account owner if available)
-                  const ccEmails: string[] = [];
-                  if (sowWithOwner?.salesforce_account_owner_email) {
-                    ccEmails.push(sowWithOwner.salesforce_account_owner_email);
-                  }
-
-                  // Send single email to commercial approvals team with account owner in CC
-                  await emailService.sendSOWApprovalNotification(
-                    id,
-                    sowTitle,
-                    clientName,
-                    'sowapprovalscommercial@leandata.com',
-                    submitterName,
-                    ccEmails,
-                    approvalsNeeded
-                  );
+          // Send email notification to commercial approvals team with account owner in CC
+          try {
+            const emailService = await getEmailService();
+            if (emailService) {
+              // Skip email notifications for Hula Truck
+              if (clientName.toLowerCase() !== 'hula truck') {
+                // Prepare CC emails (account owner if available)
+                const ccEmails: string[] = [];
+                if (sowDetails.salesforce_account_owner_email) {
+                  ccEmails.push(sowDetails.salesforce_account_owner_email);
                 }
+
+                // Send single email to commercial approvals team with account owner in CC
+                await emailService.sendSOWApprovalNotification(
+                  id,
+                  sowTitle,
+                  clientName,
+                  'sowapprovalscommercial@leandata.com',
+                  submitterName,
+                  ccEmails,
+                  approvalsNeeded
+                );
               }
-            } catch (emailError) {
-              console.error('Email notification failed for SOW submission:', emailError);
-              // Don't fail the main operation if email notification fails
             }
+          } catch (emailError) {
+            console.error('Email notification failed for SOW submission:', emailError);
+            // Don't fail the main operation if email notification fails
           }
         }
       } catch (slackError) {
