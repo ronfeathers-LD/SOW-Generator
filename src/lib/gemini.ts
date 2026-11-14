@@ -1,4 +1,5 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { ApiError, GoogleGenAI } from '@google/genai';
+import { DEFAULT_GEMINI_MODEL, GEMINI_MODELS } from './gemini-models';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import type { SvfScopeGroup, SvfSolutionGroup, FlatSolutions } from '@/lib/sow/svf-pillars';
 import { buildSolutionsAndScopeContract } from '@/lib/gemini/svf-contract';
@@ -26,15 +27,31 @@ interface TranscriptionAnalysisResponse {
   error?: string;
 }
 
+/**
+ * True when a failed call is worth retrying on a different model: the model is
+ * overloaded (503), rate-limited (429) or no longer exists (404). Also matches
+ * the reworded overload error analyzeTranscription throws.
+ */
+export function shouldTryNextModel(error: unknown): boolean {
+  if (error instanceof ApiError) {
+    return error.status === 503 || error.status === 429 || error.status === 404;
+  }
+  if (!(error instanceof Error)) return false;
+  return (
+    error.message.includes('model is overloaded') ||
+    error.message.includes('Model is currently overloaded') ||
+    error.message.includes('Please try again later') ||
+    error.message.includes('is not found for API version')
+  );
+}
+
 class GeminiClient {
-  private genAI: GoogleGenerativeAI;
-  private model: ReturnType<GoogleGenerativeAI['getGenerativeModel']>;
+  private ai: GoogleGenAI;
   private modelName: string;
 
-  constructor(apiKey: string, modelName: string = 'gemini-2.5-flash') {
-    this.genAI = new GoogleGenerativeAI(apiKey);
+  constructor(apiKey: string, modelName: string = DEFAULT_GEMINI_MODEL) {
+    this.ai = new GoogleGenAI({ apiKey });
     this.modelName = modelName;
-    this.model = this.genAI.getGenerativeModel({ model: this.modelName });
   }
 
   /**
@@ -42,21 +59,25 @@ class GeminiClient {
    */
   switchModel(newModelName: string) {
     this.modelName = newModelName;
-    this.model = this.genAI.getGenerativeModel({ model: this.modelName });
-    console.log(`Model switched to ${newModelName}`);
+  }
+
+  /**
+   * Send a plain-text prompt to the current model and return the response text
+   * ('' when the model returns nothing).
+   */
+  async generateText(prompt: string): Promise<string> {
+    const response = await this.ai.models.generateContent({
+      model: this.modelName,
+      contents: prompt,
+    });
+    return response.text ?? '';
   }
 
   /**
    * Get available models for fallback
    */
   static getAvailableModels(): string[] {
-    return [
-      'gemini-2.5-flash',    // Latest and fastest model
-      'gemini-1.5-flash',    // Fast, commonly overloaded
-      'gemini-1.5-pro',      // More capable, sometimes less load
-      'gemini-1.0-pro',      // Older model, often less load
-      'gemini-pro'           // Legacy model, usually available
-    ];
+    return GEMINI_MODELS.map(m => m.value);
   }
 
   /**
@@ -114,9 +135,7 @@ Focus on organizing deliverables into logical categories like LEADS, CONTACTS, I
     let error: Error | undefined;
 
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const content = response.text();
+      const content = await this.generateText(prompt);
       geminiResponse = content || '';
 
       if (!content) {
@@ -200,9 +219,7 @@ Please provide a professional, 2-3 sentence project description that captures th
     let error: Error | undefined;
 
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const content = response.text();
+      const content = await this.generateText(prompt);
       geminiResponse = content || '';
       
       if (!content) {
@@ -272,11 +289,10 @@ Please provide a professional, 2-3 sentence project description that captures th
         // Model failed, trying next
         lastError = error instanceof Error ? error : new Error('Unknown error');
         
-        // If it's not an overload error, don't try other models
-        if (error instanceof Error && 
-            !error.message.includes('503 Service Unavailable') && 
-            !error.message.includes('model is overloaded') &&
-            !error.message.includes('Please try again later')) {
+        // Only move on to the next model when this one is overloaded,
+        // rate-limited or retired; anything else (bad key, bad request) would
+        // fail the same way on every model.
+        if (!shouldTryNextModel(error)) {
           throw error;
         }
         
@@ -400,9 +416,7 @@ ${transcript}
 
 
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const content = response.text();
+      const content = await this.generateText(prompt);
       geminiResponse = content || '';
 
       if (!content) {
@@ -537,7 +551,7 @@ ${transcript}
   }
 }
 
-export { GeminiClient, type GeminiBulletPoint, type GeminiGenerationResponse, type TranscriptionAnalysisResponse };
+export { GeminiClient, type TranscriptionAnalysisResponse };
 
 // Helper function to analyze transcription
 export async function analyzeTranscription(
@@ -585,6 +599,6 @@ export async function analyzeTranscription(
   }
 
   // Use the primary API key with the saved model
-  const client = new GeminiClient(config.api_key, config.model_name || 'gemini-2.5-flash');
+  const client = new GeminiClient(config.api_key, config.model_name || DEFAULT_GEMINI_MODEL);
   return await client.analyzeTranscriptionWithFallback(transcript, customerName, selectedProducts, existingDescription, existingObjectives, supportingDocuments);
 } 

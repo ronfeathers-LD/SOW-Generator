@@ -2,37 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { isRoutingProductById, isLeadToAccountProductById, isFormsProductById, isLinksProductById, isHandoffProductById } from '@/lib/constants/products';
-
-interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  is_active: boolean;
-  sort_order: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface CalculatorData {
-  products: string[];
-  number_of_units: string;
-  orchestration_units: string;
-  bookit_forms_units: string;
-  bookit_links_units: string;
-  bookit_handoff_units: string;
-  account_segment?: string;
-  pm_hours_removed?: boolean;
-  discount_type?: 'none' | 'fixed' | 'percentage';
-  discount_amount?: number;
-  discount_percentage?: number;
-  hourly_rates?: {
-    onboardingSpecialist?: number;
-    projectManager?: number;
-  };
-}
+import type { CalculatorData, CalculatorProduct } from '@/types/pricing-calculator';
 
 interface PricingCalculatorFormProps {
-  products: Product[];
+  products: CalculatorProduct[];
   data: CalculatorData;
   onChange: (data: CalculatorData) => void;
   isScenario?: boolean;
@@ -113,7 +86,7 @@ export default function PricingCalculatorForm({ products, data, onChange, isScen
   };
 
   // Group products by category
-  const groupProducts = (products: Product[]) => {
+  const groupProducts = (products: CalculatorProduct[]) => {
     const groups = {
       routing: {
         title: 'Routing & Orchestration',

@@ -10,7 +10,8 @@ import SOWAssumptionsPage from '@/components/sow/SOWAssumptionsPage';
 import AppendixChangeRequestForm from '@/components/sow/AppendixChangeRequestForm';
 import PricingDisplay from '@/components/sow/PricingDisplay';
 import TimelinePhaseBar from '@/components/sow/TimelinePhaseBar';
-import { DisplaySOW, Product, SalesforceData } from '@/types/sow-display';
+import { DisplaySOW, SalesforceData } from '@/types/sow-display';
+import type { Product } from '@/lib/constants/products';
 import { getPricingSummary } from '@/lib/sow/pricing-summary';
 import { formatAddressLines } from '@/lib/sow/format-address';
 
@@ -269,8 +270,6 @@ export default function SOWPrintView({ sow, salesforceData, products, showPricin
                 discountType={sow.pricing?.discount_type || 'none'}
                 discountAmount={sow.pricing?.discount_amount || 0}
                 discountPercentage={sow.pricing?.discount_percentage || 0}
-                subtotal={sow.pricing?.subtotal || 0}
-                totalAmount={sow.pricing?.total_amount || 0}
                 lastCalculated={sow.pricing?.last_calculated || null}
                 pmHoursRemoved={!pmIncluded}
                 isPrintMode={true}

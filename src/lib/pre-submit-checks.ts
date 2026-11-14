@@ -5,7 +5,7 @@
 
 import { customerSignerWarning } from '@/lib/sow/signer-status';
 
-export type ChecklistItemType = 'automated' | 'manual';
+type ChecklistItemType = 'automated' | 'manual';
 
 export interface CheckResult {
   passed: boolean;
@@ -261,10 +261,6 @@ const manualAcknowledgments: ChecklistItem[] = [
     showWhen: (sow) => (sow.version || 1) > 1,
   },
 ];
-
-export function getChecklistItems(): ChecklistItem[] {
-  return [...automatedChecks, ...manualAcknowledgments];
-}
 
 export function runAutomatedChecks(
   sow: ChecklistSOWData

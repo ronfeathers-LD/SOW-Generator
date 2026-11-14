@@ -7,37 +7,10 @@ import PricingCalculatorForm from '@/components/pricing-calculator/PricingCalcul
 import PricingCalculatorResults from '@/components/pricing-calculator/PricingCalculatorResults';
 import SOWDataLoader from '@/components/pricing-calculator/SOWDataLoader';
 import { getPricingRolesConfig, getDefaultRateForRole } from '@/lib/pricing-roles-config';
-
-interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  is_active: boolean;
-  sort_order: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface CalculatorData {
-  products: string[];
-  number_of_units: string;
-  orchestration_units: string;
-  bookit_forms_units: string;
-  bookit_links_units: string;
-  bookit_handoff_units: string;
-  account_segment?: string;
-  pm_hours_removed?: boolean;
-  discount_type?: 'none' | 'fixed' | 'percentage';
-  discount_amount?: number;
-  discount_percentage?: number;
-  hourly_rates?: {
-    onboardingSpecialist?: number;
-    projectManager?: number;
-  };
-}
+import type { CalculatorData, CalculatorProduct } from '@/types/pricing-calculator';
 
 export default function PricingCalculatorPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<CalculatorProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [calculatorData, setCalculatorData] = useState<CalculatorData>({
     products: [],

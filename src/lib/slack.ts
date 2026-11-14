@@ -26,7 +26,7 @@ interface SlackNotificationConfig {
   iconEmoji?: string;
 }
 
-export const STAGE_TEXT_PREFIX = ':construction: *[STAGE]* ';
+const STAGE_TEXT_PREFIX = ':construction: *[STAGE]* ';
 const STAGE_CONTEXT_TEXT =
   ':construction: *Sent from the STAGING environment — this is test traffic, not a real notification.*';
 
@@ -745,4 +745,4 @@ export async function getSlackService(): Promise<SlackService | null> {
 }
 
 export { SlackService };
-export type { SlackMessage, SlackNotificationConfig };
+export type { SlackMessage,  };

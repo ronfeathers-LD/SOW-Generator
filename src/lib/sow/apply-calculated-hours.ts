@@ -42,7 +42,7 @@ export interface CalculatedPricingRole {
 }
 
 /** PM-removal flags as stored on the SOW row (SOWData). */
-export interface PmRemovalState {
+interface PmRemovalState {
   pm_hours_requirement_disabled?: boolean;
   pm_hours_removed?: number;
   pm_hours_removal_approved?: boolean;

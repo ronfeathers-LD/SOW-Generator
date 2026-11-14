@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createSalesforceClient, type SalesforceClient } from './salesforce';
 import { decryptSecret } from './crypto-utils';
 
-export interface SalesforceConfigRow {
+interface SalesforceConfigRow {
   username: string;
   password?: string | null;
   auth_method?: 'password' | 'client_credentials' | null;
@@ -20,7 +20,7 @@ export interface SalesforceConfigRow {
  * is the single place where stored credentials are decrypted (audit #92).
  * decryptSecret is backwards-compatible with legacy plaintext values.
  */
-export async function getActiveSalesforceConfig(
+async function getActiveSalesforceConfig(
   supabase: SupabaseClient
 ): Promise<SalesforceConfigRow | null> {
   const { data, error } = await supabase

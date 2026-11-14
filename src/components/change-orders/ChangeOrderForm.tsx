@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ChangeOrderFormData, ChangeCategory, SOWData } from '@/types/sow';
+import { ChangeOrderFormData, ChangeCategory, SOWData, PricingRole } from '@/types/sow';
 import { Button } from '@/components/ui/form';
 import { getPricingRolesConfig, PricingRoleConfig, getDefaultRateForRole } from '@/lib/pricing-roles-config';
 
@@ -23,14 +23,6 @@ interface ExtendedSOWData extends SOWData {
   };
   sow_title?: string;
   client_name?: string;
-}
-
-interface PricingRole {
-  id: string;
-  role: string;
-  ratePerHour: number;
-  totalHours: number;
-  totalCost: number;
 }
 
 interface ChangeOrderFormProps {
@@ -70,7 +62,7 @@ export default function ChangeOrderForm({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [pricingRoles, setPricingRoles] = useState<PricingRole[]>([]);
+  const [pricingRoles, setPricingRoles] = useState<Pick<PricingRole, 'id' | 'role' | 'ratePerHour' | 'totalHours' | 'totalCost'>[]>([]);
   const [showPricing, setShowPricing] = useState(false);
   const [pricingRolesConfig, setPricingRolesConfig] = useState<PricingRoleConfig[]>([]);
   const [openDropdowns, setOpenDropdowns] = useState<Set<string>>(new Set());

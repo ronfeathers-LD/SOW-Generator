@@ -1,12 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { PMHoursRemovalService } from './pm-hours-removal-service';
+import type { PricingRole } from '@/types/sow';
 
-interface PricingRole {
-  role: string;
-  totalHours: number;
-  ratePerHour: number;
-}
+type TestRole = Pick<PricingRole, 'role' | 'totalHours' | 'ratePerHour'>;
 
 /**
  * Minimal mock of the query chains disablePMHoursRequirementDirect uses:
@@ -101,8 +98,8 @@ describe('enterprise removal strips PM AND restores OS (single path)', () => {
 describe('PMHoursRemovalService.disablePMHoursRequirementDirect (enterprise self-serve)', () => {
   const pricingWithPM = {
     roles: [
-      { role: 'Onboarding Specialist', totalHours: 100, ratePerHour: 250 } as PricingRole,
-      { role: 'Project Manager', totalHours: 40, ratePerHour: 250 } as PricingRole,
+      { role: 'Onboarding Specialist', totalHours: 100, ratePerHour: 250 } as TestRole,
+      { role: 'Project Manager', totalHours: 40, ratePerHour: 250 } as TestRole,
     ],
     discount_type: 'none',
   };
@@ -125,7 +122,7 @@ describe('PMHoursRemovalService.disablePMHoursRequirementDirect (enterprise self
 
     await PMHoursRemovalService.disablePMHoursRequirementDirect('sow-123', 'user-456', client);
 
-    const persisted = captured.sowUpdate?.pricing_roles as { roles: PricingRole[] };
+    const persisted = captured.sowUpdate?.pricing_roles as { roles: TestRole[] };
     const roleNames = persisted.roles.map(r => r.role);
     expect(roleNames).not.toContain('Project Manager');
     expect(roleNames).toContain('Onboarding Specialist');

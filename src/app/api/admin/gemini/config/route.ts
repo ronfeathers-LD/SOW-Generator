@@ -1,3 +1,4 @@
+import { DEFAULT_GEMINI_MODEL } from '@/lib/gemini-models';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -32,7 +33,7 @@ export async function GET() {
     // resolveGeminiTestKey. (audit #53)
     return NextResponse.json({
       apiKey: maskSecret(config.api_key),
-      modelName: config.model_name || 'gemini-1.5-flash',
+      modelName: config.model_name || DEFAULT_GEMINI_MODEL,
       isConfigured: true
     });
   } catch (error) {
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
       .from('gemini_configs')
       .insert({
         api_key: resolvedApiKey,
-        model_name: modelName || 'gemini-1.5-flash',
+        model_name: modelName || DEFAULT_GEMINI_MODEL,
         is_active: isActive !== undefined ? isActive : true,
       })
       .select()

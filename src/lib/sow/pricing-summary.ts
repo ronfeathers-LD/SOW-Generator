@@ -1,4 +1,4 @@
-export type PricingSummaryRole = { role: string; hours: number; rate: number; cost: number };
+type PricingSummaryRole = { role: string; hours: number; rate: number; cost: number };
 export type PricingSummary = {
   roles: PricingSummaryRole[];
   subtotal: number;

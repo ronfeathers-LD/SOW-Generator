@@ -32,7 +32,8 @@ import { customerSignerWarning } from '@/lib/sow/signer-status';
 import { formatAddressLines } from '@/lib/sow/format-address';
 import { anchorToRange, type SelectionAnchor } from '@/lib/selection-anchor';
 import type { SOWSectionKey } from '@/lib/sow-content';
-import { DisplaySOW, Product, SalesforceData } from '@/types/sow-display';
+import { DisplaySOW, SalesforceData } from '@/types/sow-display';
+import type { Product } from '@/lib/constants/products';
 import { getPricingSummary } from '@/lib/sow/pricing-summary';
 
 // Helper function to find the appropriate signatory from Salesforce contacts
@@ -720,8 +721,6 @@ export default function SOWFullView({
                       discountType={sow.pricing?.discount_type || 'none'}
                       discountAmount={sow.pricing?.discount_amount || 0}
                       discountPercentage={sow.pricing?.discount_percentage || 0}
-                      subtotal={sow.pricing?.subtotal || 0}
-                      totalAmount={sow.pricing?.total_amount || 0}
                       lastCalculated={sow.pricing?.last_calculated || null}
                       pmHoursRemoved={!pmIncluded}
                       isPrintMode={false}

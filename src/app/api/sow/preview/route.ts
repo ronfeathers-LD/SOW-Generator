@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { AvomaClient, getAvomaConfig } from '@/lib/avoma';
-import { analyzeTranscription } from '@/lib/gemini';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { analyzeTranscription, GeminiClient } from '@/lib/gemini';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 interface PreviewRequest {
@@ -52,8 +51,7 @@ async function detectProductsFromTranscription(
     const productList = allProducts.map(p => p.name).join(', ');
     
     // Use AI to detect products from transcript
-    const genAI = new GoogleGenerativeAI(config.api_key);
-    const model = genAI.getGenerativeModel({ model: config.model_name || 'gemini-2.5-flash' });
+    const gemini = new GeminiClient(config.api_key, config.model_name || undefined);
     
     const prompt = `You are analyzing a sales call transcription to identify which LeanData products were discussed.
 
@@ -75,9 +73,7 @@ Example response format:
 
 Response (JSON array only, no other text):`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const content = response.text();
+    const content = await gemini.generateText(prompt);
 
     if (!content) {
       throw new Error('No response from Gemini');

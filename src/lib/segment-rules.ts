@@ -3,7 +3,7 @@
 // Storage: segment_rules table (migration 033). Rules are passed to consumers
 // as data so calculation functions stay pure and synchronous.
 
-export interface SegmentRule {
+interface SegmentRule {
   segment: string;
   displayName: string;
   pmRemovalSelfServe: boolean;

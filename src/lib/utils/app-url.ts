@@ -38,6 +38,16 @@ export function getAppBaseUrl(): string {
 }
 
 /**
+ * Redirect URI for the Google Drive OAuth connect flow. Derived from the app's
+ * own base URL so the start step and the callback always agree and the flow
+ * works on whichever host is serving (local, staging, production). This exact
+ * URI must be listed under "Authorized redirect URIs" on the Google OAuth client.
+ */
+export function getDriveOAuthRedirectUri(): string {
+  return `${getAppBaseUrl().replace(/\/+$/, '')}/oauth/callback`;
+}
+
+/**
  * Construct a full URL for a SOW
  */
 export function getSOWUrl(sowId: string): string {
@@ -53,16 +63,3 @@ export function getPMHoursRemovalUrl(requestId: string): string {
   return `${baseUrl}/pmo/pm-hours-removal?id=${requestId}`;
 }
 
-/**
- * Log the current URL configuration for debugging
- */
-export function logUrlConfiguration(): void {
-  const baseUrl = getAppBaseUrl();
-  console.log('🔗 App URL Configuration:');
-  console.log(`  Base URL: ${baseUrl}`);
-  console.log(`  NEXT_PUBLIC_APP_URL: ${process.env.NEXT_PUBLIC_APP_URL || 'not set'}`);
-  console.log(`  NEXTAUTH_URL: ${process.env.NEXTAUTH_URL || 'not set'}`);
-  console.log(`  RAILWAY_PUBLIC_DOMAIN: ${process.env.RAILWAY_PUBLIC_DOMAIN || 'not set'}`);
-  console.log(`  VERCEL_URL: ${process.env.VERCEL_URL || 'not set'}`);
-  console.log(`  NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
-}

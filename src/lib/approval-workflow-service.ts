@@ -8,7 +8,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { 
   ApprovalWorkflowStatus, 
   SOWApproval, 
-  ApprovalInitiationResult 
+  ApprovalInitiationResult,
+  ApprovalStage
 } from '@/types/sow';
 import { requiresPMApproval } from './approval-workflow-rules';
 import { canApproveStage } from './utils/approval-permissions';
@@ -17,14 +18,6 @@ import { sendSlackDirectMessage, resolveSlackUserIdForAppUser } from './slack-dm
 import { getEmailService } from './email';
 import { getSOWUrl } from './utils/app-url';
 import { filterValidLeandataEmails } from './utils/email-domain-validation';
-
-interface ApprovalStage {
-  id: string;
-  name: string;
-  description: string;
-  sort_order: number;
-  is_active: boolean;
-}
 
 export class ApprovalWorkflowService {
   /**

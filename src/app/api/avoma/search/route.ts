@@ -1,63 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AvomaClient, getAvomaConfig } from '@/lib/avoma';
+import { AvomaClient, getAvomaConfig, type AvomaCall } from '@/lib/avoma';
 import { GeminiClient } from '@/lib/gemini';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { SalesforceContact } from '@/lib/salesforce';
 
 // Import AvomaCall interface from avoma.ts
-interface AvomaCall {
-  id?: string;
-  external_id?: string;
-  title?: string;
-  customer_name?: string;
-  meeting_date?: string;
-  start_at?: string;
-  end_at?: string;
-  duration?: number;
-  participants?: Array<{
-    name: string;
-    email: string;
-    role: string;
-  }>;
-  organization?: Record<string, unknown>;
-  state?: string;
-  frm?: string;
-  frm_name?: string;
-  to?: string;
-  to_name?: string;
-  recording_url?: string;
-  direction?: string;
-  answered?: boolean;
-  additional_details?: string;
-  meeting?: Record<string, unknown>;
-  is_voicemail?: boolean;
-  source?: string;
-  user_email?: string;
-  meeting_id?: string;
-  notes?: string;
-  summary?: string;
-  uuid?: string;
-  subject?: string;
-  organizer_email?: string;
-  created?: string;
-  modified?: string;
-  is_internal?: boolean;
-  is_private?: boolean;
-  is_call?: boolean;
-  type?: Record<string, unknown>;
-  outcome?: Record<string, unknown>;
-  transcription_uuid?: string;
-  attendees?: Array<Record<string, unknown>>;
-  audio_ready?: boolean;
-  video_ready?: boolean;
-  transcript_ready?: boolean;
-  notes_ready?: boolean;
-  processing_status?: string;
-  url?: string;
-  recording_uuid?: string;
-  purpose?: Record<string, unknown>;
-}
-
 export async function POST(request: NextRequest) {
   try {
     const { 

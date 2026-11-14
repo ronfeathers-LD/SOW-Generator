@@ -9,6 +9,7 @@ import { formatAddressLines } from './sow/format-address';
 import { renderTimelinePhaseBarHtml, type TimelinePhase } from './sow/timeline-phases';
 import fs from 'fs';
 import path from 'path';
+import type { BillingInfo, ClientRole } from '@/types/sow';
 
 // Interface for change order data used in PDF generation
 interface ChangeOrderPDFData {
@@ -201,21 +202,7 @@ interface PricingRole {
   totalHours?: number;
 }
 
-interface ClientRole {
-  role?: string;
-  contact_title?: string;
-  name?: string;
-  email?: string;
-  responsibilities?: string;
-}
-
-interface BillingInfo {
-  company_name?: string;
-  billing_contact?: string;
-  billing_address?: string;
-  billing_email?: string;
-  po_number?: string;
-}
+type PdfClientRole = Partial<Pick<ClientRole, 'role' | 'contact_title' | 'name' | 'email' | 'responsibilities'>>;
 
 interface SOWData {
   id: string;
@@ -230,14 +217,14 @@ interface SOWData {
   objectives_description?: string;
   objectives_key_objectives?: string[] | string;
   content?: string;
-  client_roles?: string | ClientRole[] | { roles?: ClientRole[] };
+  client_roles?: string | PdfClientRole[] | { roles?: PdfClientRole[] };
   pricing_roles?: string | PricingRole[] | { roles?: PricingRole[] };
   pricing_total?: number;
   pricing_subtotal?: number;
   pricing_discount?: number;
   pricing_discount_type?: string;
   pricing_discount_percentage?: number;
-  billing_info?: string | BillingInfo;
+  billing_info?: string | Partial<BillingInfo>;
   start_date?: string;
   timeline_weeks?: string;
   timeline_phases?: TimelinePhase[];
@@ -580,12 +567,12 @@ export class PDFGenerator {
 
     
     // Parse client roles - handle both direct array and nested { roles: [...] } structure
-    let clientRoles: ClientRole[] = [];
+    let clientRoles: PdfClientRole[] = [];
     if (sowData.client_roles) {
       if (Array.isArray(sowData.client_roles)) {
         clientRoles = sowData.client_roles;
-      } else if (typeof sowData.client_roles === 'object' && sowData.client_roles && 'roles' in sowData.client_roles && Array.isArray((sowData.client_roles as { roles?: ClientRole[] }).roles)) {
-        clientRoles = (sowData.client_roles as { roles: ClientRole[] }).roles;
+      } else if (typeof sowData.client_roles === 'object' && sowData.client_roles && 'roles' in sowData.client_roles && Array.isArray((sowData.client_roles as { roles?: PdfClientRole[] }).roles)) {
+        clientRoles = (sowData.client_roles as { roles: PdfClientRole[] }).roles;
       } else {
         const parsed = this.parseJSONField(sowData.client_roles, []);
         clientRoles = Array.isArray(parsed) ? parsed : [];
@@ -608,7 +595,7 @@ export class PDFGenerator {
     pricingRoles = pricingRoles.filter(role => role.role !== 'Account Executive');
     
 
-    const billingInfo = this.parseJSONField(sowData.billing_info, {} as BillingInfo);
+    const billingInfo = this.parseJSONField(sowData.billing_info, {} as Partial<BillingInfo>);
     
     // Helper function to replace placeholders in content
     const replacePlaceholders = (content: string) => {
@@ -1646,7 +1633,7 @@ export class PDFGenerator {
         
         // Set content and wait for any dynamic content to load
         // Setting page content...
-        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+        await page.setContent(htmlContent, { waitUntil: 'load' });
         // Page content set successfully
         
         // Set viewport for consistent rendering (optimized for smaller PDF size)

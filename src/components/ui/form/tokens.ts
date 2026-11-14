@@ -1,22 +1,4 @@
 /**
- * Shared design tokens for the SOW form UI revamp (epic #280).
- *
- * Brand: LeanData green `#26D07C` on dark `#2a2a2a`. Form controls historically
- * used inconsistent `indigo-500` focus rings; these tokens standardize on the
- * brand green so every primitive looks the same.
- *
- * Tailwind has no custom theme colors configured, so we rely on arbitrary-value
- * utilities (`focus:ring-[#26D07C]`). Keep the raw hexes here as the single
- * source of truth for anything that needs an inline style (SVGs, charts, etc.).
- */
-export const BRAND = {
-  green: '#26D07C',
-  greenHover: '#1fb86d',
-  greenSoft: '#e9faf2',
-  dark: '#2a2a2a',
-} as const;
-
-/**
  * Standard focus treatment for interactive controls. Applied via className on
  * inputs, selects, textareas, and buttons so focus rings match across the form.
  */

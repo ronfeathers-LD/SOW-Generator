@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GeminiClient } from '@/lib/gemini';
+import { DEFAULT_GEMINI_MODEL } from '@/lib/gemini-models';
 import { authOptions } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { resolveGeminiTestKey } from '@/lib/gemini-test-key';
 
-const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 // POST - Validate a Gemini API key + model by making a minimal live call.
 // Used by the admin "Test Connection" button. Tests the form's apiKey/modelName
@@ -36,14 +36,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const effectiveModel = modelName?.trim() || storedConfig?.model_name || DEFAULT_MODEL;
+    const effectiveModel = modelName?.trim() || storedConfig?.model_name || DEFAULT_GEMINI_MODEL;
 
     let testError: string | null = null;
     try {
-      const genAI = new GoogleGenerativeAI(effectiveKey);
-      const model = genAI.getGenerativeModel({ model: effectiveModel });
-      const result = await model.generateContent('Reply with exactly: OK');
-      const text = result.response.text().trim();
+      const text = (await new GeminiClient(effectiveKey, effectiveModel).generateText('Reply with exactly: OK')).trim();
       if (!text) {
         testError = 'The Gemini API returned an empty response.';
       }

@@ -20,7 +20,7 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type SowRow = Record<string, any>;
 
-export interface AvomaRecordingRow {
+interface AvomaRecordingRow {
   id: string;
   url: string;
   transcription?: string | null;

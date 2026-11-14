@@ -5,7 +5,7 @@ import SOWPrintView from '@/components/sow/SOWPrintView';
 import SOWFullView from '@/components/sow/SOWFullView';
 import { useSow } from '@/components/sow/hooks/useSow';
 
-export type SOWDisplayMode = 'full' | 'print';
+type SOWDisplayMode = 'full' | 'print';
 
 interface SOWDisplayProps {
   mode: SOWDisplayMode;

@@ -16,7 +16,7 @@ import { SowTabKey } from './tab-payloads';
  * (it reads several fields at the top level — sow_title, client_name, products,
  * client_roles, pricing_roles … — alongside the nested template/objectives/scope).
  */
-export function buildValidationInput(formData: Partial<SOWData>): Record<string, unknown> {
+function buildValidationInput(formData: Partial<SOWData>): Record<string, unknown> {
   return {
     ...formData,
     sow_title: formData.template?.sow_title,
@@ -77,7 +77,7 @@ function sectionForMessage(message: string): SowTabKey {
   return 'Customer Information';
 }
 
-export interface SectionIssues {
+interface SectionIssues {
   tab: SowTabKey;
   issues: string[];
 }

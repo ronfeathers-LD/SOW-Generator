@@ -2,14 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { sanitizeHtml } from '@/lib/sanitize-html';
-
-interface ChangeDiff {
-  field_name: string;
-  previous_value: string;
-  new_value: string;
-  change_type: 'field_update' | 'content_edit' | 'status_change';
-  diff_summary: string;
-}
+import type { ChangeDiff } from '@/lib/changelog-service';
 
 interface DiffData {
   sow1: {

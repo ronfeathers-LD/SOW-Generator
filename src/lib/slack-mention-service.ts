@@ -7,6 +7,7 @@ import { createServerSupabaseClient } from './supabase-server';
 import { getSlackBotToken } from './slack-bot-token';
 import { filterValidLeandataEmails, logInvalidEmailWarning } from './utils/email-domain-validation';
 import { getSOWUrl } from './utils/app-url';
+import { mapWithConcurrency } from './utils/map-with-concurrency';
 
 export interface CommentMentionNotification {
   sowId: string;
@@ -117,9 +118,12 @@ export class SlackMentionService {
    */
   private static async enrichMentionedUsers(mentionedUsers: MentionedUser[]): Promise<MentionedUser[]> {
     try {
-      const enrichedUsers: MentionedUser[] = [];
+      // Warm the shared users.list cache once so the parallel lookups below don't
+      // each fetch it. A failure here resurfaces (and is handled) per user.
+      await SlackUserLookupService.getAllUsers().catch(() => undefined);
 
-      for (const user of mentionedUsers) {
+      // At most 5 users resolve at once; results keep the mention order.
+      const enrichedUsers = await mapWithConcurrency(mentionedUsers, async (user): Promise<MentionedUser> => {
         try {
           // Try to lookup user by username first
           let lookupResult = await SlackUserLookupService.lookupUserByUsername(user.username);
@@ -140,26 +144,26 @@ export class SlackMentionService {
 
           if (lookupResult.success && lookupResult.user) {
             const slackUser = lookupResult.user;
-            enrichedUsers.push({
+            return {
               username: user.username,
               email: slackUser.profile.email,
               slackUserId: slackUser.id,
               fullName: slackUser.profile.real_name || slackUser.profile.display_name || slackUser.name
-            });
+            };
             
 
           } else {
 
             // Keep the user even if not found in Slack
-            enrichedUsers.push(user);
+            return user;
           }
 
         } catch (lookupError) {
           console.error(`Error looking up user @${user.username}:`, lookupError);
           // Keep the user even if lookup fails
-          enrichedUsers.push(user);
+          return user;
         }
-      }
+      });
 
       return enrichedUsers;
 

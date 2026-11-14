@@ -56,7 +56,7 @@ export const ANCHOR_CONTEXT_LENGTH = 30;
 export const MAX_QUOTED_TEXT_LENGTH = 2000;
 
 /** Sanity cap on stored context (clients send ~ANCHOR_CONTEXT_LENGTH). */
-export const MAX_CONTEXT_LENGTH = 100;
+const MAX_CONTEXT_LENGTH = 100;
 
 export interface CommentAnchorInput {
   section_key: SOWSectionKey;

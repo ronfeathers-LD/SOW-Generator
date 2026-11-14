@@ -3,16 +3,8 @@
  * This is a temporary solution to make the app work while we migrate from names to IDs
  */
 
-import { isRoutingProductById, isLeadToAccountProductById, isFormsProductById, isLinksProductById, isHandoffProductById } from '@/lib/constants/products';
-
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  is_active: boolean;
-  sort_order: number;
-}
+import { isFormsProductById, isLinksProductById, isHandoffProductById } from '@/lib/constants/products';
+import type { Product } from '@/lib/constants/products';
 
 /**
  * Find a product by either ID or name
@@ -38,32 +30,6 @@ export function isProductSelectedByIdOrName(selectedProducts: string[], identifi
 }
 
 /**
- * Check if a product type matches, handling both ID and name formats
- */
-export function isProductTypeByIdOrName(products: Product[], identifier: string, typeChecker: (id: string) => boolean): boolean {
-  const product = findProductByIdOrName(products, identifier);
-  return product ? typeChecker(product.id) : false;
-}
-
-/**
- * Get product ID from either ID or name format
- */
-export function getProductIdByIdOrName(products: Product[], identifier: string): string | null {
-  const product = findProductByIdOrName(products, identifier);
-  return product ? product.id : null;
-}
-
-/**
- * Check if any routing product is selected, handling both formats
- */
-export function isAnyRoutingProductSelected(products: Product[], selectedProducts: string[]): boolean {
-  return selectedProducts.some(identifier => {
-    const product = findProductByIdOrName(products, identifier);
-    return product ? (isRoutingProductById(product.id) || isLeadToAccountProductById(product.id)) : false;
-  });
-}
-
-/**
  * Check if any BookIt product is selected, handling both formats
  */
 export function isAnyBookItProductSelected(products: Product[], selectedProducts: string[]): boolean {
@@ -80,15 +46,5 @@ export function isFormsProductSelected(products: Product[], selectedProducts: st
   return selectedProducts.some(identifier => {
     const product = findProductByIdOrName(products, identifier);
     return product ? isFormsProductById(product.id) : false;
-  });
-}
-
-/**
- * Check if Handoff product is selected, handling both formats
- */
-export function isHandoffProductSelected(products: Product[], selectedProducts: string[]): boolean {
-  return selectedProducts.some(identifier => {
-    const product = findProductByIdOrName(products, identifier);
-    return product ? isHandoffProductById(product.id) : false;
   });
 }

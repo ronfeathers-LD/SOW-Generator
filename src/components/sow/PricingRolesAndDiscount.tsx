@@ -9,25 +9,8 @@ import { getPricingSummary, toPricingRolesObject } from '@/lib/sow/pricing-summa
 import { recalculateNeedsConfirm } from '@/lib/sow/recalculate-guard';
 import { removePmRoleRestoringOs } from '@/lib/sow/pricing-roles-edit';
 import { Card, Field, Select, Input, Textarea, SectionHeader, Button } from '@/components/ui/form';
-
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  is_active: boolean;
-  sort_order: number;
-}
-
-interface PricingRole {
-  id: string;
-  role: string;
-  description?: string;
-  ratePerHour: number;
-  defaultRate: number;
-  totalHours: number;
-  totalCost: number;
-}
+import type { Product } from '@/lib/constants/products';
+import type { PricingRole } from '@/types/sow';
 
 interface PricingRolesAndDiscountProps {
   formData: {

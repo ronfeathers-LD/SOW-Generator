@@ -2,7 +2,7 @@ import React, { forwardRef } from 'react';
 import { cx } from './cx';
 import { CONTROL_BASE, CONTROL_ERROR, FOCUS_RING } from './tokens';
 
-export interface SelectProps
+interface SelectProps
   extends React.SelectHTMLAttributes<HTMLSelectElement> {
   error?: string | null | boolean;
 }

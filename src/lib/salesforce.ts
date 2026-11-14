@@ -98,7 +98,7 @@ export interface SalesforceOpportunity {
  * Salesforce record IDs are strictly 15- or 18-character alphanumeric strings.
  * Validate before interpolating into SOQL to prevent injection. Throws on bad input.
  */
-export function assertValidSalesforceId(id: string, label = 'Salesforce ID'): string {
+function assertValidSalesforceId(id: string, label = 'Salesforce ID'): string {
   if (typeof id !== 'string' || !/^[a-zA-Z0-9]{15,18}$/.test(id)) {
     throw new Error(`Invalid ${label}`);
   }
@@ -109,7 +109,7 @@ export function assertValidSalesforceId(id: string, label = 'Salesforce ID'): st
  * Escape a user-supplied string for safe inclusion as a SOQL string literal.
  * Order matters: escape backslashes first, then single quotes.
  */
-export function escapeSOQL(value: string): string {
+function escapeSOQL(value: string): string {
   return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
@@ -685,10 +685,3 @@ export class SalesforceClient {
 export function createSalesforceClient(loginUrl?: string): SalesforceClient {
   return new SalesforceClient(loginUrl);
 }
-
-// Legacy shared singleton — retained for backwards compatibility. New code
-// should use createSalesforceClient / getAuthenticatedSalesforceClient instead.
-const salesforceClient = new SalesforceClient();
-
-export { salesforceClient };
-export default salesforceClient;

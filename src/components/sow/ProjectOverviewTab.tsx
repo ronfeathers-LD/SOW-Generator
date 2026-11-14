@@ -7,19 +7,10 @@ import {
   findProductByIdOrName, 
   isProductSelectedByIdOrName, 
   isAnyBookItProductSelected, 
-  isFormsProductSelected, 
-  isHandoffProductSelected 
+  isFormsProductSelected
 } from '@/lib/utils/productCompatibility';
 import { groupProductsByCategory, type CategoryRow } from '@/lib/sow/product-groups';
-
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  is_active: boolean;
-  sort_order: number;
-}
+import type { Product } from '@/lib/constants/products';
 
 interface ProjectOverviewTabProps {
   formData: Partial<SOWData>;

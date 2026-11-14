@@ -328,7 +328,7 @@ export interface PMHoursRequirementDisableDashboardItem {
 }
 
 // Change Order Types
-export type ChangeOrderStatus = 'draft' | 'pending_approval' | 'approved' | 'rejected';
+type ChangeOrderStatus = 'draft' | 'pending_approval' | 'approved' | 'rejected';
 
 export type ChangeCategory = 
   | 'Schedule' 
@@ -452,7 +452,17 @@ export interface ChangeOrderCreationRequest {
 }
 
 // Multi-Step Approval Workflow Types
-export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'not_started' | 'skipped';
+export interface PricingRole {
+  id: string;
+  role: string;
+  description?: string;
+  ratePerHour: number;
+  defaultRate: number;
+  totalHours: number;
+  totalCost: number;
+}
+
+type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'not_started' | 'skipped';
 
 export interface ApprovalStage {
   id: string;
@@ -492,11 +502,6 @@ export interface ApprovalWorkflowStatus {
   requires_pm_approval: boolean;
   total_stages: number;
   completed_stages: number;
-}
-
-export interface ApprovalActionRequest {
-  action: 'approve' | 'reject' | 'skip';
-  comments?: string;
 }
 
 export interface ApprovalInitiationResult {

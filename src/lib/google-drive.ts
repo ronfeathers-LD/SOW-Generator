@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
 import { GeminiClient } from './gemini';
 import { Readable } from 'stream';
+import { createLimiter } from './utils/map-with-concurrency';
 
 interface GoogleDriveConfig {
   clientId: string;
@@ -168,9 +169,7 @@ Only include fields that are relevant to the query. If no specific folder name i
 `;
 
     try {
-      const result = await this.geminiClient['model'].generateContent(prompt);
-      const response = await result.response;
-      const content = response.text();
+      const content = await this.geminiClient.generateText(prompt);
       
       if (!content) {
         throw new Error('No response from Gemini');
@@ -390,11 +389,20 @@ Only include fields that are relevant to the query. If no specific folder name i
    * Get folder details including subfolder structure
    */
   async getFolderStructure(folderId: string, maxDepth: number = 3): Promise<FolderStructure> {
+    // One limiter for the whole tree keeps at most 5 Drive calls in flight.
+    return this.getFolderStructureLimited(folderId, maxDepth, createLimiter());
+  }
+
+  private async getFolderStructureLimited(
+    folderId: string,
+    maxDepth: number,
+    limit: ReturnType<typeof createLimiter>
+  ): Promise<FolderStructure> {
     try {
-      const folder = await this.drive.files.get({
+      const folder = await limit(() => this.drive.files.get({
         fileId: folderId,
         fields: 'id,name,mimeType,parents,webViewLink,createdTime,modifiedTime'
-      });
+      }));
 
       if (maxDepth <= 0) {
         return {
@@ -410,11 +418,11 @@ Only include fields that are relevant to the query. If no specific folder name i
       }
 
       // Get subfolders
-      const subfolders = await this.drive.files.list({
+      const subfolders = await limit(() => this.drive.files.list({
         q: `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder'`,
         fields: 'files(id,name,mimeType,parents,webViewLink,createdTime,modifiedTime)',
         orderBy: 'name'
-      });
+      }));
 
       const folderData: FolderStructure = {
         id: folder.data.id || '',
@@ -427,12 +435,12 @@ Only include fields that are relevant to the query. If no specific folder name i
         subfolders: []
       };
 
-      for (const subfolder of subfolders.data.files || []) {
-        if (subfolder.id) {
-          const subfolderStructure = await this.getFolderStructure(subfolder.id, maxDepth - 1);
-          folderData.subfolders.push(subfolderStructure);
-        }
-      }
+      // Siblings are independent; Promise.all keeps the listing's name order.
+      folderData.subfolders = await Promise.all(
+        (subfolders.data.files || [])
+          .filter((subfolder): subfolder is typeof subfolder & { id: string } => !!subfolder.id)
+          .map(subfolder => this.getFolderStructureLimited(subfolder.id, maxDepth - 1, limit))
+      );
 
       return folderData;
     } catch (error) {
@@ -464,9 +472,7 @@ Please provide:
     const prompt = analysisPrompt || defaultPrompt;
 
     try {
-      const result = await this.geminiClient['model'].generateContent(prompt);
-      const response = await result.response;
-      const content = response.text();
+      const content = await this.geminiClient.generateText(prompt);
       
       return content || 'No analysis available';
     } catch (error) {
