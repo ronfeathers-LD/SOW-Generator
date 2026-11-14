@@ -1,5 +1,5 @@
 // Helper function to check if content is HTML
-export function isHtmlContent(content: string): boolean {
+function isHtmlContent(content: string): boolean {
   if (!content) return false;
   const trimmed = content.trim();
   return trimmed.startsWith('<') && trimmed.includes('>');

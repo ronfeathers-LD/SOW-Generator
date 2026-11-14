@@ -13,7 +13,6 @@ interface TeamRolesTabProps {
   onLeanDataSignatoryChange: (signatoryId: string) => Promise<void>;
   // New props for signer selection
   selectedAccount: SalesforceAccount | null;
-  selectedContact: SalesforceContact | null;
   getSalesforceLink: (recordId: string, recordType: 'Account' | 'Contact' | 'Opportunity') => string;
   onContactChange?: (contact: SalesforceContact | null) => void;
 }
@@ -25,7 +24,6 @@ export default function TeamRolesTab({
   selectedLeanDataSignatory,
   onLeanDataSignatoryChange,
   selectedAccount,
-  selectedContact,
   getSalesforceLink,
   onContactChange,
 }: TeamRolesTabProps) {

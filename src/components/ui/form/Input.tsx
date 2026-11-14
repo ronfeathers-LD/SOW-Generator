@@ -2,7 +2,7 @@ import React, { forwardRef } from 'react';
 import { cx } from './cx';
 import { CONTROL_BASE, CONTROL_ERROR, FOCUS_RING } from './tokens';
 
-export interface InputProps
+interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
   /** Renders the error state styling. The message itself is shown by <Field>. */
   error?: string | null | boolean;

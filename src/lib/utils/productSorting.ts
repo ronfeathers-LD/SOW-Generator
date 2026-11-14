@@ -1,12 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 
-interface Product {
-  id: string;
-  name: string;
-  sort_order: number;
-  is_active: boolean;
-}
-
 /**
  * Sort products in the correct order based on database sort_order
  * Handles both product IDs (UUIDs) and product names for backward compatibility
@@ -130,24 +123,3 @@ export async function resolveProductNames(products: string[]): Promise<string[]>
   }
 }
 
-/**
- * Client-side version that accepts pre-fetched products
- * Use this when you already have the products data from an API call
- */
-export function sortProductsWithData(products: string[], productData: Product[]): string[] {
-  if (!products || !Array.isArray(products)) return [];
-  
-  // Create a map of product names to their sort_order
-  const productSortMap = new Map<string, number>();
-  productData.forEach(product => {
-    productSortMap.set(product.name, product.sort_order);
-  });
-
-  // Sort products based on database sort_order
-  return products.sort((a, b) => {
-    const aOrder = productSortMap.get(a) ?? 999; // Default to high number for unknown products
-    const bOrder = productSortMap.get(b) ?? 999;
-    
-    return aOrder - bOrder;
-  });
-}

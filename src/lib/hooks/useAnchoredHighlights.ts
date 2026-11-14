@@ -15,8 +15,8 @@ import {
  * Highlight names registered with `CSS.highlights` — styled in
  * src/app/globals.css via `::highlight(...)` rules.
  */
-export const COMMENT_HIGHLIGHT_NAME = 'sow-comment';
-export const ACTIVE_COMMENT_HIGHLIGHT_NAME = 'sow-comment-active';
+const COMMENT_HIGHLIGHT_NAME = 'sow-comment';
+const ACTIVE_COMMENT_HIGHLIGHT_NAME = 'sow-comment-active';
 
 let loggedNoHighlightApi = false;
 
@@ -41,7 +41,7 @@ function highlightApiSupported(): boolean {
   return supported;
 }
 
-export interface ActiveAnchoredThread<T> {
+interface ActiveAnchoredThread<T> {
   comment: T;
   /** Where the user clicked, in viewport coordinates (popover anchor point). */
   rect: DOMRect;

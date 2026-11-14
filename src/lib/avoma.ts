@@ -893,4 +893,4 @@ async function getAvomaConfig(): Promise<AvomaConfig | null> {
   }
 }
 
-export { AvomaClient, getAvomaConfig, type AvomaCall, type AvomaTranscript, type AvomaSearchResponse, type AvomaConfig }; 
+export { AvomaClient, getAvomaConfig,     }; 

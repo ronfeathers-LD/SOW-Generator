@@ -10,7 +10,7 @@ const GITHUB_API_BASE = 'https://api.github.com';
 const DEFAULT_REPO = 'ronfeathers-LD/SOW-Generator';
 
 /** Origin label distinguishing issues filed from the app. */
-export const FEEDBACK_ORIGIN_LABEL = 'user-feedback';
+const FEEDBACK_ORIGIN_LABEL = 'user-feedback';
 
 /** HTML-comment marker embedded in issue bodies so app-filed issues can be
  * attributed to the real requester instead of the bot account. */
@@ -18,7 +18,7 @@ const SUBMITTER_MARKER_RE = /<!--\s*sow-feedback:submitter=([^\s]+)\s*-->/;
 
 export type FeedbackType = 'bug' | 'feature';
 
-export interface GitHubIssueLabel {
+interface GitHubIssueLabel {
   name: string;
   color: string;
 }
@@ -84,7 +84,7 @@ export function buildIssueBody(params: {
 }
 
 /** Cap on the number of screenshots attached to a single feedback issue. */
-export const MAX_ATTACHMENTS = 10;
+const MAX_ATTACHMENTS = 10;
 
 /**
  * True only for image URLs that live in our own Supabase `rte-images` public

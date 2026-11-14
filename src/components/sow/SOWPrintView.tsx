@@ -269,8 +269,6 @@ export default function SOWPrintView({ sow, salesforceData, products, showPricin
                 discountType={sow.pricing?.discount_type || 'none'}
                 discountAmount={sow.pricing?.discount_amount || 0}
                 discountPercentage={sow.pricing?.discount_percentage || 0}
-                subtotal={sow.pricing?.subtotal || 0}
-                totalAmount={sow.pricing?.total_amount || 0}
                 lastCalculated={sow.pricing?.last_calculated || null}
                 pmHoursRemoved={!pmIncluded}
                 isPrintMode={true}

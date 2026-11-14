@@ -25,7 +25,7 @@ export interface SalesforceAccountData {
   selected_at: string; // ISO timestamp
 }
 
-export interface SalesforceContactData {
+interface SalesforceContactData {
   id: string;
   first_name?: string;
   last_name: string;
@@ -65,13 +65,6 @@ export interface SOWSalesforceData {
   updated_at?: string; // ISO timestamp
 }
 
-// Helper types for API responses
-export interface SalesforceDataResponse {
-  success: boolean;
-  data?: SOWSalesforceData;
-  error?: string;
-}
-
 // Salesforce API response types
 export interface SalesforceAccountResponse {
   Id: string;
@@ -87,16 +80,6 @@ export interface SalesforceAccountResponse {
   Industry?: string;
   Phone?: string;
   Employee_Band__c?: string;
-}
-
-export interface SalesforceContactResponse {
-  Id: string;
-  FirstName?: string;
-  LastName: string;
-  Email?: string;
-  Phone?: string;
-  Title?: string;
-  Department?: string;
 }
 
 export interface SalesforceOpportunityResponse {
@@ -134,18 +117,6 @@ export const createSalesforceAccountData = (account: SalesforceAccountResponse):
   industry: account.Industry,
   phone: account.Phone,
   account_segment: account.Employee_Band__c,
-  selected_at: new Date().toISOString(),
-});
-
-export const createSalesforceContactData = (contact: SalesforceContactResponse, role: SalesforceContactData['role'] = 'primary_poc'): SalesforceContactData => ({
-  id: contact.Id,
-  first_name: contact.FirstName,
-  last_name: contact.LastName,
-  email: contact.Email,
-  phone: contact.Phone,
-  title: contact.Title,
-  department: contact.Department,
-  role,
   selected_at: new Date().toISOString(),
 });
 

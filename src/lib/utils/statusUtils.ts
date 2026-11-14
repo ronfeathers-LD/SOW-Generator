@@ -9,13 +9,3 @@ export const getStatusColor = (status: string) => {
   }
 };
 
-export const getStatusLabel = (status: string) => {
-  switch (status) {
-    case 'draft': return 'Draft';
-    case 'in_review': return 'In Review';
-    case 'approved': return 'Approved';
-    case 'rejected': return 'Rejected';
-    case 'recalled': return 'Recalled';
-    default: return status;
-  }
-};

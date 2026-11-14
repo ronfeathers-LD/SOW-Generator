@@ -1,4 +1,4 @@
-export type SalesforceAuthMethod = 'password' | 'client_credentials';
+type SalesforceAuthMethod = 'password' | 'client_credentials';
 
 export interface SalesforceConfigInput {
   authMethod?: unknown;
@@ -10,7 +10,7 @@ export interface SalesforceConfigInput {
   loginUrl?: unknown;
 }
 
-export interface ValidatedSalesforceConfig {
+interface ValidatedSalesforceConfig {
   authMethod: SalesforceAuthMethod;
   username: string;
   password: string | null;

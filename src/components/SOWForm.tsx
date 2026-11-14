@@ -1424,7 +1424,6 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
           selectedLeanDataSignatory={selectedLeanDataSignatory}
           onLeanDataSignatoryChange={handleLeanDataSignatoryChange}
           selectedAccount={selectedAccount}
-            selectedContact={selectedContact}
           getSalesforceLink={getSalesforceLink}
           onContactChange={(contact) => setSelectedContact(contact)}
         />

@@ -11,7 +11,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { canonicalizeContentColumns } from '@/lib/sow-content';
-import { buildPricingRolesColumn, type PricingInput } from '@/lib/sow/pricing-roles-column';
+import { buildPricingRolesColumn } from '@/lib/sow/pricing-roles-column';
 
 /** Thrown for an unknown tab key so callers can map it to a 400. */
 export class InvalidTabError extends Error {

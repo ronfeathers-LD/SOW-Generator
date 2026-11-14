@@ -537,7 +537,7 @@ ${transcript}
   }
 }
 
-export { GeminiClient, type GeminiBulletPoint, type GeminiGenerationResponse, type TranscriptionAnalysisResponse };
+export { GeminiClient,   type TranscriptionAnalysisResponse };
 
 // Helper function to analyze transcription
 export async function analyzeTranscription(
