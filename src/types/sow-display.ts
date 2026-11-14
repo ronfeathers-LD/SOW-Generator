@@ -20,7 +20,7 @@ export interface Product {
   sort_order: number;
 }
 
-export interface ClientRole {
+interface ClientRole {
   role: string;
   responsibilities: string;
   name: string;

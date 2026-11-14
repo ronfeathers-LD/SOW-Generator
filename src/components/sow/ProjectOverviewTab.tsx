@@ -7,8 +7,7 @@ import {
   findProductByIdOrName, 
   isProductSelectedByIdOrName, 
   isAnyBookItProductSelected, 
-  isFormsProductSelected, 
-  isHandoffProductSelected 
+  isFormsProductSelected
 } from '@/lib/utils/productCompatibility';
 import { groupProductsByCategory, type CategoryRow } from '@/lib/sow/product-groups';
 

@@ -28,7 +28,7 @@ export const SOW_TAB_KEYS = [
 export type SowTabKey = (typeof SOW_TAB_KEYS)[number];
 
 /** Calculated pricing snapshot pulled from the Pricing tab's live component state. */
-export interface PricingSnapshot {
+interface PricingSnapshot {
   roles: Array<{ role: string; ratePerHour: number; defaultRate?: number; totalHours: number }>;
   discount_type: string;
   discount_amount: number;

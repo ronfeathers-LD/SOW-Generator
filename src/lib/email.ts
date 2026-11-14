@@ -737,4 +737,4 @@ export async function getEmailService(): Promise<EmailService | null> {
 }
 
 export { EmailService };
-export type { EmailConfig, EmailTemplate, EmailLog };
+export type { EmailConfig,   };

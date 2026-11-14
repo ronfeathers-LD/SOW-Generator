@@ -52,7 +52,7 @@ export const useSOWContent = ({
   return { content, loading };
 };
 
-export const getFallbackContent = (sectionName: string, type: 'template' | 'error'): string => {
+const getFallbackContent = (sectionName: string, type: 'template' | 'error'): string => {
   const isError = type === 'error';
   const bgColor = isError ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200';
   const textColor = isError ? 'text-red-800 text-red-700' : 'text-yellow-800 text-yellow-700';

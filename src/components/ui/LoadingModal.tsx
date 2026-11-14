@@ -51,7 +51,7 @@ interface LoadingModalProps {
   operation?: 'saving' | 'loading' | 'processing' | 'updating' | 'deleting' | 'custom';
 }
 
-export const LoadingModal: React.FC<LoadingModalProps> = ({
+const LoadingModal: React.FC<LoadingModalProps> = ({
   isOpen,
   title,
   message,

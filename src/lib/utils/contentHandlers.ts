@@ -57,7 +57,7 @@ export const createContentHandler = (
   };
 };
 
-export const createResetHandler = (
+const createResetHandler = (
   config: ContentHandlerConfig,
   context: Pick<ContentHandlerContext, 'templates' | 'formData' | 'setFormData' | 'checkUnsavedChanges'>
 ) => {

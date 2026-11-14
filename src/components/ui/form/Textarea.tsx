@@ -2,7 +2,7 @@ import React, { forwardRef } from 'react';
 import { cx } from './cx';
 import { CONTROL_BASE, CONTROL_ERROR, FOCUS_RING } from './tokens';
 
-export interface TextareaProps
+interface TextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   error?: string | null | boolean;
 }

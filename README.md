@@ -63,11 +63,8 @@ The `NEXT_PUBLIC_SALESFORCE_INSTANCE_URL` environment variable is used to genera
    npm install
    ```
 
-2. Set up the database:
-   ```bash
-   npx prisma generate
-   npx prisma db push
-   ```
+2. Set up the database: the schema lives in `supabase/migrations/`. Start a local
+   Supabase stack (`supabase start`) or point `.env.local` at a Supabase project.
 
 3. Run the development server:
    ```bash

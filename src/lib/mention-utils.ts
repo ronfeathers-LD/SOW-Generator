@@ -62,14 +62,6 @@ export function formatCommentWithMentions(commentText: string): string {
 }
 
 /**
- * Clean comment text by removing @ symbols for storage
- * This is useful if you want to store the clean text separately
- */
-export function cleanCommentText(commentText: string): string {
-  return commentText.replace(/@([a-zA-Z0-9._-]+)/g, '$1');
-}
-
-/**
  * Example usage:
  * 
  * const comment = "@john.doe @sarah.smith Can you review this SOW?";

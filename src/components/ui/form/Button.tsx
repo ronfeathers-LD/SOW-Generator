@@ -4,7 +4,7 @@ import { cx } from './cx';
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'brand';
 type Size = 'sm' | 'md' | 'lg';
 
-export interface ButtonProps
+interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;

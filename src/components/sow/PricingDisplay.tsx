@@ -17,8 +17,6 @@ interface PricingDisplayProps {
   discountType: 'none' | 'fixed' | 'percentage';
   discountAmount: number;
   discountPercentage: number;
-  subtotal: number;
-  totalAmount: number;
   lastCalculated?: string | null;
   pmHoursRemoved?: boolean; // New prop to indicate if PM hours are removed
   isPrintMode?: boolean; // New prop to indicate if in print mode
@@ -29,8 +27,6 @@ export default function PricingDisplay({
   discountType,
   discountAmount,
   discountPercentage,
-  subtotal,
-  totalAmount,
   lastCalculated,
   pmHoursRemoved = false,
   isPrintMode = false

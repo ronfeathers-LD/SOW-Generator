@@ -33,7 +33,7 @@ export interface RoleHoursDistribution {
 /**
  * Calculate hours for individual products based on business rules
  */
-export function calculateProductHours(products: string[]): number {
+function calculateProductHours(products: string[]): number {
   if (!products || products.length === 0) return 0;
   
   let totalHours = 0;
@@ -104,7 +104,7 @@ function getMaxBookitUnits(template: Partial<SOWTemplate>): number {
  * Effective unit count = max(orchestration users, BookIt users); the two pools
  * don't sum. Shared by the hours calc and the PM-threshold check so they agree.
  */
-export function calculateTotalUnits(template: Partial<SOWTemplate>): number {
+function calculateTotalUnits(template: Partial<SOWTemplate>): number {
   return Math.max(getOrchestrationUnits(template), getMaxBookitUnits(template));
 }
 
@@ -112,7 +112,7 @@ export function calculateTotalUnits(template: Partial<SOWTemplate>): number {
  * Calculate user group hours (every 50 users/units adds 5 hours). Derives from
  * the same calculateTotalUnits used elsewhere so the two never diverge.
  */
-export function calculateUserGroupHours(template: Partial<SOWTemplate>): number {
+function calculateUserGroupHours(template: Partial<SOWTemplate>): number {
   const totalUnits = calculateTotalUnits(template);
   if (totalUnits >= 50) {
     return Math.floor(totalUnits / 50) * 5;
@@ -130,21 +130,6 @@ export function calculateAccountSegmentHours(
   rules: SegmentRulesMap
 ): number {
   return getExtraHours(rules, accountSegment);
-}
-
-/**
- * Calculate base project hours (product hours + user group hours + account segment hours)
- */
-export function calculateBaseProjectHours(
-  template: Partial<SOWTemplate>,
-  accountSegment: string | undefined,
-  rules: SegmentRulesMap
-): number {
-  const products = template?.products || [];
-  const productHours = calculateProductHours(products);
-  const userGroupHours = calculateUserGroupHours(template);
-  const accountSegmentHours = calculateAccountSegmentHours(accountSegment, rules);
-  return productHours + userGroupHours + accountSegmentHours;
 }
 
 /**
