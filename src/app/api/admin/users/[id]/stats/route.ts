@@ -28,25 +28,37 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get SOWs created by this user
-    const { count: sowsCreated } = await supabase
-      .from('sows')
-      .select('*', { count: 'exact', head: true })
-      .eq('created_by', id)
-      .eq('is_hidden', false);
-
-    // Get SOWs edited by this user (approximate - based on changelog)
-    const { count: sowsEdited } = await supabase
-      .from('sow_changelog')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', id);
-
-    // Get approval comments posted by this user (the app's only comment
-    // system — the legacy empty `comments` table was dropped in migration 029)
-    const { count: approvalComments } = await supabase
-      .from('approval_comments')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', id);
+    // The counts and the session-days scan are independent, so run them together.
+    const [
+      { count: sowsCreated },
+      { count: sowsEdited },
+      { count: approvalComments },
+      { data: sessionDays },
+    ] = await Promise.all([
+      // SOWs created by this user
+      supabase
+        .from('sows')
+        .select('*', { count: 'exact', head: true })
+        .eq('created_by', id)
+        .eq('is_hidden', false),
+      // SOWs edited by this user (approximate - based on changelog)
+      supabase
+        .from('sow_changelog')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', id),
+      // Approval comments posted by this user (the app's only comment
+      // system — the legacy empty `comments` table was dropped in migration 029)
+      supabase
+        .from('approval_comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', id),
+      // Total sessions (approximate - based on unique days with activity)
+      supabase
+        .from('sow_changelog')
+        .select('created_at')
+        .eq('user_id', id)
+        .gte('created_at', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString()), // Last year
+    ]);
 
     // Get last activity (most recent action across all tables)
     const lastActivityQueries = [
@@ -64,13 +76,6 @@ export async function GET(
     const lastActivity = lastActivityDates.length > 0 
       ? new Date(Math.max(...lastActivityDates.map(d => d.getTime()))).toISOString()
       : null;
-
-    // Get total sessions (approximate - based on unique days with activity)
-    const { data: sessionDays } = await supabase
-      .from('sow_changelog')
-      .select('created_at')
-      .eq('user_id', id)
-      .gte('created_at', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString()); // Last year
 
     const uniqueDays = new Set(
       sessionDays?.map(entry => new Date(entry.created_at).toDateString()) || []

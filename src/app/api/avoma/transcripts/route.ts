@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AvomaClient } from '@/lib/avoma';
 import { analyzeTranscription } from '@/lib/gemini';
 import { solutionsToDeliverablesText } from '@/lib/sow/svf-content';
+import { createLimiter } from '@/lib/utils/map-with-concurrency';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,32 +25,38 @@ export async function POST(request: NextRequest) {
     }
     
     const avomaClient = new AvomaClient(avomaApiKey);
-    const transcripts = [];
-    const meetingDetails = [];
-
-    // Fetch transcripts for each selected meeting
-    for (const meetingId of meetingIds) {
+    // Fetch transcripts for the selected meetings; at most 5 Avoma calls are in
+    // flight at once and results stay in meetingIds order.
+    const limit = createLimiter();
+    const transcripts = await Promise.all((meetingIds as string[]).map(async (meetingId): Promise<{
+      meetingId: string;
+      transcript: string;
+      hasTranscript: boolean;
+      error?: string;
+    }> => {
       try {
-        const transcript = await avomaClient.getTranscript(meetingId);
-        const meeting = await avomaClient.getMeetingDetails(meetingId);
-        
-        transcripts.push({
+        // Details are not used downstream, but a failure here has always marked
+        // the meeting as failed, so the call stays.
+        const [transcript] = await Promise.all([
+          limit(() => avomaClient.getTranscript(meetingId)),
+          limit(() => avomaClient.getMeetingDetails(meetingId))
+        ]);
+
+        return {
           meetingId,
           transcript: transcript.transcript || '',
           hasTranscript: !!transcript.transcript
-        });
-        
-        meetingDetails.push(meeting);
+        };
       } catch (error) {
         console.error(`Error fetching transcript for meeting ${meetingId}:`, error);
-        transcripts.push({
+        return {
           meetingId,
           transcript: '',
           hasTranscript: false,
           error: 'Failed to fetch transcript'
-        });
+        };
       }
-    }
+    }));
 
     // Filter out meetings without transcripts
     const validTranscripts = transcripts.filter(t => t.hasTranscript);
