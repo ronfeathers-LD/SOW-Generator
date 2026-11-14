@@ -3,7 +3,7 @@
 ###############################################
 # Stage 1 — install dependencies & build app
 ###############################################
-FROM node:20-bookworm-slim AS builder
+FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -39,7 +39,7 @@ RUN npm run build
 ###############################################
 # Stage 2 — runtime image
 ###############################################
-FROM node:20-bookworm-slim AS runner
+FROM node:24-bookworm-slim AS runner
 
 WORKDIR /app
 

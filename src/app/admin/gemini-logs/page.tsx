@@ -1,5 +1,6 @@
 'use client';
 
+import { GEMINI_MODELS } from '@/lib/gemini-models';
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -165,9 +166,9 @@ export default function GeminiLogsPage() {
               className="w-full px-3 py-2 border rounded-md"
             >
               <option value="">All Models</option>
-              <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-              <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-              <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+              {GEMINI_MODELS.map((model) => (
+                <option key={model.value} value={model.value}>{model.label}</option>
+              ))}
             </select>
           </div>
         </div>

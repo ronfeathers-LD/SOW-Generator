@@ -1,5 +1,6 @@
 'use client';
 
+import { DEFAULT_GEMINI_MODEL, GEMINI_MODELS } from '@/lib/gemini-models';
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -13,13 +14,6 @@ interface GeminiConfig {
   lastError?: string;
 }
 
-const AVAILABLE_MODELS = [
-  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Latest & Fastest)', description: 'Latest model, fastest performance' },
-  { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Fast)', description: 'Fast model, commonly overloaded' },
-  { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (Recommended)', description: 'More capable, often less load' },
-  { value: 'gemini-1.0-pro', label: 'Gemini 1.0 Pro (Fallback)', description: 'Older model, usually available' },
-  { value: 'gemini-pro', label: 'Gemini Pro (Legacy)', description: 'Legacy model, most reliable' }
-];
 
 export default function GeminiAdminPage() {
   const { data: session, status } = useSession();
@@ -30,7 +24,7 @@ export default function GeminiAdminPage() {
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [apiKey, setApiKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_GEMINI_MODEL);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -50,7 +44,7 @@ export default function GeminiAdminPage() {
         const data = await response.json();
         setConfig(data);
         setApiKey(data.apiKey || '');
-        setSelectedModel(data.modelName || 'gemini-2.5-flash');
+        setSelectedModel(data.modelName || DEFAULT_GEMINI_MODEL);
       }
     } catch (error) {
       console.error('Error fetching Gemini config:', error);
@@ -182,7 +176,7 @@ export default function GeminiAdminPage() {
                     onChange={(e) => setSelectedModel(e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   >
-                    {AVAILABLE_MODELS.map((model) => (
+                    {GEMINI_MODELS.map((model) => (
                       <option key={model.value} value={model.value}>
                         {model.label} - {model.description}
                       </option>
