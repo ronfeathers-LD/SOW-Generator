@@ -89,19 +89,14 @@ export default function EmailConfigPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/admin/email/test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(config),
-      });
+      // Tests the saved configuration and sends one message to the signed-in admin.
+      const response = await fetch('/api/admin/email/test', { method: 'POST' });
+      const result = await response.json().catch(() => ({}));
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Test email sent successfully! Check your inbox.' });
+        setMessage({ type: 'success', text: `Test email sent to ${result.recipient}. Check your inbox.` });
       } else {
-        const error = await response.text();
-        setMessage({ type: 'error', text: `Test failed: ${error}` });
+        setMessage({ type: 'error', text: `Test failed: ${result.error || response.statusText}. Save any changes before testing.` });
       }
     } catch {
       setMessage({ type: 'error', text: 'Failed to send test email' });
