@@ -1,9 +1,8 @@
 /**
  * Server-side field→DB-column mapping for SOW tab saves.
  *
- * Extracted verbatim from the `PUT /api/sow/[id]/tab-update` route so the same
- * mapping can back both the per-tab endpoint and the bulk save endpoint without
- * duplication. `buildTabColumnUpdate` is pure (column mapping + billing JSONB
+ * Used by the bulk save endpoint (`PUT /api/sow/[id]/bulk-update`).
+ * `buildTabColumnUpdate` is pure (column mapping + billing JSONB
  * merge + server-side pricing recompute); side effects that touch other tables
  * (the Objectives tab's `avoma_recordings`) live in `applyTabSideEffects`.
  *

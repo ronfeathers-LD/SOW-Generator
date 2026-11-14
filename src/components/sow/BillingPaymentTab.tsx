@@ -338,7 +338,7 @@ export default forwardRef<{ getCurrentPricingData?: () => PricingData }, Billing
   // NOTE: pricing changes are persisted exclusively through `setFormData`
   // (e.g. in `autoCalculateHours` below, and via the callbacks passed to
   // `PricingRolesAndDiscount`) — the global autosave loop in SOWForm picks
-  // those up. There is no dedicated tab-update PUT for pricing anymore; a
+  // those up. There is no dedicated PUT for pricing; a
   // dead, never-invoked `savePricingRoles` direct-PUT helper that duplicated
   // this was removed here (#393).
 

@@ -3,18 +3,18 @@
  *
  * Extracted from the giant switch that used to live inside
  * `SOWForm.handleTabSave`. Each builder returns the `data` object that the
- * `PUT /api/sow/[id]/tab-update` route expects for a given tab. Keeping these
+ * `PUT /api/sow/[id]/bulk-update` route expects for a given tab. Keeping these
  * pure (formData + context in, plain object out) lets the form do a **save-all**
  * — loop every visible tab and persist it — instead of only persisting the
  * active tab, which was the source of the silent data loss in issue #109.
  *
- * The field→DB-column mapping still lives server-side in the tab-update route
+ * The field→DB-column mapping lives server-side in `tab-column-mapping.ts`
  * (the source of truth, incl. the audited pricing recompute / billing merge);
  * these builders only mirror the client-side `data` shapes that route consumes.
  */
 import { SOWData } from '@/types/sow';
 
-/** Tab keys, in form order. Must match the server-side switch in tab-update. */
+/** Tab keys, in form order. Must match the server-side switch in tab-column-mapping.ts. */
 export const SOW_TAB_KEYS = [
   'Customer Information',
   'Project Overview',
