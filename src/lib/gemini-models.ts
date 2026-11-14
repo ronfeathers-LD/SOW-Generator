@@ -14,8 +14,8 @@ export interface GeminiModelOption {
 }
 
 export const GEMINI_MODELS: GeminiModelOption[] = [
-  { value: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash', description: 'Newest Flash model' },
-  { value: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash', description: 'Previous Flash model' },
+  { value: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash (Recommended)', description: 'Fast and reliably available' },
+  { value: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash', description: 'Newest Flash model; often overloaded' },
   { value: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite', description: 'Fastest and cheapest' },
   {
     value: 'gemini-2.5-flash',
@@ -24,4 +24,7 @@ export const GEMINI_MODELS: GeminiModelOption[] = [
   },
 ];
 
-export const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
+// 3.6 rather than 3.8: on a replay of a real SOW prompt (2026-11-14) 3.6 answered
+// in ~10s with output close to 3.8's, while 3.8 returned 503 on 3 of 4 calls and
+// took 266s on the one that succeeded.
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.6-flash';
