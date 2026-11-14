@@ -38,6 +38,16 @@ export function getAppBaseUrl(): string {
 }
 
 /**
+ * Redirect URI for the Google Drive OAuth connect flow. Derived from the app's
+ * own base URL so the start step and the callback always agree and the flow
+ * works on whichever host is serving (local, staging, production). This exact
+ * URI must be listed under "Authorized redirect URIs" on the Google OAuth client.
+ */
+export function getDriveOAuthRedirectUri(): string {
+  return `${getAppBaseUrl().replace(/\/+$/, '')}/oauth/callback`;
+}
+
+/**
  * Construct a full URL for a SOW
  */
 export function getSOWUrl(sowId: string): string {

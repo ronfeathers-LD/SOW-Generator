@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { google } from 'googleapis';
+import { getDriveOAuthRedirectUri } from '@/lib/utils/app-url';
 
 export async function GET() {
   try {
@@ -22,7 +23,7 @@ export async function GET() {
     const oauth2Client = new google.auth.OAuth2(
       driveConfig.client_id,
       driveConfig.client_secret,
-      'http://localhost:3000/oauth/callback' // Updated redirect URI
+      getDriveOAuthRedirectUri()
     );
 
     const scopes = [

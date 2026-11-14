@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
+import { getAppBaseUrl, getDriveOAuthRedirectUri } from '@/lib/utils/app-url';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function GET(request: NextRequest) {
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
     const oauth2Client = new google.auth.OAuth2(
       driveConfig.client_id,
       driveConfig.client_secret,
-      'http://localhost:3000/oauth/callback' // This matches the route path
+      getDriveOAuthRedirectUri()
     );
 
     const { tokens } = await oauth2Client.getToken(code);
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to store tokens' }, { status: 500 });
     }
 
-    return NextResponse.redirect(new URL('/admin/google-drive?oauth=success', request.url));
+    return NextResponse.redirect(new URL('/admin/google-drive?oauth=success', getAppBaseUrl()));
   } catch (e) {
     console.error('OAuth callback error:', e);
     return NextResponse.json(
