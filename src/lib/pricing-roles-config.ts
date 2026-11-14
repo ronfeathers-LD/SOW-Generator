@@ -6,6 +6,15 @@ export interface PricingRoleConfig {
   sort_order?: number;
 }
 
+/** A pricing_roles_config table row as returned by the admin API. */
+export interface PricingRoleRecord extends PricingRoleConfig {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+  updated_by?: string;
+}
+
 export async function getPricingRolesConfig(): Promise<PricingRoleConfig[]> {
   try {
     const response = await fetch('/api/pricing-roles-config');

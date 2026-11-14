@@ -16,6 +16,9 @@
 
 import { calculateAllHours } from '@/lib/hours-calculation-utils';
 import type { SegmentRulesMap } from '@/lib/segment-rules';
+import type { PricingRoleRow } from '@/lib/pm-hours-removal-service';
+
+type RoleRow = Pick<PricingRoleRow, 'role' | 'totalHours' | 'ratePerHour'>;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,12 +30,6 @@ export interface ClassifyResult {
   osTarget?: number;
   /** How many PM hours were originally removed. Present when action !== 'none'. */
   pmHoursRemoved?: number;
-}
-
-interface PricingRoleRow {
-  role?: string;
-  totalHours?: number | string;
-  ratePerHour?: number | string;
 }
 
 /** Minimal SOW row shape the classifier needs. All fields are optional so the
@@ -65,11 +62,11 @@ function toNum(v: unknown): number {
  * Extract the roles array regardless of whether pricing_roles is the bare-array
  * legacy shape or the current object shape { roles: [...], ... }.
  */
-function extractRoles(pricingRoles: unknown): PricingRoleRow[] {
+function extractRoles(pricingRoles: unknown): RoleRow[] {
   if (!pricingRoles) return [];
-  if (Array.isArray(pricingRoles)) return pricingRoles as PricingRoleRow[];
+  if (Array.isArray(pricingRoles)) return pricingRoles as RoleRow[];
   const container = pricingRoles as Record<string, unknown>;
-  return Array.isArray(container.roles) ? (container.roles as PricingRoleRow[]) : [];
+  return Array.isArray(container.roles) ? (container.roles as RoleRow[]) : [];
 }
 
 /**

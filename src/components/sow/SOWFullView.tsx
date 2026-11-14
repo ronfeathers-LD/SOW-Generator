@@ -32,7 +32,8 @@ import { customerSignerWarning } from '@/lib/sow/signer-status';
 import { formatAddressLines } from '@/lib/sow/format-address';
 import { anchorToRange, type SelectionAnchor } from '@/lib/selection-anchor';
 import type { SOWSectionKey } from '@/lib/sow-content';
-import { DisplaySOW, Product, SalesforceData } from '@/types/sow-display';
+import { DisplaySOW, SalesforceData } from '@/types/sow-display';
+import type { Product } from '@/lib/constants/products';
 import { getPricingSummary } from '@/lib/sow/pricing-summary';
 
 // Helper function to find the appropriate signatory from Salesforce contacts

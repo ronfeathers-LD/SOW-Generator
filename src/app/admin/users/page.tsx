@@ -4,21 +4,14 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import type { User } from '@/types/user';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  slack_user_id?: string;
-  slack_username?: string;
-  slack_mapping_updated_at?: string;
-}
+type AdminListUser = Omit<User, 'created_at'>;
 
 export default function UserManagementPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<AdminListUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -117,7 +110,7 @@ export default function UserManagementPage() {
     }
   };
 
-  const isSlackEnabled = (user: User) => {
+  const isSlackEnabled = (user: AdminListUser) => {
     return !!(user.slack_user_id && user.slack_username);
   };
 

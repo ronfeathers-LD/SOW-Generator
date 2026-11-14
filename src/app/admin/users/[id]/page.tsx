@@ -4,17 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  created_at: string;
-  slack_user_id?: string;
-  slack_username?: string;
-  slack_mapping_updated_at?: string;
-}
+import type { User } from '@/types/user';
 
 interface UserStats {
   sows_created: number;

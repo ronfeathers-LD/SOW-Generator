@@ -3,23 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-
-interface IssueLabel {
-  name: string;
-  color: string;
-}
-
-interface FeedbackIssue {
-  number: number;
-  title: string;
-  labels: IssueLabel[];
-  state: string;
-  created_at: string;
-  html_url: string;
-  comments: number;
-  user: string | null;
-  submitter: string | null;
-}
+import type { FeedbackIssue } from '@/lib/github-issues';
 
 type Filter = 'all' | 'bug' | 'feature';
 

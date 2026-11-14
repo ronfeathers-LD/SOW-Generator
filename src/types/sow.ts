@@ -1,7 +1,7 @@
 import { SalesforceAccount, SalesforceContact } from '@/lib/salesforce';
 import type { TimelinePhase } from '@/lib/sow/timeline-phases';
 
-interface BillingInfo {
+export interface BillingInfo {
   company_name: string;
   billing_contact: string;
   billing_address: string;
@@ -452,9 +452,19 @@ export interface ChangeOrderCreationRequest {
 }
 
 // Multi-Step Approval Workflow Types
+export interface PricingRole {
+  id: string;
+  role: string;
+  description?: string;
+  ratePerHour: number;
+  defaultRate: number;
+  totalHours: number;
+  totalCost: number;
+}
+
 type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'not_started' | 'skipped';
 
-interface ApprovalStage {
+export interface ApprovalStage {
   id: string;
   name: string;
   description: string;

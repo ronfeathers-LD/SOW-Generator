@@ -3,40 +3,19 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { calculateAllHours, calculateRoleHoursDistribution, HOURS_CALCULATION_RULES } from '@/lib/hours-calculation-utils';
 import { DEFAULT_SEGMENT_RULES, fetchSegmentRules, SegmentRulesMap } from '@/lib/segment-rules';
-
-interface CalculatorData {
-  products: string[];
-  number_of_units: string;
-  orchestration_units: string;
-  bookit_forms_units: string;
-  bookit_links_units: string;
-  bookit_handoff_units: string;
-  account_segment?: string;
-  pm_hours_removed?: boolean;
-  discount_type?: 'none' | 'fixed' | 'percentage';
-  discount_amount?: number;
-  discount_percentage?: number;
-  hourly_rates?: {
-    onboardingSpecialist?: number;
-    projectManager?: number;
-  };
-}
+import type { CalculatorData } from '@/types/pricing-calculator';
+import type { PricingRole } from '@/types/sow';
 
 interface PricingCalculatorResultsProps {
   data: CalculatorData;
   scenarios: CalculatorData[];
 }
 
-interface PricingRole {
-  role: string;
-  ratePerHour: number;
-  totalHours: number;
-  totalCost: number;
-}
-
 // Only Onboarding Specialist and Project Manager drive SOW cost; the rates are
 // sourced from the admin pricing config via page state, with 250 as last resort.
-const STANDARD_ROLES: Omit<PricingRole, 'totalHours' | 'totalCost'>[] = [
+type CalculatorRole = Pick<PricingRole, 'role' | 'ratePerHour' | 'totalHours' | 'totalCost'>;
+
+const STANDARD_ROLES: Omit<CalculatorRole, 'totalHours' | 'totalCost'>[] = [
   { role: 'Onboarding Specialist', ratePerHour: 250 },
   { role: 'Project Manager', ratePerHour: 250 },
 ];
@@ -105,8 +84,8 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
   }, [data.hourly_rates]);
 
   // Calculate pricing roles
-  const pricingRoles = useMemo((): PricingRole[] => {
-    const roles: PricingRole[] = [];
+  const pricingRoles = useMemo((): CalculatorRole[] => {
+    const roles: CalculatorRole[] = [];
     
     // Onboarding Specialist gets distributed hours
     const onboardingSpecialist = STANDARD_ROLES.find(r => r.role === 'Onboarding Specialist');
@@ -172,7 +151,7 @@ export default function PricingCalculatorResults({ data, scenarios }: PricingCal
         scenario.pm_hours_removed
       );
       
-      const scenarioRoles: PricingRole[] = [];
+      const scenarioRoles: CalculatorRole[] = [];
       
       // Onboarding Specialist gets distributed hours
       const onboardingSpecialist = STANDARD_ROLES.find(r => r.role === 'Onboarding Specialist');

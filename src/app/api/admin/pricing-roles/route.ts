@@ -3,17 +3,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createServiceRoleClient } from '@/lib/supabase-server';
 
-export interface PricingRoleConfig {
-  id: string;
-  role_name: string;
-  default_rate: number;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  created_by?: string;
-  updated_by?: string;
-}
-
 // GET - Retrieve all pricing roles
 export async function GET() {
   try {

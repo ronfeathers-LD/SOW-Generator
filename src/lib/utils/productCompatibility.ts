@@ -4,15 +4,7 @@
  */
 
 import { isFormsProductById, isLinksProductById, isHandoffProductById } from '@/lib/constants/products';
-
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  is_active: boolean;
-  sort_order: number;
-}
+import type { Product } from '@/lib/constants/products';
 
 /**
  * Find a product by either ID or name

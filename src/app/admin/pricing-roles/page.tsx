@@ -3,27 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-
-interface PricingRoleConfig {
-  id: string;
-  role_name: string;
-  default_rate: number;
-  is_active: boolean;
-  description?: string;
-  sort_order?: number;
-  created_at: string;
-  updated_at: string;
-  created_by?: string;
-  updated_by?: string;
-}
+import type { PricingRoleRecord } from '@/lib/pricing-roles-config';
 
 export default function PricingRolesAdminPage() {
   const { data: session } = useSession();
   const router = useRouter();
-  const [roles, setRoles] = useState<PricingRoleConfig[]>([]);
+  const [roles, setRoles] = useState<PricingRoleRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingRole, setEditingRole] = useState<PricingRoleConfig | null>(null);
+  const [editingRole, setEditingRole] = useState<PricingRoleRecord | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     role_name: '',
@@ -89,7 +77,7 @@ export default function PricingRolesAdminPage() {
     }
   };
 
-  const handleEdit = (role: PricingRoleConfig) => {
+  const handleEdit = (role: PricingRoleRecord) => {
     setEditingRole(role);
     setFormData({
       role_name: role.role_name,

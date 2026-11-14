@@ -8,16 +8,7 @@ import { getPricingSummary, toPricingRolesObject } from '@/lib/sow/pricing-summa
 import { applyCalculatedHours } from '@/lib/sow/apply-calculated-hours';
 import { getPricingRolesConfig, getDefaultRateForRole, getDescriptionForRole, PricingRoleConfig } from '@/lib/pricing-roles-config';
 import { SectionHeader } from '@/components/ui/form';
-
-interface PricingRole {
-  id: string;
-  role: string;
-  description?: string;
-  ratePerHour: number;
-  defaultRate: number;
-  totalHours: number;
-  totalCost: number;
-}
+import type { PricingRole } from '@/types/sow';
 
 interface DiscountConfig {
   type: 'none' | 'fixed' | 'percentage';

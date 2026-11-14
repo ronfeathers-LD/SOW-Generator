@@ -11,23 +11,7 @@
  * `mapApiResponseToSOWData` (the form-side mapper).
  */
 
-export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  is_active: boolean;
-  sort_order: number;
-}
-
-interface ClientRole {
-  role: string;
-  responsibilities: string;
-  name: string;
-  email: string;
-  salesforce_contact_id?: string;
-  contact_title?: string;
-}
+import type { ClientRole } from '@/types/sow';
 
 export interface DisplaySOW {
   id: string;
