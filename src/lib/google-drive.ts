@@ -168,9 +168,7 @@ Only include fields that are relevant to the query. If no specific folder name i
 `;
 
     try {
-      const result = await this.geminiClient['model'].generateContent(prompt);
-      const response = await result.response;
-      const content = response.text();
+      const content = await this.geminiClient.generateText(prompt);
       
       if (!content) {
         throw new Error('No response from Gemini');
@@ -464,9 +462,7 @@ Please provide:
     const prompt = analysisPrompt || defaultPrompt;
 
     try {
-      const result = await this.geminiClient['model'].generateContent(prompt);
-      const response = await result.response;
-      const content = response.text();
+      const content = await this.geminiClient.generateText(prompt);
       
       return content || 'No analysis available';
     } catch (error) {

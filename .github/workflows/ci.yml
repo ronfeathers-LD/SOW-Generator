@@ -21,8 +21,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          # Match the Dockerfile's runtime (node:20-bookworm-slim).
-          node-version: 20
+          # .nvmrc matches the Dockerfile's runtime (node:24-bookworm-slim).
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - name: Typecheck
