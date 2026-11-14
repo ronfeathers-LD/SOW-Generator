@@ -1,13 +1,10 @@
-/**
- * Tests for email domain validation utilities
- */
-
-import { 
-  validateLeandataEmail, 
-  filterValidLeandataEmails, 
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
+import {
+  validateLeandataEmail,
+  filterValidLeandataEmails,
   validateLeandataEmailOrThrow,
-  logInvalidEmailWarning 
-} from '../email-domain-validation';
+  logInvalidEmailWarning,
+} from './email-domain-validation';
 
 describe('Email Domain Validation', () => {
   describe('validateLeandataEmail', () => {
@@ -78,10 +75,10 @@ describe('Email Domain Validation', () => {
   });
 
   describe('logInvalidEmailWarning', () => {
-    let consoleSpy: jest.SpyInstance;
+    let consoleSpy: MockInstance;
 
     beforeEach(() => {
-      consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      consoleSpy = vi.spyOn(console, 'warn').mockImplementation();
     });
 
     afterEach(() => {
