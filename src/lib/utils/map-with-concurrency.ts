@@ -15,16 +15,23 @@ export function createLimiter(limit: number = DEFAULT_CONCURRENCY) {
   let active = 0;
   const waiting: Array<() => void> = [];
 
+  // A finishing call hands its slot straight to the next waiter (the count
+  // stays put), so a call arriving in the same tick cannot slip past the limit.
   const release = () => {
-    active--;
-    waiting.shift()?.();
+    const next = waiting.shift();
+    if (next) {
+      next();
+    } else {
+      active--;
+    }
   };
 
   return async function run<T>(fn: () => Promise<T>): Promise<T> {
     if (active >= max) {
       await new Promise<void>(resolve => waiting.push(resolve));
+    } else {
+      active++;
     }
-    active++;
     try {
       return await fn();
     } finally {
