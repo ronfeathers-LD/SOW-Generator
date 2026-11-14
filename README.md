@@ -58,8 +58,9 @@ The `NEXT_PUBLIC_SALESFORCE_INSTANCE_URL` environment variable is used to genera
 
 ## Getting Started
 
-1. Install dependencies:
+1. Install dependencies (Node 24; see `.nvmrc`):
    ```bash
+   nvm use
    npm install
    ```
 
@@ -110,31 +111,8 @@ apk add --no-cache chromium
 The application will automatically fall back to Puppeteer's bundled Chromium if system Chrome is not available.
 
 #### Option 3: Docker Environment
-If running in Docker, use a base image with Chrome:
-```dockerfile
-FROM node:18-slim
+The repo's `Dockerfile` (used by Railway) installs system Chromium on `node:24-bookworm-slim` and sets `PUPPETEER_EXECUTABLE_PATH`.
 
-# Install Chrome dependencies
-RUN apt-get update && apt-get install -y \
-    wget \
-    gnupg \
-    ca-certificates \
-    procps \
-    libxss1 \
-    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
-    && apt-get update \
-    && apt-get install -y google-chrome-stable \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install dependencies and build
-COPY package*.json ./
-RUN npm ci --only=production
-RUN npm run build
-
-# Start the application
-CMD ["npm", "start"]
-```
 
 ### Environment Variables for Production
 
