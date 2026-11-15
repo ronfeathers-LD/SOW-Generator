@@ -66,19 +66,10 @@ export function useSow(sowId: string): UseSowResult {
 
         setSOW(parsedData);
 
-        // Fetch Salesforce data if available
-        if (parsedData.salesforceAccountId) {
-          try {
-            const salesforceResponse = await fetch(`/api/sow/${sowId}/salesforce-data`);
-            if (salesforceResponse.ok) {
-              const salesforceResult = await salesforceResponse.json();
-              if (salesforceResult.success && salesforceResult.data) {
-                setSalesforceData(salesforceResult.data);
-              }
-            }
-          } catch (salesforceError) {
-            console.warn('Failed to fetch Salesforce data:', salesforceError);
-          }
+        // salesforce_data in the GET response is the same sow_salesforce_data row
+        // the separate /salesforce-data endpoint returns, so no second fetch.
+        if (parsedData.salesforceAccountId && data.salesforce_data) {
+          setSalesforceData(data.salesforce_data);
         }
 
       } catch (err) {
