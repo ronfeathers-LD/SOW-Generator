@@ -3,7 +3,6 @@
  *
  * Persists every visible tab in one user action instead of only the active tab.
  * All tabs are sent to the `PUT /api/sow/[id]/bulk-update` endpoint, which
- * applies the same field→column mapping as the per-tab `tab-update` route but
  * authorizes, reads, updates, and logs the changelog ONCE for the whole save
  * (previously this was one round-trip per tab). The server applies the tabs in
  * the order sent and merges shared columns last-write-wins, matching the old

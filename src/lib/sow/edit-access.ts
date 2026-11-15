@@ -2,7 +2,7 @@
 // single-tab "restricted" editor: admins fixing Pricing, and edit-permitted
 // users fixing Signers. This module is the single source of truth for that gate
 // so the edit page and any future caller stay in sync. Pure + unit-tested; the
-// backend (tab-update) independently enforces object-level auth.
+// backend (bulk-update) independently enforces object-level auth.
 
 export type RestrictedTab = 'Pricing' | 'Signers & Roles';
 

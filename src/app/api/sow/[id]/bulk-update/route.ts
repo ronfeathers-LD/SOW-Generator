@@ -12,14 +12,12 @@ import {
 /**
  * Bulk tab save: persist every wizard tab in a single request.
  *
- * The form's "Save all" previously fired one `tab-update` PUT per tab (up to 7
- * sequential round-trips, each re-running auth + a full-row fetch + update +
- * changelog). This endpoint does that work once: authorize once, fetch the row
- * once, merge every tab's column update, run side effects, do one UPDATE, and
- * log one changelog entry covering the whole save.
+ * This is the only tab-save endpoint (it replaced a per-tab PUT that cost up
+ * to 7 sequential round-trips). It authorizes once, fetches the row once,
+ * merges every tab's column update, runs side effects, does one UPDATE, and
+ * logs one changelog entry covering the whole save.
  *
- * It reuses the exact same field→column mapping as `tab-update`
- * (`@/lib/sow/tab-column-mapping`), so the two paths stay in lockstep.
+ * The field→column mapping lives in `@/lib/sow/tab-column-mapping`.
  */
 export async function PUT(
   request: Request,
@@ -37,7 +35,7 @@ export async function PUT(
       return NextResponse.json({ error: 'No tabs provided' }, { status: 400 });
     }
 
-    // --- AuthN/AuthZ (mirrors tab-update) ---
+    // --- AuthN/AuthZ ---
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -74,7 +72,7 @@ export async function PUT(
     }
 
     // In-review SOWs are locked except for admins editing pricing/discounts —
-    // applied per tab, exactly as tab-update does for a single tab.
+    // applied per tab, one tab at a time.
     const isAdmin = user.role === 'admin';
     const isInReview = existingSOW.status === 'in_review';
     if (isInReview) {
@@ -101,8 +99,8 @@ export async function PUT(
     const updateData: Record<string, unknown> = {};
     try {
       for (const { tab, data } of tabs) {
-        // Side effects (e.g. Objectives → avoma_recordings) run first, matching
-        // tab-update's ordering relative to the main row update.
+        // Side effects (e.g. Objectives → avoma_recordings) run before the
+        // main row update.
         await applyTabSideEffects(supabase, sowId, tab, data ?? {});
         Object.assign(updateData, buildTabColumnUpdate(tab, data ?? {}, existingSOW));
       }

@@ -14,7 +14,7 @@ import { authOptions } from '@/lib/auth';
  * Rules:
  *   - Only TOP-LEVEL comments can be resolved; replies share their parent
  *     thread's resolution state (400 otherwise).
- *   - Permissions mirror the SOW-edit pattern (see tab-update/bulk-update:
+ *   - Permissions mirror the SOW-edit pattern (see bulk-update:
  *     author or elevated role): the COMMENT author, the SOW author, or an
  *     elevated role (admin / manager / pmo) may resolve or unresolve.
  */
@@ -82,7 +82,7 @@ export async function PATCH(
 
     // Authorization: comment author, SOW author, or elevated role.
     // (The service-role client bypasses RLS, so this object-level check is
-    // the only guard — same posture as tab-update/bulk-update.)
+    // the only guard — same posture as bulk-update.)
     const elevatedRoles = ['admin', 'manager', 'pmo'];
     const isCommentAuthor = existingComment.user_id === user.id;
     const isSowAuthor = sow.author_id === user.id;

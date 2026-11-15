@@ -111,7 +111,7 @@ export default function SOWFullView({
   const isManager = session?.user?.role === 'manager';
   const canApprove = isAdmin || isManager;
   // Signers can be corrected on an approved SOW by the author or an elevated role
-  // (matches the edit-permission set enforced server-side in tab-update).
+  // (matches the edit-permission set enforced server-side in bulk-update).
   const isPmo = session?.user?.role === 'pmo';
   const isSowAuthor = !!sow.author_id && sow.author_id === session?.user?.id;
   const canEditSigners = isSowAuthor || isAdmin || isManager || isPmo;
