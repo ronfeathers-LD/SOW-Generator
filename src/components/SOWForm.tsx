@@ -648,6 +648,16 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (!['image/png', 'image/jpeg', 'image/gif'].includes(file.type)) {
+        setNotification({ type: 'error', message: 'Logo must be a PNG, JPG, or GIF image.' });
+        e.target.value = '';
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setNotification({ type: 'error', message: 'Logo must be 5MB or smaller.' });
+        e.target.value = '';
+        return;
+      }
       // Convert the file to base64
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -749,17 +759,17 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
     
     // Auto-populate customer information with account details. `client_name`
     // is only persisted by the tab save, so this must mark the form dirty.
-    updateFormData({
-      ...formData,
+    updateFormData(prev => ({
+      ...prev,
       template: {
-        ...formData.template,
+        ...prev.template,
         client_name: accountObj.Name,
         // Don't auto-populate contact details until POC is selected
         customer_email: '',
         customer_signature_name: '',
         customer_signature: '',
       } as SOWTemplate,
-    });
+    }));
 
     // Save Salesforce data to database if we have a SOW ID
     if (initialData?.id) {
@@ -834,14 +844,14 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
       // Store opportunity information in form data. The opportunity columns on
       // `sows` are written by the tab save, not by the salesforce-data POST
       // below, so this must mark the form dirty.
-      updateFormData({
-        ...formData,
+      updateFormData(prev => ({
+        ...prev,
         template: {
-          ...formData.template,
+          ...prev.template,
           // Auto-populate SOW title with opportunity name if it's not already set
-          sow_title: (!formData.template?.sow_title || formData.template.sow_title.trim() === '') 
+          sow_title: (!prev.template?.sow_title || prev.template.sow_title.trim() === '') 
             ? `Statement of Work for ${opportunity.name}` 
-            : formData.template.sow_title,
+            : prev.template.sow_title,
           // Store opportunity details
           opportunity_id: opportunity.id,
           opportunity_name: opportunity.name,
@@ -849,7 +859,7 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
           opportunity_stage: opportunity.stageName,
           opportunity_close_date: opportunity.closeDate,
         } as SOWTemplate,
-      });
+      }));
 
       // Save opportunity data to database if we have a SOW ID
       if (initialData?.id) {
@@ -886,17 +896,17 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
       }
       } else {
       // Clear opportunity information when deselected
-      updateFormData({
-        ...formData,
+      updateFormData(prev => ({
+        ...prev,
         template: {
-          ...formData.template,
+          ...prev.template,
           opportunity_id: '',
           opportunity_name: '',
           opportunity_amount: undefined,
           opportunity_stage: '',
           opportunity_close_date: undefined,
         } as SOWTemplate,
-      });
+      }));
     }
   };
 
