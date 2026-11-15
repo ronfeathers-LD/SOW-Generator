@@ -352,19 +352,6 @@ nav[aria-label="Breadcrumb"] ol li::after {
   padding-left: 1.5em !important;
 }
 
-/* Additional list styling for SOW pages */
-.text-base.leading-relaxed ul,
-.text-base.leading-relaxed ol {
-  list-style-type: disc;
-  padding-left: 1.5em;
-  margin: 0.5em 0;
-}
-
-.text-base.leading-relaxed li {
-  margin: 0.25em 0;
-  display: list-item;
-}
-
 /* Force list styling for any content that should have lists */
 .sow-content ul,
 .sow-content ol {
