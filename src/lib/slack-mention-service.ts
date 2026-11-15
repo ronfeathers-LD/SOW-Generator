@@ -8,6 +8,7 @@ import { getSlackBotToken } from './slack-bot-token';
 import { filterValidLeandataEmails, logInvalidEmailWarning } from './utils/email-domain-validation';
 import { getSOWUrl } from './utils/app-url';
 import { mapWithConcurrency } from './utils/map-with-concurrency';
+import { escapeSlackText } from './utils/escape-slack';
 
 export interface CommentMentionNotification {
   sowId: string;
@@ -191,15 +192,15 @@ export class SlackMentionService {
       // For anchored comments, show the SOW text the comment refers to
       // (truncated) as a blockquote above the comment itself.
       const quotedBlock = quotedText
-        ? `*Regarding this text in the SOW:*\n> _"${truncateQuotedText(quotedText)}"_\n\n`
+        ? `*Regarding this text in the SOW:*\n> _"${escapeSlackText(truncateQuotedText(quotedText))}"_\n\n`
         : '';
 
       // Create the message
-      const message = ` You were mentioned in a comment on SOW: *${sowTitle}*\n\n` +
-        `*Client:* ${clientName}\n` +
-        `*Comment by:* ${commentAuthor}\n\n` +
+      const message = ` You were mentioned in a comment on SOW: *${escapeSlackText(sowTitle)}*\n\n` +
+        `*Client:* ${escapeSlackText(clientName)}\n` +
+        `*Comment by:* ${escapeSlackText(commentAuthor)}\n\n` +
         quotedBlock +
-        `> ${commentText}\n\n` +
+        `> ${escapeSlackText(commentText)}\n\n` +
         `🔗 <${sowUrl}|View SOW>`;
 
       // Send to the default channel with mentions

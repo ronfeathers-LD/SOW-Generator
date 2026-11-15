@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { PMHoursRemovalService } from '@/lib/pm-hours-removal-service';
 import { authOptions } from '@/lib/auth';
+import { extractPricingRolesArray } from '@/lib/approval-workflow-rules';
 
 // GET - Get a specific PM hours removal request with comments
 export async function GET(
@@ -95,13 +96,8 @@ export async function PUT(
     }
 
     // Calculate current PM hours from pricing roles
-    let currentPMHours = 0;
-    if (sowData.pricing_roles && Array.isArray(sowData.pricing_roles)) {
-      const pmRole = sowData.pricing_roles.find((role: { role: string; totalHours?: number }) => role.role === 'Project Manager');
-      if (pmRole) {
-        currentPMHours = pmRole.totalHours || 0;
-      }
-    }
+    const pmRole = extractPricingRolesArray(sowData.pricing_roles).find(role => role.role === 'Project Manager');
+    const currentPMHours = Number(pmRole?.totalHours) || 0;
 
     let result;
     if (action === 'approve') {

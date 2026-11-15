@@ -2,6 +2,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PMHoursRequirementDisableRequest, PMHoursComment, PMHoursRequirementDisableDashboardItem } from '@/types/sow';
 import { getEmailService } from './email';
 import { getSlackService } from './slack';
+import { escapeSlackText } from './utils/escape-slack';
 import { filterValidLeandataEmails, logInvalidEmailWarning } from './utils/email-domain-validation';
 import { ApprovalWorkflowService } from './approval-workflow-service';
 
@@ -489,19 +490,26 @@ export class PMHoursRemovalService {
         return { success: false, error: 'Cannot remove PM hours from an already-approved SOW' };
       }
 
-      // Update the request status
-      const { error: updateError } = await client
+      // Update the request status. Guarded on status so a concurrent
+      // approve/reject can't both win (audit #161).
+      const { data: updatedRows, error: updateError } = await client
         .from('pm_hours_removal_requests')
         .update({
           status: 'approved',
           approved_at: new Date().toISOString(),
           approval_comments: comments?.trim() || null
         })
-        .eq('id', requestId);
+        .eq('id', requestId)
+        .eq('status', 'pending')
+        .select('id');
 
       if (updateError) {
         console.error('Error updating request:', updateError);
         return { success: false, error: 'Failed to approve request' };
+      }
+
+      if (!updatedRows || updatedRows.length === 0) {
+        return { success: false, error: 'Request was already processed' };
       }
 
       // Authoritatively strip the Project Manager role from the SOW's pricing so the
@@ -632,19 +640,25 @@ export class PMHoursRemovalService {
         return { success: false, error: 'Request is not pending approval' };
       }
 
-      // Update the request status
-      const { error: updateError } = await client
+      // Update the request status, guarded on status (audit #161).
+      const { data: updatedRows, error: updateError } = await client
         .from('pm_hours_removal_requests')
         .update({
           status: 'rejected',
           rejected_at: new Date().toISOString(),
           rejection_reason: reason.trim()
         })
-        .eq('id', requestId);
+        .eq('id', requestId)
+        .eq('status', 'pending')
+        .select('id');
 
       if (updateError) {
         console.error('Error updating request:', updateError);
         return { success: false, error: 'Failed to reject request' };
+      }
+
+      if (!updatedRows || updatedRows.length === 0) {
+        return { success: false, error: 'Request was already processed' };
       }
 
       // Log the rejection
@@ -1078,7 +1092,8 @@ export class PMHoursRemovalService {
       }
 
       // Update the request status back to pending
-      const { error: updateError } = await client
+      // Guarded on the status we read so a concurrent reverse can't double-restore (audit #161).
+      const { data: updatedRows, error: updateError } = await client
         .from('pm_hours_removal_requests')
         .update({
           status: 'pending',
@@ -1087,11 +1102,17 @@ export class PMHoursRemovalService {
           approval_comments: `Reversed by admin: ${reason}`,
           rejection_reason: null
         })
-        .eq('id', requestId);
+        .eq('id', requestId)
+        .eq('status', request.status)
+        .select('id');
 
       if (updateError) {
         console.error('Error updating request:', updateError);
         return { success: false, error: 'Failed to reverse request' };
+      }
+
+      if (!updatedRows || updatedRows.length === 0) {
+        return { success: false, error: 'Request was already processed' };
       }
 
       // If the request was approved, we need to revert the SOW changes
@@ -1260,11 +1281,11 @@ export class PMHoursRemovalService {
       const sowUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/pmo/pm-hours-removal`;
       
       const message = `:warning: *PM Hours Removal Request*\n\n` +
-        `*SOW:* ${sow.sow_title}\n` +
-        `*Client:* ${sow.client_name}\n` +
-        `*Requested by:* ${requester.name} (${requester.email})\n` +
+        `*SOW:* ${escapeSlackText(sow.sow_title)}\n` +
+        `*Client:* ${escapeSlackText(sow.client_name)}\n` +
+        `*Requested by:* ${escapeSlackText(requester.name)} (${escapeSlackText(requester.email)})\n` +
         `*Hours to remove:* ${request.hours_to_remove}\n` +
-        `*Reason:* ${request.reason}\n\n` +
+        `*Reason:* ${escapeSlackText(request.reason)}\n\n` +
         `:link: <${sowUrl}|Review Request>\n\n` +
         `This request requires PMO approval.`;
 
@@ -1326,7 +1347,7 @@ export class PMHoursRemovalService {
       const emailService = await getEmailService();
       if (emailService) {
         await emailService.sendPMHoursRemovalApprovalNotification(
-          request.id,
+          request.sow_id,
           sow.sow_title,
           sow.client_name,
           requester.email,
@@ -1344,11 +1365,11 @@ export class PMHoursRemovalService {
         if (slackService) {
           const sowUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/sow/${request.sow_id}/edit`;
           const message = `✅ *PM Hours Removal Request Approved*\n\n` +
-            `*SOW:* ${sow.sow_title}\n` +
-            `*Client:* ${sow.client_name}\n` +
-            `*Approved by:* ${approver.name}\n` +
+            `*SOW:* ${escapeSlackText(sow.sow_title)}\n` +
+            `*Client:* ${escapeSlackText(sow.client_name)}\n` +
+            `*Approved by:* ${escapeSlackText(approver.name)}\n` +
             `*Hours removed:* ${request.hours_to_remove}\n` +
-            `*Comments:* ${comments || 'No comments provided'}\n\n` +
+            `*Comments:* ${escapeSlackText(comments || 'No comments provided')}\n\n` +
             `:link: <${sowUrl}|View SOW>\n\n` +
             `Your PM hours removal request has been approved and the hours have been removed from the SOW.`;
 
@@ -1415,7 +1436,7 @@ export class PMHoursRemovalService {
       const emailService = await getEmailService();
       if (emailService) {
         await emailService.sendPMHoursRemovalRejectionNotification(
-          request.id,
+          request.sow_id,
           sow.sow_title,
           sow.client_name,
           requester.email,
@@ -1433,11 +1454,11 @@ export class PMHoursRemovalService {
         if (slackService) {
           const sowUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/sow/${request.sow_id}/edit`;
           const message = `❌ *PM Hours Removal Request Rejected*\n\n` +
-            `*SOW:* ${sow.sow_title}\n` +
-            `*Client:* ${sow.client_name}\n` +
-            `*Rejected by:* ${approver.name}\n` +
+            `*SOW:* ${escapeSlackText(sow.sow_title)}\n` +
+            `*Client:* ${escapeSlackText(sow.client_name)}\n` +
+            `*Rejected by:* ${escapeSlackText(approver.name)}\n` +
             `*Hours requested:* ${request.hours_to_remove}\n` +
-            `*Reason:* ${reason}\n\n` +
+            `*Reason:* ${escapeSlackText(reason)}\n\n` +
             `:link: <${sowUrl}|View SOW>\n\n` +
             `Your PM hours removal request has been rejected. Please review the reason and consider resubmitting if appropriate.`;
 

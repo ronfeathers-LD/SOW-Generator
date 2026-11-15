@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { VALID_USER_ROLES } from '@/lib/utils/user-roles';
 
 export async function GET() {
   try {
@@ -65,8 +66,7 @@ export async function PATCH(request: Request) {
     }
 
     // Validate role
-    const validRoles = ['user', 'admin', 'manager', 'pmo'];
-    if (!validRoles.includes(role)) {
+    if (!VALID_USER_ROLES.includes(role)) {
       return new NextResponse('Invalid role', { status: 400 });
     }
 

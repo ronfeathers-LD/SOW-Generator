@@ -120,7 +120,6 @@ export async function launchPuppeteerBrowser(): Promise<Browser> {
       '--disable-gpu',
       '--no-first-run',
       '--no-zygote',
-      '--single-process',
       '--disable-extensions',
       '--disable-background-timer-throttling',
       '--disable-backgrounding-occluded-windows',
@@ -1581,7 +1580,7 @@ export class PDFGenerator {
     }
     
     if (Array.isArray(field)) {
-      return field;
+      return field.filter((x): x is string => typeof x === 'string');
     }
     
     return [];

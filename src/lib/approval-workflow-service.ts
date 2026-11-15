@@ -14,9 +14,11 @@ import {
 import { requiresPMApproval } from './approval-workflow-rules';
 import { canApproveStage } from './utils/approval-permissions';
 import { getSlackService } from './slack';
+import { escapeSlackText } from './utils/escape-slack';
 import { sendSlackDirectMessage, resolveSlackUserIdForAppUser } from './slack-dm';
 import { getEmailService } from './email';
 import { getSOWUrl } from './utils/app-url';
+import { escapeHtml } from './utils/escape-html';
 import { filterValidLeandataEmails } from './utils/email-domain-validation';
 
 export class ApprovalWorkflowService {
@@ -277,8 +279,8 @@ export class ApprovalWorkflowService {
     sowId: string,
     stageId: string,
     approverId: string,
-    comments?: string,
-    userRole?: string,
+    comments: string | undefined,
+    userRole: string,
     supabaseClient?: SupabaseClient
   ): Promise<{ success: boolean; error?: string }> {
     try {
@@ -308,8 +310,8 @@ export class ApprovalWorkflowService {
         return { success: false, error: 'SOW is not in review; its approval stages cannot be approved' };
       }
 
-      // Validate permission if user role is provided
-      if (userRole && !canApproveStage(approval.stage.name, userRole)) {
+      // Validate permission; a missing role is denied, not skipped
+      if (!userRole || !canApproveStage(approval.stage.name, userRole)) {
         return {
           success: false,
           error: 'You do not have permission to approve this stage'
@@ -545,9 +547,9 @@ export class ApprovalWorkflowService {
 
       await slackService.sendMessage(
         `:white_check_mark: *SOW Approved*\n\n` +
-        `*Client:* ${clientName}\n` +
-        `*Submitted by:* ${authorName}\n` +
-        `*Final approval by:* ${approverName}\n\n` +
+        `*Client:* ${escapeSlackText(clientName)}\n` +
+        `*Submitted by:* ${escapeSlackText(authorName)}\n` +
+        `*Final approval by:* ${escapeSlackText(approverName)}\n\n` +
         `:link: <${sowUrl}|View SOW>\n\n` +
         `All approval stages are complete. This SOW is now ready for client signature.`
       );
@@ -692,7 +694,7 @@ export class ApprovalWorkflowService {
     stageId: string,
     approverId: string,
     comments: string,
-    userRole?: string,
+    userRole: string,
     supabaseClient?: SupabaseClient
   ): Promise<{ success: boolean; error?: string }> {
     try {
@@ -720,8 +722,8 @@ export class ApprovalWorkflowService {
         return { success: false, error: 'SOW is not in review; its approval stages cannot be rejected' };
       }
 
-      // Validate permission if user role is provided
-      if (userRole && !canApproveStage(approval.stage.name, userRole)) {
+      // Validate permission; a missing role is denied, not skipped
+      if (!userRole || !canApproveStage(approval.stage.name, userRole)) {
         return {
           success: false,
           error: 'You do not have permission to reject this stage'
@@ -747,15 +749,6 @@ export class ApprovalWorkflowService {
         console.error('Error updating approval:', updateError);
         return { success: false, error: 'Failed to reject stage' };
       }
-
-            // Delete all other approval records (pending, approved, not_started) to allow clean workflow re-initialization on resubmission                           
-      // Keep the rejected record itself for audit/history purposes
-      // This ensures when the SOW is resubmitted, a fresh workflow can be created                                                                              
-      await supabase
-        .from('sow_approvals')
-        .delete()
-        .eq('sow_id', sowId)
-        .neq('status', 'rejected'); // Keep rejected records for audit trail
 
       // Get SOW details for notifications and status update
       const { data: sow, error: sowError } = await supabase
@@ -805,6 +798,17 @@ export class ApprovalWorkflowService {
         console.error('Error updating SOW status to rejected:', statusUpdateError);
         return { success: false, error: 'Failed to update SOW status' };
       }
+
+      // Deleted only after the SOW is marked rejected, so a failure earlier
+      // can't leave the SOW in review with its workflow rows gone (audit #117).
+      // Delete all other approval records (pending, approved, not_started) to allow clean workflow re-initialization on resubmission                           
+      // Keep the rejected record itself for audit/history purposes
+      // This ensures when the SOW is resubmitted, a fresh workflow can be created                                                                              
+      await supabase
+        .from('sow_approvals')
+        .delete()
+        .eq('sow_id', sowId)
+        .neq('status', 'rejected'); // Keep rejected records for audit trail
 
       // Log the rejection
       await this.logAuditAction(
@@ -914,20 +918,20 @@ export class ApprovalWorkflowService {
                     <h2 style="color: #dc2626;">SOW Rejected</h2>
                     
                     <div style="background-color: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
-                      <h3 style="margin-top: 0; color: #991b1b;">${sowTitle}</h3>
-                      <p><strong>Client:</strong> ${clientName}</p>
-                      <p><strong>Rejected by:</strong> ${approverName}</p>
-                      <p><strong>Stage:</strong> ${stageName}</p>
+                      <h3 style="margin-top: 0; color: #991b1b;">${escapeHtml(sowTitle)}</h3>
+                      <p><strong>Client:</strong> ${escapeHtml(clientName)}</p>
+                      <p><strong>Rejected by:</strong> ${escapeHtml(approverName)}</p>
+                      <p><strong>Stage:</strong> ${escapeHtml(stageName)}</p>
                       <p><strong>Status:</strong> Rejected</p>
                     </div>
                     
                     <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
                       <h4 style="margin-top: 0; color: #374151;">Rejection Comments:</h4>
-                      <p style="color: #4b5563; white-space: pre-wrap;">${comments}</p>
+                      <p style="color: #4b5563; white-space: pre-wrap;">${escapeHtml(comments)}</p>
                     </div>
                     
                     <div style="text-align: center; margin: 30px 0;">
-                      <a href="${sowUrl}" 
+                      <a href="${escapeHtml(sowUrl)}" 
                          style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                         View SOW
                       </a>

@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { ApprovalWorkflowService } from '@/lib/approval-workflow-service';
+import { approvalErrorStatus } from '@/lib/utils/approval-error-status';
+
+const MAX_COMMENT_LENGTH = 5000;
 
 /**
  * PUT /api/sow/[id]/approvals/[approvalId]
@@ -43,6 +46,13 @@ export async function PUT(
       );
     }
 
+    if (typeof comments === 'string' && comments.length > MAX_COMMENT_LENGTH) {
+      return NextResponse.json(
+        { error: `Comments must be ${MAX_COMMENT_LENGTH} characters or fewer` },
+        { status: 400 }
+      );
+    }
+
     let result;
     if (action === 'approve') {
       result = await ApprovalWorkflowService.approveStage(
@@ -73,7 +83,7 @@ export async function PUT(
     if (!result.success) {
       return NextResponse.json(
         { error: result.error || 'Failed to process approval action' },
-        { status: 500 }
+        { status: approvalErrorStatus(result.error) }
       );
     }
 

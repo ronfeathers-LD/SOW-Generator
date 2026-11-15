@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { ChangelogService } from '@/lib/changelog-service';
 import { supabaseApi } from '@/lib/supabase-api';
 import { getSlackService } from '@/lib/slack';
+import { escapeSlackText } from '@/lib/utils/escape-slack';
 import { getSOWUrl } from '@/lib/utils/app-url';
 import { authOptions } from '@/lib/auth';
 import { canonicalizeContent, DEFAULT_PAYMENT_TERMS, resolveTemplatesForSegment } from '@/lib/sow-content';
@@ -249,8 +250,8 @@ export async function POST(request: Request) {
 
           await slackService.sendMessage(
             `:new: *New SOW Created*\n\n` +
-            `*Client:* ${clientName}\n` +
-            `*Created by:* ${session.user.email}\n\n` +
+            `*Client:* ${escapeSlackText(clientName)}\n` +
+            `*Created by:* ${escapeSlackText(session.user.email)}\n\n` +
             `:link: <${sowUrl}|View SOW>\n\n` +
             `This SOW is now in draft status and ready for completion.`
           );

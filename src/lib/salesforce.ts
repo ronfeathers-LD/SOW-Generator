@@ -1,5 +1,24 @@
 import * as jsforce from 'jsforce';
 
+/**
+ * True when `error` carries the given Salesforce error code. jsforce sets the
+ * code on `errorCode` and/or `name`; the message substring match is kept as a
+ * fallback for errors that only carry it in the text.
+ */
+export function hasSalesforceErrorCode(error: unknown, code: string): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const { errorCode, name, message } = error as {
+    errorCode?: unknown;
+    name?: unknown;
+    message?: unknown;
+  };
+  return (
+    errorCode === code ||
+    name === code ||
+    (typeof message === 'string' && message.includes(code))
+  );
+}
+
 export interface SalesforceAccount {
   Id: string;
   Name: string;
@@ -207,7 +226,7 @@ export class SalesforceClient {
         // Authentication successful with password + token
       } catch (error) {
         // If that fails, try with password only (in case token is already appended)
-        if (error instanceof Error && error.message.includes('INVALID_LOGIN')) {
+        if (hasSalesforceErrorCode(error, 'INVALID_LOGIN')) {
           // First attempt failed, trying with password only
           await this.conn.login(username, password);
           // Authentication successful with password only
@@ -260,15 +279,15 @@ export class SalesforceClient {
       
       // Provide more specific error information
       if (error instanceof Error) {
-        if (error.message.includes('INVALID_LOGIN')) {
+        if (hasSalesforceErrorCode(error, 'INVALID_LOGIN')) {
           throw new Error('Invalid username or password. Please check your credentials for this specific org.');
-        } else if (error.message.includes('INVALID_CLIENT_ID')) {
+        } else if (hasSalesforceErrorCode(error, 'INVALID_CLIENT_ID')) {
           throw new Error('Invalid client ID or security token. Try resetting your security token.');
-        } else if (error.message.includes('LOGIN_MUST_USE_SECURITY_TOKEN')) {
+        } else if (hasSalesforceErrorCode(error, 'LOGIN_MUST_USE_SECURITY_TOKEN')) {
           throw new Error('Security token required. Please add your security token.');
-        } else if (error.message.includes('INVALID_GRANT')) {
+        } else if (hasSalesforceErrorCode(error, 'INVALID_GRANT')) {
           throw new Error('Invalid grant. Please check your username, password, and security token.');
-        } else if (error.message.includes('INSUFFICIENT_ACCESS')) {
+        } else if (hasSalesforceErrorCode(error, 'INSUFFICIENT_ACCESS')) {
           throw new Error('Insufficient access. Check your user permissions in Salesforce.');
         } else {
           throw new Error(`Authentication failed: ${error.message}`);
@@ -426,7 +445,7 @@ export class SalesforceClient {
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
                BillingPostalCode, BillingCountry, Employee_Band__c,
-               Owner.Name, Owner.Email
+               NumberOfEmployees, Owner.Name, Owner.Email
         FROM Account
         WHERE Id = '${assertValidSalesforceId(accountId, 'account ID')}'
       `;
@@ -439,42 +458,29 @@ export class SalesforceClient {
       const account = result.records[0] as SalesforceAccount;
       
       // Use Employee_Band__c from Salesforce if available, otherwise calculate it
+      // from NumberOfEmployees (selected in the same query)
+      const numberOfEmployees = account.NumberOfEmployees;
+      // The count is only selected to derive the segment; keep the returned shape unchanged.
+      delete account.NumberOfEmployees;
       if (!account.Employee_Band__c) {
-        try {
-          // Get NumberOfEmployees to calculate segment if Employee_Band__c is not available
-          const employeeQuery = `SELECT NumberOfEmployees FROM Account WHERE Id = '${assertValidSalesforceId(accountId, 'account ID')}'`;
-          const employeeResult = await this.conn.query(employeeQuery);
-          
-          if (employeeResult.records.length > 0) {
-            const record = employeeResult.records[0];
-            const numberOfEmployees = record.NumberOfEmployees as number;
-            
-            // Calculate segment using the same formula logic as Salesforce
-            if (numberOfEmployees !== null && numberOfEmployees !== undefined && typeof numberOfEmployees === 'number') {
-              let calculatedSegment = '';
-              if (numberOfEmployees > 4500) {
-                calculatedSegment = 'LE';
-              } else if (numberOfEmployees >= 1001) {
-                calculatedSegment = 'EE';
-              } else if (numberOfEmployees >= 251) {
-                calculatedSegment = 'MM';
-              } else {
-                calculatedSegment = 'EC';
-              }
-              
-              account.Employee_Band__c = calculatedSegment;
-              console.log(`✅ Calculated Account Segment for ${account.Name}: ${calculatedSegment} (${numberOfEmployees} employees)`);
-            } else {
-              console.log(`⚠️ No employee count available for ${account.Name}, setting Account Segment to undefined`);
-              account.Employee_Band__c = undefined;
-            }
+        // Calculate segment using the same formula logic as Salesforce
+        if (typeof numberOfEmployees === 'number') {
+          let calculatedSegment = '';
+          if (numberOfEmployees > 4500) {
+            calculatedSegment = 'LE';
+          } else if (numberOfEmployees >= 1001) {
+            calculatedSegment = 'EE';
+          } else if (numberOfEmployees >= 251) {
+            calculatedSegment = 'MM';
           } else {
-            console.log(`⚠️ No account found for ID ${accountId}`);
-            account.Employee_Band__c = undefined;
+            calculatedSegment = 'EC';
           }
-        } catch (segmentError) {
-          console.error('Error calculating account segment:', segmentError);
-          console.log(`⚠️ Error calculating segment for ${account.Name}, keeping existing value: ${account.Employee_Band__c}`);
+
+          account.Employee_Band__c = calculatedSegment;
+          console.log(`✅ Calculated Account Segment for ${account.Name}: ${calculatedSegment} (${numberOfEmployees} employees)`);
+        } else {
+          console.log(`⚠️ No employee count available for ${account.Name}, setting Account Segment to undefined`);
+          account.Employee_Band__c = undefined;
         }
       } else {
         console.log(`✅ Using Employee_Band__c from Salesforce for ${account.Name}: ${account.Employee_Band__c}`);

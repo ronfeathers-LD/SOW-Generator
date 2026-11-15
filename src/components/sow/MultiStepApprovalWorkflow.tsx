@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import ApprovalWorkflowDisplay from './ApprovalWorkflowDisplay';
 import StageApprovalCard from './StageApprovalCard';
@@ -28,7 +28,13 @@ export default function MultiStepApprovalWorkflow({
   const [loading, setLoading] = useState(true);
   const { data: session } = useSession();
 
+  const fetchInFlight = useRef(false);
+
   const fetchWorkflowStatus = async () => {
+    // Guard against overlapping runs (e.g. React strict-mode double mount) that
+    // could POST /approvals/initiate twice.
+    if (fetchInFlight.current) return;
+    fetchInFlight.current = true;
     try {
       const response = await fetch(`/api/sow/${sowId}/approvals`);
       
@@ -83,6 +89,7 @@ export default function MultiStepApprovalWorkflow({
     } catch (error) {
       console.error('Error fetching workflow status:', error);
     } finally {
+      fetchInFlight.current = false;
       setLoading(false);
     }
   };
@@ -154,7 +161,7 @@ export default function MultiStepApprovalWorkflow({
       </p>
 
       {/* Show workflow display for everyone */}
-      <ApprovalWorkflowDisplay sowId={sowId} />
+      <ApprovalWorkflowDisplay workflow={workflow} />
 
       {/* Show approval cards for all pending stages the user can approve (parallel approval) */}
       {showApproval && pendingStagesUserCanApprove.length > 0 && (
