@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { createServiceRoleClient } from '@/lib/supabase-server';
 import { authOptions } from '@/lib/auth';
 import { getSlackService } from '@/lib/slack';
+import { escapeSlackText } from '@/lib/utils/escape-slack';
 import { getSOWUrl } from '@/lib/utils/app-url';
 
 export async function POST(
@@ -149,9 +150,9 @@ export async function POST(
 
           await slackService.sendMessage(
             `:repeat: *SOW Revision Created*\n\n` +
-              `*Client:* ${clientName}\n` +
+              `*Client:* ${escapeSlackText(clientName)}\n` +
               `*Version:* v${revisionVersion}\n` +
-              `*Created by:* ${session.user.email}\n\n` +
+              `*Created by:* ${escapeSlackText(session.user.email)}\n\n` +
               `:link: <${sowUrl}|Edit Revision>\n\n` +
               `A new revision has been created in draft status and is ready for updates.`
           );

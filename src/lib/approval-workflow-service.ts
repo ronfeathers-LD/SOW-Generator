@@ -14,6 +14,7 @@ import {
 import { requiresPMApproval } from './approval-workflow-rules';
 import { canApproveStage } from './utils/approval-permissions';
 import { getSlackService } from './slack';
+import { escapeSlackText } from './utils/escape-slack';
 import { sendSlackDirectMessage, resolveSlackUserIdForAppUser } from './slack-dm';
 import { getEmailService } from './email';
 import { getSOWUrl } from './utils/app-url';
@@ -546,9 +547,9 @@ export class ApprovalWorkflowService {
 
       await slackService.sendMessage(
         `:white_check_mark: *SOW Approved*\n\n` +
-        `*Client:* ${clientName}\n` +
-        `*Submitted by:* ${authorName}\n` +
-        `*Final approval by:* ${approverName}\n\n` +
+        `*Client:* ${escapeSlackText(clientName)}\n` +
+        `*Submitted by:* ${escapeSlackText(authorName)}\n` +
+        `*Final approval by:* ${escapeSlackText(approverName)}\n\n` +
         `:link: <${sowUrl}|View SOW>\n\n` +
         `All approval stages are complete. This SOW is now ready for client signature.`
       );

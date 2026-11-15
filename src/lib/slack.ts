@@ -1,5 +1,6 @@
 import { getSOWUrl } from './utils/app-url';
 import { isStagingDeploy } from './deploy-env';
+import { escapeSlackText } from './utils/escape-slack';
 
 interface SlackMessage {
   text?: string;
@@ -162,7 +163,7 @@ class SlackService {
     try {
       // Format mentions as Slack user mentions
       const mentionText = mentions.map(userId => `<@${userId}>`).join(' ');
-      const fullMessage = mentions.length > 0 ? `${mentionText} ${message}` : message;
+      const fullMessage = mentions.length > 0 ? `${mentionText} ${escapeSlackText(message)}` : escapeSlackText(message);
 
       const payload: SlackMessage = {
         text: fullMessage,
@@ -221,11 +222,11 @@ class SlackService {
         fields: [
           {
             type: 'mrkdwn',
-            text: `*SOW:*\n${sowTitle || 'Untitled'}`
+            text: `*SOW:*\n${escapeSlackText(sowTitle || 'Untitled')}`
           },
           {
             type: 'mrkdwn',
-            text: `*Client:*\n${clientName || 'Unknown'}`
+            text: `*Client:*\n${escapeSlackText(clientName || 'Unknown')}`
           }
         ]
       },
@@ -234,11 +235,11 @@ class SlackService {
         fields: [
           {
             type: 'mrkdwn',
-            text: `*Stage:*\n${stageName}`
+            text: `*Stage:*\n${escapeSlackText(stageName)}`
           },
           {
             type: 'mrkdwn',
-            text: `*Approver:*\n${approverName}`
+            text: `*Approver:*\n${escapeSlackText(approverName)}`
           }
         ]
       }
@@ -249,7 +250,7 @@ class SlackService {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `*Comments:*\n${comments}`
+          text: `*Comments:*\n${escapeSlackText(comments)}`
         }
       });
     }
@@ -325,11 +326,11 @@ class SlackService {
         fields: [
           {
             type: 'mrkdwn',
-            text: `*SOW:*\n${sowTitle || 'Untitled'}`
+            text: `*SOW:*\n${escapeSlackText(sowTitle || 'Untitled')}`
           },
           {
             type: 'mrkdwn',
-            text: `*Client:*\n${clientName || 'Unknown'}`
+            text: `*Client:*\n${escapeSlackText(clientName || 'Unknown')}`
           }
         ]
       },
@@ -342,7 +343,7 @@ class SlackService {
           },
           {
             type: 'mrkdwn',
-            text: `*Changed by:*\n${changedBy}`
+            text: `*Changed by:*\n${escapeSlackText(changedBy)}`
           }
         ]
       },
@@ -415,11 +416,11 @@ class SlackService {
         fields: [
           {
             type: 'mrkdwn',
-            text: `*SOW:*\n${sowTitle || 'Untitled'}`
+            text: `*SOW:*\n${escapeSlackText(sowTitle || 'Untitled')}`
           },
           {
             type: 'mrkdwn',
-            text: `*Client:*\n${clientName || 'Unknown'}`
+            text: `*Client:*\n${escapeSlackText(clientName || 'Unknown')}`
           }
         ]
       },
@@ -428,7 +429,7 @@ class SlackService {
         fields: [
           {
             type: 'mrkdwn',
-            text: `*Created by:*\n${createdBy}`
+            text: `*Created by:*\n${escapeSlackText(createdBy)}`
           },
           ...(amount ? [{
             type: 'mrkdwn',
@@ -505,7 +506,7 @@ class SlackService {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `:warning: *${approverName}* needs to approve the following SOW:`
+          text: `:warning: *${escapeSlackText(approverName)}* needs to approve the following SOW:`
         }
       },
       {
@@ -513,11 +514,11 @@ class SlackService {
         fields: [
           {
             type: 'mrkdwn',
-            text: `*SOW:*\n${sowTitle || 'Untitled'}`
+            text: `*SOW:*\n${escapeSlackText(sowTitle || 'Untitled')}`
           },
           {
             type: 'mrkdwn',
-            text: `*Client:*\n${clientName || 'Unknown'}`
+            text: `*Client:*\n${escapeSlackText(clientName || 'Unknown')}`
           }
         ]
       },
@@ -526,7 +527,7 @@ class SlackService {
         fields: [
           {
             type: 'mrkdwn',
-            text: `*Stage:*\n${stageName}`
+            text: `*Stage:*\n${escapeSlackText(stageName)}`
           },
           ...(amount ? [{
             type: 'mrkdwn',
@@ -596,7 +597,7 @@ class SlackService {
 
       // Add message with mentions
       const mentionText = mentions.map(userId => `<@${userId}>`).join(' ');
-      const fullMessage = mentions.length > 0 ? `${mentionText} ${message}` : message;
+      const fullMessage = mentions.length > 0 ? `${mentionText} ${escapeSlackText(message)}` : escapeSlackText(message);
       
       blocks.push({
         type: 'section',

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { createServiceRoleClient } from '@/lib/supabase-server';
 import { authOptions } from '@/lib/auth';
 import { getSlackService } from '@/lib/slack';
+import { escapeSlackText } from '@/lib/utils/escape-slack';
 import { getSOWUrl } from '@/lib/utils/app-url';
 
 export async function POST(
@@ -160,10 +161,10 @@ export async function POST(
         const sowUrl = getSOWUrl(newRevision.id);
         await slackService.sendMessage(
           `:leftwards_arrow_with_hook: *SOW Recalled for Edits*\n\n` +
-            `*Client:* ${sow.client_name || 'Unknown Client'}\n` +
+            `*Client:* ${escapeSlackText(sow.client_name || 'Unknown Client')}\n` +
             `*Previous Version:* v${sow.version || 1}\n` +
             `*New Draft:* v${newRevision.version}\n` +
-            `*Recalled by:* ${session.user.email}\n\n` +
+            `*Recalled by:* ${escapeSlackText(session.user.email)}\n\n` +
             `:link: <${sowUrl}|Edit New Draft>\n\n` +
             `The previous submission has been archived. Continue editing the new draft revision.`
         );
