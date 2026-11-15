@@ -61,6 +61,21 @@ function extractPricingRoles(pricingRoles: unknown): unknown[] {
   return [];
 }
 
+/** billing_info is JSONB, but tolerate it arriving as a JSON string; anything unusable becomes `{}`. */
+function parseBillingInfo(raw: unknown): Record<string, unknown> {
+  let value = raw;
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
 /**
  * Map a raw `sows` row into the nested response shape the app consumes.
  *
@@ -86,7 +101,7 @@ export function mapSowRowToResponse(sow: SowRow, extras: MapSowExtras = {}): Sow
 
   const pricingRoles = sow.pricing_roles;
   const pricingConfig = isPricingConfigObject(pricingRoles) ? pricingRoles : null;
-  const billingInfo = (sow.billing_info as Record<string, unknown>) || {};
+  const billingInfo = parseBillingInfo(sow.billing_info);
 
   return {
     ...sow,
@@ -196,7 +211,7 @@ export function mapSowRowToResponse(sow: SowRow, extras: MapSowExtras = {}): Sow
     },
     // Include pricing data - handle mixed structure where pricing_roles contains both roles and config
     pricingRoles: extractPricingRoles(pricingRoles),
-    billingInfo: sow.billing_info || {},
+    billingInfo,
     // Include pricing configuration from JSONB fields
     pricing: {
       roles: extractPricingRoles(pricingRoles),
