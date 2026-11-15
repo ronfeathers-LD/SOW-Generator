@@ -45,7 +45,9 @@ export function shouldTryNextModel(error: unknown): boolean {
   );
 }
 
-const GEMINI_REQUEST_TIMEOUT_MS = 60000;
+// Generous on purpose: large transcripts routinely take 20-40s, and a slow model
+// has been seen to answer after several minutes. This only stops a hung call.
+const GEMINI_REQUEST_TIMEOUT_MS = 120000;
 
 class GeminiClient {
   private ai: GoogleGenAI;

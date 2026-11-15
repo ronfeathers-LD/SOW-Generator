@@ -111,7 +111,9 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
 
       const response = await fetch('/api/gemini/analyze-transcription', {
         method: 'POST',
-        signal: AbortSignal.timeout(90000),
+        // Longer than the server's per-call Gemini timeout (120s) plus one
+        // fallback attempt, so the server's own error reaches the user first.
+        signal: AbortSignal.timeout(270000),
         headers: {
           'Content-Type': 'application/json',
         },
