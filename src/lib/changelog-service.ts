@@ -163,61 +163,6 @@ export class ChangelogService {
   }
 
   /**
-   * Get changelog with filtering options
-   */
-  static async getFilteredChangelog(
-    sowId: string,
-    filters: {
-      changeType?: string;
-      fieldName?: string;
-      userId?: string;
-      startDate?: string;
-      endDate?: string;
-    }
-  ): Promise<ChangelogEntry[]> {
-    try {
-      const supabase = await createServerSupabaseClient();
-      let query = supabase
-        .from('sow_changelog')
-        .select('*')
-        .eq('sow_id', sowId);
-
-      // Apply filters
-      if (filters.changeType) {
-        query = query.eq('change_type', filters.changeType);
-      }
-
-      if (filters.fieldName) {
-        query = query.eq('field_name', filters.fieldName);
-      }
-
-      if (filters.userId) {
-        query = query.eq('user_id', filters.userId);
-      }
-
-      if (filters.startDate) {
-        query = query.gte('created_at', filters.startDate);
-      }
-
-      if (filters.endDate) {
-        query = query.lte('created_at', filters.endDate);
-      }
-
-      const { data, error } = await query.order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching filtered changelog:', error);
-        throw new Error('Failed to fetch changelog');
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('Error in changelog service:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Compare two SOW objects and return the differences (without logging)
    */
   static compareSOWsForDiff(
