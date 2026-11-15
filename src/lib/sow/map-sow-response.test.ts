@@ -72,3 +72,23 @@ describe('mapSowRowToResponse payment_terms', () => {
     expect(result.payment_terms).toBe('');
   });
 });
+
+describe('mapSowRowToResponse billing_info tolerance (#250)', () => {
+  it('parses billing_info delivered as a JSON string', () => {
+    const result = mapSowRowToResponse(
+      rowWith({ billing_info: JSON.stringify({ company_name: 'Acme', billing_contact: 'Jo' }) })
+    );
+    expect(result.billingInfo).toEqual({ company_name: 'Acme', billing_contact: 'Jo' });
+    expect(result.template.billing_company_name).toBe('Acme');
+  });
+
+  it('falls back to an empty object for an unparseable string', () => {
+    const result = mapSowRowToResponse(rowWith({ billing_info: '{not json' }));
+    expect(result.billingInfo).toEqual({});
+  });
+
+  it('leaves an object billing_info unchanged', () => {
+    const result = mapSowRowToResponse(rowWith({ billing_info: { company_name: 'Acme' } }));
+    expect(result.billingInfo).toEqual({ company_name: 'Acme' });
+  });
+});

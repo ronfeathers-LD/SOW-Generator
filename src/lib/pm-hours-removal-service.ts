@@ -2,6 +2,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PMHoursRequirementDisableRequest, PMHoursComment, PMHoursRequirementDisableDashboardItem } from '@/types/sow';
 import { getEmailService } from './email';
 import { getSlackService } from './slack';
+import { escapeSlackText } from './utils/escape-slack';
 import { filterValidLeandataEmails, logInvalidEmailWarning } from './utils/email-domain-validation';
 import { ApprovalWorkflowService } from './approval-workflow-service';
 
@@ -1280,11 +1281,11 @@ export class PMHoursRemovalService {
       const sowUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/pmo/pm-hours-removal`;
       
       const message = `:warning: *PM Hours Removal Request*\n\n` +
-        `*SOW:* ${sow.sow_title}\n` +
-        `*Client:* ${sow.client_name}\n` +
-        `*Requested by:* ${requester.name} (${requester.email})\n` +
+        `*SOW:* ${escapeSlackText(sow.sow_title)}\n` +
+        `*Client:* ${escapeSlackText(sow.client_name)}\n` +
+        `*Requested by:* ${escapeSlackText(requester.name)} (${escapeSlackText(requester.email)})\n` +
         `*Hours to remove:* ${request.hours_to_remove}\n` +
-        `*Reason:* ${request.reason}\n\n` +
+        `*Reason:* ${escapeSlackText(request.reason)}\n\n` +
         `:link: <${sowUrl}|Review Request>\n\n` +
         `This request requires PMO approval.`;
 
@@ -1364,11 +1365,11 @@ export class PMHoursRemovalService {
         if (slackService) {
           const sowUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/sow/${request.sow_id}/edit`;
           const message = `✅ *PM Hours Removal Request Approved*\n\n` +
-            `*SOW:* ${sow.sow_title}\n` +
-            `*Client:* ${sow.client_name}\n` +
-            `*Approved by:* ${approver.name}\n` +
+            `*SOW:* ${escapeSlackText(sow.sow_title)}\n` +
+            `*Client:* ${escapeSlackText(sow.client_name)}\n` +
+            `*Approved by:* ${escapeSlackText(approver.name)}\n` +
             `*Hours removed:* ${request.hours_to_remove}\n` +
-            `*Comments:* ${comments || 'No comments provided'}\n\n` +
+            `*Comments:* ${escapeSlackText(comments || 'No comments provided')}\n\n` +
             `:link: <${sowUrl}|View SOW>\n\n` +
             `Your PM hours removal request has been approved and the hours have been removed from the SOW.`;
 
@@ -1453,11 +1454,11 @@ export class PMHoursRemovalService {
         if (slackService) {
           const sowUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/sow/${request.sow_id}/edit`;
           const message = `❌ *PM Hours Removal Request Rejected*\n\n` +
-            `*SOW:* ${sow.sow_title}\n` +
-            `*Client:* ${sow.client_name}\n` +
-            `*Rejected by:* ${approver.name}\n` +
+            `*SOW:* ${escapeSlackText(sow.sow_title)}\n` +
+            `*Client:* ${escapeSlackText(sow.client_name)}\n` +
+            `*Rejected by:* ${escapeSlackText(approver.name)}\n` +
             `*Hours requested:* ${request.hours_to_remove}\n` +
-            `*Reason:* ${reason}\n\n` +
+            `*Reason:* ${escapeSlackText(reason)}\n\n` +
             `:link: <${sowUrl}|View SOW>\n\n` +
             `Your PM hours removal request has been rejected. Please review the reason and consider resubmitting if appropriate.`;
 

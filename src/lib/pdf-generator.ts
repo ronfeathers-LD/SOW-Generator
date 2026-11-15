@@ -120,7 +120,6 @@ export async function launchPuppeteerBrowser(): Promise<Browser> {
       '--disable-gpu',
       '--no-first-run',
       '--no-zygote',
-      '--single-process',
       '--disable-extensions',
       '--disable-background-timer-throttling',
       '--disable-backgrounding-occluded-windows',

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { getSlackService } from '@/lib/slack';
+import { buildSowSubmittedMessage } from '@/lib/slack-messages';
 import { getEmailService } from '@/lib/email';
 import { getSOWUrl } from '@/lib/utils/app-url';
 import { authOptions } from '@/lib/auth';
@@ -397,13 +398,13 @@ export async function PUT(
           // Skip notifications for Hula Truck
           if (clientName.toLowerCase() !== 'hula truck') {
             await slackService.sendMessage(
-              `:memo: *New SOW Submitted for Review*\n\n` +
-              `*Client:* ${clientName}\n` +
-              `*Submitted by:* ${submitterName}\n` +
-              `*Approvals needed:* ${approvalsNeeded}\n\n` +
-              signerWarningLine +
-              `:link: <${sowUrl}|Review SOW>\n\n` +
-              `Please review and approve/reject this SOW when ready.`
+              buildSowSubmittedMessage({
+                clientName,
+                submitterName,
+                approvalsNeeded,
+                signerWarningLine,
+                sowUrl,
+              })
             );
           }
 

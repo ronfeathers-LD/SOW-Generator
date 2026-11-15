@@ -783,14 +783,8 @@ export default function SOWForm({ initialData, restrictedTab, status }: SOWFormP
         },
           body: JSON.stringify({
             account_data: accountData,
-            opportunity_data: opportunities.length > 0 ? createSalesforceOpportunityData({
-              Id: (opportunities[0] as { Id: string; Name: string; Amount?: number; StageName?: string; CloseDate?: string; Description?: string }).Id,
-              Name: (opportunities[0] as { Id: string; Name: string; Amount?: number; StageName?: string; CloseDate?: string; Description?: string }).Name,
-              Amount: (opportunities[0] as { Id: string; Name: string; Amount?: number; StageName?: string; CloseDate?: string; Description?: string }).Amount,
-              StageName: (opportunities[0] as { Id: string; Name: string; Amount?: number; StageName?: string; CloseDate?: string; Description?: string }).StageName || '',
-              CloseDate: (opportunities[0] as { Id: string; Name: string; Amount?: number; StageName?: string; CloseDate?: string; Description?: string }).CloseDate || '',
-              Description: (opportunities[0] as { Id: string; Name: string; Amount?: number; StageName?: string; CloseDate?: string; Description?: string }).Description || ''
-            }) : undefined
+            // No opportunity_data: the user has not chosen an opportunity yet;
+            // handleOpportunitySelectedFromSalesforce persists it on selection.
           }),
         });
 

@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ChangelogService } from '@/lib/changelog-service';
+import { ApprovalWorkflowService } from '@/lib/approval-workflow-service';
 import {
   buildTabColumnUpdate,
   applyTabSideEffects,
@@ -154,6 +155,20 @@ export async function PUT(
     } catch (changelogError) {
       console.error('❌ Error logging changes to changelog:', changelogError);
       // Don't fail the save if changelog logging fails.
+    }
+
+    // Pricing edits on an in-review SOW can add PM hours after the workflow
+    // was built without a PM stage; re-enforce the required stage (#118).
+    if (isInReview && tabs.some((t) => t.tab === 'Pricing')) {
+      try {
+        const reconcile = await ApprovalWorkflowService.reconcilePMStage(sowId, supabase);
+        if (!reconcile.success) {
+          console.error('Failed to reconcile PM approval stage after pricing save:', reconcile.error);
+        }
+      } catch (reconcileError) {
+        console.error('Error reconciling PM approval stage after pricing save:', reconcileError);
+        // Don't fail the save if reconciliation fails.
+      }
     }
 
     return NextResponse.json({
