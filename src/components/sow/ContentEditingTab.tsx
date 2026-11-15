@@ -8,7 +8,7 @@ import TipTapEditor from '../TipTapEditor';
 
 interface ContentEditingTabProps {
   formData: Partial<SOWData>;
-  setFormData: (data: Partial<SOWData>) => void;
+  setFormData: (data: Partial<SOWData> | ((prev: Partial<SOWData>) => Partial<SOWData>)) => void;
 }
 
 const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setFormData }: ContentEditingTabProps) {
@@ -128,9 +128,19 @@ const ContentEditingTab = React.memo(function ContentEditingTab({ formData, setF
   useEffect(() => {
     if (Object.keys(initializationUpdates).length > 0) {
       console.log('Initializing form fields with default templates:', initializationUpdates);
-      setFormData({ ...formData, ...initializationUpdates });
+      // Only fill fields still empty in the latest state so a concurrent user
+      // edit is never overwritten by the default template.
+      setFormData(prev => {
+        const missing: Partial<SOWData> = {};
+        (Object.keys(initializationUpdates) as Array<keyof SOWData>).forEach(key => {
+          if (!prev[key]) {
+            Object.assign(missing, { [key]: initializationUpdates[key] });
+          }
+        });
+        return { ...prev, ...missing };
+      });
     }
-  }, [initializationUpdates, setFormData, formData]);
+  }, [initializationUpdates, setFormData]);
 
   // Create all content handlers using the factory. All mutations (edits and
   // resets) go through `setFormData` only, which the parent wires to
