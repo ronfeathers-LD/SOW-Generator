@@ -1,26 +1,5 @@
 import { createServerSupabaseClient } from './supabase-server';
 
-export interface ChangelogEntry {
-  id: string;
-  created_at: string;
-  sow_id: string;
-  user_id?: string;
-  action: 'create' | 'update' | 'delete' | 'version_create';
-  field_name?: string;
-  previous_value?: string;
-  new_value?: string;
-  change_type: 'field_update' | 'content_edit' | 'status_change' | 'version_create';
-  diff_summary: string;
-  metadata?: Record<string, unknown>;
-  version: number;
-  parent_version_id?: string;
-  user?: {
-    id: string;
-    name: string;
-    email: string;
-  };
-}
-
 export interface ChangeDiff {
   field_name: string;
   previous_value: string;
