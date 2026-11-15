@@ -1,64 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import { ApprovalWorkflowStatus, SOWApproval } from '@/types/sow';
 
 interface ApprovalWorkflowDisplayProps {
-  sowId: string;
+  workflow: ApprovalWorkflowStatus;
 }
 
-export default function ApprovalWorkflowDisplay({ sowId }: ApprovalWorkflowDisplayProps) {
-  const [workflow, setWorkflow] = useState<ApprovalWorkflowStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchWorkflowStatus = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/sow/${sowId}/approvals`);
-      if (response.ok) {
-        const data = await response.json();
-        setWorkflow(data);
-      } else {
-        setError('Failed to load approval workflow');
-      }
-    } catch (error) {
-      console.error('Error fetching workflow:', error);
-      setError('Failed to load approval workflow');
-    } finally {
-      setLoading(false);
-    }
-  }, [sowId]);
-
-  useEffect(() => {
-    fetchWorkflowStatus();
-  }, [fetchWorkflowStatus]);
-
-  if (loading) {
-    return (
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="animate-pulse flex space-x-4">
-          <div className="flex-1 space-y-4 py-1">
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-800">{error}</p>
-      </div>
-    );
-  }
-
-  if (!workflow) {
-    return null;
-  }
-
+export default function ApprovalWorkflowDisplay({ workflow }: ApprovalWorkflowDisplayProps) {
   return (
     <div className="bg-white shadow rounded-lg p-6">
       <div className="flex items-center justify-between mb-6">
