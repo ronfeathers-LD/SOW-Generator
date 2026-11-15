@@ -31,10 +31,10 @@ export function processContent(content: string): string {
         // We have <li> elements but no list containers - group consecutive <li> elements
         // First, find all consecutive <li> elements and group them
         processedContent = processedContent.replace(
-          /(<li[^>]*>.*?<\/li>)(?:\s*(<li[^>]*>.*?<\/li>))*/g,
+          /(<li[^>]*>[\s\S]*?<\/li>)(?:\s*(<li[^>]*>[\s\S]*?<\/li>))*/g,
           (match) => {
             // Extract all <li> elements from the match
-            const liMatches = match.match(/<li[^>]*>.*?<\/li>/g) || [];
+            const liMatches = match.match(/<li[^>]*>[\s\S]*?<\/li>/g) || [];
             return `<ul class="list-disc pl-6 prose prose-md max-w-none">${liMatches.join('')}</ul>`;
           }
         );
@@ -43,19 +43,19 @@ export function processContent(content: string): string {
       // Ensure ul elements have proper list styling classes
       processedContent = processedContent.replace(
         /<ul([^>]*)>/g, 
-        '<ul$1 class="list-disc pl-6 prose prose-md max-w-none">'
+        (_m, attrs: string) => (/\sclass\s*=/i.test(attrs) ? `<ul${attrs}>` : `<ul${attrs} class="list-disc pl-6 prose prose-md max-w-none">`)
       );
       
       // Ensure ol elements have proper list styling classes
       processedContent = processedContent.replace(
         /<ol([^>]*)>/g, 
-        '<ol$1 class="list-decimal list-inside mb-4">'
+        (_m, attrs: string) => (/\sclass\s*=/i.test(attrs) ? `<ol${attrs}>` : `<ol${attrs} class="list-decimal list-inside mb-4">`)
       );
       
       // Ensure li elements have proper styling
       processedContent = processedContent.replace(
         /<li([^>]*)>/g, 
-        '<li$1 class="mb-1">'
+        (_m, attrs: string) => (/\sclass\s*=/i.test(attrs) ? `<li${attrs}>` : `<li${attrs} class="mb-1">`)
       );
       
       return processedContent;
