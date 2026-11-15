@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 import { createServiceRoleClient } from '@/lib/supabase-server';
 
 // Fallback rates if database is not available
@@ -25,6 +26,9 @@ function getFallbackDescription(roleName: string): string {
 }
 
 export async function GET() {
+  const auth = await requireAuth();
+  if ('error' in auth) return auth.error;
+
   try {
     const supabase = createServiceRoleClient();
     

@@ -1581,7 +1581,7 @@ export class PDFGenerator {
     }
     
     if (Array.isArray(field)) {
-      return field;
+      return field.filter((x): x is string => typeof x === 'string');
     }
     
     return [];

@@ -6,7 +6,7 @@ export function parseObjectives(field: unknown): string[] {
   if (!field) return [];
   
   if (Array.isArray(field)) {
-    return field;
+    return field.filter((x): x is string => typeof x === 'string');
   }
   
   if (typeof field === 'string') {
@@ -28,7 +28,7 @@ export function parseObjectives(field: unknown): string[] {
     try {
       const parsed = JSON.parse(field);
       if (Array.isArray(parsed)) {
-        return parsed;
+        return parsed.filter((x): x is string => typeof x === 'string');
       }
     } catch {
       // If not JSON, treat as plain text

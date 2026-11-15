@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 import { createServiceRoleClient } from '@/lib/supabase-server';
 
 // GET - Fetch all active LeanData signatories (public endpoint)
 export async function GET() {
+  const auth = await requireAuth();
+  if ('error' in auth) return auth.error;
+
   try {
     const supabase = createServiceRoleClient();
     

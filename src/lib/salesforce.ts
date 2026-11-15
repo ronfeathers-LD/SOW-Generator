@@ -426,7 +426,7 @@ export class SalesforceClient {
       const query = `
         SELECT Id, Name, BillingStreet, BillingCity, BillingState, 
                BillingPostalCode, BillingCountry, Employee_Band__c,
-               Owner.Name, Owner.Email
+               NumberOfEmployees, Owner.Name, Owner.Email
         FROM Account
         WHERE Id = '${assertValidSalesforceId(accountId, 'account ID')}'
       `;
@@ -439,42 +439,29 @@ export class SalesforceClient {
       const account = result.records[0] as SalesforceAccount;
       
       // Use Employee_Band__c from Salesforce if available, otherwise calculate it
+      // from NumberOfEmployees (selected in the same query)
+      const numberOfEmployees = account.NumberOfEmployees;
+      // The count is only selected to derive the segment; keep the returned shape unchanged.
+      delete account.NumberOfEmployees;
       if (!account.Employee_Band__c) {
-        try {
-          // Get NumberOfEmployees to calculate segment if Employee_Band__c is not available
-          const employeeQuery = `SELECT NumberOfEmployees FROM Account WHERE Id = '${assertValidSalesforceId(accountId, 'account ID')}'`;
-          const employeeResult = await this.conn.query(employeeQuery);
-          
-          if (employeeResult.records.length > 0) {
-            const record = employeeResult.records[0];
-            const numberOfEmployees = record.NumberOfEmployees as number;
-            
-            // Calculate segment using the same formula logic as Salesforce
-            if (numberOfEmployees !== null && numberOfEmployees !== undefined && typeof numberOfEmployees === 'number') {
-              let calculatedSegment = '';
-              if (numberOfEmployees > 4500) {
-                calculatedSegment = 'LE';
-              } else if (numberOfEmployees >= 1001) {
-                calculatedSegment = 'EE';
-              } else if (numberOfEmployees >= 251) {
-                calculatedSegment = 'MM';
-              } else {
-                calculatedSegment = 'EC';
-              }
-              
-              account.Employee_Band__c = calculatedSegment;
-              console.log(`✅ Calculated Account Segment for ${account.Name}: ${calculatedSegment} (${numberOfEmployees} employees)`);
-            } else {
-              console.log(`⚠️ No employee count available for ${account.Name}, setting Account Segment to undefined`);
-              account.Employee_Band__c = undefined;
-            }
+        // Calculate segment using the same formula logic as Salesforce
+        if (typeof numberOfEmployees === 'number') {
+          let calculatedSegment = '';
+          if (numberOfEmployees > 4500) {
+            calculatedSegment = 'LE';
+          } else if (numberOfEmployees >= 1001) {
+            calculatedSegment = 'EE';
+          } else if (numberOfEmployees >= 251) {
+            calculatedSegment = 'MM';
           } else {
-            console.log(`⚠️ No account found for ID ${accountId}`);
-            account.Employee_Band__c = undefined;
+            calculatedSegment = 'EC';
           }
-        } catch (segmentError) {
-          console.error('Error calculating account segment:', segmentError);
-          console.log(`⚠️ Error calculating segment for ${account.Name}, keeping existing value: ${account.Employee_Band__c}`);
+
+          account.Employee_Band__c = calculatedSegment;
+          console.log(`✅ Calculated Account Segment for ${account.Name}: ${calculatedSegment} (${numberOfEmployees} employees)`);
+        } else {
+          console.log(`⚠️ No employee count available for ${account.Name}, setting Account Segment to undefined`);
+          account.Employee_Band__c = undefined;
         }
       } else {
         console.log(`✅ Using Employee_Band__c from Salesforce for ${account.Name}: ${account.Employee_Band__c}`);

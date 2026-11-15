@@ -103,6 +103,8 @@ interface AvomaConfig {
   customer_id: string | null;
 }
 
+const AVOMA_REQUEST_TIMEOUT_MS = 30000;
+
 class AvomaClient {
   private apiKey: string;
   private baseUrl: string;
@@ -118,6 +120,7 @@ class AvomaClient {
     // Request details logged
     
     const response = await fetch(url, {
+      signal: AbortSignal.timeout(AVOMA_REQUEST_TIMEOUT_MS),
       ...options,
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
@@ -170,7 +173,14 @@ class AvomaClient {
         // If nextPage is a full URL, use it directly
         if (nextPage.startsWith('http')) {
           // Using full pagination URL
-          return this.makeRequest(nextPage.replace(this.baseUrl, ''));
+          const base = new URL(this.baseUrl);
+          const next = new URL(nextPage);
+          if (next.origin !== base.origin) {
+            throw new Error('Avoma pagination URL does not match the configured API host');
+          }
+          const basePath = base.pathname.replace(/\/$/, '');
+          const path = next.pathname.startsWith(basePath) ? next.pathname.slice(basePath.length) : next.pathname;
+          return this.makeRequest(`${path}${next.search}`);
         } else {
           // Otherwise, add it as a page parameter
           params.append('page', nextPage);
