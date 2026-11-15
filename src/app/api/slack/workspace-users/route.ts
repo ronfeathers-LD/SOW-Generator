@@ -49,9 +49,9 @@ export async function GET(request: Request) {
     const now = Date.now();
     // Drop expired entries so the map cannot grow without bound
     if (rateLimitMap.size > 1000) {
-      for (const [ip, entry] of rateLimitMap) {
+      rateLimitMap.forEach((entry, ip) => {
         if (now >= entry.resetTime) rateLimitMap.delete(ip);
-      }
+      });
     }
     const clientData = rateLimitMap.get(clientIP);
     
