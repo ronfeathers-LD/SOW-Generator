@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { VALID_USER_ROLES } from '@/lib/utils/user-roles';
 
 // GET /api/admin/users/[id] - Get individual user details
 export async function GET(
@@ -48,12 +49,32 @@ export async function PATCH(
     const { id } = await params;
     const { role } = await request.json();
 
-    if (!role || !['user', 'manager', 'admin'].includes(role)) {
+    if (!role || !VALID_USER_ROLES.includes(role)) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
 
     const supabase = await createServerSupabaseClient();
-    
+
+    // An admin must not demote themselves (could leave no admin). The session
+    // id is the OAuth subject, not users.id, so compare by email.
+    if (role !== 'admin') {
+      const { data: target } = await supabase
+        .from('users')
+        .select('email')
+        .eq('id', id)
+        .single();
+      if (
+        target?.email &&
+        session.user.email &&
+        target.email.toLowerCase() === session.user.email.toLowerCase()
+      ) {
+        return NextResponse.json(
+          { error: 'You cannot remove your own admin role' },
+          { status: 400 }
+        );
+      }
+    }
+
     const { data: user, error } = await supabase
       .from('users')
       .update({ role })

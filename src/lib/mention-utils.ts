@@ -14,12 +14,14 @@ export interface MentionedUser {
  * Supports formats: @username, @user.name, @user-name
  */
 export function extractMentions(commentText: string): string[] {
-  const mentionRegex = /@([a-zA-Z0-9._-]+)/g;
+  // The lookbehind skips the @ inside an email address (john@leandata.com).
+  const mentionRegex = /(?<![A-Za-z0-9._%+-])@([a-zA-Z0-9._-]+)/g;
   const mentions: string[] = [];
   let match;
 
   while ((match = mentionRegex.exec(commentText)) !== null) {
-    const username = match[1];
+    // Drop trailing punctuation picked up from the sentence ("@john.").
+    const username = match[1].replace(/[._-]+$/, '');
     if (username && !mentions.includes(username)) {
       mentions.push(username);
     }

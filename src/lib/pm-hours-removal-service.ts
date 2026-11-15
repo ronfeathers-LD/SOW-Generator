@@ -489,19 +489,26 @@ export class PMHoursRemovalService {
         return { success: false, error: 'Cannot remove PM hours from an already-approved SOW' };
       }
 
-      // Update the request status
-      const { error: updateError } = await client
+      // Update the request status. Guarded on status so a concurrent
+      // approve/reject can't both win (audit #161).
+      const { data: updatedRows, error: updateError } = await client
         .from('pm_hours_removal_requests')
         .update({
           status: 'approved',
           approved_at: new Date().toISOString(),
           approval_comments: comments?.trim() || null
         })
-        .eq('id', requestId);
+        .eq('id', requestId)
+        .eq('status', 'pending')
+        .select('id');
 
       if (updateError) {
         console.error('Error updating request:', updateError);
         return { success: false, error: 'Failed to approve request' };
+      }
+
+      if (!updatedRows || updatedRows.length === 0) {
+        return { success: false, error: 'Request was already processed' };
       }
 
       // Authoritatively strip the Project Manager role from the SOW's pricing so the
@@ -632,19 +639,25 @@ export class PMHoursRemovalService {
         return { success: false, error: 'Request is not pending approval' };
       }
 
-      // Update the request status
-      const { error: updateError } = await client
+      // Update the request status, guarded on status (audit #161).
+      const { data: updatedRows, error: updateError } = await client
         .from('pm_hours_removal_requests')
         .update({
           status: 'rejected',
           rejected_at: new Date().toISOString(),
           rejection_reason: reason.trim()
         })
-        .eq('id', requestId);
+        .eq('id', requestId)
+        .eq('status', 'pending')
+        .select('id');
 
       if (updateError) {
         console.error('Error updating request:', updateError);
         return { success: false, error: 'Failed to reject request' };
+      }
+
+      if (!updatedRows || updatedRows.length === 0) {
+        return { success: false, error: 'Request was already processed' };
       }
 
       // Log the rejection
@@ -1078,7 +1091,8 @@ export class PMHoursRemovalService {
       }
 
       // Update the request status back to pending
-      const { error: updateError } = await client
+      // Guarded on the status we read so a concurrent reverse can't double-restore (audit #161).
+      const { data: updatedRows, error: updateError } = await client
         .from('pm_hours_removal_requests')
         .update({
           status: 'pending',
@@ -1087,11 +1101,17 @@ export class PMHoursRemovalService {
           approval_comments: `Reversed by admin: ${reason}`,
           rejection_reason: null
         })
-        .eq('id', requestId);
+        .eq('id', requestId)
+        .eq('status', request.status)
+        .select('id');
 
       if (updateError) {
         console.error('Error updating request:', updateError);
         return { success: false, error: 'Failed to reverse request' };
+      }
+
+      if (!updatedRows || updatedRows.length === 0) {
+        return { success: false, error: 'Request was already processed' };
       }
 
       // If the request was approved, we need to revert the SOW changes
@@ -1326,7 +1346,7 @@ export class PMHoursRemovalService {
       const emailService = await getEmailService();
       if (emailService) {
         await emailService.sendPMHoursRemovalApprovalNotification(
-          request.id,
+          request.sow_id,
           sow.sow_title,
           sow.client_name,
           requester.email,
@@ -1415,7 +1435,7 @@ export class PMHoursRemovalService {
       const emailService = await getEmailService();
       if (emailService) {
         await emailService.sendPMHoursRemovalRejectionNotification(
-          request.id,
+          request.sow_id,
           sow.sow_title,
           sow.client_name,
           requester.email,
