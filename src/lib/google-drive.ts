@@ -1,4 +1,4 @@
-import { google } from 'googleapis';
+import { google, drive_v3 } from 'googleapis';
 import { GeminiClient } from './gemini';
 import { Readable } from 'stream';
 import { createLimiter } from './utils/map-with-concurrency';
@@ -55,6 +55,8 @@ interface FolderSearchQuery {
   maxResults?: number;
 }
 
+const DRIVE_CONTENT_TIMEOUT_MS = 30000;
+
 export class GoogleDriveService {
   private drive!: ReturnType<typeof google.drive>;
   private geminiClient: GeminiClient | null = null;
@@ -73,7 +75,7 @@ export class GoogleDriveService {
 
   // Escape single quotes in Drive query values
   private static escapeQueryValue(value: string): string {
-    return value.replace(/'/g, "\\'");
+    return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   }
 
   // Normalize a customer or folder name for comparison/search
@@ -209,7 +211,7 @@ Only include fields that are relevant to the query. If no specific folder name i
       
       // Use exact name matching first for better performance
       if (searchParams.folderName) {
-        query += ` and name='${searchParams.folderName}'`;
+        query += ` and name='${GoogleDriveService.escapeQueryValue(searchParams.folderName)}'`;
       } else if (searchParams.query) {
         // For customer name searches, use name contains instead of fullText for better performance
         const normalizedQuery = GoogleDriveService.normalizeName(searchParams.query);
@@ -417,12 +419,20 @@ Only include fields that are relevant to the query. If no specific folder name i
         };
       }
 
-      // Get subfolders
-      const subfolders = await limit(() => this.drive.files.list({
-        q: `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder'`,
-        fields: 'files(id,name,mimeType,parents,webViewLink,createdTime,modifiedTime)',
-        orderBy: 'name'
-      }));
+      // Get subfolders (follow nextPageToken so folders past the first page are not dropped)
+      const subfolderFiles: drive_v3.Schema$File[] = [];
+      let pageToken: string | undefined;
+      do {
+        const token = pageToken;
+        const page = await limit(() => this.drive.files.list({
+          q: `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder'`,
+          fields: 'nextPageToken,files(id,name,mimeType,parents,webViewLink,createdTime,modifiedTime)',
+          orderBy: 'name',
+          pageToken: token
+        }));
+        subfolderFiles.push(...(page.data.files || []));
+        pageToken = page.data.nextPageToken || undefined;
+      } while (pageToken);
 
       const folderData: FolderStructure = {
         id: folder.data.id || '',
@@ -437,7 +447,7 @@ Only include fields that are relevant to the query. If no specific folder name i
 
       // Siblings are independent; Promise.all keeps the listing's name order.
       folderData.subfolders = await Promise.all(
-        (subfolders.data.files || [])
+        subfolderFiles
           .filter((subfolder): subfolder is typeof subfolder & { id: string } => !!subfolder.id)
           .map(subfolder => this.getFolderStructureLimited(subfolder.id, maxDepth - 1, limit))
       );
@@ -558,47 +568,26 @@ Please provide:
         // Convert base64 to buffer
         const buffer = Buffer.from(fileContent, 'base64');
         
-        try {
-          // Convert buffer to Readable stream to avoid pipe error
-          const stream = new Readable();
-          stream.push(buffer);
-          stream.push(null); // End the stream
-          
-          // Use stream instead of buffer
-          const response = await this.drive.files.create({
-            requestBody: fileMetadata,
-            media: {
-              mimeType: fileType,
-              body: stream
-            },
-            fields: 'id,name,webViewLink'
-          });
+        // Convert buffer to Readable stream to avoid pipe error
+        const stream = new Readable();
+        stream.push(buffer);
+        stream.push(null); // End the stream
+        
+        // Use stream instead of buffer
+        const response = await this.drive.files.create({
+          requestBody: fileMetadata,
+          media: {
+            mimeType: fileType,
+            body: stream
+          },
+          fields: 'id,name,webViewLink'
+        });
 
-          return {
-            id: response.data.id || '',
-            name: response.data.name || fileName,
-            webViewLink: response.data.webViewLink || undefined
-          };
-        } catch (uploadError) {
-          console.error('Error uploading file with content:', uploadError);
-          
-          // Fallback: create empty file
-          try {
-            const response = await this.drive.files.create({
-              requestBody: fileMetadata,
-              fields: 'id,name,webViewLink'
-            });
-            
-            return {
-              id: response.data.id || '',
-              name: response.data.name || fileName,
-              webViewLink: response.data.webViewLink || undefined
-            };
-          } catch (createError) {
-            console.error('Error creating empty file:', createError);
-            throw new Error(`Failed to create file: ${createError instanceof Error ? createError.message : 'Unknown error'}`);
-          }
-        }
+        return {
+          id: response.data.id || '',
+          name: response.data.name || fileName,
+          webViewLink: response.data.webViewLink || undefined
+        };
       } else {
         // Create an empty file if no content provided
         const response = await this.drive.files.create({
@@ -772,28 +761,28 @@ Please provide:
           const exportResponse = await this.drive.files.export({
             fileId: documentId,
             mimeType: 'text/plain'
-          });
+          }, { timeout: DRIVE_CONTENT_TIMEOUT_MS });
           content = exportResponse.data as string;
         } else if (mimeType === 'application/vnd.google-apps.spreadsheet') {
           // Google Sheets - export as CSV
           const exportResponse = await this.drive.files.export({
             fileId: documentId,
             mimeType: 'text/csv'
-          });
+          }, { timeout: DRIVE_CONTENT_TIMEOUT_MS });
           content = exportResponse.data as string;
         } else if (mimeType === 'application/vnd.google-apps.presentation') {
           // Google Slides - export as plain text
           const exportResponse = await this.drive.files.export({
             fileId: documentId,
             mimeType: 'text/plain'
-          });
+          }, { timeout: DRIVE_CONTENT_TIMEOUT_MS });
           content = exportResponse.data as string;
         } else if (mimeType === 'text/plain' || mimeType === 'text/csv') {
           // Plain text / CSV - safe to download as a string.
           const downloadResponse = await this.drive.files.get({
             fileId: documentId,
             alt: 'media'
-          });
+          }, { timeout: DRIVE_CONTENT_TIMEOUT_MS });
           content = downloadResponse.data as string;
         } else {
           // Binary formats (e.g. application/pdf) can't be cast to a string —
