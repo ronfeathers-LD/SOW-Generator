@@ -1,5 +1,24 @@
 import * as jsforce from 'jsforce';
 
+/**
+ * True when `error` carries the given Salesforce error code. jsforce sets the
+ * code on `errorCode` and/or `name`; the message substring match is kept as a
+ * fallback for errors that only carry it in the text.
+ */
+export function hasSalesforceErrorCode(error: unknown, code: string): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const { errorCode, name, message } = error as {
+    errorCode?: unknown;
+    name?: unknown;
+    message?: unknown;
+  };
+  return (
+    errorCode === code ||
+    name === code ||
+    (typeof message === 'string' && message.includes(code))
+  );
+}
+
 export interface SalesforceAccount {
   Id: string;
   Name: string;
@@ -207,7 +226,7 @@ export class SalesforceClient {
         // Authentication successful with password + token
       } catch (error) {
         // If that fails, try with password only (in case token is already appended)
-        if (error instanceof Error && error.message.includes('INVALID_LOGIN')) {
+        if (hasSalesforceErrorCode(error, 'INVALID_LOGIN')) {
           // First attempt failed, trying with password only
           await this.conn.login(username, password);
           // Authentication successful with password only
@@ -260,15 +279,15 @@ export class SalesforceClient {
       
       // Provide more specific error information
       if (error instanceof Error) {
-        if (error.message.includes('INVALID_LOGIN')) {
+        if (hasSalesforceErrorCode(error, 'INVALID_LOGIN')) {
           throw new Error('Invalid username or password. Please check your credentials for this specific org.');
-        } else if (error.message.includes('INVALID_CLIENT_ID')) {
+        } else if (hasSalesforceErrorCode(error, 'INVALID_CLIENT_ID')) {
           throw new Error('Invalid client ID or security token. Try resetting your security token.');
-        } else if (error.message.includes('LOGIN_MUST_USE_SECURITY_TOKEN')) {
+        } else if (hasSalesforceErrorCode(error, 'LOGIN_MUST_USE_SECURITY_TOKEN')) {
           throw new Error('Security token required. Please add your security token.');
-        } else if (error.message.includes('INVALID_GRANT')) {
+        } else if (hasSalesforceErrorCode(error, 'INVALID_GRANT')) {
           throw new Error('Invalid grant. Please check your username, password, and security token.');
-        } else if (error.message.includes('INSUFFICIENT_ACCESS')) {
+        } else if (hasSalesforceErrorCode(error, 'INSUFFICIENT_ACCESS')) {
           throw new Error('Insufficient access. Check your user permissions in Salesforce.');
         } else {
           throw new Error(`Authentication failed: ${error.message}`);
