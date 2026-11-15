@@ -9,6 +9,7 @@ import { getPricingSummary, toPricingRolesObject } from '@/lib/sow/pricing-summa
 import { recalculateNeedsConfirm } from '@/lib/sow/recalculate-guard';
 import { removePmRoleRestoringOs } from '@/lib/sow/pricing-roles-edit';
 import { Card, Field, Select, Input, Textarea, SectionHeader, Button } from '@/components/ui/form';
+import { isLinksProductById } from '@/lib/constants/products';
 import type { Product } from '@/lib/constants/products';
 import type { PricingRole } from '@/types/sow';
 
@@ -168,12 +169,8 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
         const pendingRequest = data.requests.find((req: PMHoursRequirementDisableRequest) => req.status === 'pending');
         const approvedRequest = data.requests.find((req: PMHoursRequirementDisableRequest) => req.status === 'approved');
         
-        if (pendingRequest) {
-          setPendingPMHoursRequest(pendingRequest);
-        }
-        if (approvedRequest) {
-          setApprovedPMHoursRequest(approvedRequest);
-        }
+        setPendingPMHoursRequest(pendingRequest ?? null);
+        setApprovedPMHoursRequest(approvedRequest ?? null);
       }
     } catch (error) {
       console.error('Error checking PM hours status:', error);
@@ -467,6 +464,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
   // Hours displayed for any PM-removal modals: read the PM row's hours from the
   // stored table (0 when no PM row / PM hours removed).
   const pmHoursFromTable = summary.roles.find(role => role.role === 'Project Manager')?.hours ?? 0;
+  const pmRate = summary.roles.find(role => role.role === 'Project Manager')?.rate ?? 250;
 
   // Get account segment from formData or selectedAccount (unused variable removed)
 
@@ -544,7 +542,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
           <div className="lg:col-span-2 space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-gray-700">
-                {formData.template?.products?.length || 0} objects 
+                {(formData.template?.products || []).filter(id => !isLinksProductById(id)).length} objects 
                 <button 
                   onClick={() => setShowPricingCalculator(true)}
                   className="ml-1 text-blue-600 hover:text-blue-800 underline"
@@ -558,7 +556,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
             
             <div className="flex justify-between items-center">
               <span className="text-gray-700">
-                {totalUnits} users ({Math.ceil(totalUnits / 50)} × 50):
+                {totalUnits} users ({Math.floor(totalUnits / 50)} × 50):
               </span>
               <span className="font-medium">{userGroupHours} hours</span>
             </div>
@@ -1086,7 +1084,7 @@ const PricingRolesAndDiscount: React.FC<PricingRolesAndDiscountProps> = React.me
                 <p className="text-sm text-red-600">Current PM Hours</p>
                 <p className="text-lg font-semibold text-red-900">{pmHoursFromTable} hours</p>
                 <p className="text-xs text-red-600">
-                  Financial Impact: ${(pmHoursFromTable * 250).toLocaleString()}
+                  Financial Impact: ${(pmHoursFromTable * pmRate).toLocaleString()}
                 </p>
               </div>
 
