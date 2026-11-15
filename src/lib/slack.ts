@@ -163,7 +163,9 @@ class SlackService {
     try {
       // Format mentions as Slack user mentions
       const mentionText = mentions.map(userId => `<@${userId}>`).join(' ');
-      const fullMessage = mentions.length > 0 ? `${mentionText} ${escapeSlackText(message)}` : escapeSlackText(message);
+      // `message` is mrkdwn built by the caller (it contains <url|label> links),
+      // so it is NOT escaped here; callers escape the values they interpolate.
+      const fullMessage = mentions.length > 0 ? `${mentionText} ${message}` : message;
 
       const payload: SlackMessage = {
         text: fullMessage,

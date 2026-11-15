@@ -107,6 +107,15 @@ describe('SlackService staging gate (no network — fetch is stubbed)', () => {
     expect(body.username).toBe('SOW Generator · STAGE');
   });
 
+  it('leaves caller-built mrkdwn (links, already-escaped text) intact in sendMessageWithMentions', async () => {
+    await service.sendMessageWithMentions('Tom &amp; Co <https://x.test/sow/1|View SOW>', ['U123']);
+    const body = lastSentBody();
+    expect(body.text).toContain('<https://x.test/sow/1|View SOW>');
+    expect(body.text).toContain('Tom &amp; Co');
+    expect(body.text).not.toContain('&lt;');
+    expect(body.text).not.toContain('&amp;amp;');
+  });
+
   it('prepends the staging context block on sendRichMessage when staging', async () => {
     process.env.NEXT_PUBLIC_APP_ENV = 'staging';
     await service.sendRichMessage([{ type: 'divider' }]);
