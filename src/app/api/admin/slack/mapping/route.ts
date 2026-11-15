@@ -84,20 +84,31 @@ export async function POST(request: NextRequest) {
       SlackUserMappingService.initialize(botToken);
 
       if (slack_user_id && slack_username) {
-        // Manual mapping with provided Slack details
-        const success = await SlackUserMappingService.mapUserAtLogin(email);
-        
-        if (success) {
-          return NextResponse.json({
-            success: true,
-            message: `Successfully mapped ${email} to Slack user ${slack_username}`
-          });
-        } else {
+        // Manual mapping: write the admin-supplied Slack details directly
+        // (mapUserAtLogin would ignore them and re-look-up by email).
+        const supabase = await import('@/lib/supabase-server').then(m => m.createServerSupabaseClient());
+
+        const { error } = await supabase
+          .from('users')
+          .update({
+            slack_user_id,
+            slack_username,
+            slack_mapping_updated_at: new Date().toISOString()
+          })
+          .eq('email', email);
+
+        if (error) {
+          console.error('Manual Slack mapping update failed:', error);
           return NextResponse.json({
             success: false,
             message: `Failed to map ${email} to Slack`
           }, { status: 400 });
         }
+
+        return NextResponse.json({
+          success: true,
+          message: `Successfully mapped ${email} to Slack user ${slack_username}`
+        });
       } else {
         // Auto-mapping by email only
         try {
