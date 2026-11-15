@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { logInvalidEmailWarning } from './utils/email-domain-validation';
+import { escapeHtml } from './utils/escape-html';
 import { getSOWUrl, getPMHoursRemovalUrl } from './utils/app-url';
 import { isStagingDeploy } from './deploy-env';
 import { decryptEmailSecrets, plaintextSecretsToEncrypt } from './email-config-secrets';
@@ -150,28 +151,19 @@ class EmailService {
         return false;
       }
 
-      // Replace variables in template. Values are HTML-escaped before going
-      // into htmlContent so a value can't inject markup/script (audit #75).
-      const escapeHtml = (v: unknown) =>
-        String(v ?? '')
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#39;');
-      const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Replace variables in template in a single pass so a value containing
+      // "{{otherKey}}" is never re-substituted (audit #75). Values are
+      // HTML-escaped before going into htmlContent so a value can't inject
+      // markup/script.
+      const fill = (source: string, encode: (v: unknown) => string) =>
+        source.replace(/{{([^{}]+)}}/g, (match, key: string) =>
+          Object.prototype.hasOwnProperty.call(variables, key) ? encode(variables[key]) : match
+        );
+      const raw = (v: unknown) => String(v ?? '');
 
-      let subject = template.subject;
-      let htmlContent = template.htmlContent;
-      let textContent = template.textContent || '';
-
-      Object.entries(variables).forEach(([key, value]) => {
-        const regex = new RegExp(`{{${escapeRegExp(key)}}}`, 'g');
-        const raw = String(value ?? '');
-        subject = subject.replace(regex, raw);
-        htmlContent = htmlContent.replace(regex, escapeHtml(value));
-        textContent = textContent.replace(regex, raw);
-      });
+      let subject = fill(template.subject, raw);
+      let htmlContent = fill(template.htmlContent, escapeHtml);
+      let textContent = fill(template.textContent || '', raw);
 
       // Staging deploys send to real recipients (full prod copy) — make the
       // traffic unmistakably labeled. Single chokepoint: every send path in
@@ -501,7 +493,7 @@ class EmailService {
    * Send PM hours removal approval notification to requester
    */
   async sendPMHoursRemovalApprovalNotification(
-    requestId: string,
+    sowId: string,
     sowTitle: string,
     clientName: string,
     requesterEmail: string,
@@ -510,7 +502,7 @@ class EmailService {
     hoursRemoved: number,
     comments: string
   ): Promise<boolean> {
-    if (!this.config.apiKey || !this.config.fromEmail) {
+    if (!this.config.isActive || !this.config.fromEmail) {
       console.error('Email service not configured');
       return false;
     }
@@ -543,7 +535,7 @@ class EmailService {
       `
     };
 
-    const sowUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/sow/${requestId}/edit`;
+    const sowUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/sow/${sowId}/edit`;
 
     return this.sendTemplateEmail(template, requesterEmail, {
       sowTitle,
@@ -559,7 +551,7 @@ class EmailService {
    * Send PM hours removal rejection notification to requester
    */
   async sendPMHoursRemovalRejectionNotification(
-    requestId: string,
+    sowId: string,
     sowTitle: string,
     clientName: string,
     requesterEmail: string,
@@ -568,7 +560,7 @@ class EmailService {
     hoursRequested: number,
     reason: string
   ): Promise<boolean> {
-    if (!this.config.apiKey || !this.config.fromEmail) {
+    if (!this.config.isActive || !this.config.fromEmail) {
       console.error('Email service not configured');
       return false;
     }
@@ -601,7 +593,7 @@ class EmailService {
       `
     };
 
-    const sowUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/sow/${requestId}/edit`;
+    const sowUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/sow/${sowId}/edit`;
 
     return this.sendTemplateEmail(template, requesterEmail, {
       sowTitle,
