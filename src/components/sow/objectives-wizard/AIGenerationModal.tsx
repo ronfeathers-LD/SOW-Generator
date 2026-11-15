@@ -36,7 +36,7 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentMessage, setCurrentMessage] = useState(0);
-  const [messageTimer, setMessageTimer] = useState<NodeJS.Timeout | null>(null);
+  const messageTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const analysisMessages = [
     '🔍 Analyzing selected documents and meetings...',
@@ -47,35 +47,28 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
     '✨ Finalizing results...',
   ];
 
-  const startAnalysisMessages = useCallback(() => {
-    if (messageTimer) {
-      clearInterval(messageTimer);
+  const stopAnalysisMessages = useCallback(() => {
+    if (messageTimerRef.current) {
+      clearInterval(messageTimerRef.current);
+      messageTimerRef.current = null;
     }
-    
+  }, []);
+
+  const startAnalysisMessages = useCallback(() => {
+    stopAnalysisMessages();
     setCurrentMessage(0);
-    
-    const timer = setInterval(() => {
+
+    messageTimerRef.current = setInterval(() => {
       setCurrentMessage(prev => {
         const next = prev + 1;
         if (next >= analysisMessages.length - 1) {
-          if (messageTimer) {
-            clearInterval(messageTimer);
-          }
+          stopAnalysisMessages();
           return analysisMessages.length - 1;
         }
         return next;
       });
     }, 5000);
-    
-    setMessageTimer(timer);
-  }, [messageTimer, analysisMessages.length]);
-
-  const stopAnalysisMessages = useCallback(() => {
-    if (messageTimer) {
-      clearInterval(messageTimer);
-      setMessageTimer(null);
-    }
-  }, [messageTimer]);
+  }, [stopAnalysisMessages, analysisMessages.length]);
 
   const generateObjectives = useCallback(async () => {
     // Check if we have any content sources available
@@ -118,6 +111,7 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
 
       const response = await fetch('/api/gemini/analyze-transcription', {
         method: 'POST',
+        signal: AbortSignal.timeout(90000),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -147,14 +141,7 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
         throw new Error('Invalid response format from AI analysis');
       }
 
-      // Handle both painPoints and overcomingActions for backward compatibility
-      let painPoints: string[] = [];
-      
-      if (result.painPoints && Array.isArray(result.painPoints)) {
-        painPoints = result.painPoints;
-      } else if (result.overcomingActions && Array.isArray(result.overcomingActions)) {
-        painPoints = result.overcomingActions;
-      }
+      const painPoints: string[] = Array.isArray(result.overcomingActions) ? result.overcomingActions : [];
 
       // Deliverables + scope HTML come from shared builders that accept BOTH
       // the legacy flat solutions map and the new SVF pillar array. (P4a)
@@ -182,7 +169,11 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
 
     } catch (error) {
       console.error('Error generating objectives:', error);
-      setError(error instanceof Error ? error.message : 'Failed to generate objectives. Please try again.');
+      if (error instanceof DOMException && error.name === 'TimeoutError') {
+        setError('AI generation timed out. Please try again.');
+      } else {
+        setError(error instanceof Error ? error.message : 'Failed to generate objectives. Please try again.');
+      }
     } finally {
       setIsGenerating(false);
       stopAnalysisMessages();
@@ -190,13 +181,7 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
   }, [wizardData, formData, selectedAccount, onSuccess, onClose, startAnalysisMessages, stopAnalysisMessages]);
 
   // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (messageTimer) {
-        clearInterval(messageTimer);
-      }
-    };
-  }, [messageTimer]);
+  useEffect(() => stopAnalysisMessages, [stopAnalysisMessages]);
 
   // Guards the auto-run below so a failed attempt runs ONCE instead of
   // retrying forever. Without this, `isGenerating` flipping back to `false`

@@ -45,6 +45,8 @@ export function shouldTryNextModel(error: unknown): boolean {
   );
 }
 
+const GEMINI_REQUEST_TIMEOUT_MS = 60000;
+
 class GeminiClient {
   private ai: GoogleGenAI;
   private modelName: string;
@@ -69,6 +71,7 @@ class GeminiClient {
     const response = await this.ai.models.generateContent({
       model: this.modelName,
       contents: prompt,
+      config: { httpOptions: { timeout: GEMINI_REQUEST_TIMEOUT_MS } },
     });
     return response.text ?? '';
   }
@@ -455,10 +458,9 @@ ${transcript}
           }
         }
 
-        // If JSON parsing failed or content doesn't look like JSON, try HTML processing
+        // JSON parsing failed: surface it rather than returning a success-looking placeholder
         if (cleanedContent.startsWith('<') || cleanedContent.includes('>')) {
-          console.log('Processing as HTML content');
-          return { customerName: customerName, objectiveOverview: 'Objective could not be extracted', overcomingActions: [], solutions: {}, isFallback: true };
+          throw new Error('AI response did not contain valid JSON');
         }
 
         // If neither JSON nor HTML, throw error
@@ -521,33 +523,6 @@ ${transcript}
         console.error('Failed to log Gemini call:', loggingError);
       }
     }
-  }
-
-  /**
-   * Extract fallback content when JSON parsing fails
-   */
-  private extractFallbackContent(content: string): { objective: string; scopeItems: string[] } {
-    // Try to find any structured content
-    const lines = content.split('\n').filter(line => line.trim().length > 0);
-    const scopeItems: string[] = [];
-    let objective = '';
-    
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('-') || trimmed.startsWith('*') || trimmed.startsWith('•')) {
-        scopeItems.push(trimmed.substring(1).trim());
-      } else if (trimmed.length > 50 && !objective) {
-        objective = trimmed;
-      }
-    }
-    
-    console.log('Extracted objective:', objective);
-    console.log('Extracted scope items:', scopeItems);
-    
-    return {
-      objective: objective || 'Project objective could not be extracted',
-      scopeItems: scopeItems.length > 0 ? scopeItems : ['Manual lead routing and assignment processes']
-    };
   }
 }
 
