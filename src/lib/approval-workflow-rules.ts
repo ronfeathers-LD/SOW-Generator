@@ -21,7 +21,7 @@ type PricingRolesField =
   | null
   | undefined;
 
-function extractPricingRolesArray(field: PricingRolesField): PricingRoleEntry[] {
+export function extractPricingRolesArray(field: PricingRolesField): PricingRoleEntry[] {
   if (!field) return [];
   if (Array.isArray(field)) return field;
   if (Array.isArray(field.roles)) return field.roles;

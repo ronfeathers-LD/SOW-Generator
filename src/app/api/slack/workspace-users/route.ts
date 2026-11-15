@@ -36,12 +36,23 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('query')?.toLowerCase().trim();
     
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Rate limiting check
     const clientIP = request.headers.get('x-forwarded-for') || 
                     request.headers.get('x-real-ip') || 
                     'unknown';
     
     const now = Date.now();
+    // Drop expired entries so the map cannot grow without bound
+    if (rateLimitMap.size > 1000) {
+      for (const [ip, entry] of rateLimitMap) {
+        if (now >= entry.resetTime) rateLimitMap.delete(ip);
+      }
+    }
     const clientData = rateLimitMap.get(clientIP);
     
     if (clientData && now < clientData.resetTime) {
@@ -57,11 +68,6 @@ export async function GET(request: Request) {
       rateLimitMap.set(clientIP, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
     }
     
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     // Check if we have valid cached data first (only for non-search queries to avoid cache misses)
     if (!query && isCacheValid() && userCache.data && userCache.data.length > 0) {
       console.log(`Returning ${userCache.data!.length} users from cache`);
